@@ -34,6 +34,14 @@ cat AGENT_USAGE.md
 ./nv-agent eval --run outputs/runs/rag-YYYYMMDD-HHMMSS
 ```
 
+若 Agent 要明確指定 runtime 模型與 endpoint source：
+
+```bash
+./nv-agent plan --request "我要生一張產品海報" \
+  --select-model image_generator=black-forest-labs/flux.1-schnell \
+  --save
+```
+
 ## 驗證
 ```bash
 cd /Users/w.rc/nvdiaOSsupport
@@ -79,6 +87,7 @@ cd /Users/w.rc/nvdiaOSsupport
 
 ```bash
 ./nv-agent plan --request "我要做企業知識庫問答" --save
+./nv-agent plan --request "我要生一張產品海報" --select-model image_generator=black-forest-labs/flux.1-schnell --save
 ```
 
 執行計畫並留下 run manifest：

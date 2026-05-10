@@ -42,6 +42,11 @@
 - 已建立架構設定：
   - `configs/model_registry.json`
   - `configs/task_profiles.json`
+- 已建立 runtime router：
+  - `workflows/common.py` 會從 `configs/model_registry.json` 解析 role、model id、endpoint type、endpoint url。
+  - `./nv-agent plan --select-model ROLE=MODEL_ID` 可讓 Agent 指定每個任務單元的模型來源。
+  - `./nv-agent run-plan --select-model ROLE=MODEL_ID ...` 可在執行前覆蓋來源。
+  - image / safety / cuOpt workflow 已支援 registry endpoint source 與 CLI 覆蓋。
 
 ## Git Checkpoints
 - `338986f docs(nvidia): baseline model inventory and skill plan`
@@ -78,6 +83,7 @@ git log --oneline -5
 - `nv-agent workflows`、`nv-agent search`、`nv-agent advise`、`nv-agent run rag` 已實測。
 - `nv-agent plan`、`nv-agent run-plan`、`nv-agent eval` 已實測一輪 RAG 閉環。
 - `AGENTS.md` 與 `AGENT_USAGE.md` 已納入驗證腳本，確保後續 agent 有固定入口。
+- image runtime router 已用 dry-run 驗證會輸出 `--model` 與 `--endpoint-url`。
 
 ## 後續可做
 1. 加 `agents/openai.yaml` UI metadata。
@@ -86,6 +92,7 @@ git log --oneline -5
 4. 視需求把 `search_models.py` 加上 `--top-category-summary` 或 fuzzy ranking。
 5. 若要更實用，補上本地文件切 chunk / PDF 轉圖 / OCR 結果快取。
 6. 加 parallel runner 與 leaderboard，追蹤同任務多模型輸出品質。
+7. 將 OCR/RAG 的 endpoint source 也改成完整 registry-driven，而不只傳入 model id。
 
 ## 注意事項
 - 這個專案不需要 `.agent-handoff.md`。
