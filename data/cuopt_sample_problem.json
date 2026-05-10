@@ -1,0 +1,16 @@
+{
+  "cost_matrix_data": {
+    "data": {
+      "0": [
+        [0, 1],
+        [1, 0]
+      ]
+    }
+  },
+  "task_data": {
+    "task_locations": [0, 1]
+  },
+  "fleet_data": {
+    "vehicle_locations": [[0, 0], [0, 0]]
+  }
+}
