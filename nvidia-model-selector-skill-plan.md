@@ -86,12 +86,12 @@ Use this skill to help choose NVIDIA Build Models and turn them into implementat
 支援參數：
 
 ```bash
-python scripts/search_models.py --category RAG
-python scripts/search_models.py --subcategory OCR
-python scripts/search_models.py --query "文件解析"
-python scripts/search_models.py --model bge-m3
-python scripts/search_models.py --service "Embedding API"
-python scripts/search_models.py --limit 10
+python3 scripts/search_models.py --category RAG
+python3 scripts/search_models.py --subcategory OCR
+python3 scripts/search_models.py --query "文件解析"
+python3 scripts/search_models.py --model bge-m3
+python3 scripts/search_models.py --service "Embedding API"
+python3 scripts/search_models.py --limit 10
 ```
 
 輸出欄位：
@@ -152,9 +152,9 @@ python scripts/search_models.py --limit 10
 5. 建立 `scripts/search_models.py`，用 Python 標準函式庫 `csv` / `argparse` 即可，不需要額外依賴。
 6. 驗證查詢：
    ```bash
-   python /Users/w.rc/.config/agents/skills/nvidia-model-selector/scripts/search_models.py --query RAG --limit 5
-   python /Users/w.rc/.config/agents/skills/nvidia-model-selector/scripts/search_models.py --model bge-m3
-   python /Users/w.rc/.config/agents/skills/nvidia-model-selector/scripts/search_models.py --service "Embedding API" --limit 5
+   python3 /Users/w.rc/.config/agents/skills/nvidia-model-selector/scripts/search_models.py --query RAG --limit 5
+   python3 /Users/w.rc/.config/agents/skills/nvidia-model-selector/scripts/search_models.py --model bge-m3
+   python3 /Users/w.rc/.config/agents/skills/nvidia-model-selector/scripts/search_models.py --service "Embedding API" --limit 5
    ```
 
 ## 驗收標準
