@@ -8,18 +8,15 @@ handled at runtime through CLI flags or env defaults.
 from __future__ import annotations
 
 import argparse
-import json
 import math
-import os
 import sys
-import urllib.error
-import urllib.request
 from pathlib import Path
+
+from common import load_dotenv, post_json, require_env
 
 
 ROOT_DIR = Path(__file__).resolve().parent.parent
 DEFAULT_DOCS = ROOT_DIR / "data" / "sample_kb.txt"
-ENV_FILE = ROOT_DIR / ".env"
 EMBEDDING_URL = "https://integrate.api.nvidia.com/v1/embeddings"
 CHAT_URL = "https://integrate.api.nvidia.com/v1/chat/completions"
 INPUT_TYPE_MODELS = (
@@ -30,19 +27,6 @@ INPUT_TYPE_MODELS = (
     "nvidia/llama-nemotron-embed-1b-v2",
     "nvidia/llama-nemotron-embed-vl-1b-v2",
 )
-
-
-def load_dotenv(path: Path) -> None:
-    if not path.exists():
-        return
-    for raw_line in path.read_text(encoding="utf-8").splitlines():
-        line = raw_line.strip()
-        if not line or line.startswith("#") or "=" not in line:
-            continue
-        key, value = line.split("=", 1)
-        key = key.strip()
-        value = value.strip().strip('"').strip("'")
-        os.environ.setdefault(key, value)
 
 
 def parse_args() -> argparse.Namespace:
@@ -62,16 +46,6 @@ def parse_args() -> argparse.Namespace:
     )
     return parser.parse_args()
 
-
-def require_env(name: str) -> str:
-    value = os.environ.get(name)
-    if not value:
-        raise SystemExit(
-            f"Missing {name}. Put it in {ENV_FILE} or export it before running this workflow."
-        )
-    return value
-
-
 def read_documents(path: Path) -> list[str]:
     if not path.exists():
         raise SystemExit(f"Documents file not found: {path}")
@@ -80,27 +54,6 @@ def read_documents(path: Path) -> list[str]:
     if not docs:
         raise SystemExit(f"No document chunks found in {path}")
     return docs
-
-
-def post_json(url: str, api_key: str, payload: dict) -> dict:
-    request = urllib.request.Request(
-        url,
-        data=json.dumps(payload).encode("utf-8"),
-        headers={
-            "Authorization": f"Bearer {api_key}",
-            "Content-Type": "application/json",
-        },
-        method="POST",
-    )
-    try:
-        with urllib.request.urlopen(request, timeout=120) as response:
-            return json.loads(response.read().decode("utf-8"))
-    except urllib.error.HTTPError as exc:
-        body = exc.read().decode("utf-8", errors="replace")
-        raise SystemExit(f"NVIDIA API error {exc.code} for {url}: {body}") from exc
-    except urllib.error.URLError as exc:
-        raise SystemExit(f"Network error calling NVIDIA API: {exc}") from exc
-
 
 def get_embedding(api_key: str, model: str, text: str, input_type: str) -> list[float]:
     payload = {
@@ -161,7 +114,7 @@ def generate_answer(api_key: str, model: str, question: str, context_blocks: lis
 
 
 def main() -> int:
-    load_dotenv(ENV_FILE)
+    load_dotenv()
     args = parse_args()
     api_key = require_env("NVIDIA_API_KEY")
     documents = read_documents(args.documents_file)
