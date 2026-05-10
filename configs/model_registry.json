@@ -1,0 +1,101 @@
+{
+  "version": 1,
+  "models": [
+    {
+      "id": "nvidia/nv-embed-v1",
+      "display_name": "NV-Embed v1",
+      "provider": "nvidia",
+      "roles": ["embedding"],
+      "endpoint_type": "integrate_embeddings",
+      "workflow_stage": ["retrieve"],
+      "input": ["text"],
+      "output": ["embedding"],
+      "status": "tested_success",
+      "notes": "Default embedding model for the local RAG workflow."
+    },
+    {
+      "id": "baai/bge-m3",
+      "display_name": "BGE-M3",
+      "provider": "baai",
+      "roles": ["embedding"],
+      "endpoint_type": "integrate_embeddings",
+      "workflow_stage": ["retrieve"],
+      "input": ["text"],
+      "output": ["embedding"],
+      "status": "candidate_account_issue",
+      "notes": "Useful retrieval candidate, but this account returned an embedding API error during testing."
+    },
+    {
+      "id": "meta/llama-3.1-8b-instruct",
+      "display_name": "Llama 3.1 8B Instruct",
+      "provider": "meta",
+      "roles": ["chat_generator", "judge"],
+      "endpoint_type": "integrate_chat",
+      "workflow_stage": ["generate", "evaluate", "advise"],
+      "input": ["text"],
+      "output": ["text"],
+      "status": "tested_success",
+      "notes": "Default answer generation and lightweight judging model."
+    },
+    {
+      "id": "nvidia/nemotron-parse",
+      "display_name": "Nemotron Parse",
+      "provider": "nvidia",
+      "roles": ["document_parser", "ocr"],
+      "endpoint_type": "integrate_chat_multimodal",
+      "workflow_stage": ["extract"],
+      "input": ["image", "document_image"],
+      "output": ["text", "layout_blocks", "bbox"],
+      "status": "tested_success",
+      "notes": "Returns OCR output through tool_calls markdown_bbox arguments."
+    },
+    {
+      "id": "nvidia/nemotron-3-content-safety",
+      "display_name": "Nemotron 3 Content Safety",
+      "provider": "nvidia",
+      "roles": ["safety_guard"],
+      "endpoint_type": "integrate_chat",
+      "workflow_stage": ["moderate", "evaluate"],
+      "input": ["text"],
+      "output": ["safety_label"],
+      "status": "tested_success",
+      "notes": "Tested with safe and unsafe prompts."
+    },
+    {
+      "id": "black-forest-labs/flux.1-schnell",
+      "display_name": "FLUX.1 Schnell",
+      "provider": "black-forest-labs",
+      "roles": ["image_generator"],
+      "endpoint_type": "genai_image",
+      "workflow_stage": ["generate_image"],
+      "input": ["text_prompt"],
+      "output": ["image"],
+      "status": "tested_success",
+      "notes": "Tested through the image generation workflow and writes PNG artifacts."
+    },
+    {
+      "id": "nvidia/cuopt",
+      "display_name": "NVIDIA cuOpt",
+      "provider": "nvidia",
+      "roles": ["optimizer"],
+      "endpoint_type": "optimize",
+      "workflow_stage": ["optimize"],
+      "input": ["routing_problem"],
+      "output": ["route_solution"],
+      "status": "tested_success",
+      "notes": "Tested with validator and optimized routing demo."
+    },
+    {
+      "id": "nvidia/llama-nemotron-rerank-1b-v2",
+      "display_name": "Llama Nemotron Rerank 1B v2",
+      "provider": "nvidia",
+      "roles": ["reranker"],
+      "endpoint_type": "rerank",
+      "workflow_stage": ["rerank"],
+      "input": ["query", "candidate_passages"],
+      "output": ["ranked_passages"],
+      "status": "candidate_not_wired",
+      "notes": "Recommended for RAG quality improvement; no runnable local workflow yet."
+    }
+  ]
+}

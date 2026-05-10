@@ -41,6 +41,8 @@ python3 "$ROOT_DIR/workflows/cuopt_demo_workflow.py" --action cuOpt_RoutingValid
 python3 "$ROOT_DIR/workflows/ocr_rag_workflow.py" >/tmp/nvidia-ocr-rag.txt
 "$ROOT_DIR/nv-agent" workflows >/tmp/nvidia-agent-workflows.txt
 "$ROOT_DIR/nv-agent" search --query RAG --limit 2 >/tmp/nvidia-agent-search.txt
+"$ROOT_DIR/nv-agent" plan --request "我要做企業知識庫問答" --output /tmp/nvidia-agent-plan.json >/tmp/nvidia-agent-plan.txt
+"$ROOT_DIR/nv-agent" run-plan /tmp/nvidia-agent-plan.json --dry-run >/tmp/nvidia-agent-run-plan.txt
 
 grep -q "bge-m3" /tmp/nvidia-model-selector-bge.md
 grep -q "Embedding API" /tmp/nvidia-model-selector-embedding.md
@@ -50,5 +52,7 @@ grep -q "Input is Valid" /tmp/nvidia-cuopt-validator.txt
 grep -q "This is a lot of 12 point text" /tmp/nvidia-ocr-rag.txt
 grep -q "Available workflows" /tmp/nvidia-agent-workflows.txt
 grep -q "RAG 與檢索\\|LLM / Agent / 程式碼" /tmp/nvidia-agent-search.txt
+grep -q "Profile: rag" /tmp/nvidia-agent-plan.txt
+grep -q "./nv-agent run rag" /tmp/nvidia-agent-run-plan.txt
 
 echo "nvidia-model-selector validation passed"

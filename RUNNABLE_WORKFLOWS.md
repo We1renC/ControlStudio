@@ -133,4 +133,25 @@ cd /Users/w.rc/nvdiaOSsupport
 ./nv-agent search --query RAG --limit 3
 ./nv-agent advise --request "我想做企業知識庫問答與文件檢索"
 ./nv-agent run rag --question "我出差報帳怎麼申請？"
+./nv-agent plan --request "我要做企業知識庫問答" --save
+```
+
+## Plan / Run / Eval
+`nv-agent plan` 會依照 `configs/task_profiles.json` 把需求拆成任務階段，並依照 `configs/model_registry.json` 列出每個階段的候選模型。
+
+```bash
+cd /Users/w.rc/nvdiaOSsupport
+./nv-agent plan --request "我要做企業知識庫問答" --save
+```
+
+`nv-agent run-plan` 會執行 plan 裡的 workflow，並把 stdout、stderr、manifest 寫到 `outputs/runs/`。
+
+```bash
+./nv-agent run-plan outputs/plans/rag-YYYYMMDD-HHMMSS.json
+```
+
+`nv-agent eval` 會讀取該 run 的 manifest 和輸出，依 profile 做基本品質檢查。
+
+```bash
+./nv-agent eval --run outputs/runs/rag-YYYYMMDD-HHMMSS
 ```

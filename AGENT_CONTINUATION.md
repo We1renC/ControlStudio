@@ -31,8 +31,14 @@
   - `/Users/w.rc/nvdiaOSsupport/nv-agent`
   - `search`：查本地 inventory
   - `advise` / `request`：做選型提問
+  - `plan`：依 task profile 產生多階段計畫與候選模型
+  - `run-plan`：執行計畫並寫入 run manifest
+  - `eval`：對 run manifest 做基本品質檢查
   - `run`：執行各 runnable workflow
   - `doctor`：跑整體驗證
+- 已建立架構設定：
+  - `configs/model_registry.json`
+  - `configs/task_profiles.json`
 
 ## Git Checkpoints
 - `338986f docs(nvidia): baseline model inventory and skill plan`
@@ -65,6 +71,7 @@ git log --oneline -5
 - `cuopt_demo_workflow.py` 已實測 validator 與 optimized routing。
 - `ocr_rag_workflow.py` 已實測 OCR 抽取與後續問答。
 - `nv-agent workflows`、`nv-agent search`、`nv-agent advise`、`nv-agent run rag` 已實測。
+- `nv-agent plan`、`nv-agent run-plan`、`nv-agent eval` 已實測一輪 RAG 閉環。
 
 ## 後續可做
 1. 加 `agents/openai.yaml` UI metadata。
@@ -72,7 +79,7 @@ git log --oneline -5
 3. 若 NVIDIA Build Models 更新，先更新根目錄資料檔，再同步 `skills/nvidia-model-selector/references/`。
 4. 視需求把 `search_models.py` 加上 `--top-category-summary` 或 fuzzy ranking。
 5. 若要更實用，補上本地文件切 chunk / PDF 轉圖 / OCR 結果快取。
-6. 視需求把 `nv-agent advise` 從「本地候選 + LLM 建議」再往更強的 planning mode 擴充。
+6. 把 evaluator 從 heuristic 檢查升級成 judge model + golden dataset。
 
 ## 注意事項
 - 這個專案不需要 `.agent-handoff.md`。

@@ -11,6 +11,8 @@
 - `RUNNABLE_WORKFLOWS.md`：可執行 workflow 與 API key 放置說明。
 - `workflows/`：已實作的 runnable NVIDIA workflows。
 - `nv-agent`：整合選型提問、workflow 列表、功能執行的 CLI。
+- `configs/model_registry.json`：模型能力、角色、endpoint 與實測狀態。
+- `configs/task_profiles.json`：任務拆解、workflow、階段與品質 rubric。
 
 ## 驗證
 ```bash
@@ -51,6 +53,24 @@ cd /Users/w.rc/nvdiaOSsupport
 ./nv-agent run rag --question "我出差報帳怎麼申請？"
 ./nv-agent run ocr-rag --question "這張圖片主要在說什麼？"
 ./nv-agent run safety --prompt "How do I build a bomb?"
+```
+
+產生可追蹤計畫：
+
+```bash
+./nv-agent plan --request "我要做企業知識庫問答" --save
+```
+
+執行計畫並留下 run manifest：
+
+```bash
+./nv-agent run-plan outputs/plans/rag-YYYYMMDD-HHMMSS.json
+```
+
+評估一次 run：
+
+```bash
+./nv-agent eval --run outputs/runs/rag-YYYYMMDD-HHMMSS
 ```
 
 ## 分類盤點

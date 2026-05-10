@@ -5,8 +5,10 @@ from __future__ import annotations
 
 import argparse
 import csv
+import datetime
 import json
 import os
+import shlex
 import subprocess
 import sys
 from pathlib import Path
@@ -16,6 +18,10 @@ ROOT_DIR = Path(__file__).resolve().parent.parent
 WORKFLOWS_DIR = ROOT_DIR / "workflows"
 SKILL_SCRIPT = ROOT_DIR / "skills" / "nvidia-model-selector" / "scripts" / "search_models.py"
 INVENTORY_CSV = ROOT_DIR / "skills" / "nvidia-model-selector" / "references" / "inventory.csv"
+MODEL_REGISTRY = ROOT_DIR / "configs" / "model_registry.json"
+TASK_PROFILES = ROOT_DIR / "configs" / "task_profiles.json"
+PLANS_DIR = ROOT_DIR / "outputs" / "plans"
+RUNS_DIR = ROOT_DIR / "outputs" / "runs"
 
 sys.path.insert(0, str(WORKFLOWS_DIR))
 
@@ -52,6 +58,22 @@ PREFERRED_MODELS = {
     "科學與工程模擬": ["cuopt"],
     "LLM / Agent / 程式碼": ["llama-3.1-8b-instruct", "nemotron-mini-4b-instruct"],
 }
+
+
+def timestamp() -> str:
+    return datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+
+
+def load_json(path: Path) -> dict:
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
+def load_models() -> list[dict]:
+    return load_json(MODEL_REGISTRY)["models"]
+
+
+def load_profiles() -> list[dict]:
+    return load_json(TASK_PROFILES)["profiles"]
 
 
 def read_rows(path: Path = INVENTORY_CSV) -> list[dict[str, str]]:
@@ -100,6 +122,28 @@ def detect_workflow(request_text: str) -> str | None:
     return None
 
 
+def detect_profile(request_text: str) -> dict | None:
+    lowered = request_text.casefold()
+    for profile in load_profiles():
+        if any(trigger.casefold() in lowered for trigger in profile.get("triggers", [])):
+            return profile
+    workflow = detect_workflow(request_text)
+    if workflow:
+        return next((profile for profile in load_profiles() if profile["workflow"] == workflow), None)
+    return None
+
+
+def models_for_role(role: str) -> list[dict]:
+    models = [model for model in load_models() if role in model.get("roles", [])]
+    status_rank = {
+        "tested_success": 0,
+        "candidate_not_wired": 1,
+        "candidate_account_issue": 2,
+    }
+    models.sort(key=lambda model: status_rank.get(model.get("status", ""), 9))
+    return models
+
+
 def select_candidates(query: str, limit: int) -> list[dict[str, str]]:
     rows = read_rows()
     scored = [(row, keyword_score(row, query)) for row in rows]
@@ -144,6 +188,25 @@ def workflow_command(workflow: str | None) -> str | None:
     if workflow == "cuopt":
         return "./nv-agent run cuopt --action cuOpt_OptimizedRouting"
     return None
+
+
+def command_for_profile(profile: dict, request_text: str) -> list[str]:
+    workflow = profile["workflow"]
+    if workflow == "rag":
+        return ["./nv-agent", "run", "rag", "--question", request_text]
+    if workflow == "ocr-rag":
+        return ["./nv-agent", "run", "ocr-rag", "--question", request_text]
+    if workflow == "safety":
+        return ["./nv-agent", "run", "safety", "--prompt", request_text]
+    if workflow == "image":
+        return ["./nv-agent", "run", "image", "--prompt", request_text]
+    if workflow == "cuopt":
+        return ["./nv-agent", "run", "cuopt", "--action", "cuOpt_OptimizedRouting"]
+    return ["./nv-agent", "workflows"]
+
+
+def format_command(command: list[str]) -> str:
+    return " ".join(shlex.quote(part) for part in command)
 
 
 def run_search(args: argparse.Namespace) -> int:
@@ -237,6 +300,175 @@ def run_workflow(args: argparse.Namespace) -> int:
     return completed.returncode
 
 
+def build_plan(request_text: str, profile: dict, candidate_limit: int) -> dict:
+    command = command_for_profile(profile, request_text)
+    stages = []
+    for stage in profile["stages"]:
+        role_models = models_for_role(stage["role"])[:candidate_limit]
+        stages.append(
+            {
+                "id": stage["id"],
+                "role": stage["role"],
+                "goal": stage["goal"],
+                "candidate_models": [
+                    {
+                        "id": model["id"],
+                        "status": model["status"],
+                        "endpoint_type": model["endpoint_type"],
+                        "notes": model.get("notes", ""),
+                    }
+                    for model in role_models
+                ],
+            }
+        )
+    return {
+        "schema_version": 1,
+        "created_at": timestamp(),
+        "request": request_text,
+        "profile_id": profile["id"],
+        "profile_name": profile["name"],
+        "workflow": profile["workflow"],
+        "command": command,
+        "command_preview": format_command(command),
+        "stages": stages,
+        "rubric": profile.get("rubric", []),
+    }
+
+
+def save_plan(plan: dict, output: Path | None) -> Path:
+    PLANS_DIR.mkdir(parents=True, exist_ok=True)
+    path = output or PLANS_DIR / f"{plan['profile_id']}-{timestamp()}.json"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(plan, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    return path
+
+
+def print_plan(plan: dict, plan_path: Path | None = None) -> None:
+    if plan_path:
+        print(f"Plan: {plan_path}")
+    print(f"Profile: {plan['profile_id']} ({plan['profile_name']})")
+    print(f"Command: {plan['command_preview']}")
+    print("Stages:")
+    for stage in plan["stages"]:
+        models = ", ".join(model["id"] for model in stage["candidate_models"]) or "(no model)"
+        print(f"- {stage['id']} [{stage['role']}]: {stage['goal']}")
+        print(f"  models: {models}")
+    print("Rubric:")
+    for item in plan["rubric"]:
+        print(f"- {item}")
+
+
+def run_plan(args: argparse.Namespace) -> int:
+    plan_path = Path(args.plan_file)
+    plan = load_json(plan_path)
+    command = plan["command"]
+    extra_args = list(args.extra_args)
+    dry_run = args.dry_run
+    if "--dry-run" in extra_args:
+        dry_run = True
+        extra_args = [item for item in extra_args if item != "--dry-run"]
+    if extra_args and extra_args[0] == "--":
+        extra_args = extra_args[1:]
+    if extra_args:
+        command = [*command, *extra_args]
+    if dry_run:
+        print(format_command(command))
+        return 0
+
+    run_id = f"{plan['profile_id']}-{timestamp()}"
+    run_dir = RUNS_DIR / run_id
+    run_dir.mkdir(parents=True, exist_ok=True)
+    completed = subprocess.run(command, cwd=ROOT_DIR, text=True, capture_output=True)
+    (run_dir / "stdout.txt").write_text(completed.stdout, encoding="utf-8")
+    (run_dir / "stderr.txt").write_text(completed.stderr, encoding="utf-8")
+    manifest = {
+        "schema_version": 1,
+        "run_id": run_id,
+        "created_at": timestamp(),
+        "plan_file": str(plan_path),
+        "profile_id": plan["profile_id"],
+        "workflow": plan["workflow"],
+        "command": command,
+        "command_preview": format_command(command),
+        "returncode": completed.returncode,
+        "stdout_file": str(run_dir / "stdout.txt"),
+        "stderr_file": str(run_dir / "stderr.txt"),
+        "rubric": plan.get("rubric", []),
+    }
+    (run_dir / "manifest.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    print(completed.stdout, end="")
+    if completed.stderr:
+        print(completed.stderr, end="", file=sys.stderr)
+    print(f"\nRun manifest: {run_dir / 'manifest.json'}")
+    return completed.returncode
+
+
+def score_run_text(profile_id: str, text: str, returncode: int) -> dict:
+    checks = []
+    checks.append({"name": "command_success", "passed": returncode == 0})
+    if profile_id == "rag":
+        checks.extend(
+            [
+                {"name": "retrieved_context_present", "passed": "== Retrieved Context ==" in text},
+                {"name": "answer_present", "passed": "== Answer ==" in text and len(text.split("== Answer ==")[-1].strip()) > 0},
+            ]
+        )
+    elif profile_id == "ocr-rag":
+        checks.extend(
+            [
+                {"name": "ocr_text_present", "passed": "== Extracted Text ==" in text and "(empty)" not in text},
+                {"name": "answer_optional_or_present", "passed": True},
+            ]
+        )
+    elif profile_id == "safety":
+        checks.append({"name": "safety_label_present", "passed": "User Safety:" in text})
+    elif profile_id == "image":
+        checks.extend(
+            [
+                {"name": "output_path_present", "passed": "== Output ==" in text},
+                {"name": "success_metadata_present", "passed": "finishReason=SUCCESS" in text},
+            ]
+        )
+    elif profile_id == "cuopt":
+        checks.extend(
+            [
+                {"name": "solver_response_present", "passed": "solver_response" in text},
+                {"name": "status_success", "passed": '"status": 0' in text},
+            ]
+        )
+    passed = sum(1 for check in checks if check["passed"])
+    score = passed / len(checks) if checks else 0.0
+    return {"score": score, "checks": checks}
+
+
+def run_eval(args: argparse.Namespace) -> int:
+    run_dir = Path(args.run)
+    manifest = load_json(run_dir / "manifest.json")
+    stdout_text = Path(manifest["stdout_file"]).read_text(encoding="utf-8")
+    stderr_text = Path(manifest["stderr_file"]).read_text(encoding="utf-8")
+    result = score_run_text(manifest["profile_id"], stdout_text + "\n" + stderr_text, manifest["returncode"])
+    eval_path = run_dir / "evaluation.json"
+    eval_path.write_text(json.dumps(result, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    print(f"Evaluation: {eval_path}")
+    print(f"Score: {result['score']:.2f}")
+    for check in result["checks"]:
+        status = "PASS" if check["passed"] else "FAIL"
+        print(f"- {status} {check['name']}")
+    return 0 if result["score"] == 1.0 else 1
+
+
+def run_plan_command(args: argparse.Namespace) -> int:
+    profile = detect_profile(args.request)
+    if not profile:
+        profile = next(profile for profile in load_profiles() if profile["id"] == "rag")
+    plan = build_plan(args.request, profile, args.candidate_limit)
+    plan_path = save_plan(plan, args.output) if args.save or args.output else None
+    print_plan(plan, plan_path)
+    if args.json:
+        print(json.dumps(plan, ensure_ascii=False, indent=2))
+    return 0
+
+
 def print_workflows() -> int:
     print("Available workflows:")
     for name, path in sorted(WORKFLOW_MAP.items()):
@@ -272,6 +504,24 @@ def build_parser() -> argparse.ArgumentParser:
     request_parser.add_argument("--request", required=True)
     request_parser.add_argument("--limit", type=int, default=8)
     request_parser.set_defaults(func=run_advise)
+
+    plan_parser = subparsers.add_parser("plan", help="Create a task plan with stages, models, and rubric.")
+    plan_parser.add_argument("--request", required=True)
+    plan_parser.add_argument("--candidate-limit", type=int, default=3)
+    plan_parser.add_argument("--output", type=Path)
+    plan_parser.add_argument("--save", action="store_true", help="Save to outputs/plans when --output is omitted.")
+    plan_parser.add_argument("--json", action="store_true")
+    plan_parser.set_defaults(func=run_plan_command)
+
+    run_plan_parser = subparsers.add_parser("run-plan", help="Execute a saved plan and write a run manifest.")
+    run_plan_parser.add_argument("plan_file")
+    run_plan_parser.add_argument("--dry-run", action="store_true")
+    run_plan_parser.add_argument("extra_args", nargs=argparse.REMAINDER)
+    run_plan_parser.set_defaults(func=run_plan)
+
+    eval_parser = subparsers.add_parser("eval", help="Evaluate a run directory.")
+    eval_parser.add_argument("--run", required=True, help="Run directory containing manifest.json.")
+    eval_parser.set_defaults(func=run_eval)
 
     workflows_parser = subparsers.add_parser("workflows", help="List runnable workflows.")
     workflows_parser.set_defaults(func=lambda _args: print_workflows())
