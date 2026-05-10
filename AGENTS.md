@@ -33,9 +33,19 @@
    ```bash
    ./nv-agent plan --request "我要做企業知識庫問答" --save
    ```
+   若 Agent 已判定某階段要用的模型，使用 `--select-model ROLE=MODEL_ID`：
+   ```bash
+   ./nv-agent plan --request "我要生一張產品海報" \
+     --select-model image_generator=black-forest-labs/flux.1-schnell \
+     --save
+   ```
 4. 執行計畫：
    ```bash
    ./nv-agent run-plan outputs/plans/rag-YYYYMMDD-HHMMSS.json
+   ```
+   若要在執行前覆蓋 plan 內來源，使用：
+   ```bash
+   ./nv-agent run-plan --select-model image_generator=black-forest-labs/flux.1-schnell outputs/plans/image-YYYYMMDD-HHMMSS.json
    ```
 5. 評估結果：
    ```bash
@@ -51,11 +61,18 @@
 
 ## 新增功能規則
 - 以任務單元為中心，不以單一模型為中心。
-- 新模型先加入 `configs/model_registry.json`，標明 `roles`、`endpoint_type`、`status`、`notes`。
+- 新模型先加入 `configs/model_registry.json`，標明 `roles`、`endpoint_type`、`endpoint_url`、`status`、`notes`。
 - 新任務先加入 `configs/task_profiles.json`，標明 `stages`、`workflow`、`rubric`。
 - 新 workflow 放在 `workflows/`，並透過 `./nv-agent run <workflow>` 暴露。
 - 若 workflow 會產生輸出，寫到 `outputs/`；不要寫入 repo 根目錄。
 - 每次可執行功能都要能被 `./nv-agent doctor` 或驗證腳本覆蓋。
+
+## Runtime Router
+- `configs/model_registry.json` 是 runtime endpoint/model source 的單一來源。
+- `./nv-agent plan` 會為每個有模型的 stage 寫入 `selected_model_source`。
+- 使用工具的 Agent 負責用 `--select-model ROLE=MODEL_ID` 做具體模型判定；未指定時才用同 role 第一個可用模型。
+- `./nv-agent run-plan` 會把 selected source 轉成 workflow 參數，例如 image workflow 會收到 `--model` 與 `--endpoint-url`。
+- workflow 不應再硬寫不可覆蓋的模型 endpoint；若需要預設，必須可由 registry 或 CLI 覆蓋。
 
 ## 品質判準
 - 模型輸出要能對應任務目標，而不是只看 API 是否成功。

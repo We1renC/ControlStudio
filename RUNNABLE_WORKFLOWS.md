@@ -13,6 +13,7 @@
 NVIDIA_API_KEY=nvapi-你的真實金鑰
 NVIDIA_EMBED_MODEL=nvidia/nv-embed-v1
 NVIDIA_CHAT_MODEL=meta/llama-3.1-8b-instruct
+NVIDIA_IMAGE_MODEL=black-forest-labs/flux.1-schnell
 ```
 
 `NVIDIA_API_KEY` 是整個 NVIDIA API 帳號共用的金鑰，不是綁定某一個模型。
@@ -20,6 +21,8 @@ NVIDIA_CHAT_MODEL=meta/llama-3.1-8b-instruct
 你在 workflow 裡切換模型時，通常只需要改：
 - `NVIDIA_EMBED_MODEL`
 - `NVIDIA_CHAT_MODEL`
+- `NVIDIA_IMAGE_MODEL`
+- 或在 `./nv-agent plan` / `./nv-agent run-plan` 使用 `--select-model ROLE=MODEL_ID`
 - 或執行時用 CLI 參數覆蓋
 
 注意：不同 embedding 模型的 request schema 可能略有差異。
@@ -30,6 +33,7 @@ NVIDIA_CHAT_MODEL=meta/llama-3.1-8b-instruct
 目前這個專案已驗證可跑通的組合是：
 - Embedding: `nvidia/nv-embed-v1`
 - Chat: `meta/llama-3.1-8b-instruct`
+- Image: `black-forest-labs/flux.1-schnell`
 
 專案已經把 `.env` 加進 `.gitignore`，所以不會被 git 追蹤。
 
@@ -111,6 +115,16 @@ cd /Users/w.rc/nvdiaOSsupport
 ./.venv/bin/python workflows/image_generation_workflow.py --prompt "a red coffee mug on a wooden desk, studio photo"
 ```
 
+由 runtime router 指定 image model source：
+
+```bash
+cd /Users/w.rc/nvdiaOSsupport
+./nv-agent plan --request "我要生一張產品海報" \
+  --select-model image_generator=black-forest-labs/flux.1-schnell \
+  --output /tmp/image-plan.json
+./nv-agent run-plan /tmp/image-plan.json
+```
+
 cuOpt：
 
 ```bash
@@ -138,6 +152,7 @@ cd /Users/w.rc/nvdiaOSsupport
 
 ## Plan / Run / Eval
 `nv-agent plan` 會依照 `configs/task_profiles.json` 把需求拆成任務階段，並依照 `configs/model_registry.json` 列出每個階段的候選模型。
+若 Agent 已決定特定階段的模型來源，使用 `--select-model ROLE=MODEL_ID`，plan 會寫入 `selected_model_source`，run-plan 會把它轉成 workflow 的 `--model` / `--endpoint-url` 等 runtime 參數。
 
 ```bash
 cd /Users/w.rc/nvdiaOSsupport

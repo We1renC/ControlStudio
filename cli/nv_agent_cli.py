@@ -25,7 +25,7 @@ RUNS_DIR = ROOT_DIR / "outputs" / "runs"
 
 sys.path.insert(0, str(WORKFLOWS_DIR))
 
-from common import load_dotenv, post_json, require_env  # noqa: E402
+from common import load_dotenv, post_json, require_env, resolve_model_source  # noqa: E402
 
 
 CHAT_URL = "https://integrate.api.nvidia.com/v1/chat/completions"
@@ -57,6 +57,25 @@ PREFERRED_MODELS = {
     "視覺生成與創作": ["FLUX.1-schnell", "FLUX.1-dev"],
     "科學與工程模擬": ["cuopt"],
     "LLM / Agent / 程式碼": ["llama-3.1-8b-instruct", "nemotron-mini-4b-instruct"],
+}
+WORKFLOW_ROLE_ARGUMENTS = {
+    "rag": {
+        "embedding": [("--embed-model", "model_id")],
+        "chat_generator": [("--chat-model", "model_id")],
+    },
+    "ocr-rag": {
+        "document_parser": [("--ocr-model", "model_id")],
+        "chat_generator": [("--chat-model", "model_id")],
+    },
+    "safety": {
+        "safety_guard": [("--model", "model_id"), ("--endpoint-url", "endpoint_url")],
+    },
+    "image": {
+        "image_generator": [("--model", "model_id"), ("--endpoint-url", "endpoint_url")],
+    },
+    "cuopt": {
+        "optimizer": [("--model", "model_id"), ("--endpoint-url", "endpoint_url")],
+    },
 }
 
 
@@ -144,6 +163,54 @@ def models_for_role(role: str) -> list[dict]:
     return models
 
 
+def parse_model_selections(items: list[str] | None) -> dict[str, str]:
+    selections: dict[str, str] = {}
+    for item in items or []:
+        if "=" not in item:
+            raise SystemExit(f"Invalid --select-model value: {item}. Expected ROLE=MODEL_ID.")
+        role, model_id = item.split("=", 1)
+        role = role.strip()
+        model_id = model_id.strip()
+        if not role or not model_id:
+            raise SystemExit(f"Invalid --select-model value: {item}. Expected ROLE=MODEL_ID.")
+        selections[role] = model_id
+    return selections
+
+
+def selected_model_ids_from_plan(plan: dict) -> dict[str, str]:
+    selected: dict[str, str] = {}
+    for stage in plan.get("stages", []):
+        source = stage.get("selected_model_source")
+        if source and source.get("role") and source.get("model_id"):
+            selected[source["role"]] = source["model_id"]
+    return selected
+
+
+def validate_selected_roles(profile: dict, selections: dict[str, str]) -> None:
+    valid_roles = {stage["role"] for stage in profile.get("stages", [])}
+    unknown = sorted(set(selections) - valid_roles)
+    if unknown:
+        raise SystemExit(
+            "Unknown role in --select-model for this profile: "
+            + ", ".join(unknown)
+            + ". Valid roles: "
+            + ", ".join(sorted(valid_roles))
+        )
+
+
+def workflow_model_args(workflow: str, selected_sources: dict[str, dict]) -> list[str]:
+    args: list[str] = []
+    for role, arg_specs in WORKFLOW_ROLE_ARGUMENTS.get(workflow, {}).items():
+        source = selected_sources.get(role)
+        if not source:
+            continue
+        for flag, source_key in arg_specs:
+            value = source.get(source_key)
+            if value:
+                args.extend([flag, str(value)])
+    return args
+
+
 def select_candidates(query: str, limit: int) -> list[dict[str, str]]:
     rows = read_rows()
     scored = [(row, keyword_score(row, query)) for row in rows]
@@ -190,19 +257,21 @@ def workflow_command(workflow: str | None) -> str | None:
     return None
 
 
-def command_for_profile(profile: dict, request_text: str) -> list[str]:
+def command_for_profile(profile: dict, request_text: str, selected_sources: dict[str, dict] | None = None) -> list[str]:
     workflow = profile["workflow"]
     if workflow == "rag":
-        return ["./nv-agent", "run", "rag", "--question", request_text]
-    if workflow == "ocr-rag":
-        return ["./nv-agent", "run", "ocr-rag", "--question", request_text]
-    if workflow == "safety":
-        return ["./nv-agent", "run", "safety", "--prompt", request_text]
-    if workflow == "image":
-        return ["./nv-agent", "run", "image", "--prompt", request_text]
-    if workflow == "cuopt":
-        return ["./nv-agent", "run", "cuopt", "--action", "cuOpt_OptimizedRouting"]
-    return ["./nv-agent", "workflows"]
+        command = ["./nv-agent", "run", "rag", "--question", request_text]
+    elif workflow == "ocr-rag":
+        command = ["./nv-agent", "run", "ocr-rag", "--question", request_text]
+    elif workflow == "safety":
+        command = ["./nv-agent", "run", "safety", "--prompt", request_text]
+    elif workflow == "image":
+        command = ["./nv-agent", "run", "image", "--prompt", request_text]
+    elif workflow == "cuopt":
+        command = ["./nv-agent", "run", "cuopt", "--action", "cuOpt_OptimizedRouting"]
+    else:
+        return ["./nv-agent", "workflows"]
+    return [*command, *workflow_model_args(workflow, selected_sources or {})]
 
 
 def format_command(command: list[str]) -> str:
@@ -300,16 +369,23 @@ def run_workflow(args: argparse.Namespace) -> int:
     return completed.returncode
 
 
-def build_plan(request_text: str, profile: dict, candidate_limit: int) -> dict:
-    command = command_for_profile(profile, request_text)
+def build_plan(request_text: str, profile: dict, candidate_limit: int, selected_models: dict[str, str] | None = None) -> dict:
+    selected_models = selected_models or {}
+    validate_selected_roles(profile, selected_models)
+    selected_sources: dict[str, dict] = {}
     stages = []
     for stage in profile["stages"]:
         role_models = models_for_role(stage["role"])[:candidate_limit]
+        selected_source = None
+        if role_models or stage["role"] in selected_models:
+            selected_source = resolve_model_source(stage["role"], selected_models.get(stage["role"]))
+            selected_sources[stage["role"]] = selected_source
         stages.append(
             {
                 "id": stage["id"],
                 "role": stage["role"],
                 "goal": stage["goal"],
+                "selected_model_source": selected_source,
                 "candidate_models": [
                     {
                         "id": model["id"],
@@ -321,6 +397,7 @@ def build_plan(request_text: str, profile: dict, candidate_limit: int) -> dict:
                 ],
             }
         )
+    command = command_for_profile(profile, request_text, selected_sources)
     return {
         "schema_version": 1,
         "created_at": timestamp(),
@@ -328,11 +405,30 @@ def build_plan(request_text: str, profile: dict, candidate_limit: int) -> dict:
         "profile_id": profile["id"],
         "profile_name": profile["name"],
         "workflow": profile["workflow"],
+        "candidate_limit": candidate_limit,
         "command": command,
         "command_preview": format_command(command),
         "stages": stages,
+        "selected_model_sources": selected_sources,
+        "selection_policy": "agent_override_or_first_available_by_role",
         "rubric": profile.get("rubric", []),
     }
+
+
+def profile_by_id(profile_id: str) -> dict:
+    for profile in load_profiles():
+        if profile["id"] == profile_id:
+            return profile
+    raise SystemExit(f"Unknown profile_id in plan: {profile_id}")
+
+
+def refresh_plan_models(plan: dict, selected_model_overrides: dict[str, str]) -> dict:
+    if not selected_model_overrides and plan.get("selected_model_sources"):
+        return plan
+    profile = profile_by_id(plan["profile_id"])
+    selected_models = selected_model_ids_from_plan(plan)
+    selected_models.update(selected_model_overrides)
+    return build_plan(plan["request"], profile, int(plan.get("candidate_limit", 3)), selected_models)
 
 
 def save_plan(plan: dict, output: Path | None) -> Path:
@@ -353,6 +449,13 @@ def print_plan(plan: dict, plan_path: Path | None = None) -> None:
         models = ", ".join(model["id"] for model in stage["candidate_models"]) or "(no model)"
         print(f"- {stage['id']} [{stage['role']}]: {stage['goal']}")
         print(f"  models: {models}")
+        source = stage.get("selected_model_source")
+        if source:
+            print(
+                "  selected: "
+                f"{source['model_id']} -> {source['endpoint_type']} "
+                f"({source['selection_reason']})"
+            )
     print("Rubric:")
     for item in plan["rubric"]:
         print(f"- {item}")
@@ -361,6 +464,7 @@ def print_plan(plan: dict, plan_path: Path | None = None) -> None:
 def run_plan(args: argparse.Namespace) -> int:
     plan_path = Path(args.plan_file)
     plan = load_json(plan_path)
+    plan = refresh_plan_models(plan, parse_model_selections(args.select_model))
     command = plan["command"]
     extra_args = list(args.extra_args)
     dry_run = args.dry_run
@@ -390,6 +494,7 @@ def run_plan(args: argparse.Namespace) -> int:
         "workflow": plan["workflow"],
         "command": command,
         "command_preview": format_command(command),
+        "selected_model_sources": plan.get("selected_model_sources", {}),
         "returncode": completed.returncode,
         "stdout_file": str(run_dir / "stdout.txt"),
         "stderr_file": str(run_dir / "stderr.txt"),
@@ -461,7 +566,7 @@ def run_plan_command(args: argparse.Namespace) -> int:
     profile = detect_profile(args.request)
     if not profile:
         profile = next(profile for profile in load_profiles() if profile["id"] == "rag")
-    plan = build_plan(args.request, profile, args.candidate_limit)
+    plan = build_plan(args.request, profile, args.candidate_limit, parse_model_selections(args.select_model))
     plan_path = save_plan(plan, args.output) if args.save or args.output else None
     print_plan(plan, plan_path)
     if args.json:
@@ -508,12 +613,26 @@ def build_parser() -> argparse.ArgumentParser:
     plan_parser = subparsers.add_parser("plan", help="Create a task plan with stages, models, and rubric.")
     plan_parser.add_argument("--request", required=True)
     plan_parser.add_argument("--candidate-limit", type=int, default=3)
+    plan_parser.add_argument(
+        "--select-model",
+        action="append",
+        default=[],
+        metavar="ROLE=MODEL_ID",
+        help="Agent-selected runtime model source for a profile role. Can be repeated.",
+    )
     plan_parser.add_argument("--output", type=Path)
     plan_parser.add_argument("--save", action="store_true", help="Save to outputs/plans when --output is omitted.")
     plan_parser.add_argument("--json", action="store_true")
     plan_parser.set_defaults(func=run_plan_command)
 
     run_plan_parser = subparsers.add_parser("run-plan", help="Execute a saved plan and write a run manifest.")
+    run_plan_parser.add_argument(
+        "--select-model",
+        action="append",
+        default=[],
+        metavar="ROLE=MODEL_ID",
+        help="Override a saved plan model source before execution. Put before plan_file.",
+    )
     run_plan_parser.add_argument("plan_file")
     run_plan_parser.add_argument("--dry-run", action="store_true")
     run_plan_parser.add_argument("extra_args", nargs=argparse.REMAINDER)

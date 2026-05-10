@@ -20,6 +20,7 @@ Use this skill to choose NVIDIA Build Models and turn them into implementation p
    - validation checks and risks
 5. If the user asks for implementation, convert the recommendation into a runnable plan, API call skeleton, service design, or PoC checklist.
 6. If the user asks for a runnable demo, prefer the local workflows in `/Users/w.rc/nvdiaOSsupport/workflows/` before inventing a new script.
+7. When a concrete runtime model source is needed, use `./nv-agent plan --select-model ROLE=MODEL_ID` so the plan records the selected model and endpoint source from `configs/model_registry.json`.
 
 ## References
 - Category guide: `references/model-categories.md`
@@ -64,6 +65,16 @@ For runnable demos, point the user to:
 - `/Users/w.rc/nvdiaOSsupport/.env`
 - `/Users/w.rc/nvdiaOSsupport/workflows/rag_workflow.py`
 - `/Users/w.rc/nvdiaOSsupport/data/sample_kb.txt`
+
+For runtime model routing, use:
+```bash
+./nv-agent plan --request "我要生一張產品海報" \
+  --select-model image_generator=black-forest-labs/flux.1-schnell \
+  --save
+./nv-agent run-plan outputs/plans/image-YYYYMMDD-HHMMSS.json
+```
+
+The agent using the tool is responsible for choosing the specific `ROLE=MODEL_ID`; the CLI resolves endpoint type and endpoint URL from `configs/model_registry.json`.
 
 ## Guardrails
 - Do not claim a model is open source unless the reference explicitly supports that. Prefer "NVIDIA Build Models / NIM / downloadable endpoint" when license status is unclear.

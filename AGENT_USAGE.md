@@ -42,10 +42,26 @@ git status --short
 ./nv-agent plan --request "我要做企業知識庫問答" --save
 ```
 
+由 Agent 指定 runtime 模型來源：
+
+```bash
+./nv-agent plan --request "我要生一張產品海報" \
+  --select-model image_generator=black-forest-labs/flux.1-schnell \
+  --save
+```
+
 執行計畫：
 
 ```bash
 ./nv-agent run-plan outputs/plans/rag-YYYYMMDD-HHMMSS.json
+```
+
+執行前覆蓋 plan 內模型來源：
+
+```bash
+./nv-agent run-plan \
+  --select-model image_generator=black-forest-labs/flux.1-schnell \
+  outputs/plans/image-YYYYMMDD-HHMMSS.json
 ```
 
 評估 run：
@@ -70,6 +86,34 @@ git status --short
 - 每個階段從 `configs/model_registry.json` 找候選模型。
 - 不要只選一個模型當萬用解；模型應分工處理任務單元。
 - 若同類型模型過多，優先順序是：`tested_success`、已接 workflow、符合輸入/輸出、延遲與成本可接受。
+- 具體 runtime 模型由使用工具的 Agent 判定，透過 `--select-model ROLE=MODEL_ID` 寫入 plan 或在 `run-plan` 覆蓋。
+
+## Runtime Router
+`configs/model_registry.json` 現在同時是模型能力與 endpoint source 的來源。`./nv-agent plan` 會把每個有模型的 stage 寫成：
+
+- `candidate_models`：可選候選。
+- `selected_model_source`：實際要用的 model id、endpoint type、endpoint url、選擇理由。
+- `selected_model_sources`：依 role 彙整，供 `run-plan` 轉成 workflow 參數。
+
+Image 範例：
+
+```bash
+./nv-agent plan --request "我要生一張產品海報" \
+  --select-model image_generator=black-forest-labs/flux.1-schnell \
+  --output /tmp/image-plan.json
+
+./nv-agent run-plan /tmp/image-plan.json --dry-run
+```
+
+dry-run 會顯示類似：
+
+```bash
+./nv-agent run image --prompt '我要生一張產品海報' \
+  --model black-forest-labs/flux.1-schnell \
+  --endpoint-url https://ai.api.nvidia.com/v1/genai/black-forest-labs/flux.1-schnell
+```
+
+若未指定 `--select-model`，router 會依 role 取第一個可用模型。這只是保底預設；正式開發時應由 Agent 依任務需求、輸入輸出、品質與成本自行指定。
 
 ## 品質追蹤
 使用 `plan -> run-plan -> eval` 取得可追蹤紀錄：
@@ -88,7 +132,7 @@ git status --short
 ## 擴充方式
 新增模型：
 1. 更新 `configs/model_registry.json`。
-2. 標記 `roles`、`workflow_stage`、`endpoint_type`、`status`、`notes`。
+2. 標記 `roles`、`workflow_stage`、`endpoint_type`、`endpoint_url`、`status`、`notes`。
 3. 實測後把 `status` 從 candidate 改成 `tested_success` 或記錄失敗原因。
 
 新增任務類型：
