@@ -11,9 +11,25 @@
 
 ```env
 NVIDIA_API_KEY=nvapi-你的真實金鑰
-NVIDIA_EMBED_MODEL=baai/bge-m3
+NVIDIA_EMBED_MODEL=nvidia/nv-embed-v1
 NVIDIA_CHAT_MODEL=meta/llama-3.1-8b-instruct
 ```
+
+`NVIDIA_API_KEY` 是整個 NVIDIA API 帳號共用的金鑰，不是綁定某一個模型。
+
+你在 workflow 裡切換模型時，通常只需要改：
+- `NVIDIA_EMBED_MODEL`
+- `NVIDIA_CHAT_MODEL`
+- 或執行時用 CLI 參數覆蓋
+
+注意：不同 embedding 模型的 request schema 可能略有差異。
+例如 `bge-m3` 不需要 `input_type`，但部分 `nemo retriever` 類 embedding 模型需要 `passage/query`。
+這個差異已經在 `workflows/rag_workflow.py` 內處理。
+
+另外要注意：同一把 key 可共用於多個模型，但某些模型是否對你的帳號可用，仍要以實際呼叫結果為準。
+目前這個專案已驗證可跑通的組合是：
+- Embedding: `nvidia/nv-embed-v1`
+- Chat: `meta/llama-3.1-8b-instruct`
 
 專案已經把 `.env` 加進 `.gitignore`，所以不會被 git 追蹤。
 
@@ -35,6 +51,16 @@ NVIDIA_CHAT_MODEL=meta/llama-3.1-8b-instruct
 ```bash
 cd /Users/w.rc/nvdiaOSsupport
 ./.venv/bin/python workflows/rag_workflow.py --question "我出差報帳怎麼申請？"
+```
+
+指定不同模型執行：
+
+```bash
+cd /Users/w.rc/nvdiaOSsupport
+./.venv/bin/python workflows/rag_workflow.py \
+  --embed-model nvidia/nv-embed-v1 \
+  --chat-model meta/llama-3.1-8b-instruct \
+  --question "我出差報帳怎麼申請？"
 ```
 
 用自己的文件：

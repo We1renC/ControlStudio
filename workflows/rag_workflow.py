@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
-"""Minimal runnable NVIDIA RAG workflow using only the Python standard library."""
+"""Minimal runnable NVIDIA RAG workflow using only the Python standard library.
+
+NVIDIA_API_KEY is shared across supported NVIDIA API models. Model selection is
+handled at runtime through CLI flags or env defaults.
+"""
 
 from __future__ import annotations
 
@@ -16,8 +20,16 @@ from pathlib import Path
 ROOT_DIR = Path(__file__).resolve().parent.parent
 DEFAULT_DOCS = ROOT_DIR / "data" / "sample_kb.txt"
 ENV_FILE = ROOT_DIR / ".env"
-EMBEDDING_URL = "https://ai.api.nvidia.com/v1/retrieval/nvidia/embeddings"
+EMBEDDING_URL = "https://integrate.api.nvidia.com/v1/embeddings"
 CHAT_URL = "https://integrate.api.nvidia.com/v1/chat/completions"
+INPUT_TYPE_MODELS = (
+    "nvidia/llama-3.2-nemoretriever-300m-embed-v1",
+    "nvidia/llama-3.2-nemoretriever-300m-embed-v2",
+    "nvidia/llama-3.2-nv-embedqa-1b-v1",
+    "nvidia/llama-3.2-nv-embedqa-1b-v2",
+    "nvidia/llama-nemotron-embed-1b-v2",
+    "nvidia/llama-nemotron-embed-vl-1b-v2",
+)
 
 
 def load_dotenv(path: Path) -> None:
@@ -38,8 +50,16 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--documents-file", type=Path, default=DEFAULT_DOCS)
     parser.add_argument("--question", required=True)
     parser.add_argument("--top-k", type=int, default=1)
-    parser.add_argument("--embed-model", default=os.environ.get("NVIDIA_EMBED_MODEL", "baai/bge-m3"))
-    parser.add_argument("--chat-model", default=os.environ.get("NVIDIA_CHAT_MODEL", "meta/llama-3.1-8b-instruct"))
+    parser.add_argument(
+        "--embed-model",
+        default=os.environ.get("NVIDIA_EMBED_MODEL", "nvidia/nv-embed-v1"),
+        help="Embedding model name. Uses the same NVIDIA_API_KEY as other supported models.",
+    )
+    parser.add_argument(
+        "--chat-model",
+        default=os.environ.get("NVIDIA_CHAT_MODEL", "meta/llama-3.1-8b-instruct"),
+        help="Chat model name. Uses the same NVIDIA_API_KEY as other supported models.",
+    )
     return parser.parse_args()
 
 
@@ -86,8 +106,10 @@ def get_embedding(api_key: str, model: str, text: str, input_type: str) -> list[
     payload = {
         "input": [text],
         "model": model,
-        "input_type": input_type,
+        "encoding_format": "float",
     }
+    if model in INPUT_TYPE_MODELS:
+        payload["input_type"] = input_type
     response = post_json(EMBEDDING_URL, api_key, payload)
     try:
         return response["data"][0]["embedding"]
