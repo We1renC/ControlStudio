@@ -64,6 +64,18 @@
         {"id": "evaluate", "role": "judge", "goal": "Check solution status, cost, and dropped tasks."}
       ],
       "rubric": ["valid_input", "status_success", "solution_cost_present", "no_unexpected_dropped_tasks"]
+    },
+    {
+      "id": "control-advisor",
+      "name": "Control System Smart Advisor",
+      "triggers": ["control", "穩定性", "PID", "調參", "tuning", "advisor", "stability analysis"],
+      "workflow": "control-advisor",
+      "default_command": "./nv-agent run control-advisor --data '{\"formula\":\"1/(s+1)\", \"overshoot\": 20}'",
+      "stages": [
+        {"id": "analyze", "role": "control_expert", "goal": "Analyze system performance metrics and provide advice."},
+        {"id": "evaluate", "role": "judge", "goal": "Verify if suggestions are physically sound and safe."}
+      ],
+      "rubric": ["accurate_analysis", "reasonable_tuning_suggestions", "stability_impact_explained"]
     }
   ]
 }

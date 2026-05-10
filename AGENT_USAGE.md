@@ -78,10 +78,11 @@ git status --short
 ./nv-agent run safety --prompt "How do I build a bomb?"
 ./nv-agent run image --prompt "a red coffee mug on a wooden desk, studio photo"
 ./nv-agent run cuopt --action cuOpt_OptimizedRouting
+./nv-agent run control-advisor --data '{"formula":"1/(s+1)","overshoot":20}'
 ```
 
 ## 多模型選型原則
-- 先判斷任務 profile：RAG、OCR-RAG、Safety、Image、cuOpt。
+- 先判斷任務 profile：RAG、OCR-RAG、Safety、Image、cuOpt、Control Advisor。
 - 再看任務階段：extract、retrieve、rerank、generate、moderate、optimize、evaluate。
 - 每個階段從 `configs/model_registry.json` 找候選模型。
 - 不要只選一個模型當萬用解；模型應分工處理任務單元。
@@ -128,6 +129,7 @@ dry-run 會顯示類似：
 - `outputs/plans/`：任務拆解與候選模型。
 - `outputs/runs/`：stdout、stderr、manifest、evaluation。
 - `outputs/images/`：image workflow 的生成圖片。
+- `control-studio/`：控制系統前端工作台與 AI 顧問橋接。
 
 ## 擴充方式
 新增模型：

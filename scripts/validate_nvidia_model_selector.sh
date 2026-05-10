@@ -24,6 +24,10 @@ test -f "$ROOT_DIR/workflows/safety_guard_workflow.py"
 test -f "$ROOT_DIR/workflows/image_generation_workflow.py"
 test -f "$ROOT_DIR/workflows/cuopt_demo_workflow.py"
 test -f "$ROOT_DIR/workflows/ocr_rag_workflow.py"
+test -f "$ROOT_DIR/workflows/control_advisor_workflow.py"
+test -f "$ROOT_DIR/control-studio/index.html"
+test -f "$ROOT_DIR/control-studio/scripts/advisor_server.py"
+test -f "$ROOT_DIR/test_control.js"
 test -f "$ROOT_DIR/cli/nv_agent_cli.py"
 test -x "$ROOT_DIR/nv-agent"
 
@@ -34,6 +38,7 @@ python3 -m py_compile "$ROOT_DIR/workflows/safety_guard_workflow.py"
 python3 -m py_compile "$ROOT_DIR/workflows/image_generation_workflow.py"
 python3 -m py_compile "$ROOT_DIR/workflows/cuopt_demo_workflow.py"
 python3 -m py_compile "$ROOT_DIR/workflows/ocr_rag_workflow.py"
+python3 -m py_compile "$ROOT_DIR/workflows/control_advisor_workflow.py"
 python3 -m py_compile "$ROOT_DIR/cli/nv_agent_cli.py"
 python3 -m json.tool "$ROOT_DIR/configs/model_registry.json" >/tmp/nvidia-model-registry.json
 python3 -m json.tool "$ROOT_DIR/configs/task_profiles.json" >/tmp/nvidia-task-profiles.json
@@ -51,6 +56,12 @@ python3 "$ROOT_DIR/workflows/ocr_rag_workflow.py" >/tmp/nvidia-ocr-rag.txt
   --select-model image_generator=black-forest-labs/flux.1-schnell \
   --output /tmp/nvidia-agent-image-plan.json >/tmp/nvidia-agent-image-plan.txt
 "$ROOT_DIR/nv-agent" run-plan /tmp/nvidia-agent-image-plan.json --dry-run >/tmp/nvidia-agent-image-run-plan.txt
+"$ROOT_DIR/nv-agent" plan --request "control advisor for {'formula':'1/(s+1)','overshoot':20,'phaseMargin':45,'stability':'stable'}" \
+  --select-model control_expert=meta/llama-3.1-70b-instruct \
+  --output /tmp/nvidia-agent-control-plan.json >/tmp/nvidia-agent-control-plan.txt
+"$ROOT_DIR/nv-agent" run-plan /tmp/nvidia-agent-control-plan.json --dry-run >/tmp/nvidia-agent-control-run-plan.txt
+python3 "$ROOT_DIR/workflows/control_advisor_workflow.py" --help >/tmp/nvidia-control-advisor-help.txt
+node "$ROOT_DIR/test_control.js" >/tmp/nvidia-control-test.txt
 
 grep -q "bge-m3" /tmp/nvidia-model-selector-bge.md
 grep -q "Embedding API" /tmp/nvidia-model-selector-embedding.md
@@ -66,11 +77,21 @@ grep -q "selected: nvidia/nv-embed-v1" /tmp/nvidia-agent-plan.txt
 grep -q "Profile: image" /tmp/nvidia-agent-image-plan.txt
 grep -q "selected: black-forest-labs/flux.1-schnell" /tmp/nvidia-agent-image-plan.txt
 grep -q -- "--endpoint-url https://ai.api.nvidia.com/v1/genai/black-forest-labs/flux.1-schnell" /tmp/nvidia-agent-image-run-plan.txt
+grep -q "Profile: control-advisor" /tmp/nvidia-agent-control-plan.txt
+grep -q "selected: meta/llama-3.1-70b-instruct" /tmp/nvidia-agent-control-plan.txt
+grep -q "./nv-agent run control-advisor" /tmp/nvidia-agent-control-run-plan.txt
+grep -q -- "--model meta/llama-3.1-70b-instruct" /tmp/nvidia-agent-control-run-plan.txt
+grep -q "Control System Smart Advisor" /tmp/nvidia-control-advisor-help.txt
+grep -q "Tests Passed!" /tmp/nvidia-control-test.txt
 grep -q "AGENT_CONTINUATION.md" "$ROOT_DIR/AGENTS.md"
 grep -q "./nv-agent plan" "$ROOT_DIR/AGENT_USAGE.md"
 grep -q "./nv-agent run-plan" "$ROOT_DIR/AGENT_USAGE.md"
 grep -q "./nv-agent eval" "$ROOT_DIR/AGENT_USAGE.md"
 grep -q -- "--select-model" "$ROOT_DIR/AGENT_USAGE.md"
+grep -q "control-advisor" "$ROOT_DIR/AGENT_USAGE.md"
+grep -q "control-studio" "$ROOT_DIR/README.md"
+grep -q "control_advisor_workflow.py" "$ROOT_DIR/README.md"
+grep -q "control-advisor" "$ROOT_DIR/AGENT_CONTINUATION.md"
 grep -q "runtime model routing" "$ROOT_DIR/skills/nvidia-model-selector/SKILL.md"
 
 echo "nvidia-model-selector validation passed"

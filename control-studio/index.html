@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="zh-TW" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ControlStudio — Visual Control System Designer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.plot.ly/plotly-2.24.1.min.js"></script>
+  <style>
+    :root {
+      --bg-primary: #0f1117;
+      --bg-secondary: #161922;
+      --bg-tertiary: #1f2330;
+      --text-primary: #f8fafc;
+      --text-secondary: #94a3b8;
+      --text-muted: #64748b;
+      --color-accent: #6366f1;
+      --color-secondary: #ec4899;
+      --color-stable: #10b981;
+      --color-unstable: #ef4444;
+      --border-primary: #2d3343;
+      --border-secondary: #3b4256;
+      --chart-grid: #1e293b;
+      --chart-axis: #475569;
+      --radius-sm: 6px;
+      --radius-md: 10px;
+      --radius-lg: 16px;
+      --space-1: 4px; --space-2: 8px; --space-4: 16px; --space-6: 24px;
+    }
+    [data-theme="light"] {
+      --bg-primary: #f8fafc; --bg-secondary: #ffffff; --bg-tertiary: #f1f5f9;
+      --text-primary: #1e293b; --text-secondary: #475569; --text-muted: #94a3b8;
+      --border-primary: #e2e8f0; --border-secondary: #cbd5e1;
+      --chart-grid: #f1f5f9; --chart-axis: #94a3b8;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Inter', sans-serif; background: var(--bg-primary); color: var(--text-primary); height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+    header { height: 60px; background: var(--bg-secondary); border-bottom: 1px solid var(--border-primary); display: flex; align-items: center; padding: 0 var(--space-6); justify-content: space-between; z-index: 100; }
+    .logo { font-family: 'Outfit', sans-serif; font-size: 20px; font-weight: 700; color: var(--color-accent); display: flex; align-items: center; gap: var(--space-2); }
+    .header-actions { display: flex; align-items: center; gap: var(--space-4); }
+    .btn { padding: 8px 14px; border-radius: var(--radius-sm); border: 1px solid var(--border-primary); background: var(--bg-tertiary); color: var(--text-primary); font-size: 13px; font-weight: 500; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: all 0.2s; }
+    .btn:hover { background: var(--border-primary); border-color: var(--text-muted); }
+    .btn-primary { background: var(--color-accent); border: none; color: white; }
+    .btn-primary:hover { filter: brightness(1.1); }
+    .btn-sm { padding: 5px 10px; font-size: 12px; }
+    .btn.active { background: var(--color-accent); border-color: var(--color-accent); color: white; }
+    main { flex: 1; display: flex; overflow: hidden; position: relative; }
+    aside { width: 320px; background: var(--bg-secondary); border-right: 1px solid var(--border-primary); display: flex; flex-direction: column; overflow-y: auto; padding: var(--space-6); gap: var(--space-6); }
+    .content-area { flex: 1; padding: var(--space-6); overflow-y: auto; display: grid; grid-template-columns: repeat(2, 1fr); grid-template-rows: repeat(2, 1fr); gap: var(--space-6); }
+    .chart-cell { background: var(--bg-secondary); border: 1px solid var(--border-primary); border-radius: var(--radius-lg); padding: var(--space-4); display: flex; flex-direction: column; position: relative; }
+    .chart-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--space-2); font-size: 13px; font-weight: 600; color: var(--text-secondary); }
+    .chart-body { flex: 1; min-height: 200px; }
+    .sys-tab-group { display: flex; background: var(--bg-tertiary); padding: 3px; border-radius: var(--radius-md); margin-bottom: var(--space-4); }
+    .sys-tab { flex: 1; text-align: center; padding: 6px; font-size: 12px; font-weight: 600; cursor: pointer; border-radius: var(--radius-sm); color: var(--text-secondary); }
+    .sys-tab.active { background: var(--bg-secondary); color: var(--color-accent); box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+    .input-group { display: flex; flex-direction: column; gap: 6px; margin-bottom: var(--space-4); }
+    .input-group label { font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
+    input[type="text"], input[type="number"] { background: var(--bg-tertiary); border: 1px solid var(--border-primary); border-radius: var(--radius-sm); padding: 8px 12px; color: var(--text-primary); font-family: 'Inter', sans-serif; font-size: 14px; width: 100%; transition: border-color 0.2s; }
+    input:focus { outline: none; border-color: var(--color-accent); }
+    .slider-group { margin-bottom: var(--space-4); }
+    .slider-header { display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 6px; color: var(--text-secondary); }
+    input[type="range"] { -webkit-appearance: none; width: 100%; background: transparent; }
+    input[type="range"]::-webkit-slider-runnable-track { width: 100%; height: 4px; background: var(--border-secondary); border-radius: 2px; }
+    input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; height: 16px; width: 16px; border-radius: 50%; background: var(--color-accent); cursor: pointer; margin-top: -6px; box-shadow: 0 0 10px rgba(99, 102, 241, 0.3); }
+    .status-pill { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; text-transform: uppercase; }
+    .status-pill.stable { background: rgba(16, 185, 129, 0.1); color: var(--color-stable); }
+    .status-pill.unstable { background: rgba(239, 68, 68, 0.1); color: var(--color-unstable); }
+    .status-pill.marginal { background: rgba(245, 158, 11, 0.1); color: #f59e0b; }
+    .status-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; box-shadow: 0 0 8px currentColor; }
+    .ai-panel { background: var(--bg-tertiary); border: 1px solid var(--border-primary); border-radius: var(--radius-md); padding: var(--space-4); }
+    .markdown-content { font-size: 12px; line-height: 1.6; color: var(--text-secondary); }
+    .markdown-content h4 { color: var(--text-primary); margin-bottom: 8px; font-size: 13px; }
+    .loader { border: 2px solid var(--bg-tertiary); border-top: 2px solid var(--color-accent); border-radius: 50%; width: 16px; height: 16px; animation: spin 1s linear infinite; display: none; }
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    .view-switch { display: flex; gap: var(--space-1); background: var(--bg-tertiary); padding: 2px; border-radius: var(--radius-sm); }
+    .divider-v { width: 1px; height: 24px; background: var(--border-secondary); margin: 0 var(--space-2); }
+    .editor-toolbar { height: 48px; display: flex; align-items: center; padding: 0 var(--space-4); background: var(--bg-tertiary); border-bottom: 1px solid var(--border-secondary); gap: var(--space-2); width: 100%; }
+    #editor-workspace { flex-direction: column; padding: 0; }
+    #editor-canvas { cursor: crosshair; user-select: none; }
+    .canvas-node { cursor: move; }
+    .canvas-node rect { fill: var(--bg-secondary); stroke: var(--border-primary); stroke-width: 1.5; }
+    .canvas-node.selected rect { stroke: var(--color-accent); stroke-width: 2.5; }
+    .canvas-node text { fill: var(--text-primary); font-size: 11px; pointer-events: none; text-anchor: middle; }
+    .canvas-link { fill: none; stroke: var(--text-muted); stroke-width: 2; marker-end: url(#arrowhead); }
+    .port { fill: var(--bg-tertiary); stroke: var(--border-primary); stroke-width: 1; cursor: crosshair; }
+    .port:hover { fill: var(--color-accent); }
+    .port.active { fill: var(--color-accent); stroke: white; }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="logo">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><path d="M12 2v20M2 12h20"/></svg>
+      <span>ControlStudio</span>
+      <span style="font-size:10px; color:var(--text-muted); margin-left:8px; font-weight:400; border:1px solid var(--border-primary); padding:1px 4px; border-radius:4px;">v1.1</span>
+    </div>
+    <div class="header-actions">
+      <div class="view-switch">
+        <button class="btn btn-sm active" id="view-dashboard">Dashboard</button>
+        <button class="btn btn-sm" id="view-editor">Block Diagram</button>
+      </div>
+      <div class="divider-v"></div>
+      <button class="btn btn-sm" id="theme-toggle">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <main>
+    <aside>
+      <section>
+        <div class="sys-tab-group">
+          <div class="sys-tab active" data-type="tf">Transfer Function</div>
+          <div class="sys-tab" data-type="ss">State Space</div>
+        </div>
+        <div id="sys-tf" class="sys-input-section">
+          <div class="input-group">
+            <label>Numerator [b_n, ..., b_0]</label>
+            <input type="text" id="tf-num" value="1" placeholder="e.g. 1">
+          </div>
+          <div class="input-group">
+            <label>Denominator [a_n, ..., a_0]</label>
+            <input type="text" id="tf-den" value="1, 3, 2" placeholder="e.g. 1, 3, 2">
+          </div>
+        </div>
+        <button class="btn btn-primary" style="width:100%; margin-top:var(--space-2);" id="btn-apply">Update System</button>
+      </section>
+
+      <section>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:var(--space-4);">
+          <h3 style="font-size:13px; text-transform:uppercase; color:var(--text-muted);">Controller (PID)</h3>
+          <div style="display:flex; align-items:center; gap:8px; font-size:11px;">
+            <label>Closed Loop</label>
+            <input type="checkbox" id="cl-toggle" checked>
+          </div>
+        </div>
+        <div class="slider-group">
+          <div class="slider-header"><span>Proportional (Kp)</span><span id="pid-Kp-val">1.00</span></div>
+          <input type="range" id="pid-Kp" min="0" max="50" step="0.1" value="1">
+        </div>
+        <div class="slider-group">
+          <div class="slider-header"><span>Integral (Ki)</span><span id="pid-Ki-val">0.50</span></div>
+          <input type="range" id="pid-Ki" min="0" max="10" step="0.01" value="0.5">
+        </div>
+        <div class="slider-group">
+          <div class="slider-header"><span>Derivative (Kd)</span><span id="pid-Kd-val">0.10</span></div>
+          <input type="range" id="pid-Kd" min="0" max="5" step="0.01" value="0.1">
+        </div>
+      </section>
+
+      <section>
+        <h3 style="font-size:13px; text-transform:uppercase; color:var(--text-muted); margin-bottom:var(--space-4);">Stability Advisor</h3>
+        <div id="stability-panel" style="background:var(--bg-tertiary); border-radius:var(--radius-md); padding:var(--space-4);">
+          <div style="display:flex; justify-content:space-between; margin-bottom:var(--space-4);">
+            <span style="font-size:12px; color:var(--text-secondary);">Current Status</span>
+            <div id="stability-indicator" class="status-pill stable"><span class="status-dot"></span> STABLE</div>
+          </div>
+          <div style="display:grid; grid-template-columns: 1fr 1fr; gap:var(--space-2); font-size:11px; color:var(--text-muted);">
+            <div>Gain Margin: <span id="gm-value" style="color:var(--text-primary);">∞</span></div>
+            <div>Phase Margin: <span id="pm-value" style="color:var(--text-primary);">—</span></div>
+            <div>Rise Time: <span id="rise-time" style="color:var(--text-primary);">0s</span></div>
+            <div>Settling: <span id="settling-time" style="color:var(--text-primary);">0s</span></div>
+          </div>
+          <button class="btn btn-sm" id="btn-ai-advisor" style="width:100%; margin-top:var(--space-4); justify-content:center;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+            Generate AI Advice
+          </button>
+        </div>
+      </section>
+
+      <div id="ai-response-container" style="display:none; margin-top:var(--space-4);">
+        <div class="ai-panel">
+          <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
+            <span style="font-size:12px; font-weight:700; color:var(--color-accent);">NVIDIA AI EXPERT</span>
+            <div class="loader" id="ai-loading"></div>
+          </div>
+          <div id="ai-text" class="markdown-content"></div>
+        </div>
+      </div>
+    </aside>
+
+    <div id="dashboard-view" class="content-area">
+      <div class="chart-cell">
+        <div class="chart-header"><span>Step Response</span><span>Time-Domain</span></div>
+        <div class="chart-body" id="chart-step"></div>
+      </div>
+      <div class="chart-cell">
+        <div class="chart-header"><span>Bode Plot</span><span>Frequency-Domain</span></div>
+        <div class="chart-body" id="chart-bode"></div>
+      </div>
+      <div class="chart-cell">
+        <div class="chart-header"><span>Root Locus</span><span>Stability Analysis</span></div>
+        <div class="chart-body" id="chart-rlocus"></div>
+      </div>
+      <div class="chart-cell">
+        <div class="chart-header"><span>Pole-Zero Map</span><span>S-Plane</span></div>
+        <div class="chart-body" id="chart-pzmap"></div>
+      </div>
+    </div>
+
+    <div id="editor-workspace" class="content-area" style="display:none; position:relative; overflow:hidden; background:var(--bg-secondary);">
+      <div class="editor-toolbar">
+        <button class="btn btn-sm node-tool" data-type="source">Step</button>
+        <button class="btn btn-sm node-tool" data-type="sum">Sum</button>
+        <button class="btn btn-sm node-tool" data-type="tf">TF</button>
+        <button class="btn btn-sm node-tool" data-type="gain">Gain</button>
+        <button class="btn btn-sm node-tool" data-type="scope">Scope</button>
+        <div class="divider-v"></div>
+        <button class="btn btn-sm" id="btn-editor-clear">Clear</button>
+        <button class="btn btn-primary btn-sm" id="btn-editor-sync">Analyze System</button>
+      </div>
+      <div id="canvas-container" style="width:100%; height:calc(100% - 48px); position:relative;">
+        <svg id="editor-canvas" width="100%" height="100%">
+          <defs>
+            <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+              <polygon points="0 0, 10 3.5, 0 7" fill="#64748b" />
+            </marker>
+          </defs>
+          <g id="canvas-grid"></g>
+          <g id="canvas-links"></g>
+          <g id="canvas-nodes"></g>
+        </svg>
+      </div>
+    </div>
+  </main>
+
+  <div id="error-msg" style="position:fixed; bottom:20px; right:20px; background:var(--color-unstable); color:white; padding:12px 20px; border-radius:var(--radius-md); font-size:13px; display:none; z-index:1000; box-shadow:0 10px 25px rgba(0,0,0,0.2);"></div>
+
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>

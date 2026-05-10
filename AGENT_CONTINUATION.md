@@ -23,10 +23,16 @@
   - `workflows/safety_guard_workflow.py`
   - `workflows/image_generation_workflow.py`
   - `workflows/cuopt_demo_workflow.py`
+  - `workflows/control_advisor_workflow.py`
   - `data/sample_kb.txt`
   - `data/cuopt_sample_problem.json`
   - `.env.example`
   - `RUNNABLE_WORKFLOWS.md`
+- 已建立控制系統工作台：
+  - `control-studio/index.html`
+  - `control-studio/js/`
+  - `control-studio/scripts/advisor_server.py`
+  - `test_control.js`
 - 已建立 symlink：
   - `/Users/w.rc/.config/agents/skills/nvidia-model-selector`
   - 指向 `/Users/w.rc/nvdiaOSsupport/skills/nvidia-model-selector`
@@ -47,6 +53,7 @@
   - `./nv-agent plan --select-model ROLE=MODEL_ID` 可讓 Agent 指定每個任務單元的模型來源。
   - `./nv-agent run-plan --select-model ROLE=MODEL_ID ...` 可在執行前覆蓋來源。
   - image / safety / cuOpt workflow 已支援 registry endpoint source 與 CLI 覆蓋。
+  - control-advisor workflow 已接入 `control_expert` role。
 
 ## Git Checkpoints
 - `338986f docs(nvidia): baseline model inventory and skill plan`
@@ -84,6 +91,8 @@ git log --oneline -5
 - `nv-agent plan`、`nv-agent run-plan`、`nv-agent eval` 已實測一輪 RAG 閉環。
 - `AGENTS.md` 與 `AGENT_USAGE.md` 已納入驗證腳本，確保後續 agent 有固定入口。
 - image runtime router 已用 dry-run 驗證會輸出 `--model` 與 `--endpoint-url`。
+- `test_control.js` 已驗證基本極點判定與 step response 指標。
+- `control_advisor_workflow.py --help` 可正常執行。
 
 ## 後續可做
 1. 加 `agents/openai.yaml` UI metadata。
@@ -93,6 +102,7 @@ git log --oneline -5
 5. 若要更實用，補上本地文件切 chunk / PDF 轉圖 / OCR 結果快取。
 6. 加 parallel runner 與 leaderboard，追蹤同任務多模型輸出品質。
 7. 將 OCR/RAG 的 endpoint source 也改成完整 registry-driven，而不只傳入 model id。
+8. 若要把控制系統工作台正式產品化，補前端啟動腳本、瀏覽器驗證流程與 advisor bridge 的部署說明。
 
 ## 注意事項
 - 這個專案不需要 `.agent-handoff.md`。

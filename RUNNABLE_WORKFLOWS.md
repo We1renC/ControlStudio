@@ -92,6 +92,8 @@ cd /Users/w.rc/nvdiaOSsupport
   - FLUX.1-schnell 文字生圖，落地成 PNG 檔
 - `workflows/cuopt_demo_workflow.py`
   - 路線最佳化 validator 與 optimized routing demo
+- `workflows/control_advisor_workflow.py`
+  - 控制系統性能分析、穩定性解讀與 PID 調參建議
 
 ## 其他 Workflow 範例
 OCR + RAG：
@@ -130,6 +132,20 @@ cuOpt：
 ```bash
 cd /Users/w.rc/nvdiaOSsupport
 ./.venv/bin/python workflows/cuopt_demo_workflow.py --action cuOpt_OptimizedRouting
+```
+
+Control Advisor：
+
+```bash
+cd /Users/w.rc/nvdiaOSsupport
+./nv-agent run control-advisor --data '{"formula":"1/(s+1)","overshoot":20,"phaseMargin":45,"stability":"stable"}'
+```
+
+如果要搭配前端控制台使用，可另外開啟本地 bridge server：
+
+```bash
+cd /Users/w.rc/nvdiaOSsupport
+python3 control-studio/scripts/advisor_server.py
 ```
 
 ## 接手建議

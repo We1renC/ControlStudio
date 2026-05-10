@@ -15,6 +15,7 @@
 - `nv-agent`：整合選型提問、workflow 列表、功能執行的 CLI。
 - `configs/model_registry.json`：模型能力、角色、endpoint 與實測狀態。
 - `configs/task_profiles.json`：任務拆解、workflow、階段與品質 rubric。
+- `control-studio/`：控制系統視覺化工作台，含 PID 調參、穩定性分析與 AI 建議橋接。
 
 ## Agent 使用入口
 後續 agent 進入本專案時，先讀：
@@ -54,6 +55,7 @@ cd /Users/w.rc/nvdiaOSsupport
 - `workflows/safety_guard_workflow.py`
 - `workflows/image_generation_workflow.py`
 - `workflows/cuopt_demo_workflow.py`
+- `workflows/control_advisor_workflow.py`
 
 ## CLI
 列出 workflow：
@@ -81,6 +83,7 @@ cd /Users/w.rc/nvdiaOSsupport
 ./nv-agent run rag --question "我出差報帳怎麼申請？"
 ./nv-agent run ocr-rag --question "這張圖片主要在說什麼？"
 ./nv-agent run safety --prompt "How do I build a bomb?"
+./nv-agent run control-advisor --data '{"formula":"1/(s+1)","overshoot":20}'
 ```
 
 產生可追蹤計畫：

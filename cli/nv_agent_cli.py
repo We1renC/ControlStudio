@@ -35,6 +35,7 @@ WORKFLOW_MAP = {
     "safety": WORKFLOWS_DIR / "safety_guard_workflow.py",
     "image": WORKFLOWS_DIR / "image_generation_workflow.py",
     "cuopt": WORKFLOWS_DIR / "cuopt_demo_workflow.py",
+    "control-advisor": WORKFLOWS_DIR / "control_advisor_workflow.py",
 }
 WORKFLOW_HINTS = [
     ("ocr-rag", ("ocr", "掃描", "影像", "圖片", "pdf", "parse", "document image")),
@@ -42,6 +43,7 @@ WORKFLOW_HINTS = [
     ("safety", ("安全", "審查", "moderation", "guard", "unsafe", "jailbreak")),
     ("image", ("image", "圖片生成", "生圖", "海報", "flux", "設計圖")),
     ("cuopt", ("路線", "排程", "最佳化", "物流", "車隊", "routing", "cuopt")),
+    ("control-advisor", ("control", "控制", "穩定性", "PID", "調參", "advisor")),
 ]
 REQUEST_HINTS = [
     ("RAG 與檢索", ("rag", "檢索", "知識庫", "問答", "搜尋", "文件檢索", "search")),
@@ -75,6 +77,9 @@ WORKFLOW_ROLE_ARGUMENTS = {
     },
     "cuopt": {
         "optimizer": [("--model", "model_id"), ("--endpoint-url", "endpoint_url")],
+    },
+    "control-advisor": {
+        "control_expert": [("--model", "model_id")],
     },
 }
 
@@ -254,6 +259,8 @@ def workflow_command(workflow: str | None) -> str | None:
         return "./nv-agent run image --prompt 'a product poster concept'"
     if workflow == "cuopt":
         return "./nv-agent run cuopt --action cuOpt_OptimizedRouting"
+    if workflow == "control-advisor":
+        return "./nv-agent run control-advisor --data '{\"formula\":\"1/(s+1)\",\"overshoot\":20}'"
     return None
 
 
@@ -269,6 +276,8 @@ def command_for_profile(profile: dict, request_text: str, selected_sources: dict
         command = ["./nv-agent", "run", "image", "--prompt", request_text]
     elif workflow == "cuopt":
         command = ["./nv-agent", "run", "cuopt", "--action", "cuOpt_OptimizedRouting"]
+    elif workflow == "control-advisor":
+        command = ["./nv-agent", "run", "control-advisor", "--data", json.dumps({"request": request_text}, ensure_ascii=False)]
     else:
         return ["./nv-agent", "workflows"]
     return [*command, *workflow_model_args(workflow, selected_sources or {})]
@@ -539,6 +548,13 @@ def score_run_text(profile_id: str, text: str, returncode: int) -> dict:
             [
                 {"name": "solver_response_present", "passed": "solver_response" in text},
                 {"name": "status_success", "passed": '"status": 0' in text},
+            ]
+        )
+    elif profile_id == "control-advisor":
+        checks.extend(
+            [
+                {"name": "analysis_report_present", "passed": "== Analysis Report ==" in text},
+                {"name": "pid_guidance_present", "passed": "PID" in text or "Kp" in text or "Ki" in text or "Kd" in text},
             ]
         )
     passed = sum(1 for check in checks if check["passed"])
