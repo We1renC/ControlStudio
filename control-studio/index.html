@@ -129,6 +129,10 @@
     .port { fill: var(--bg-tertiary); stroke: var(--border-primary); stroke-width: 1; cursor: crosshair; }
     .port:hover { fill: var(--color-accent); }
     .port.active { fill: var(--color-accent); stroke: white; }
+    .node-badge { fill: var(--text-muted); font-size: 8px; font-weight: 700; text-anchor: middle; letter-spacing: 0.5px; pointer-events: none; }
+    .routh-table { width: 100%; font-size: 11px; border-collapse: collapse; margin-top: var(--space-2); }
+    .routh-table td { border: 1px solid var(--border-primary); padding: 4px 8px; text-align: center; color: var(--text-secondary); }
+    .routh-table td:first-child { color: var(--text-muted); font-weight: 600; }
     .snapshot-list { display:flex; flex-direction:column; gap:var(--space-2); max-height: 360px; overflow:auto; }
     .snapshot-card { border: 1px solid var(--border-primary); border-radius: var(--radius-sm); padding: 10px 12px; background: rgba(15, 17, 23, 0.35); display:flex; flex-direction:column; gap:8px; }
     .snapshot-top { display:flex; align-items:center; justify-content:space-between; gap:8px; }
@@ -193,6 +197,7 @@
           <div class="sys-tab-group">
             <div class="sys-tab active" data-type="tf">Transfer Function</div>
             <div class="sys-tab" data-type="ss">State Space</div>
+            <div class="sys-tab" data-type="zpk">ZPK</div>
           </div>
           <div id="sys-tf" class="sys-input-section">
             <div class="input-group">
@@ -222,6 +227,20 @@
             <div class="input-group">
               <label>D Matrix</label>
               <textarea id="ss-d" rows="1" placeholder="e.g. 0">0</textarea>
+            </div>
+          </div>
+          <div id="sys-zpk" class="sys-input-section" style="display:none;">
+            <div class="input-group">
+              <label>Zeros (comma separated, e.g. -1, -2+3j)</label>
+              <input type="text" id="zpk-zeros" placeholder="e.g. -1, -2+3j">
+            </div>
+            <div class="input-group">
+              <label>Poles (comma separated)</label>
+              <input type="text" id="zpk-poles" placeholder="e.g. -1, -3+2j">
+            </div>
+            <div class="input-group">
+              <label>Gain (K)</label>
+              <input type="number" id="zpk-gain" value="1" step="0.1">
             </div>
           </div>
           <button class="btn btn-primary" style="width:100%; margin-top:var(--space-2);" id="btn-apply">Update System</button>
@@ -332,6 +351,7 @@
             <button class="btn btn-sm" id="btn-load-project" style="justify-content:center;">Load Project</button>
             <button class="btn btn-sm" id="btn-export-json" style="justify-content:center;">Export JSON</button>
             <button class="btn btn-sm" id="btn-export-csv" style="justify-content:center;">Export CSV</button>
+            <button class="btn btn-sm" id="btn-export-png" style="justify-content:center;">Export PNG</button>
             <button class="btn btn-sm" id="btn-restore-session" style="justify-content:center;">Restore Session</button>
             <button class="btn btn-sm" id="btn-clear-session" style="justify-content:center;">Clear Session</button>
           </div>
@@ -352,6 +372,12 @@
             <span style="font-size:12px; color:var(--text-secondary);">Current Status</span>
             <div id="stability-indicator" class="status-pill stable"><span class="status-dot"></span> STABLE</div>
           </div>
+          <details style="margin-top:var(--space-4);">
+            <summary style="font-size:11px; color:var(--text-muted); cursor:pointer;">Routh-Hurwitz Table</summary>
+            <table class="routh-table">
+              <tbody id="routh-table-body"><tr><td colspan="4">—</td></tr></tbody>
+            </table>
+          </details>
         </section>
       </div>
 
@@ -410,6 +436,7 @@
           <button class="plot-tab active" data-plot="step">Time Response</button>
           <button class="plot-tab" data-plot="bode">Bode</button>
           <button class="plot-tab" data-plot="nyquist">Nyquist</button>
+          <button class="plot-tab" data-plot="nichols">Nichols</button>
           <button class="plot-tab" data-plot="rlocus">Root Locus</button>
           <button class="plot-tab" data-plot="pzmap">Pole-Zero</button>
         </div>
@@ -448,6 +475,8 @@
         <button class="btn btn-sm node-tool" data-type="scope">Scope</button>
         <div class="divider-v"></div>
         <button class="btn btn-sm" id="btn-editor-clear">Clear</button>
+        <button class="btn btn-sm" id="btn-editor-undo" title="Undo (Ctrl+Z)">Undo</button>
+        <button class="btn btn-sm" id="btn-editor-redo" title="Redo (Ctrl+Y)">Redo</button>
         <button class="btn btn-primary btn-sm" id="btn-editor-sync">Analyze System</button>
       </div>
       <div id="canvas-container" style="width:100%; height:calc(100% - 48px); position:relative;">

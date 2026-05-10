@@ -1,9 +1,12 @@
 import { TransferFunction } from './control-studio/js/control/transfer-function.js';
 import { impulseResponse, rampResponse, simulateTimeResponse, stepResponse } from './control-studio/js/analysis/time-response.js';
-import { nyquistData } from './control-studio/js/analysis/frequency-response.js';
+import { nyquistData, autoFreqRange, nicholsData, nyquistEncirclements } from './control-studio/js/analysis/frequency-response.js';
+import { rootLocusAsymptotes } from './control-studio/js/analysis/root-locus.js';
 import { stateSpaceToTransferFunction } from './control-studio/js/control/state-space.js';
-import { stepInfo, stabilityMargins } from './control-studio/js/control/stability.js';
+import { stepInfo, stabilityMargins, routhTable } from './control-studio/js/control/stability.js';
 import { parsePolyString } from './control-studio/js/utils/format.js';
+import { zpkToTransferFunction, parseRootsString, parseComplexRoot } from './control-studio/js/control/zpk.js';
+import { polydiv } from './control-studio/js/math/polynomial.js';
 
 try {
   // Test 1/(s+1)
@@ -73,6 +76,66 @@ try {
   if (disturbanceResponse.y[disturbanceResponse.y.length - 1] <= 1.0) {
     throw new Error('Disturbance input did not affect final response as expected');
   }
+
+  // === NEW TESTS ===
+
+  // ZPK conversion
+  const zpkRoots = parseRootsString('-1, -2+3j');
+  if (zpkRoots.length !== 2) throw new Error(`Expected 2 roots, got ${zpkRoots.length}`);
+  if (Math.abs(zpkRoots[0].re + 1) > 0.001) throw new Error('ZPK root 0 wrong');
+  if (Math.abs(zpkRoots[1].im - 3) > 0.001) throw new Error('ZPK root 1 wrong');
+
+  const zpkTf = zpkToTransferFunction(
+    [{ re: 0, im: 0 }],
+    [{ re: -1, im: 0 }, { re: -2, im: 0 }],
+    5
+  );
+  console.log('ZPK TF:', zpkTf.toString());
+  if (zpkTf.num.length !== 2) throw new Error('ZPK num wrong length');
+  if (zpkTf.den.length !== 3) throw new Error('ZPK den wrong length');
+
+  const cplxRoot = parseComplexRoot('-3+4j');
+  if (!cplxRoot || Math.abs(cplxRoot.re + 3) > 0.001 || Math.abs(cplxRoot.im - 4) > 0.001) {
+    throw new Error('parseComplexRoot failed');
+  }
+  console.log('ZPK tests passed');
+
+  // Polydiv
+  const divResult = polydiv([1, 3, 2], [1, 1]);
+  if (Math.abs(divResult.quotient[0] - 1) > 0.001 || Math.abs(divResult.quotient[1] - 2) > 0.001) {
+    throw new Error('polydiv quotient wrong');
+  }
+  if (Math.abs(divResult.remainder[0]) > 0.001) {
+    throw new Error('polydiv remainder should be 0');
+  }
+  console.log('Polydiv test passed');
+
+  // Routh-Hurwitz table
+  const routh1 = routhTable([1, 3, 3, 1]);
+  if (!routh1.stable) throw new Error('Routh should be stable for s^3+3s^2+3s+1');
+  if (routh1.signChanges !== 0) throw new Error('Routh signChanges should be 0');
+  const routh2 = routhTable([1, -1, 1]);
+  if (routh2.stable) throw new Error('Routh should be unstable for s^2-s+1');
+  console.log('Routh-Hurwitz test passed');
+
+  // autoFreqRange
+  const range = autoFreqRange(sys1);
+  if (!range.wMin || !range.wMax || range.wMin >= range.wMax) throw new Error('autoFreqRange invalid');
+  console.log('autoFreqRange:', range);
+
+  // Nichols data
+  const nichols = nicholsData(sys1);
+  if (!nichols.phaseDeg || nichols.phaseDeg.length === 0) throw new Error('Nichols data empty');
+  console.log('Nichols data points:', nichols.phaseDeg.length);
+
+  // Nyquist encirclements
+  const enc = nyquistEncirclements(sys1);
+  console.log('Nyquist encirclements for 1/(s+1):', enc);
+  if (enc !== 0) throw new Error('1/(s+1) should have 0 encirclements');
+
+  // Root locus asymptotes
+  const asym = rootLocusAsymptotes(sys1);
+  console.log('Root locus asymptotes:', asym);
 
   console.log('Tests Passed!');
 } catch (e) {

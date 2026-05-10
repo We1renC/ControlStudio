@@ -100,6 +100,13 @@ git log --oneline -5
 - `control-studio/scripts/serve_studio.py` 已提供固定的本地前端啟動入口（預設 `http://127.0.0.1:8765`）。
 - `control-studio` 已補上 simulation config（duration/sample count/amplitude/disturbance/initial state）、autosave/restore session、waveform 擴充與 comparison 指標摘要。
 - `control-studio/scripts/control_api.py` 與 `control-studio/scripts/control_analysis_cli.mjs` 已提供 FastAPI 分析 API 雛形。
+- `control-studio` 已補 Nichols Chart、ZPK 輸入、Export PNG、Routh-Hurwitz 表、autoFreqRange、Root Locus asymptotes、Nyquist encirclement 計數、輸入驗證強化。
+- `control-studio` Block Editor 已補上拓撲分析（串聯 / 回授）、節點編輯（雙擊）、節點刪除、Zoom/Pan、Undo/Redo、Diagram save/load。
+- `control-studio/js/control/zpk.js` 新增 ZPK model 輸入與複數根解析。
+- `control-studio/js/math/polynomial.js` 新增 `polydiv` 多項式除法。
+- `control-studio/js/control/stability.js` 新增 `routhTable` Routh-Hurwitz 穩定性表。
+- `control-studio/js/analysis/frequency-response.js` 新增 `nicholsData`、`nyquistEncirclements`。
+- `test_control.js` 已擴充涵蓋 ZPK、polydiv、Routh、Nichols、encirclement、asymptotes 測試。
 
 ## 後續可做
 1. 加 `agents/openai.yaml` UI metadata。
@@ -110,6 +117,9 @@ git log --oneline -5
 6. 加 parallel runner 與 leaderboard，追蹤同任務多模型輸出品質。
 7. 將 OCR/RAG 的 endpoint source 也改成完整 registry-driven，而不只傳入 model id。
 8. 若要把控制系統工作台正式產品化，補 FastAPI 真正上線流程、advisor bridge 與 API 的整合、以及更多 analysis endpoint 測試。
+9. 補 MIMO 支援、LQR/LQG/MPC 進階控制。
+10. 補離散時間系統（z-domain）支援。
+11. 補 Electron packaging 與教學模式。
 
 ## 注意事項
 - 這個專案不需要 `.agent-handoff.md`。

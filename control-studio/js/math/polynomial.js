@@ -193,3 +193,27 @@ function qrEigenvalues(mat) {
   }
   return eigs;
 }
+
+/**
+ * Polynomial long division: a(s) / b(s) = q(s) remainder r(s).
+ * Coefficients [high → low].
+ * @returns {{ quotient: number[], remainder: number[] }}
+ */
+export function polydiv(a, b) {
+  a = trimPoly(a.slice());
+  b = trimPoly(b.slice());
+  if (b.length === 1 && Math.abs(b[0]) < 1e-15) throw new Error('Division by zero polynomial');
+  if (a.length < b.length) return { quotient: [0], remainder: a };
+
+  const q = [];
+  let rem = a.slice();
+  while (rem.length >= b.length) {
+    const coeff = rem[0] / b[0];
+    q.push(coeff);
+    for (let i = 0; i < b.length; i++) {
+      rem[i] -= coeff * b[i];
+    }
+    rem.shift();
+  }
+  return { quotient: trimPoly(q.length > 0 ? q : [0]), remainder: trimPoly(rem.length > 0 ? rem : [0]) };
+}

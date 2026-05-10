@@ -66,3 +66,56 @@ export function stepInfo(tArr, yArr, finalValue = null) {
 
   return { riseTime, settlingTime: st, overshoot, steadyStateError: Math.abs(1 - yFinal) };
 }
+
+/**
+ * Compute the Routh-Hurwitz stability table for a given denominator polynomial.
+ * @param {number[]} den - Denominator coefficients [high → low]
+ * @returns {{ table: number[][], stable: boolean, signChanges: number }}
+ */
+export function routhTable(den) {
+  if (!den || den.length < 2) return { table: [], stable: true, signChanges: 0 };
+  const n = den.length;
+  const cols = Math.ceil(n / 2);
+  const table = [];
+
+  // First two rows from coefficients
+  const row0 = new Array(cols).fill(0);
+  const row1 = new Array(cols).fill(0);
+  for (let i = 0; i < n; i++) {
+    if (i % 2 === 0) row0[i / 2] = den[i];
+    else row1[(i - 1) / 2] = den[i];
+  }
+  table.push(row0);
+  table.push(row1);
+
+  // Subsequent rows
+  for (let i = 2; i < n; i++) {
+    const prev2 = table[i - 2];
+    const prev1 = table[i - 1];
+    const row = new Array(cols).fill(0);
+    const pivot = prev1[0];
+
+    if (Math.abs(pivot) < 1e-15) {
+      // Replace zero pivot with epsilon
+      table[i - 1][0] = 1e-6;
+      const fixedPivot = 1e-6;
+      for (let j = 0; j < cols - 1; j++) {
+        row[j] = (fixedPivot * prev2[j + 1] - prev2[0] * prev1[j + 1]) / fixedPivot;
+      }
+    } else {
+      for (let j = 0; j < cols - 1; j++) {
+        row[j] = (pivot * prev2[j + 1] - prev2[0] * prev1[j + 1]) / pivot;
+      }
+    }
+    table.push(row);
+  }
+
+  // Count sign changes in first column
+  let signChanges = 0;
+  for (let i = 1; i < table.length; i++) {
+    if (table[i][0] * table[i - 1][0] < 0) signChanges++;
+  }
+
+  return { table, stable: signChanges === 0, signChanges };
+}
+

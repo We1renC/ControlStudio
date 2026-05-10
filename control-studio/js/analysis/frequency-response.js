@@ -78,3 +78,37 @@ export function autoFreqRange(sys) {
     wMax: Math.pow(10, Math.ceil(Math.log10(maxFreq)) + 1)
   };
 }
+
+/**
+ * Compute Nichols chart data (open-loop phase vs. magnitude).
+ * @returns {{ phaseDeg: number[], magDB: number[], w: number[] }}
+ */
+export function nicholsData(sys, wMin = 1e-2, wMax = 1e3, nPoints = 500) {
+  const data = bodeData(sys, wMin, wMax, nPoints);
+  return { phaseDeg: data.phaseDeg, magDB: data.magDB, w: data.w };
+}
+
+/**
+ * Count Nyquist encirclements of the -1+j0 point.
+ * Positive = clockwise encirclement (indicates instability for stable open-loop).
+ * Uses winding number algorithm.
+ * @returns {number} Number of clockwise encirclements
+ */
+export function nyquistEncirclements(sys, wMin = 1e-3, wMax = 1e3, nPoints = 2000) {
+  const data = nyquistData(sys, wMin, wMax, nPoints);
+  // Compute winding number around (-1, 0) using the positive-frequency contour
+  let windingAngle = 0;
+  for (let i = 1; i < data.re.length; i++) {
+    const x0 = data.re[i - 1] + 1; // shift so -1+j0 is at origin
+    const y0 = data.im[i - 1];
+    const x1 = data.re[i] + 1;
+    const y1 = data.im[i];
+    // Cross product for angle change
+    const cross = x0 * y1 - x1 * y0;
+    const dot = x0 * x1 + y0 * y1;
+    const dTheta = Math.atan2(cross, dot);
+    windingAngle += dTheta;
+  }
+  // Full encirclements (each is 2π)
+  return Math.round(windingAngle / (2 * Math.PI));
+}

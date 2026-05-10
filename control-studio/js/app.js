@@ -2,10 +2,11 @@ import { TransferFunction } from './control/transfer-function.js';
 import { parseMatrixInput, stateSpaceToTransferFunction } from './control/state-space.js';
 import { PIDController } from './control/pid.js';
 import { impulseResponse, rampResponse, stepResponse } from './analysis/time-response.js';
-import { bodeData, nyquistData } from './analysis/frequency-response.js';
-import { rootLocusData } from './analysis/root-locus.js';
-import { stabilityMargins, stepInfo } from './control/stability.js';
+import { bodeData, nyquistData, autoFreqRange, nicholsData, nyquistEncirclements } from './analysis/frequency-response.js';
+import { rootLocusData, rootLocusAsymptotes } from './analysis/root-locus.js';
+import { stabilityMargins, stepInfo, routhTable } from './control/stability.js';
 import { parsePolyString, fmtNum, fmtDeg, fmtDB, fmtTime, fmtPercent } from './utils/format.js';
+import { zpkToTransferFunction, parseRootsString } from './control/zpk.js';
 import { BlockEditor } from './editor/editor.js';
 
 // ============================================================
@@ -109,6 +110,9 @@ function initEventListeners() {
       updateSystemSetupCopy();
     });
   });
+  ['zpk-zeros', 'zpk-poles', 'zpk-gain'].forEach((id) => {
+    document.getElementById(id)?.addEventListener('input', debounce(updateSystem, 300));
+  });
 
   document.getElementById('tf-num')?.addEventListener('input', debounce(updateSystem, 300));
   document.getElementById('tf-den')?.addEventListener('input', debounce(updateSystem, 300));
@@ -161,6 +165,7 @@ function initEventListeners() {
   document.getElementById('btn-load-project')?.addEventListener('click', () => document.getElementById('project-file-input')?.click());
   document.getElementById('btn-export-json')?.addEventListener('click', () => exportCurrentResult('json'));
   document.getElementById('btn-export-csv')?.addEventListener('click', () => exportCurrentResult('csv'));
+  document.getElementById('btn-export-png')?.addEventListener('click', exportChartPNG);
   document.getElementById('project-file-input')?.addEventListener('change', loadProjectFile);
   document.getElementById('btn-save-snapshot')?.addEventListener('click', saveComparisonSnapshot);
   document.getElementById('btn-clear-snapshots')?.addEventListener('click', clearSnapshots);
@@ -431,6 +436,7 @@ function updateSystemSetupCopy() {
 function updateSystem() {
   try {
     readSimulationConfigInputs();
+    clearFieldErrors();
     if (state.systemType === 'ss') {
       const A = parseMatrixInput(document.getElementById('ss-a')?.value);
       const B = parseMatrixInput(document.getElementById('ss-b')?.value, 1);
@@ -439,13 +445,31 @@ function updateSystem() {
       captureStateSpaceInputs();
       state.plant = stateSpaceToTransferFunction(A, B, C, D);
       syncTransferFunctionInputs();
+    } else if (state.systemType === 'zpk') {
+      const zerosStr = document.getElementById('zpk-zeros')?.value || '';
+      const polesStr = document.getElementById('zpk-poles')?.value || '';
+      const gainStr = document.getElementById('zpk-gain')?.value || '1';
+      const zeros = parseRootsString(zerosStr);
+      const poles = parseRootsString(polesStr);
+      const gain = Number(gainStr);
+      if (!Number.isFinite(gain) || gain === 0) {
+        setFieldError('zpk-gain', 'Gain 必須為非零數值');
+        throw new Error('ZPK Gain 必須為非零數值');
+      }
+      if (polesStr.trim() && poles.length === 0) {
+        setFieldError('zpk-poles', '極點格式錯誤，例: -1, -2+3j');
+        throw new Error('ZPK 極點格式錯誤');
+      }
+      state.plant = zpkToTransferFunction(zeros, poles, gain);
+      syncTransferFunctionInputs();
     } else {
       const numInput = document.getElementById('tf-num');
       const denInput = document.getElementById('tf-den');
       if (!numInput || !denInput) return;
       const num = parsePolyString(numInput.value);
       const den = parsePolyString(denInput.value);
-      if (!num || !den) throw new Error("無效的係數輸入");
+      if (!num) { setFieldError('tf-num', '請輸入有效的分子係數'); throw new Error('無效的分子係數'); }
+      if (!den) { setFieldError('tf-den', '請輸入有效的分母係數'); throw new Error('無效的分母係數'); }
       state.plant = new TransferFunction(num, den);
     }
     clearError();
@@ -453,6 +477,28 @@ function updateSystem() {
   } catch (err) {
     showError(err.message);
   }
+}
+
+function setFieldError(id, msg) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.style.borderColor = 'var(--color-unstable)';
+  let hint = el.parentElement?.querySelector('.field-hint');
+  if (!hint) {
+    hint = document.createElement('div');
+    hint.className = 'field-hint';
+    hint.style.cssText = 'font-size:11px; color:var(--color-unstable); margin-top:2px;';
+    el.parentElement?.appendChild(hint);
+  }
+  hint.textContent = msg;
+}
+
+function clearFieldErrors() {
+  document.querySelectorAll('.field-hint').forEach(h => h.remove());
+  ['tf-num', 'tf-den', 'zpk-zeros', 'zpk-poles', 'zpk-gain', 'ss-a', 'ss-b', 'ss-c', 'ss-d'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.borderColor = '';
+  });
 }
 
 function updateController() {
@@ -554,6 +600,23 @@ function updateStabilityPanel() {
 
     ind.className = `status-pill ${status}`;
     ind.innerHTML = `<span class="status-dot"></span> ${label}`;
+
+    // Routh-Hurwitz table
+    const routhEl = document.getElementById('routh-table-body');
+    if (routhEl) {
+      try {
+        const targetDen = sys.den;
+        const routh = routhTable(targetDen);
+        const labels = [];
+        for (let i = 0; i < targetDen.length; i++) {
+          labels.push(`s<sup>${targetDen.length - 1 - i}</sup>`);
+        }
+        routhEl.innerHTML = routh.table.map((row, idx) => {
+          const cells = row.map(v => `<td>${fmtNum(v)}</td>`).join('');
+          return `<tr><td>${labels[idx] || ''}</td>${cells}</tr>`;
+        }).join('');
+      } catch { routhEl.innerHTML = '<tr><td colspan="4">—</td></tr>'; }
+    }
   } catch (err) {
     console.error("穩定性分析面板刷新出錯:", err);
   }
@@ -615,7 +678,8 @@ function renderTimeResponse(sys, targetId = 'chart-active') {
 }
 
 function renderBodePlot(sys, targetId = 'chart-active') {
-  const data = bodeData(sys);
+  const range = autoFreqRange(sys);
+  const data = bodeData(sys, range.wMin, range.wMax);
   const mTrace = { x: data.w, y: data.magDB, type: 'scatter', mode: 'lines', name: 'Magnitude (dB)', line: { color: getCSS('--color-accent'), width: 2 } };
   const pTrace = { x: data.w, y: data.phaseDeg, type: 'scatter', mode: 'lines', name: 'Phase (deg)', line: { color: getCSS('--color-secondary'), width: 2 }, yaxis: 'y2' };
   const layout = PLOTLY_LAYOUT_BASE();
@@ -627,7 +691,9 @@ function renderBodePlot(sys, targetId = 'chart-active') {
 }
 
 function renderNyquistPlot(sys, targetId = 'chart-active') {
-  const data = nyquistData(sys);
+  const range = autoFreqRange(sys);
+  const data = nyquistData(sys, range.wMin, range.wMax);
+  const encirclements = nyquistEncirclements(sys, range.wMin, range.wMax);
   const traces = [
     { x: data.re, y: data.im, type: 'scatter', mode: 'lines', line: { color: getCSS('--color-accent'), width: 2 }, name: 'Positive ω' },
     { x: data.reNeg, y: data.imNeg, type: 'scatter', mode: 'lines', line: { color: getCSS('--color-secondary'), width: 1.5, dash: 'dot' }, name: 'Negative ω' },
@@ -638,7 +704,30 @@ function renderNyquistPlot(sys, targetId = 'chart-active') {
   layout.legend = compactLegend();
   layout.xaxis.zeroline = true;
   layout.yaxis.scaleanchor = 'x';
+  if (encirclements !== 0) {
+    layout.annotations = [{ x: -1, y: 0.3, text: `N=${encirclements}`, showarrow: false, font: { size: 12, color: getCSS('--color-unstable') } }];
+  }
   Plotly.react(targetId, traces, layout, { responsive: true, displayModeBar: false });
+}
+
+function renderNicholsChart(sys, targetId = 'chart-active') {
+  const range = autoFreqRange(sys);
+  const data = nicholsData(sys, range.wMin, range.wMax);
+  const trace = {
+    x: data.phaseDeg,
+    y: data.magDB,
+    type: 'scatter',
+    mode: 'lines',
+    name: 'Nichols',
+    line: { color: getCSS('--color-accent'), width: 2 },
+  };
+  const criticalPoint = { x: [-180], y: [0], type: 'scatter', mode: 'markers', marker: { size: 9, color: getCSS('--color-unstable') }, name: '-180°, 0dB' };
+  const layout = PLOTLY_LAYOUT_BASE();
+  layout.xaxis.title = { text: 'Phase (deg)', font: { size: 11 } };
+  layout.yaxis.title = { text: 'Magnitude (dB)', font: { size: 11 } };
+  layout.showlegend = true;
+  layout.legend = compactLegend();
+  Plotly.react(targetId, [trace, criticalPoint], layout, { responsive: true, displayModeBar: false });
 }
 
 function renderActivePlot(sys) {
@@ -665,6 +754,10 @@ function renderActivePlot(sys) {
     nyquist: () => {
       updateActivePlotHeader('Nyquist Plot', 'Frequency-Domain');
       renderNyquistPlot(loopSys, 'chart-active');
+    },
+    nichols: () => {
+      updateActivePlotHeader('Nichols Chart', 'Frequency-Domain');
+      renderNicholsChart(loopSys, 'chart-active');
     },
     rlocus: () => {
       updateActivePlotHeader('Root Locus', 'Stability Analysis');
@@ -699,6 +792,33 @@ function renderRootLocus(sys, targetId = 'chart-rlocus') {
     name: `Branch ${idx + 1}`,
     line: { width: 1.5, color: getCSS('--color-accent'), opacity: 0.6 },
   }));
+
+  // Add asymptotes
+  try {
+    const asym = rootLocusAsymptotes(sys);
+    if (asym.angles.length > 0) {
+      const len = 50;
+      for (const angle of asym.angles) {
+        const rad = (angle * Math.PI) / 180;
+        traces.push({
+          x: [asym.centroid, asym.centroid + len * Math.cos(rad)],
+          y: [0, len * Math.sin(rad)],
+          type: 'scatter', mode: 'lines',
+          name: `Asymptote ${angle.toFixed(0)}°`,
+          line: { width: 1, color: getCSS('--text-muted'), dash: 'dash' },
+          showlegend: false,
+        });
+      }
+      // Centroid marker
+      traces.push({
+        x: [asym.centroid], y: [0], type: 'scatter', mode: 'markers',
+        name: `Centroid σ=${fmtNum(asym.centroid)}`,
+        marker: { size: 7, symbol: 'diamond', color: getCSS('--text-muted') },
+        showlegend: targetId === 'chart-active',
+      });
+    }
+  } catch { /* ignore asymptote errors */ }
+
   const layout = PLOTLY_LAYOUT_BASE();
   layout.showlegend = targetId === 'chart-active';
   if (layout.showlegend) layout.legend = compactLegend();
@@ -1017,6 +1137,7 @@ function buildProjectPayload() {
     simulationConfig: { ...state.simulationConfig },
     comparisonSnapshots: state.comparisonSnapshots,
     theme: state.theme,
+    editorDiagram: state.editor?.serialize?.() || null,
   };
 }
 
@@ -1083,6 +1204,11 @@ function applyProjectPayload(data) {
     toggleTheme();
   }
 
+  // Restore editor diagram if present
+  if (data.editorDiagram && state.editor) {
+    state.editor.deserialize(data.editorDiagram);
+  }
+
   captureStateSpaceInputs();
   renderSnapshotList();
   updateSystem();
@@ -1145,5 +1271,16 @@ function downloadFile(name, type, content) {
 function debounce(fn, ms) { let timeout; return (...args) => { clearTimeout(timeout); timeout = setTimeout(() => fn.apply(this, args), ms); }; }
 function showError(msg) { const el = document.getElementById('error-msg'); if (el) { el.textContent = msg; el.style.display = 'block'; } }
 function clearError() { const el = document.getElementById('error-msg'); if (el) { el.textContent = ''; el.style.display = 'none'; } }
+
+function exportChartPNG() {
+  const chartEl = document.getElementById('chart-active');
+  if (!chartEl) return;
+  Plotly.downloadImage(chartEl, {
+    format: 'png',
+    width: 1200,
+    height: 700,
+    filename: `control-${state.activePlot}-${new Date().toISOString().replace(/[:.]/g, '-')}`,
+  });
+}
 
 window.toggleTheme = toggleTheme;

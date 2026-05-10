@@ -31,6 +31,7 @@ test -f "$ROOT_DIR/control-studio/scripts/control_api.py"
 test -f "$ROOT_DIR/control-studio/scripts/control_analysis_cli.mjs"
 test -f "$ROOT_DIR/control-studio/scripts/serve_studio.py"
 test -f "$ROOT_DIR/control-studio/js/control/state-space.js"
+test -f "$ROOT_DIR/control-studio/js/control/zpk.js"
 test -f "$ROOT_DIR/test_control.js"
 test -f "$ROOT_DIR/cli/nv_agent_cli.py"
 test -x "$ROOT_DIR/nv-agent"
@@ -90,6 +91,10 @@ grep -q "./nv-agent run control-advisor" /tmp/nvidia-agent-control-run-plan.txt
 grep -q -- "--model meta/llama-3.1-70b-instruct" /tmp/nvidia-agent-control-run-plan.txt
 grep -q "Control System Smart Advisor" /tmp/nvidia-control-advisor-help.txt
 grep -q "Tests Passed!" /tmp/nvidia-control-test.txt
+grep -q "ZPK tests passed" /tmp/nvidia-control-test.txt
+grep -q "Polydiv test passed" /tmp/nvidia-control-test.txt
+grep -q "Routh-Hurwitz test passed" /tmp/nvidia-control-test.txt
+grep -q "Nichols data points" /tmp/nvidia-control-test.txt
 grep -q "\"response\"" /tmp/nvidia-control-api-cli.json
 grep -q "AGENT_CONTINUATION.md" "$ROOT_DIR/AGENTS.md"
 grep -q "./nv-agent plan" "$ROOT_DIR/AGENT_USAGE.md"
