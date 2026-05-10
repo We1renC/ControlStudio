@@ -1,5 +1,7 @@
 import { TransferFunction } from './control-studio/js/control/transfer-function.js';
-import { stepResponse } from './control-studio/js/analysis/time-response.js';
+import { impulseResponse, rampResponse, stepResponse } from './control-studio/js/analysis/time-response.js';
+import { nyquistData } from './control-studio/js/analysis/frequency-response.js';
+import { stateSpaceToTransferFunction } from './control-studio/js/control/state-space.js';
 import { stepInfo, stabilityMargins } from './control-studio/js/control/stability.js';
 import { parsePolyString } from './control-studio/js/utils/format.js';
 
@@ -32,6 +34,21 @@ try {
 
   console.log('1/(s+1) Status:', checkStability(sys1));
   console.log('1/(s-1) Status:', checkStability(sys2));
+
+  const ssTf = stateSpaceToTransferFunction(
+    [[0, 1], [-2, -3]],
+    [[0], [1]],
+    [[1, 0]],
+    [[0]]
+  );
+  console.log('State Space TF:', ssTf.toString());
+
+  const imp = impulseResponse(sys1);
+  const ramp = rampResponse(sys1);
+  const nyq = nyquistData(sys1);
+  console.log('Impulse samples:', imp.y.slice(0, 3));
+  console.log('Ramp final sample:', ramp.y[ramp.y.length - 1]);
+  console.log('Nyquist first point:', { re: nyq.re[0], im: nyq.im[0] });
 
   console.log('Tests Passed!');
 } catch (e) {

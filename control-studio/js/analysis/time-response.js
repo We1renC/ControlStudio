@@ -2,7 +2,19 @@
  * time-response.js — Stable time-domain analysis using RK4
  */
 
-export function stepResponse(sys, duration = null) {
+function responseInput(type, t) {
+  if (type === 'ramp') return t;
+  return type === 'step' ? 1.0 : 0.0;
+}
+
+function initialStateForInput(order, type) {
+  if (type !== 'impulse') return new Array(order).fill(0);
+  const x = new Array(order).fill(0);
+  if (order > 0) x[order - 1] = 1;
+  return x;
+}
+
+export function simulateTimeResponse(sys, type = 'step', duration = null) {
   // 1. Convert TF to State-Space (Controllable Canonical Form)
   const n = sys.den.length - 1;
   const num = sys.num;
@@ -26,7 +38,7 @@ export function stepResponse(sys, duration = null) {
 
   // State-Space: x' = Ax + Bu; y = Cx + Du
   // Controllable Canonical Form
-  const x = new Array(n).fill(0);
+  const x = initialStateForInput(n, type);
 
   const getDx = (state, u) => {
     const dx = new Array(n).fill(0);
@@ -59,7 +71,7 @@ export function stepResponse(sys, duration = null) {
 
   let curX = [...x];
   for (let i = 0; i < nPoints; i++) {
-    const u = 1.0;
+    const u = responseInput(type, i * dt);
     tArr.push(i * dt);
     const curY = getOutput(curX, u);
     yArr.push(curY);
@@ -78,4 +90,16 @@ export function stepResponse(sys, duration = null) {
   }
 
   return { t: tArr, y: yArr };
+}
+
+export function stepResponse(sys, duration = null) {
+  return simulateTimeResponse(sys, 'step', duration);
+}
+
+export function impulseResponse(sys, duration = null) {
+  return simulateTimeResponse(sys, 'impulse', duration);
+}
+
+export function rampResponse(sys, duration = null) {
+  return simulateTimeResponse(sys, 'ramp', duration);
 }

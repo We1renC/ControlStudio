@@ -46,19 +46,57 @@
     .btn-primary:hover { filter: brightness(1.1); }
     .btn-sm { padding: 5px 10px; font-size: 12px; }
     .btn.active { background: var(--color-accent); border-color: var(--color-accent); color: white; }
-    main { flex: 1; display: flex; overflow: hidden; position: relative; }
-    aside { width: 320px; background: var(--bg-secondary); border-right: 1px solid var(--border-primary); display: flex; flex-direction: column; overflow-y: auto; padding: var(--space-6); gap: var(--space-6); }
-    .content-area { flex: 1; padding: var(--space-6); overflow-y: auto; display: grid; grid-template-columns: repeat(2, 1fr); grid-template-rows: repeat(2, 1fr); gap: var(--space-6); }
-    .chart-cell { background: var(--bg-secondary); border: 1px solid var(--border-primary); border-radius: var(--radius-lg); padding: var(--space-4); display: flex; flex-direction: column; position: relative; }
+    main { flex: 1; display: flex; overflow: hidden; position: relative; min-width: 0; min-height: 0; }
+    aside { width: 340px; background: var(--bg-secondary); border-right: 1px solid var(--border-primary); display: flex; flex-direction: column; overflow-y: auto; padding: var(--space-6); gap: var(--space-4); flex-shrink: 0; }
+    .content-area { flex: 1; padding: var(--space-6); overflow-y: auto; display: flex; flex-direction: column; gap: var(--space-6); min-width: 0; min-height: 0; }
+    .chart-cell { background: var(--bg-secondary); border: 1px solid var(--border-primary); border-radius: var(--radius-lg); padding: var(--space-4); display: flex; flex-direction: column; position: relative; min-width: 0; }
     .chart-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--space-2); font-size: 13px; font-weight: 600; color: var(--text-secondary); }
     .chart-body { flex: 1; min-height: 200px; }
+    .plot-workspace { display:flex; flex-direction:column; gap:var(--space-4); min-height: 0; min-width: 0; }
+    .plot-switcher { display:flex; flex-wrap:wrap; gap:8px; background: var(--bg-secondary); border:1px solid var(--border-primary); border-radius: var(--radius-lg); padding: 10px; }
+    .plot-tab { border:1px solid var(--border-primary); background: var(--bg-tertiary); color: var(--text-secondary); border-radius: var(--radius-sm); padding: 8px 12px; font-size:12px; font-weight:600; cursor:pointer; }
+    .plot-tab.active { background: var(--color-accent); border-color: var(--color-accent); color: white; }
+    .plot-stage { display:grid; grid-template-columns: minmax(0, 1fr) 220px; gap:var(--space-4); align-items:stretch; min-width: 0; }
+    .plot-main { min-width: 0; min-height: clamp(340px, 58vh, 560px); }
+    .plot-main .chart-body { min-height: clamp(280px, 48vh, 480px); }
+    .plot-side { display:flex; flex-direction:column; gap:var(--space-4); min-width: 0; }
+    .mini-chart .chart-body { min-height: 150px; }
+    .sidebar-tabs { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; background: var(--bg-tertiary); padding: 4px; border-radius: var(--radius-md); }
+    .sidebar-tab { border: 0; background: transparent; color: var(--text-secondary); padding: 8px 6px; font-size: 12px; font-weight: 600; border-radius: var(--radius-sm); cursor: pointer; }
+    .sidebar-tab.active { background: var(--bg-secondary); color: var(--color-accent); }
+    .sidebar-panel { display: none; gap: var(--space-4); }
+    .sidebar-panel.active { display: flex; flex-direction: column; }
+    .section-panel { background: var(--bg-tertiary); border: 1px solid var(--border-primary); border-radius: var(--radius-md); padding: var(--space-4); }
+    .section-title { font-size: 12px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; margin-bottom: var(--space-4); letter-spacing: 0.4px; }
+    .section-copy { font-size: 12px; line-height: 1.6; color: var(--text-secondary); margin-bottom: var(--space-4); }
+    .equation-list { display: grid; gap: 10px; margin-top: var(--space-4); }
+    .equation-card { border: 1px solid var(--border-primary); border-radius: var(--radius-md); background: rgba(15, 17, 23, 0.28); padding: 12px; display: grid; gap: 8px; }
+    .equation-label { font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 6px; }
+    .equation-math { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 13px; line-height: 1.6; color: var(--text-primary); white-space: pre-wrap; word-break: break-word; }
+    .equation-stack { display: grid; gap: 10px; }
+    .equation-line { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .equation-symbol { min-width: 52px; color: var(--text-secondary); font-weight: 700; }
+    .tf-fraction { display: inline-grid; justify-items: center; min-width: min(100%, 320px); max-width: 100%; }
+    .tf-num, .tf-den { width: 100%; text-align: center; padding: 2px 10px; overflow-wrap: anywhere; }
+    .tf-bar { width: 100%; border-top: 1px solid var(--text-secondary); opacity: 0.8; }
+    .equation-note { font-size: 11px; color: var(--text-muted); }
+    .matrix-stack { display: grid; gap: 6px; }
+    .matrix-row { display: grid; grid-template-columns: 28px 1fr; gap: 8px; align-items: start; }
+    .matrix-name { color: var(--text-secondary); font-weight: 700; }
+    .matrix-value { color: var(--text-primary); white-space: pre-wrap; overflow-wrap: anywhere; }
+    .button-grid { display:grid; grid-template-columns: repeat(2, 1fr); gap:var(--space-2); }
+    .metric-grid { display:grid; grid-template-columns: 1fr 1fr; gap:var(--space-2); font-size:11px; color:var(--text-muted); }
+    .metric-grid strong { display:block; color:var(--text-primary); font-size:13px; font-weight:600; margin-top:2px; }
+    .toolbar-inline { display:flex; justify-content:space-between; align-items:center; gap:var(--space-2); margin-bottom:var(--space-4); }
     .sys-tab-group { display: flex; background: var(--bg-tertiary); padding: 3px; border-radius: var(--radius-md); margin-bottom: var(--space-4); }
     .sys-tab { flex: 1; text-align: center; padding: 6px; font-size: 12px; font-weight: 600; cursor: pointer; border-radius: var(--radius-sm); color: var(--text-secondary); }
     .sys-tab.active { background: var(--bg-secondary); color: var(--color-accent); box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
     .input-group { display: flex; flex-direction: column; gap: 6px; margin-bottom: var(--space-4); }
     .input-group label { font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
     input[type="text"], input[type="number"] { background: var(--bg-tertiary); border: 1px solid var(--border-primary); border-radius: var(--radius-sm); padding: 8px 12px; color: var(--text-primary); font-family: 'Inter', sans-serif; font-size: 14px; width: 100%; transition: border-color 0.2s; }
+    textarea { background: var(--bg-tertiary); border: 1px solid var(--border-primary); border-radius: var(--radius-sm); padding: 8px 12px; color: var(--text-primary); font-family: 'Inter', sans-serif; font-size: 13px; width: 100%; resize: vertical; min-height: 48px; transition: border-color 0.2s; }
     input:focus { outline: none; border-color: var(--color-accent); }
+    textarea:focus { outline: none; border-color: var(--color-accent); }
     .slider-group { margin-bottom: var(--space-4); }
     .slider-header { display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 6px; color: var(--text-secondary); }
     input[type="range"] { -webkit-appearance: none; width: 100%; background: transparent; }
@@ -87,6 +125,33 @@
     .port { fill: var(--bg-tertiary); stroke: var(--border-primary); stroke-width: 1; cursor: crosshair; }
     .port:hover { fill: var(--color-accent); }
     .port.active { fill: var(--color-accent); stroke: white; }
+    .snapshot-list { display:flex; flex-direction:column; gap:var(--space-2); max-height: 360px; overflow:auto; }
+    .snapshot-card { border: 1px solid var(--border-primary); border-radius: var(--radius-sm); padding: 10px 12px; background: rgba(15, 17, 23, 0.35); display:flex; flex-direction:column; gap:8px; }
+    .snapshot-top { display:flex; align-items:center; justify-content:space-between; gap:8px; }
+    .snapshot-name { font-size:12px; font-weight:600; color:var(--text-primary); }
+    .snapshot-meta { font-size:11px; color:var(--text-muted); display:grid; grid-template-columns: repeat(3, 1fr); gap:6px; }
+    .snapshot-actions { display:flex; gap:8px; }
+    .empty-state { border:1px dashed var(--border-primary); border-radius:var(--radius-md); padding:16px; color:var(--text-muted); font-size:12px; line-height:1.5; }
+    .compare-shell { display: none; }
+    .compare-shell.active { display: flex; }
+    .chart-cell.compare-wide { min-height: 280px; }
+    .compare-wide .chart-body { min-height: 220px; }
+    @media (max-width: 1360px) {
+      aside { width: 320px; }
+      .plot-stage { grid-template-columns: minmax(0, 1fr); }
+      .plot-side { display:grid; grid-template-columns: 1fr 1fr; }
+    }
+    @media (max-width: 1180px) {
+      aside { width: 320px; }
+      .plot-main { min-height: 440px; }
+      .plot-side { display:grid; grid-template-columns: 1fr 1fr; }
+    }
+    @media (max-width: 760px) {
+      header { padding: 0 var(--space-4); }
+      aside { width: 100%; border-right: 0; border-bottom: 1px solid var(--border-primary); }
+      main { flex-direction: column; }
+      .plot-side { grid-template-columns: 1fr; }
+    }
   </style>
 </head>
 <body>
@@ -110,93 +175,208 @@
 
   <main>
     <aside>
-      <section>
-        <div class="sys-tab-group">
-          <div class="sys-tab active" data-type="tf">Transfer Function</div>
-          <div class="sys-tab" data-type="ss">State Space</div>
-        </div>
-        <div id="sys-tf" class="sys-input-section">
-          <div class="input-group">
-            <label>Numerator [b_n, ..., b_0]</label>
-            <input type="text" id="tf-num" value="1" placeholder="e.g. 1">
-          </div>
-          <div class="input-group">
-            <label>Denominator [a_n, ..., a_0]</label>
-            <input type="text" id="tf-den" value="1, 3, 2" placeholder="e.g. 1, 3, 2">
-          </div>
-        </div>
-        <button class="btn btn-primary" style="width:100%; margin-top:var(--space-2);" id="btn-apply">Update System</button>
-      </section>
+      <div class="sidebar-tabs">
+        <button class="sidebar-tab active" data-sidebar="model">System</button>
+        <button class="sidebar-tab" data-sidebar="simulate">Sim</button>
+        <button class="sidebar-tab" data-sidebar="advisor">Advisor</button>
+        <button class="sidebar-tab" data-sidebar="compare">Compare</button>
+      </div>
 
-      <section>
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:var(--space-4);">
-          <h3 style="font-size:13px; text-transform:uppercase; color:var(--text-muted);">Controller (PID)</h3>
-          <div style="display:flex; align-items:center; gap:8px; font-size:11px;">
-            <label>Closed Loop</label>
-            <input type="checkbox" id="cl-toggle" checked>
+      <div class="sidebar-panel active" id="panel-model">
+        <section class="section-panel">
+          <div class="section-title">Plant Model</div>
+          <p class="section-copy" id="model-section-copy">直接輸入 plant 的係數或狀態方程；上方會同步更新成具體數學式。</p>
+          <div class="sys-tab-group">
+            <div class="sys-tab active" data-type="tf">Transfer Function</div>
+            <div class="sys-tab" data-type="ss">State Space</div>
           </div>
-        </div>
-        <div class="slider-group">
-          <div class="slider-header"><span>Proportional (Kp)</span><span id="pid-Kp-val">1.00</span></div>
-          <input type="range" id="pid-Kp" min="0" max="50" step="0.1" value="1">
-        </div>
-        <div class="slider-group">
-          <div class="slider-header"><span>Integral (Ki)</span><span id="pid-Ki-val">0.50</span></div>
-          <input type="range" id="pid-Ki" min="0" max="10" step="0.01" value="0.5">
-        </div>
-        <div class="slider-group">
-          <div class="slider-header"><span>Derivative (Kd)</span><span id="pid-Kd-val">0.10</span></div>
-          <input type="range" id="pid-Kd" min="0" max="5" step="0.01" value="0.1">
-        </div>
-      </section>
+          <div id="sys-tf" class="sys-input-section">
+            <div class="input-group">
+              <label>Numerator [b_n, ..., b_0]</label>
+              <input type="text" id="tf-num" value="1" placeholder="e.g. 1">
+            </div>
+            <div class="input-group">
+              <label>Denominator [a_n, ..., a_0]</label>
+              <input type="text" id="tf-den" value="1, 3, 2" placeholder="e.g. 1, 3, 2">
+            </div>
+          </div>
+          <div id="sys-ss" class="sys-input-section" style="display:none;">
+            <div class="input-group">
+              <label>A Matrix</label>
+              <textarea id="ss-a" rows="3" placeholder="e.g. 0 1&#10;-2 -3">0 1
+-2 -3</textarea>
+            </div>
+            <div class="input-group">
+              <label>B Matrix</label>
+              <textarea id="ss-b" rows="2" placeholder="e.g. 0&#10;1">0
+1</textarea>
+            </div>
+            <div class="input-group">
+              <label>C Matrix</label>
+              <textarea id="ss-c" rows="2" placeholder="e.g. 1 0">1 0</textarea>
+            </div>
+            <div class="input-group">
+              <label>D Matrix</label>
+              <textarea id="ss-d" rows="1" placeholder="e.g. 0">0</textarea>
+            </div>
+          </div>
+          <button class="btn btn-primary" style="width:100%; margin-top:var(--space-2);" id="btn-apply">Update System</button>
+        </section>
 
-      <section>
-        <h3 style="font-size:13px; text-transform:uppercase; color:var(--text-muted); margin-bottom:var(--space-4);">Stability Advisor</h3>
-        <div id="stability-panel" style="background:var(--bg-tertiary); border-radius:var(--radius-md); padding:var(--space-4);">
-          <div style="display:flex; justify-content:space-between; margin-bottom:var(--space-4);">
+        <section class="section-panel">
+          <div class="toolbar-inline">
+            <h3 class="section-title" style="margin-bottom:0;">Controller Tuning</h3>
+            <div style="display:flex; align-items:center; gap:8px; font-size:11px; color:var(--text-secondary);">
+              <label for="cl-toggle">Closed Loop</label>
+              <input type="checkbox" id="cl-toggle" checked>
+            </div>
+          </div>
+          <p class="section-copy">調整 Kp / Ki / Kd 後，`C(s)`、`L(s)` 與 `T(s)` 會即時重算。</p>
+          <div class="slider-group">
+            <div class="slider-header"><span>Proportional (Kp)</span><span id="pid-Kp-val">1.00</span></div>
+            <input type="range" id="pid-Kp" min="0" max="50" step="0.1" value="1">
+          </div>
+          <div class="slider-group">
+            <div class="slider-header"><span>Integral (Ki)</span><span id="pid-Ki-val">0.50</span></div>
+            <input type="range" id="pid-Ki" min="0" max="10" step="0.01" value="0.5">
+          </div>
+          <div class="slider-group" style="margin-bottom:0;">
+            <div class="slider-header"><span>Derivative (Kd)</span><span id="pid-Kd-val">0.10</span></div>
+            <input type="range" id="pid-Kd" min="0" max="5" step="0.01" value="0.1">
+          </div>
+        </section>
+
+        <section class="section-panel">
+          <div class="section-title">System Equations</div>
+          <p class="section-copy">目前設定對應的控制模型與方程式如下。</p>
+          <div class="equation-list">
+            <div class="equation-card">
+              <div class="equation-label">System Equation</div>
+              <div class="equation-math" id="system-equation"></div>
+            </div>
+            <div class="equation-card">
+              <div class="equation-label">Controller Equation</div>
+              <div class="equation-math" id="controller-equation"></div>
+            </div>
+            <div class="equation-card">
+              <div class="equation-label">Loop Equation</div>
+              <div class="equation-math" id="loop-equation"></div>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <div class="sidebar-panel" id="panel-simulate">
+        <section class="section-panel">
+          <div class="toolbar-inline">
+            <h3 class="section-title" style="margin-bottom:0;">Simulation</h3>
+            <select id="response-type" style="background:var(--bg-tertiary); color:var(--text-primary); border:1px solid var(--border-primary); border-radius:var(--radius-sm); padding:6px 8px; font-size:12px;">
+              <option value="step">Step</option>
+              <option value="impulse">Impulse</option>
+              <option value="ramp">Ramp</option>
+            </select>
+          </div>
+          <div class="button-grid">
+            <button class="btn btn-sm" id="btn-save-project" style="justify-content:center;">Save Project</button>
+            <button class="btn btn-sm" id="btn-load-project" style="justify-content:center;">Load Project</button>
+            <button class="btn btn-sm" id="btn-export-json" style="justify-content:center;">Export JSON</button>
+            <button class="btn btn-sm" id="btn-export-csv" style="justify-content:center;">Export CSV</button>
+          </div>
+          <input type="file" id="project-file-input" accept=".json,application/json" style="display:none;">
+        </section>
+
+        <section class="section-panel">
+          <div class="section-title">Stability Snapshot</div>
+          <div class="metric-grid">
+            <div>Gain Margin<strong id="gm-value">∞</strong></div>
+            <div>Phase Margin<strong id="pm-value">—</strong></div>
+            <div>Rise Time<strong id="rise-time">0s</strong></div>
+            <div>Settling<strong id="settling-time">0s</strong></div>
+            <div>Overshoot<strong id="overshoot">0%</strong></div>
+            <div>SS Error<strong id="ess-value">0</strong></div>
+          </div>
+          <div style="margin-top:var(--space-4); display:flex; justify-content:space-between; align-items:center;">
             <span style="font-size:12px; color:var(--text-secondary);">Current Status</span>
             <div id="stability-indicator" class="status-pill stable"><span class="status-dot"></span> STABLE</div>
           </div>
-          <div style="display:grid; grid-template-columns: 1fr 1fr; gap:var(--space-2); font-size:11px; color:var(--text-muted);">
-            <div>Gain Margin: <span id="gm-value" style="color:var(--text-primary);">∞</span></div>
-            <div>Phase Margin: <span id="pm-value" style="color:var(--text-primary);">—</span></div>
-            <div>Rise Time: <span id="rise-time" style="color:var(--text-primary);">0s</span></div>
-            <div>Settling: <span id="settling-time" style="color:var(--text-primary);">0s</span></div>
-          </div>
-          <button class="btn btn-sm" id="btn-ai-advisor" style="width:100%; margin-top:var(--space-4); justify-content:center;">
+        </section>
+      </div>
+
+      <div class="sidebar-panel" id="panel-advisor">
+        <section class="section-panel">
+          <div class="section-title">AI Advisor</div>
+          <p style="font-size:12px; color:var(--text-muted); line-height:1.6; margin-bottom:var(--space-4);">
+            根據目前模型、PID 參數與穩定性指標產生調參建議。需要先啟動本地 advisor bridge。
+          </p>
+          <button class="btn btn-sm" id="btn-ai-advisor" style="width:100%; justify-content:center;">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
             Generate AI Advice
           </button>
-        </div>
-      </section>
+        </section>
 
-      <div id="ai-response-container" style="display:none; margin-top:var(--space-4);">
-        <div class="ai-panel">
-          <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
-            <span style="font-size:12px; font-weight:700; color:var(--color-accent);">NVIDIA AI EXPERT</span>
-            <div class="loader" id="ai-loading"></div>
+        <div id="ai-response-container" style="display:none;">
+          <div class="ai-panel">
+            <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
+              <span style="font-size:12px; font-weight:700; color:var(--color-accent);">NVIDIA AI EXPERT</span>
+              <div class="loader" id="ai-loading"></div>
+            </div>
+            <div id="ai-text" class="markdown-content"></div>
           </div>
-          <div id="ai-text" class="markdown-content"></div>
         </div>
+      </div>
+
+      <div class="sidebar-panel" id="panel-compare">
+        <section class="section-panel">
+          <div class="toolbar-inline">
+            <h3 class="section-title" style="margin-bottom:0;">Result Comparison</h3>
+            <button class="btn btn-sm" id="btn-save-snapshot">Save Snapshot</button>
+          </div>
+          <p style="font-size:12px; color:var(--text-muted); line-height:1.5; margin-bottom:var(--space-4);">
+            保存目前控制器參數與響應，之後可以套用、刪除，並在 comparison chart 中疊圖比較。
+          </p>
+          <div id="snapshot-list" class="snapshot-list">
+            <div class="empty-state" id="snapshot-empty">還沒有保存任何比較快照。先調整參數後按下 Save Snapshot。</div>
+          </div>
+          <div class="button-grid" style="margin-top:var(--space-4);">
+            <button class="btn btn-sm" id="btn-clear-snapshots" style="justify-content:center;">Clear Snapshots</button>
+            <button class="btn btn-sm" id="btn-export-compare" style="justify-content:center;">Export Compare JSON</button>
+          </div>
+        </section>
       </div>
     </aside>
 
     <div id="dashboard-view" class="content-area">
-      <div class="chart-cell">
-        <div class="chart-header"><span>Step Response</span><span>Time-Domain</span></div>
-        <div class="chart-body" id="chart-step"></div>
+      <div class="plot-workspace">
+        <div class="plot-switcher">
+          <button class="plot-tab active" data-plot="step">Time Response</button>
+          <button class="plot-tab" data-plot="bode">Bode</button>
+          <button class="plot-tab" data-plot="nyquist">Nyquist</button>
+          <button class="plot-tab" data-plot="rlocus">Root Locus</button>
+          <button class="plot-tab" data-plot="pzmap">Pole-Zero</button>
+        </div>
+
+        <div class="plot-stage">
+          <div class="chart-cell plot-main">
+            <div class="chart-header"><span id="active-plot-title">Step Response</span><span id="active-plot-subtitle">Time-Domain</span></div>
+            <div class="chart-body" id="chart-active"></div>
+          </div>
+
+          <div class="plot-side">
+            <div class="chart-cell mini-chart">
+              <div class="chart-header"><span>Root Locus</span><span>Mini</span></div>
+              <div class="chart-body" id="chart-rlocus"></div>
+            </div>
+            <div class="chart-cell mini-chart">
+              <div class="chart-header"><span>Pole-Zero Map</span><span>Mini</span></div>
+              <div class="chart-body" id="chart-pzmap"></div>
+            </div>
+          </div>
+        </div>
       </div>
-      <div class="chart-cell">
-        <div class="chart-header"><span>Bode Plot</span><span>Frequency-Domain</span></div>
-        <div class="chart-body" id="chart-bode"></div>
-      </div>
-      <div class="chart-cell">
-        <div class="chart-header"><span>Root Locus</span><span>Stability Analysis</span></div>
-        <div class="chart-body" id="chart-rlocus"></div>
-      </div>
-      <div class="chart-cell">
-        <div class="chart-header"><span>Pole-Zero Map</span><span>S-Plane</span></div>
-        <div class="chart-body" id="chart-pzmap"></div>
+
+      <div class="chart-cell compare-wide compare-shell" id="compare-section">
+        <div class="chart-header"><span>Comparison Chart</span><span>Snapshot Overlay</span></div>
+        <div class="chart-body" id="chart-compare"></div>
       </div>
     </div>
 

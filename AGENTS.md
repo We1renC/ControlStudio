@@ -15,8 +15,13 @@
 - `AGENT_USAGE.md`：agent 操作手冊。
 - `RUNNABLE_WORKFLOWS.md`：workflow 與 API key 使用說明。
 - `AGENT_CONTINUATION.md`：接手狀態與後續建議。
+- `CONTROL_SYSTEM_PLAN.md`：控制系統工作台的正式盤點與開發計畫。
 - `configs/model_registry.json`：模型能力、角色、endpoint、實測狀態。
 - `configs/task_profiles.json`：任務 profile、階段拆解、rubric。
+
+## 控制系統開發規則
+- 若修改 `control-studio/`、`workflows/control_advisor_workflow.py`、`test_control.js`，先讀 `CONTROL_SYSTEM_PLAN.md`。
+- 控制系統功能開發先以 `CONTROL_SYSTEM_PLAN.md` 的 MVP 範圍為主，不要直接跳做高複雜度進階控制功能。
 
 ## 標準流程
 1. 查狀態：

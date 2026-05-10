@@ -11,11 +11,14 @@
 - `skills/nvidia-model-selector/`：已建置的 Codex skill 原始碼，透過 symlink 掛到 `~/.config/agents/skills/nvidia-model-selector`。
 - `AGENT_CONTINUATION.md`：usage 耗盡或切換 agent 時的接手狀態。
 - `RUNNABLE_WORKFLOWS.md`：可執行 workflow 與 API key 放置說明。
+- `CONTROL_SYSTEM_PLAN.md`：控制系統工作台的盤點、MVP 範圍與後續開發路線圖。
 - `workflows/`：已實作的 runnable NVIDIA workflows。
 - `nv-agent`：整合選型提問、workflow 列表、功能執行的 CLI。
 - `configs/model_registry.json`：模型能力、角色、endpoint 與實測狀態。
 - `configs/task_profiles.json`：任務拆解、workflow、階段與品質 rubric。
 - `control-studio/`：控制系統視覺化工作台，含 PID 調參、穩定性分析與 AI 建議橋接。
+  - 目前已支援 Transfer Function / State Space（SISO）輸入、Step/Impulse/Ramp、Nyquist、project save/load、結果快照比較與較低擁擠度的 sidebar workspace。
+  - 啟動前端可使用 `python3 control-studio/scripts/serve_studio.py`。
 
 ## Agent 使用入口
 後續 agent 進入本專案時，先讀：
@@ -24,6 +27,7 @@
 cd /Users/w.rc/nvdiaOSsupport
 cat AGENTS.md
 cat AGENT_USAGE.md
+cat CONTROL_SYSTEM_PLAN.md
 ./nv-agent doctor
 ```
 
