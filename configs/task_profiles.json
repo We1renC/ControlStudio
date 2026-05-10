@@ -1,0 +1,69 @@
+{
+  "version": 1,
+  "profiles": [
+    {
+      "id": "rag",
+      "name": "Enterprise Knowledge RAG",
+      "triggers": ["rag", "檢索", "知識庫", "問答", "文件檢索", "search"],
+      "workflow": "rag",
+      "default_command": "./nv-agent run rag --question '你的問題'",
+      "stages": [
+        {"id": "chunk", "role": "preprocessor", "goal": "Split source documents into searchable chunks."},
+        {"id": "retrieve", "role": "embedding", "goal": "Embed chunks and query, then retrieve top matches."},
+        {"id": "generate", "role": "chat_generator", "goal": "Answer only from retrieved context."},
+        {"id": "evaluate", "role": "judge", "goal": "Check grounding, completeness, and format."}
+      ],
+      "rubric": ["grounded_in_context", "answers_question", "no_unsupported_claims", "actionable_output"]
+    },
+    {
+      "id": "ocr-rag",
+      "name": "OCR Document QA",
+      "triggers": ["ocr", "掃描", "圖片", "影像", "pdf", "parse", "document image"],
+      "workflow": "ocr-rag",
+      "default_command": "./nv-agent run ocr-rag --question '這張圖片主要在說什麼？'",
+      "stages": [
+        {"id": "extract", "role": "document_parser", "goal": "Extract text and layout from document images."},
+        {"id": "generate", "role": "chat_generator", "goal": "Answer from extracted OCR text."},
+        {"id": "evaluate", "role": "judge", "goal": "Check extraction coverage and answer grounding."}
+      ],
+      "rubric": ["ocr_text_present", "answer_uses_ocr_text", "missing_information_disclosed"]
+    },
+    {
+      "id": "safety",
+      "name": "Content Safety Guard",
+      "triggers": ["安全", "審查", "moderation", "guard", "unsafe", "jailbreak"],
+      "workflow": "safety",
+      "default_command": "./nv-agent run safety --prompt '請檢查這段內容是否安全'",
+      "stages": [
+        {"id": "moderate", "role": "safety_guard", "goal": "Classify prompt or response safety."},
+        {"id": "evaluate", "role": "judge", "goal": "Check if the label and rationale match policy intent."}
+      ],
+      "rubric": ["correct_label", "low_false_negative_risk", "clear_escalation"]
+    },
+    {
+      "id": "image",
+      "name": "Text To Image",
+      "triggers": ["image", "圖片生成", "生圖", "海報", "flux", "設計圖"],
+      "workflow": "image",
+      "default_command": "./nv-agent run image --prompt 'a product poster concept'",
+      "stages": [
+        {"id": "generate_image", "role": "image_generator", "goal": "Generate an image artifact from a prompt."},
+        {"id": "evaluate", "role": "judge", "goal": "Check prompt adherence and artifact presence."}
+      ],
+      "rubric": ["artifact_created", "prompt_following", "brand_or_safety_review_needed"]
+    },
+    {
+      "id": "cuopt",
+      "name": "Routing Optimization",
+      "triggers": ["路線", "排程", "最佳化", "物流", "車隊", "routing", "cuopt"],
+      "workflow": "cuopt",
+      "default_command": "./nv-agent run cuopt --action cuOpt_OptimizedRouting",
+      "stages": [
+        {"id": "validate", "role": "optimizer", "goal": "Validate routing problem schema and constraints."},
+        {"id": "optimize", "role": "optimizer", "goal": "Solve the routing problem."},
+        {"id": "evaluate", "role": "judge", "goal": "Check solution status, cost, and dropped tasks."}
+      ],
+      "rubric": ["valid_input", "status_success", "solution_cost_present", "no_unexpected_dropped_tasks"]
+    }
+  ]
+}
