@@ -8,6 +8,9 @@
 ## 目前狀態
 - 已建立獨立 git repo，避免被 `/Users/w.rc` 外層 git 混入。
 - 已完成 NVIDIA Build Models 資料集中管理。
+- 已新增 agent 入口文件：
+  - `AGENTS.md`：專案規則、標準流程、擴充規則與品質判準。
+  - `AGENT_USAGE.md`：CLI 操作、選型、執行、評估與擴充手冊。
 - 已建立可用 skill 原始碼：
   - `skills/nvidia-model-selector/SKILL.md`
   - `skills/nvidia-model-selector/references/model-categories.md`
@@ -55,6 +58,8 @@
 ```bash
 cd /Users/w.rc/nvdiaOSsupport
 git status --short
+cat AGENTS.md
+cat AGENT_USAGE.md
 git log --oneline -5
 ./scripts/validate_nvidia_model_selector.sh
 ```
@@ -72,14 +77,15 @@ git log --oneline -5
 - `ocr_rag_workflow.py` 已實測 OCR 抽取與後續問答。
 - `nv-agent workflows`、`nv-agent search`、`nv-agent advise`、`nv-agent run rag` 已實測。
 - `nv-agent plan`、`nv-agent run-plan`、`nv-agent eval` 已實測一輪 RAG 閉環。
+- `AGENTS.md` 與 `AGENT_USAGE.md` 已納入驗證腳本，確保後續 agent 有固定入口。
 
 ## 後續可做
 1. 加 `agents/openai.yaml` UI metadata。
-2. 把 `rag_poc_demo.py` 決定是否納入 repo 或刪除。
+2. 增強 evaluator：從 heuristic 檢查升級成 judge model + golden dataset。
 3. 若 NVIDIA Build Models 更新，先更新根目錄資料檔，再同步 `skills/nvidia-model-selector/references/`。
 4. 視需求把 `search_models.py` 加上 `--top-category-summary` 或 fuzzy ranking。
 5. 若要更實用，補上本地文件切 chunk / PDF 轉圖 / OCR 結果快取。
-6. 把 evaluator 從 heuristic 檢查升級成 judge model + golden dataset。
+6. 加 parallel runner 與 leaderboard，追蹤同任務多模型輸出品質。
 
 ## 注意事項
 - 這個專案不需要 `.agent-handoff.md`。
