@@ -22,6 +22,8 @@ test -f "$ROOT_DIR/workflows/safety_guard_workflow.py"
 test -f "$ROOT_DIR/workflows/image_generation_workflow.py"
 test -f "$ROOT_DIR/workflows/cuopt_demo_workflow.py"
 test -f "$ROOT_DIR/workflows/ocr_rag_workflow.py"
+test -f "$ROOT_DIR/cli/nv_agent_cli.py"
+test -x "$ROOT_DIR/nv-agent"
 
 python3 -m py_compile "$SCRIPT"
 python3 -m py_compile "$ROOT_DIR/workflows/common.py"
@@ -30,12 +32,15 @@ python3 -m py_compile "$ROOT_DIR/workflows/safety_guard_workflow.py"
 python3 -m py_compile "$ROOT_DIR/workflows/image_generation_workflow.py"
 python3 -m py_compile "$ROOT_DIR/workflows/cuopt_demo_workflow.py"
 python3 -m py_compile "$ROOT_DIR/workflows/ocr_rag_workflow.py"
+python3 -m py_compile "$ROOT_DIR/cli/nv_agent_cli.py"
 python3 "$SCRIPT" --model bge-m3 --limit 1 >/tmp/nvidia-model-selector-bge.md
 python3 "$SCRIPT" --service "Embedding API" --limit 2 >/tmp/nvidia-model-selector-embedding.md
 python3 "$SCRIPT" --query OCR --limit 2 --json >/tmp/nvidia-model-selector-ocr.json
 python3 "$ROOT_DIR/workflows/safety_guard_workflow.py" --prompt "Write a short thank-you note to my team." >/tmp/nvidia-safety-safe.txt
 python3 "$ROOT_DIR/workflows/cuopt_demo_workflow.py" --action cuOpt_RoutingValidator >/tmp/nvidia-cuopt-validator.txt
 python3 "$ROOT_DIR/workflows/ocr_rag_workflow.py" >/tmp/nvidia-ocr-rag.txt
+"$ROOT_DIR/nv-agent" workflows >/tmp/nvidia-agent-workflows.txt
+"$ROOT_DIR/nv-agent" search --query RAG --limit 2 >/tmp/nvidia-agent-search.txt
 
 grep -q "bge-m3" /tmp/nvidia-model-selector-bge.md
 grep -q "Embedding API" /tmp/nvidia-model-selector-embedding.md
@@ -43,5 +48,7 @@ grep -q "paddleocr\\|nemoretriever-ocr" /tmp/nvidia-model-selector-ocr.json
 grep -q "User Safety: safe" /tmp/nvidia-safety-safe.txt
 grep -q "Input is Valid" /tmp/nvidia-cuopt-validator.txt
 grep -q "This is a lot of 12 point text" /tmp/nvidia-ocr-rag.txt
+grep -q "Available workflows" /tmp/nvidia-agent-workflows.txt
+grep -q "RAG 與檢索\\|LLM / Agent / 程式碼" /tmp/nvidia-agent-search.txt
 
 echo "nvidia-model-selector validation passed"

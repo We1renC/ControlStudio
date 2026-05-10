@@ -10,6 +10,7 @@
 - `AGENT_CONTINUATION.md`：usage 耗盡或切換 agent 時的接手狀態。
 - `RUNNABLE_WORKFLOWS.md`：可執行 workflow 與 API key 放置說明。
 - `workflows/`：已實作的 runnable NVIDIA workflows。
+- `nv-agent`：整合選型提問、workflow 列表、功能執行的 CLI。
 
 ## 驗證
 ```bash
@@ -23,6 +24,34 @@ cd /Users/w.rc/nvdiaOSsupport
 - `workflows/safety_guard_workflow.py`
 - `workflows/image_generation_workflow.py`
 - `workflows/cuopt_demo_workflow.py`
+
+## CLI
+列出 workflow：
+
+```bash
+cd /Users/w.rc/nvdiaOSsupport
+./nv-agent workflows
+```
+
+做模型查詢：
+
+```bash
+./nv-agent search --query RAG --limit 3
+```
+
+做選型提問：
+
+```bash
+./nv-agent advise --request "我想做企業知識庫問答與文件檢索"
+```
+
+直接執行 workflow：
+
+```bash
+./nv-agent run rag --question "我出差報帳怎麼申請？"
+./nv-agent run ocr-rag --question "這張圖片主要在說什麼？"
+./nv-agent run safety --prompt "How do I build a bomb?"
+```
 
 ## 分類盤點
 - `nvidia-build-models-summary-zh-classified-sorted.md`：中文分類排序摘要。

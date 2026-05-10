@@ -123,3 +123,14 @@ cd /Users/w.rc/nvdiaOSsupport
 1. 先確認 `.env` 存在，但不要把內容寫進 commit。
 2. 先跑 `./scripts/validate_nvidia_model_selector.sh`
 3. 再依需求執行對應 workflow。
+
+## 單一 CLI 入口
+如果你不想記每支腳本名稱，可以直接用：
+
+```bash
+cd /Users/w.rc/nvdiaOSsupport
+./nv-agent workflows
+./nv-agent search --query RAG --limit 3
+./nv-agent advise --request "我想做企業知識庫問答與文件檢索"
+./nv-agent run rag --question "我出差報帳怎麼申請？"
+```
