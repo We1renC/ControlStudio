@@ -21,6 +21,7 @@
 ## Git Checkpoints
 - `338986f docs(nvidia): baseline model inventory and skill plan`
 - `ce335b3 feat(skill): add nvidia model selector`
+- `374f2c2 docs(agent): add continuation and validation workflow`
 
 ## 接手第一步
 ```bash
