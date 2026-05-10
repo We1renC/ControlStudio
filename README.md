@@ -9,12 +9,20 @@
 - `skills/nvidia-model-selector/`：已建置的 Codex skill 原始碼，透過 symlink 掛到 `~/.config/agents/skills/nvidia-model-selector`。
 - `AGENT_CONTINUATION.md`：usage 耗盡或切換 agent 時的接手狀態。
 - `RUNNABLE_WORKFLOWS.md`：可執行 workflow 與 API key 放置說明。
+- `workflows/`：已實作的 runnable NVIDIA workflows。
 
 ## 驗證
 ```bash
 cd /Users/w.rc/nvdiaOSsupport
 ./scripts/validate_nvidia_model_selector.sh
 ```
+
+## 已完成的 Workflow
+- `workflows/rag_workflow.py`
+- `workflows/ocr_rag_workflow.py`
+- `workflows/safety_guard_workflow.py`
+- `workflows/image_generation_workflow.py`
+- `workflows/cuopt_demo_workflow.py`
 
 ## 分類盤點
 - `nvidia-build-models-summary-zh-classified-sorted.md`：中文分類排序摘要。
