@@ -3,6 +3,8 @@
 此資料夾集中管理 NVIDIA Build Models 與近期 NVIDIA 開源/模型支援相關整理。
 
 ## 主要入口
+- `AGENTS.md`：Agent 進入此專案時的工作規則、標準流程與品質判準。
+- `AGENT_USAGE.md`：Agent 可直接照做的 CLI 使用手冊，含選型、plan、run、eval 與擴充方式。
 - `nvidia-build-models-operational-guide.md`：中文功能落地操作指南，含分類、用途、輸入/輸出、落地步驟與串接位置。
 - `nvidia-build-models-operational-guide.csv`：同上，表格版，適合篩選與後續整理。
 - `nvidia-model-selector-skill-plan.md`：把這批 NVIDIA 模型資料做成 Codex skill 的建置規劃，供其他 agent 接手。
@@ -13,6 +15,24 @@
 - `nv-agent`：整合選型提問、workflow 列表、功能執行的 CLI。
 - `configs/model_registry.json`：模型能力、角色、endpoint 與實測狀態。
 - `configs/task_profiles.json`：任務拆解、workflow、階段與品質 rubric。
+
+## Agent 使用入口
+後續 agent 進入本專案時，先讀：
+
+```bash
+cd /Users/w.rc/nvdiaOSsupport
+cat AGENTS.md
+cat AGENT_USAGE.md
+./nv-agent doctor
+```
+
+核心工作流是：
+
+```bash
+./nv-agent plan --request "我要做企業知識庫問答" --save
+./nv-agent run-plan outputs/plans/rag-YYYYMMDD-HHMMSS.json
+./nv-agent eval --run outputs/runs/rag-YYYYMMDD-HHMMSS
+```
 
 ## 驗證
 ```bash

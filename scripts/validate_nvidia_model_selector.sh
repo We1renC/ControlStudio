@@ -13,6 +13,8 @@ test -f "$SKILL_DIR/references/inventory.csv"
 test -x "$SCRIPT"
 test "$(readlink "$LINK")" = "$SKILL_DIR"
 test -f "$ROOT_DIR/.env.example"
+test -f "$ROOT_DIR/AGENTS.md"
+test -f "$ROOT_DIR/AGENT_USAGE.md"
 test -f "$ROOT_DIR/RUNNABLE_WORKFLOWS.md"
 test -f "$ROOT_DIR/data/sample_kb.txt"
 test -f "$ROOT_DIR/data/cuopt_sample_problem.json"
@@ -54,5 +56,9 @@ grep -q "Available workflows" /tmp/nvidia-agent-workflows.txt
 grep -q "RAG 與檢索\\|LLM / Agent / 程式碼" /tmp/nvidia-agent-search.txt
 grep -q "Profile: rag" /tmp/nvidia-agent-plan.txt
 grep -q "./nv-agent run rag" /tmp/nvidia-agent-run-plan.txt
+grep -q "AGENT_CONTINUATION.md" "$ROOT_DIR/AGENTS.md"
+grep -q "./nv-agent plan" "$ROOT_DIR/AGENT_USAGE.md"
+grep -q "./nv-agent run-plan" "$ROOT_DIR/AGENT_USAGE.md"
+grep -q "./nv-agent eval" "$ROOT_DIR/AGENT_USAGE.md"
 
 echo "nvidia-model-selector validation passed"
