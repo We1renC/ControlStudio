@@ -2,11 +2,12 @@ import { TransferFunction } from './control-studio/js/control/transfer-function.
 import { impulseResponse, rampResponse, simulateTimeResponse, stepResponse } from './control-studio/js/analysis/time-response.js';
 import { nyquistData, autoFreqRange, nicholsData, nyquistEncirclements } from './control-studio/js/analysis/frequency-response.js';
 import { rootLocusAsymptotes } from './control-studio/js/analysis/root-locus.js';
-import { stateSpaceToTransferFunction } from './control-studio/js/control/state-space.js';
+import { stateSpaceToTransferFunction, controllabilityMatrix, observabilityMatrix } from './control-studio/js/control/state-space.js';
 import { stepInfo, stabilityMargins, routhTable } from './control-studio/js/control/stability.js';
 import { parsePolyString } from './control-studio/js/utils/format.js';
 import { zpkToTransferFunction, parseRootsString, parseComplexRoot } from './control-studio/js/control/zpk.js';
 import { polydiv } from './control-studio/js/math/polynomial.js';
+import { matRank } from './control-studio/js/math/matrix.js';
 
 try {
   // Test 1/(s+1)
@@ -136,6 +137,18 @@ try {
   // Root locus asymptotes
   const asym = rootLocusAsymptotes(sys1);
   console.log('Root locus asymptotes:', asym);
+
+  // State Space Analysis
+  const A = [[0, 1], [-2, -3]];
+  const B = [[0], [1]];
+  const C = [[1, 0]];
+  const C_mat = controllabilityMatrix(A, B);
+  const O_mat = observabilityMatrix(A, C);
+  const rankC = matRank(C_mat);
+  const rankO = matRank(O_mat);
+  console.log('SS Controllability Rank:', rankC);
+  console.log('SS Observability Rank:', rankO);
+  if (rankC !== 2 || rankO !== 2) throw new Error('Expected SS to be fully controllable and observable');
 
   console.log('Tests Passed!');
 } catch (e) {

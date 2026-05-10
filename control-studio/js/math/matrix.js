@@ -87,3 +87,32 @@ export function matInverse(A) {
   }
   return aug.map(row => row.slice(n));
 }
+
+/** Calculate the rank of a matrix using Gaussian elimination */
+export function matRank(A) {
+  if (!A || !A.length) return 0;
+  const m = A.length, n = A[0].length;
+  let rank = 0;
+  const mat = A.map(row => [...row]);
+  
+  for (let c = 0; c < n; c++) {
+    let pivot = rank;
+    for (let i = rank + 1; i < m; i++) {
+      if (Math.abs(mat[i][c]) > Math.abs(mat[pivot][c])) pivot = i;
+    }
+    if (Math.abs(mat[pivot][c]) < 1e-12) continue;
+    
+    [mat[rank], mat[pivot]] = [mat[pivot], mat[rank]];
+    
+    const lead = mat[rank][c];
+    for (let i = rank + 1; i < m; i++) {
+      const f = mat[i][c] / lead;
+      for (let j = c; j < n; j++) {
+        mat[i][j] -= f * mat[rank][j];
+      }
+    }
+    rank++;
+    if (rank === m) break;
+  }
+  return rank;
+}

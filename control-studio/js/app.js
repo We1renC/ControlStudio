@@ -1,5 +1,6 @@
 import { TransferFunction } from './control/transfer-function.js';
-import { parseMatrixInput, stateSpaceToTransferFunction } from './control/state-space.js';
+import { parseMatrixInput, stateSpaceToTransferFunction, controllabilityMatrix, observabilityMatrix } from './control/state-space.js';
+import { matRank } from './math/matrix.js';
 import { PIDController } from './control/pid.js';
 import { impulseResponse, rampResponse, stepResponse } from './analysis/time-response.js';
 import { bodeData, nyquistData, autoFreqRange, nicholsData, nyquistEncirclements } from './analysis/frequency-response.js';
@@ -304,17 +305,37 @@ function renderTransferFunctionEquation(symbol, tf, note = '') {
 }
 
 function renderStateSpaceEquationBlock(matrices) {
-  const rows = ['A', 'B', 'C', 'D'].map((name) => `
-    <div class="matrix-row">
-      <div class="matrix-name">${name}</div>
-      <div class="matrix-value">[${escapeHtml(matrices[name].map((row) => row.join(', ')).join(' ; '))}]</div>
-    </div>
-  `).join('');
+  const fM = (m) => m.map((row) => row.map((v) => fmtNum(v, 2)).join('\t')).join('\n');
+  const A = fM(matrices.A);
+  const B = fM(matrices.B);
+  const C = fM(matrices.C);
+  const D = fM(matrices.D);
+
+  let rankStr = '';
+  try {
+    const rC = matRank(controllabilityMatrix(matrices.A, matrices.B));
+    const rO = matRank(observabilityMatrix(matrices.A, matrices.C));
+    const n = matrices.A.length;
+    const isControllable = rC === n ? '<span style="color:var(--color-stable)">Yes</span>' : '<span style="color:var(--color-unstable)">No</span>';
+    const isObservable = rO === n ? '<span style="color:var(--color-stable)">Yes</span>' : '<span style="color:var(--color-unstable)">No</span>';
+    rankStr = `<div class="equation-note" style="margin-top:6px; background:rgba(15,17,23,0.3); padding:4px 8px; border-radius:4px; display:flex; justify-content:space-between;">
+      <span>Controllable: ${isControllable} (Rank: ${rC}/${n})</span>
+      <span>Observable: ${isObservable} (Rank: ${rO}/${n})</span>
+    </div>`;
+  } catch (e) {
+    rankStr = `<div class="equation-note" style="margin-top:6px;">Rank computation failed</div>`;
+  }
+
   return `
     <div class="equation-stack">
-      <div>x_dot = Ax + Bu</div>
-      <div>y = Cx + Du</div>
-      <div class="matrix-stack">${rows}</div>
+      <div style="font-size:11px; font-weight:bold; color:var(--text-muted)">STATE SPACE MODEL</div>
+      <div class="matrix-stack">
+        <div class="matrix-row"><span class="matrix-name">A =</span><span class="matrix-value">${A}</span></div>
+        <div class="matrix-row"><span class="matrix-name">B =</span><span class="matrix-value">${B}</span></div>
+        <div class="matrix-row"><span class="matrix-name">C =</span><span class="matrix-value">${C}</span></div>
+        <div class="matrix-row"><span class="matrix-name">D =</span><span class="matrix-value">${D}</span></div>
+      </div>
+      ${rankStr}
     </div>
   `;
 }

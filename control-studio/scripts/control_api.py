@@ -1,4 +1,8 @@
 #!/usr/bin/env python3
+"""
+ControlStudio Unified Analysis API
+Consolidates analysis CLI, advisor bridge, and control endpoints into a single FastAPI server.
+"""
 
 import json
 import subprocess
@@ -7,6 +11,7 @@ from typing import Any, Dict, List, Optional
 
 try:
     from fastapi import FastAPI, HTTPException
+    from fastapi.middleware.cors import CORSMiddleware
     from pydantic import BaseModel, Field
 except ModuleNotFoundError as exc:
     if __name__ == "__main__":
@@ -16,13 +21,23 @@ except ModuleNotFoundError as exc:
 
 ROOT_DIR = Path("/Users/w.rc/nvdiaOSsupport")
 CONTROL_CLI = ROOT_DIR / "control-studio" / "scripts" / "control_analysis_cli.mjs"
-ADVISOR_SERVER = ROOT_DIR / "control-studio" / "scripts" / "advisor_server.py"
 NV_AGENT_BIN = ROOT_DIR / "nv-agent"
 NODE_BIN = "node"
 
-app = FastAPI(title="ControlStudio Analysis API", version="0.1.0")
+app = FastAPI(title="ControlStudio Unified API", version="0.2.0")
+
+# CORS middleware — allows frontend on any port to call this API
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
+# ============================================================
+# Models
+# ============================================================
 class TransferFunctionSystem(BaseModel):
     type: str = "transfer_function"
     num: List[float] = Field(default_factory=lambda: [1.0])
@@ -65,6 +80,9 @@ class AdvisorRequest(BaseModel):
     metrics: Dict[str, Any]
 
 
+# ============================================================
+# Helpers
+# ============================================================
 def run_analysis(payload: Dict[str, Any]) -> Dict[str, Any]:
     result = subprocess.run(
         [NODE_BIN, str(CONTROL_CLI), json.dumps(payload)],
@@ -77,6 +95,23 @@ def run_analysis(payload: Dict[str, Any]) -> Dict[str, Any]:
     return json.loads(result.stdout)
 
 
+def run_advisor(payload: Dict[str, Any]) -> str:
+    """Run the nv-agent control-advisor workflow and return the analysis report."""
+    result = subprocess.run(
+        [str(NV_AGENT_BIN), "run", "control-advisor", "--data", json.dumps(payload, ensure_ascii=False)],
+        capture_output=True,
+        text=True,
+        cwd=ROOT_DIR,
+    )
+    report = result.stdout
+    if "== Analysis Report ==" in report:
+        report = report.split("== Analysis Report ==")[-1].strip()
+    return report
+
+
+# ============================================================
+# Endpoints
+# ============================================================
 @app.get("/health")
 def health() -> Dict[str, str]:
     return {"status": "ok"}
@@ -106,24 +141,27 @@ def control_stability(request: AnalysisRequest) -> Dict[str, Any]:
 
 @app.post("/api/control/advisor")
 def control_advisor(request: AdvisorRequest) -> Dict[str, Any]:
-    result = subprocess.run(
-        [str(NV_AGENT_BIN), "run", "control-advisor", "--data", json.dumps(request.model_dump(), ensure_ascii=False)],
-        capture_output=True,
-        text=True,
-        cwd=ROOT_DIR,
-    )
-    if result.returncode != 0:
-        raise HTTPException(status_code=500, detail=result.stderr or result.stdout or "advisor analysis failed")
-    report = result.stdout
-    if "== Analysis Report ==" in report:
-        report = report.split("== Analysis Report ==")[-1].strip()
-    return {
-        "success": True,
-        "message": "advisor analysis completed",
-        "advisorBridge": str(ADVISOR_SERVER),
-        "analysis": report,
-        "payload": request.model_dump(),
-    }
+    """Unified advisor endpoint — replaces the old standalone advisor_server.py."""
+    try:
+        report = run_advisor(request.model_dump())
+        return {
+            "success": True,
+            "analysis": report,
+            "error": None,
+        }
+    except Exception as e:
+        return {
+            "success": False,
+            "analysis": "",
+            "error": str(e),
+        }
+
+
+# Legacy compatibility: POST to root (old advisor_server.py behavior)
+@app.post("/")
+def legacy_advisor(request: AdvisorRequest) -> Dict[str, Any]:
+    """Legacy endpoint for backward compatibility with the old advisor bridge server."""
+    return control_advisor(request)
 
 
 if __name__ == "__main__":

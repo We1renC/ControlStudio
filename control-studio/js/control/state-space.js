@@ -1,5 +1,6 @@
 import { TransferFunction } from './transfer-function.js';
 import { polyadd, polyscale, polymul, trimPoly } from '../math/polynomial.js';
+import { matMul } from '../math/matrix.js';
 
 function polyMatrix(rows, cols, fill = [0]) {
   return Array.from({ length: rows }, () => Array.from({ length: cols }, () => fill.slice()));
@@ -114,4 +115,28 @@ export function stateSpaceToTransferFunction(A, B, C, D) {
   const num = polyadd(numeratorFromState, Dval === 0 ? [0] : polymul([Dval], den));
 
   return new TransferFunction(num, den);
+}
+
+export function controllabilityMatrix(A, B) {
+  const n = A.length;
+  if (!n) return [];
+  const C = B.map(row => [...row]);
+  let AnB = B.map(row => [...row]);
+  for (let i = 1; i < n; i++) {
+    AnB = matMul(A, AnB);
+    for (let r = 0; r < n; r++) C[r].push(...AnB[r]);
+  }
+  return C;
+}
+
+export function observabilityMatrix(A, C_mat) {
+  const n = A.length;
+  if (!n) return [];
+  const O = C_mat.map(row => [...row]);
+  let CAn = C_mat.map(row => [...row]);
+  for (let i = 1; i < n; i++) {
+    CAn = matMul(CAn, A);
+    for (let r = 0; r < CAn.length; r++) O.push([...CAn[r]]);
+  }
+  return O;
 }
