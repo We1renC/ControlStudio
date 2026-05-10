@@ -16,7 +16,12 @@
   - `skills/nvidia-model-selector/scripts/search_models.py`
 - 已建立可執行 workflow：
   - `workflows/rag_workflow.py`
+  - `workflows/ocr_rag_workflow.py`
+  - `workflows/safety_guard_workflow.py`
+  - `workflows/image_generation_workflow.py`
+  - `workflows/cuopt_demo_workflow.py`
   - `data/sample_kb.txt`
+  - `data/cuopt_sample_problem.json`
   - `.env.example`
   - `RUNNABLE_WORKFLOWS.md`
 - 已建立 symlink：
@@ -29,6 +34,10 @@
 - `374f2c2 docs(agent): add continuation and validation workflow`
 - `5c05766 feat(workflow): add runnable nvidia rag flow`
 - `7160ebd fix(workflow): use shared key with runnable defaults`
+- `772abef feat(workflow): add safety guard flow`
+- `0b52114 feat(workflow): add image generation flow`
+- `1e66585 feat(workflow): add cuopt demo flow`
+- `438ce9b feat(workflow): add ocr rag flow`
 
 ## 接手第一步
 ```bash
@@ -45,13 +54,17 @@ git log --oneline -5
 - `search_models.py` compiles with Python 3.13.
 - `rag_workflow.py` compiles with Python 3.13.
 - 預設 `.env` / `.env.example` 現在使用已實測可跑的 `nvidia/nv-embed-v1` + `meta/llama-3.1-8b-instruct`。
+- `safety_guard_workflow.py` 已實測 safe / unsafe 兩種 prompt。
+- `image_generation_workflow.py` 已實測可生成 PNG 到 `outputs/images/`。
+- `cuopt_demo_workflow.py` 已實測 validator 與 optimized routing。
+- `ocr_rag_workflow.py` 已實測 OCR 抽取與後續問答。
 
 ## 後續可做
 1. 加 `agents/openai.yaml` UI metadata。
-2. 在有真實 API key 後，實跑 `workflows/rag_workflow.py` 做端到端驗證。
-3. 加更多驗收查詢案例，例如 `FLUX`、`cuopt`、`Cosmos`、`Guardrails`。
-4. 若 NVIDIA Build Models 更新，先更新根目錄資料檔，再同步 `skills/nvidia-model-selector/references/`。
-5. 視需求把 `search_models.py` 加上 `--top-category-summary` 或 fuzzy ranking。
+2. 把 `rag_poc_demo.py` 決定是否納入 repo 或刪除。
+3. 若 NVIDIA Build Models 更新，先更新根目錄資料檔，再同步 `skills/nvidia-model-selector/references/`。
+4. 視需求把 `search_models.py` 加上 `--top-category-summary` 或 fuzzy ranking。
+5. 若要更實用，補上本地文件切 chunk / PDF 轉圖 / OCR 結果快取。
 
 ## 注意事項
 - 這個專案不需要 `.agent-handoff.md`。
