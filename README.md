@@ -8,6 +8,7 @@
 - `nvidia-model-selector-skill-plan.md`：把這批 NVIDIA 模型資料做成 Codex skill 的建置規劃，供其他 agent 接手。
 - `skills/nvidia-model-selector/`：已建置的 Codex skill 原始碼，透過 symlink 掛到 `~/.config/agents/skills/nvidia-model-selector`。
 - `AGENT_CONTINUATION.md`：usage 耗盡或切換 agent 時的接手狀態。
+- `RUNNABLE_WORKFLOWS.md`：可執行 workflow 與 API key 放置說明。
 
 ## 驗證
 ```bash

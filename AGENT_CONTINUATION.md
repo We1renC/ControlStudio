@@ -14,6 +14,11 @@
   - `skills/nvidia-model-selector/references/operational-guide.md`
   - `skills/nvidia-model-selector/references/inventory.csv`
   - `skills/nvidia-model-selector/scripts/search_models.py`
+- 已建立可執行 workflow：
+  - `workflows/rag_workflow.py`
+  - `data/sample_kb.txt`
+  - `.env.example`
+  - `RUNNABLE_WORKFLOWS.md`
 - 已建立 symlink：
   - `/Users/w.rc/.config/agents/skills/nvidia-model-selector`
   - 指向 `/Users/w.rc/nvdiaOSsupport/skills/nvidia-model-selector`
@@ -36,12 +41,14 @@ git log --oneline -5
 - `Embedding API` service search works.
 - `OCR` JSON search works.
 - `search_models.py` compiles with Python 3.13.
+- `rag_workflow.py` compiles with Python 3.13.
 
 ## 後續可做
 1. 加 `agents/openai.yaml` UI metadata。
-2. 加更多驗收查詢案例，例如 `FLUX`、`cuopt`、`Cosmos`、`Guardrails`。
-3. 若 NVIDIA Build Models 更新，先更新根目錄資料檔，再同步 `skills/nvidia-model-selector/references/`。
-4. 視需求把 `search_models.py` 加上 `--top-category-summary` 或 fuzzy ranking。
+2. 在有真實 API key 後，實跑 `workflows/rag_workflow.py` 做端到端驗證。
+3. 加更多驗收查詢案例，例如 `FLUX`、`cuopt`、`Cosmos`、`Guardrails`。
+4. 若 NVIDIA Build Models 更新，先更新根目錄資料檔，再同步 `skills/nvidia-model-selector/references/`。
+5. 視需求把 `search_models.py` 加上 `--top-category-summary` 或 fuzzy ranking。
 
 ## 注意事項
 - 這個專案不需要 `.agent-handoff.md`。

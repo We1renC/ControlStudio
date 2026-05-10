@@ -12,8 +12,13 @@ test -f "$SKILL_DIR/references/operational-guide.md"
 test -f "$SKILL_DIR/references/inventory.csv"
 test -x "$SCRIPT"
 test "$(readlink "$LINK")" = "$SKILL_DIR"
+test -f "$ROOT_DIR/.env.example"
+test -f "$ROOT_DIR/RUNNABLE_WORKFLOWS.md"
+test -f "$ROOT_DIR/data/sample_kb.txt"
+test -f "$ROOT_DIR/workflows/rag_workflow.py"
 
 python3 -m py_compile "$SCRIPT"
+python3 -m py_compile "$ROOT_DIR/workflows/rag_workflow.py"
 python3 "$SCRIPT" --model bge-m3 --limit 1 >/tmp/nvidia-model-selector-bge.md
 python3 "$SCRIPT" --service "Embedding API" --limit 2 >/tmp/nvidia-model-selector-embedding.md
 python3 "$SCRIPT" --query OCR --limit 2 --json >/tmp/nvidia-model-selector-ocr.json

@@ -19,11 +19,13 @@ Use this skill to choose NVIDIA Build Models and turn them into implementation p
    - production integration point
    - validation checks and risks
 5. If the user asks for implementation, convert the recommendation into a runnable plan, API call skeleton, service design, or PoC checklist.
+6. If the user asks for a runnable demo, prefer the local workflows in `/Users/w.rc/nvdiaOSsupport/workflows/` before inventing a new script.
 
 ## References
 - Category guide: `references/model-categories.md`
 - Operational guide: `references/operational-guide.md`
 - Queryable inventory: `references/inventory.csv`
+- Runnable workflow guide: `/Users/w.rc/nvdiaOSsupport/RUNNABLE_WORKFLOWS.md`
 
 ## Search Strategy
 - For broad category questions, read `references/model-categories.md` first.
@@ -57,6 +59,11 @@ For implementation answers, include:
 - request/response data shape
 - fallback and monitoring plan
 - manual review or safety gates when needed
+
+For runnable demos, point the user to:
+- `/Users/w.rc/nvdiaOSsupport/.env`
+- `/Users/w.rc/nvdiaOSsupport/workflows/rag_workflow.py`
+- `/Users/w.rc/nvdiaOSsupport/data/sample_kb.txt`
 
 ## Guardrails
 - Do not claim a model is open source unless the reference explicitly supports that. Prefer "NVIDIA Build Models / NIM / downloadable endpoint" when license status is unclear.
