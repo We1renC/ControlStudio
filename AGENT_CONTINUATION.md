@@ -28,6 +28,7 @@
 - `ce335b3 feat(skill): add nvidia model selector`
 - `374f2c2 docs(agent): add continuation and validation workflow`
 - `5c05766 feat(workflow): add runnable nvidia rag flow`
+- `7160ebd fix(workflow): use shared key with runnable defaults`
 
 ## 接手第一步
 ```bash
@@ -43,6 +44,7 @@ git log --oneline -5
 - `OCR` JSON search works.
 - `search_models.py` compiles with Python 3.13.
 - `rag_workflow.py` compiles with Python 3.13.
+- 預設 `.env` / `.env.example` 現在使用已實測可跑的 `nvidia/nv-embed-v1` + `meta/llama-3.1-8b-instruct`。
 
 ## 後續可做
 1. 加 `agents/openai.yaml` UI metadata。
