@@ -98,6 +98,8 @@ git log --oneline -5
 - `control-studio` 已補上 State Space（SISO）輸入、Step/Impulse/Ramp 切換、Nyquist Plot、project save/load 與 JSON/CSV 匯出。
 - `control-studio` UI 已改成 sidebar workspace tabs（Model / Sim / Advisor / Compare），並支援 comparison snapshots 疊圖比較。
 - `control-studio/scripts/serve_studio.py` 已提供固定的本地前端啟動入口（預設 `http://127.0.0.1:8765`）。
+- `control-studio` 已補上 simulation config（duration/sample count/amplitude/disturbance/initial state）、autosave/restore session、waveform 擴充與 comparison 指標摘要。
+- `control-studio/scripts/control_api.py` 與 `control-studio/scripts/control_analysis_cli.mjs` 已提供 FastAPI 分析 API 雛形。
 
 ## 後續可做
 1. 加 `agents/openai.yaml` UI metadata。
@@ -107,7 +109,7 @@ git log --oneline -5
 5. 若要更實用，補上本地文件切 chunk / PDF 轉圖 / OCR 結果快取。
 6. 加 parallel runner 與 leaderboard，追蹤同任務多模型輸出品質。
 7. 將 OCR/RAG 的 endpoint source 也改成完整 registry-driven，而不只傳入 model id。
-8. 若要把控制系統工作台正式產品化，補前端啟動腳本、瀏覽器驗證流程與 advisor bridge 的部署說明。
+8. 若要把控制系統工作台正式產品化，補 FastAPI 真正上線流程、advisor bridge 與 API 的整合、以及更多 analysis endpoint 測試。
 
 ## 注意事項
 - 這個專案不需要 `.agent-handoff.md`。

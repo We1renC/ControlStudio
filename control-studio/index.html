@@ -84,6 +84,10 @@
     .matrix-row { display: grid; grid-template-columns: 28px 1fr; gap: 8px; align-items: start; }
     .matrix-name { color: var(--text-secondary); font-weight: 700; }
     .matrix-value { color: var(--text-primary); white-space: pre-wrap; overflow-wrap: anywhere; }
+    .summary-grid { display:grid; grid-template-columns: 1fr 1fr; gap:var(--space-2); margin-bottom:var(--space-4); }
+    .summary-item { border:1px solid var(--border-primary); border-radius:var(--radius-sm); padding:10px; background:rgba(15,17,23,0.24); }
+    .summary-item span { display:block; font-size:11px; color:var(--text-muted); margin-bottom:4px; }
+    .summary-item strong { display:block; font-size:13px; color:var(--text-primary); }
     .button-grid { display:grid; grid-template-columns: repeat(2, 1fr); gap:var(--space-2); }
     .metric-grid { display:grid; grid-template-columns: 1fr 1fr; gap:var(--space-2); font-size:11px; color:var(--text-muted); }
     .metric-grid strong { display:block; color:var(--text-primary); font-size:13px; font-weight:600; margin-top:2px; }
@@ -268,19 +272,68 @@
 
       <div class="sidebar-panel" id="panel-simulate">
         <section class="section-panel">
-          <div class="toolbar-inline">
-            <h3 class="section-title" style="margin-bottom:0;">Simulation</h3>
-            <select id="response-type" style="background:var(--bg-tertiary); color:var(--text-primary); border:1px solid var(--border-primary); border-radius:var(--radius-sm); padding:6px 8px; font-size:12px;">
+          <div class="section-title">Simulation</div>
+          <div class="input-group">
+            <label>Input Waveform</label>
+            <select id="response-type" style="background:var(--bg-tertiary); color:var(--text-primary); border:1px solid var(--border-primary); border-radius:var(--radius-sm); padding:8px 12px; font-size:12px;">
               <option value="step">Step</option>
               <option value="impulse">Impulse</option>
               <option value="ramp">Ramp</option>
+              <option value="sine">Sine</option>
+              <option value="square">Square</option>
+              <option value="pulse">Pulse</option>
             </select>
           </div>
+          <div class="input-group">
+            <label>Duration (s)</label>
+            <input type="number" id="sim-duration" min="0.1" step="0.1" placeholder="auto">
+          </div>
+          <div class="input-group">
+            <label>Sample Count</label>
+            <input type="number" id="sim-samples" min="10" step="10" value="1000">
+          </div>
+          <div class="input-group">
+            <label>Input Amplitude</label>
+            <input type="number" id="sim-amplitude" step="0.1" value="1">
+          </div>
+          <div class="input-group">
+            <label>Signal Frequency (Hz)</label>
+            <input type="number" id="sim-frequency" min="0.01" step="0.1" value="1">
+          </div>
+          <div class="input-group">
+            <label>Pulse Width (s)</label>
+            <input type="number" id="sim-pulse-width" min="0.01" step="0.1" value="1">
+          </div>
+          <div class="input-group">
+            <label>Disturbance Waveform</label>
+            <select id="sim-disturbance-type" style="background:var(--bg-tertiary); color:var(--text-primary); border:1px solid var(--border-primary); border-radius:var(--radius-sm); padding:8px 12px; font-size:12px;">
+              <option value="none">None</option>
+              <option value="step">Step</option>
+              <option value="sine">Sine</option>
+              <option value="square">Square</option>
+              <option value="pulse">Pulse</option>
+            </select>
+          </div>
+          <div class="input-group">
+            <label>Disturbance Amplitude</label>
+            <input type="number" id="sim-disturbance" step="0.1" value="0">
+          </div>
+          <div class="input-group">
+            <label>Disturbance Start (s)</label>
+            <input type="number" id="sim-disturbance-start" min="0" step="0.1" value="0">
+          </div>
+          <div class="input-group">
+            <label>Initial State Vector</label>
+            <input type="text" id="sim-initial-state" placeholder="e.g. 0, 0">
+          </div>
+          <p class="section-copy" style="margin-bottom:var(--space-4);">autosave 會保留目前模型、PID、simulation config、比較快照與視圖狀態。</p>
           <div class="button-grid">
             <button class="btn btn-sm" id="btn-save-project" style="justify-content:center;">Save Project</button>
             <button class="btn btn-sm" id="btn-load-project" style="justify-content:center;">Load Project</button>
             <button class="btn btn-sm" id="btn-export-json" style="justify-content:center;">Export JSON</button>
             <button class="btn btn-sm" id="btn-export-csv" style="justify-content:center;">Export CSV</button>
+            <button class="btn btn-sm" id="btn-restore-session" style="justify-content:center;">Restore Session</button>
+            <button class="btn btn-sm" id="btn-clear-session" style="justify-content:center;">Clear Session</button>
           </div>
           <input type="file" id="project-file-input" accept=".json,application/json" style="display:none;">
         </section>
@@ -330,6 +383,12 @@
           <div class="toolbar-inline">
             <h3 class="section-title" style="margin-bottom:0;">Result Comparison</h3>
             <button class="btn btn-sm" id="btn-save-snapshot">Save Snapshot</button>
+          </div>
+          <div class="summary-grid" id="comparison-summary">
+            <div class="summary-item"><span>Snapshot Count</span><strong id="compare-count">0</strong></div>
+            <div class="summary-item"><span>Active Signal</span><strong id="compare-signal">Step</strong></div>
+            <div class="summary-item"><span>Best Rise</span><strong id="compare-best-rise">—</strong></div>
+            <div class="summary-item"><span>Lowest Overshoot</span><strong id="compare-best-overshoot">—</strong></div>
           </div>
           <p style="font-size:12px; color:var(--text-muted); line-height:1.5; margin-bottom:var(--space-4);">
             保存目前控制器參數與響應，之後可以套用、刪除，並在 comparison chart 中疊圖比較。

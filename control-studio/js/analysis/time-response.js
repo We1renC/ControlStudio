@@ -2,26 +2,74 @@
  * time-response.js — Stable time-domain analysis using RK4
  */
 
-function responseInput(type, t) {
-  if (type === 'ramp') return t;
-  return type === 'step' ? 1.0 : 0.0;
+function normalizeOptions(durationOrOptions) {
+  if (durationOrOptions == null) {
+    return {
+      duration: null,
+      sampleCount: 1000,
+      amplitude: 1,
+      disturbanceAmplitude: 0,
+      disturbanceStart: 0,
+      initialState: null,
+    };
+  }
+  if (typeof durationOrOptions === 'number') {
+    return normalizeOptions({ duration: durationOrOptions });
+  }
+  return {
+    duration: durationOrOptions.duration ?? null,
+    sampleCount: Math.max(10, Math.floor(durationOrOptions.sampleCount ?? 1000)),
+    amplitude: Number(durationOrOptions.amplitude ?? 1),
+    frequency: Math.max(0.01, Number(durationOrOptions.frequency ?? 1)),
+    pulseWidth: Math.max(0.01, Number(durationOrOptions.pulseWidth ?? 1)),
+    disturbanceAmplitude: Number(durationOrOptions.disturbanceAmplitude ?? 0),
+    disturbanceStart: Number(durationOrOptions.disturbanceStart ?? 0),
+    disturbanceType: durationOrOptions.disturbanceType ?? 'none',
+    initialState: Array.isArray(durationOrOptions.initialState) ? durationOrOptions.initialState.map(Number) : null,
+  };
 }
 
-function initialStateForInput(order, type) {
+function responseInput(type, t, options) {
+  if (type === 'ramp') return options.amplitude * t;
+  if (type === 'sine') return options.amplitude * Math.sin(2 * Math.PI * options.frequency * t);
+  if (type === 'square') return options.amplitude * Math.sign(Math.sin(2 * Math.PI * options.frequency * t) || 1);
+  if (type === 'pulse') return t <= options.pulseWidth ? options.amplitude : 0;
+  return type === 'step' ? options.amplitude : 0.0;
+}
+
+function disturbanceInput(t, options) {
+  if (!options.disturbanceAmplitude || options.disturbanceType === 'none' || t < options.disturbanceStart) return 0;
+  const shiftedTime = t - options.disturbanceStart;
+  const disturbanceOptions = {
+    ...options,
+    amplitude: options.disturbanceAmplitude,
+  };
+  return responseInput(options.disturbanceType, shiftedTime, disturbanceOptions);
+}
+
+function initialStateForInput(order, type, options) {
+  if (options.initialState && options.initialState.length > 0) {
+    const state = new Array(order).fill(0);
+    options.initialState.slice(0, order).forEach((value, idx) => {
+      state[idx] = Number.isFinite(value) ? value : 0;
+    });
+    return state;
+  }
   if (type !== 'impulse') return new Array(order).fill(0);
   const x = new Array(order).fill(0);
-  if (order > 0) x[order - 1] = 1;
+  if (order > 0) x[order - 1] = options.amplitude;
   return x;
 }
 
-export function simulateTimeResponse(sys, type = 'step', duration = null) {
+export function simulateTimeResponse(sys, type = 'step', durationOrOptions = null) {
+  const options = normalizeOptions(durationOrOptions);
   // 1. Convert TF to State-Space (Controllable Canonical Form)
   const n = sys.den.length - 1;
   const num = sys.num;
   const den = sys.den; // den[0] is 1
 
   // 2. Estimate Duration
-  let tEnd = duration;
+  let tEnd = options.duration;
   if (!tEnd) {
     const poles = sys.poles();
     const realParts = poles.map(p => Math.abs(p.re)).filter(re => re > 1e-6);
@@ -31,14 +79,14 @@ export function simulateTimeResponse(sys, type = 'step', duration = null) {
     if (poles.some(p => p.re > 0.01)) tEnd = 5; // For unstable systems
   }
 
-  const nPoints = 1000;
+  const nPoints = options.sampleCount;
   const dt = tEnd / (nPoints - 1);
   const tArr = [];
   const yArr = [];
 
   // State-Space: x' = Ax + Bu; y = Cx + Du
   // Controllable Canonical Form
-  const x = initialStateForInput(n, type);
+  const x = initialStateForInput(n, type, options);
 
   const getDx = (state, u) => {
     const dx = new Array(n).fill(0);
@@ -71,16 +119,19 @@ export function simulateTimeResponse(sys, type = 'step', duration = null) {
 
   let curX = [...x];
   for (let i = 0; i < nPoints; i++) {
-    const u = responseInput(type, i * dt);
+    const t = i * dt;
+    const u = responseInput(type, t, options);
+    const disturbance = disturbanceInput(t, options);
     tArr.push(i * dt);
     const curY = getOutput(curX, u);
     yArr.push(curY);
 
     // RK4 Integration step
-    const k1 = getDx(curX, u);
-    const k2 = getDx(curX.map((v, j) => v + k1[j] * dt / 2), u);
-    const k3 = getDx(curX.map((v, j) => v + k2[j] * dt / 2), u);
-    const k4 = getDx(curX.map((v, j) => v + k3[j] * dt), u);
+    const netInput = u + disturbance;
+    const k1 = getDx(curX, netInput);
+    const k2 = getDx(curX.map((v, j) => v + k1[j] * dt / 2), netInput);
+    const k3 = getDx(curX.map((v, j) => v + k2[j] * dt / 2), netInput);
+    const k4 = getDx(curX.map((v, j) => v + k3[j] * dt), netInput);
 
     for (let j = 0; j < n; j++) {
       curX[j] += (dt / 6) * (k1[j] + 2 * k2[j] + 2 * k3[j] + k4[j]);
@@ -89,17 +140,17 @@ export function simulateTimeResponse(sys, type = 'step', duration = null) {
     if (Math.abs(curY) > 1e12) break; // Safety cutoff
   }
 
-  return { t: tArr, y: yArr };
+  return { t: tArr, y: yArr, options };
 }
 
-export function stepResponse(sys, duration = null) {
-  return simulateTimeResponse(sys, 'step', duration);
+export function stepResponse(sys, durationOrOptions = null) {
+  return simulateTimeResponse(sys, 'step', durationOrOptions);
 }
 
-export function impulseResponse(sys, duration = null) {
-  return simulateTimeResponse(sys, 'impulse', duration);
+export function impulseResponse(sys, durationOrOptions = null) {
+  return simulateTimeResponse(sys, 'impulse', durationOrOptions);
 }
 
-export function rampResponse(sys, duration = null) {
-  return simulateTimeResponse(sys, 'ramp', duration);
+export function rampResponse(sys, durationOrOptions = null) {
+  return simulateTimeResponse(sys, 'ramp', durationOrOptions);
 }

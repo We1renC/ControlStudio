@@ -147,6 +147,7 @@ cd /Users/w.rc/nvdiaOSsupport
 cd /Users/w.rc/nvdiaOSsupport
 python3 control-studio/scripts/serve_studio.py
 python3 control-studio/scripts/advisor_server.py
+python3 control-studio/scripts/control_api.py
 ```
 
 ## 接手建議

@@ -21,6 +21,17 @@ const state = {
   systemType: 'tf',
   responseType: 'step',
   activePlot: 'step',
+  simulationConfig: {
+    duration: null,
+    sampleCount: 1000,
+    amplitude: 1,
+    frequency: 1,
+    pulseWidth: 1,
+    disturbanceAmplitude: 0,
+    disturbanceStart: 0,
+    disturbanceType: 'none',
+    initialState: [],
+  },
   ssModel: {
     A: '0 1\n-2 -3',
     B: '0\n1',
@@ -33,6 +44,8 @@ const state = {
   editor: null,
 };
 
+const SESSION_STORAGE_KEY = 'control-studio-session-v1';
+
 // ============================================================
 // INIT
 // ============================================================
@@ -41,12 +54,15 @@ document.addEventListener('DOMContentLoaded', () => {
   initEventListeners();
   state.editor = new BlockEditor();
 
-  // Set defaults
-  document.getElementById('tf-num').value = '1';
-  document.getElementById('tf-den').value = '1, 3, 2';
   setComparisonVisibility();
-  updateSystemSetupCopy();
-  updateSystem();
+  const restored = restoreSessionFromStorage();
+  if (!restored) {
+    document.getElementById('tf-num').value = '1';
+    document.getElementById('tf-den').value = '1, 3, 2';
+    syncSimulationConfigInputs();
+    updateSystemSetupCopy();
+    updateSystem();
+  }
 });
 
 function initTheme() {
@@ -122,8 +138,21 @@ function initEventListeners() {
 
   document.getElementById('response-type')?.addEventListener('change', (e) => {
     state.responseType = e.target.value;
+    saveSessionToStorage();
     refreshAllCharts();
     updateStabilityPanel();
+  });
+
+  ['sim-duration', 'sim-samples', 'sim-amplitude', 'sim-frequency', 'sim-pulse-width', 'sim-disturbance', 'sim-disturbance-start', 'sim-initial-state', 'sim-disturbance-type'].forEach((id) => {
+    const handler = debounce(() => {
+      readSimulationConfigInputs();
+      saveSessionToStorage();
+      refreshAllCharts();
+      updateStabilityPanel();
+      renderComparisonSummary();
+    }, 200);
+    document.getElementById(id)?.addEventListener('input', handler);
+    document.getElementById(id)?.addEventListener('change', handler);
   });
 
   document.getElementById('btn-ai-advisor')?.addEventListener('click', requestAIAdvice);
@@ -136,6 +165,8 @@ function initEventListeners() {
   document.getElementById('btn-save-snapshot')?.addEventListener('click', saveComparisonSnapshot);
   document.getElementById('btn-clear-snapshots')?.addEventListener('click', clearSnapshots);
   document.getElementById('btn-export-compare')?.addEventListener('click', exportComparisonSnapshots);
+  document.getElementById('btn-restore-session')?.addEventListener('click', () => restoreSessionFromStorage(true));
+  document.getElementById('btn-clear-session')?.addEventListener('click', clearSessionStorage);
 
   document.getElementById('btn-editor-sync')?.addEventListener('click', () => {
     const tfStr = state.editor?.getSystemModel();
@@ -171,6 +202,7 @@ function switchView(viewName) {
     refreshAllCharts();
     updateStabilityPanel();
   }
+  saveSessionToStorage();
 }
 
 function switchSidebarPanel(panelName) {
@@ -180,6 +212,7 @@ function switchSidebarPanel(panelName) {
   document.querySelectorAll('.sidebar-panel').forEach((panel) => {
     panel.classList.toggle('active', panel.id === `panel-${panelName}`);
   });
+  saveSessionToStorage();
 }
 
 function switchPlot(plotName) {
@@ -190,6 +223,7 @@ function switchPlot(plotName) {
   if (!state.plant) return;
   const sys = state.showClosedLoop ? (state.closedLoop || state.plant) : state.plant;
   renderActivePlot(sys);
+  saveSessionToStorage();
 }
 
 function escapeHtml(value) {
@@ -199,6 +233,19 @@ function escapeHtml(value) {
     .replaceAll('>', '&gt;')
     .replaceAll('"', '&quot;')
     .replaceAll("'", '&#39;');
+}
+
+function waveformLabel(type) {
+  const labels = {
+    step: 'Step',
+    impulse: 'Impulse',
+    ramp: 'Ramp',
+    sine: 'Sine',
+    square: 'Square',
+    pulse: 'Pulse',
+    none: 'None',
+  };
+  return labels[type] || type;
 }
 
 function formatPolyText(coeffs) {
@@ -267,6 +314,77 @@ function renderStateSpaceEquationBlock(matrices) {
   `;
 }
 
+function parseInitialStateInput(value) {
+  const text = String(value ?? '').trim();
+  if (!text) return [];
+  return text.split(/[,\s]+/).filter(Boolean).map((item) => {
+    const parsed = Number(item);
+    return Number.isFinite(parsed) ? parsed : 0;
+  });
+}
+
+function readSimulationConfigInputs() {
+  const durationValue = document.getElementById('sim-duration')?.value ?? '';
+  const parsedDuration = Number(durationValue);
+  const sampleCountValue = Number(document.getElementById('sim-samples')?.value ?? state.simulationConfig.sampleCount);
+  const amplitudeValue = Number(document.getElementById('sim-amplitude')?.value ?? state.simulationConfig.amplitude);
+  const frequencyValue = Number(document.getElementById('sim-frequency')?.value ?? state.simulationConfig.frequency);
+  const pulseWidthValue = Number(document.getElementById('sim-pulse-width')?.value ?? state.simulationConfig.pulseWidth);
+  const disturbanceValue = Number(document.getElementById('sim-disturbance')?.value ?? state.simulationConfig.disturbanceAmplitude);
+  const disturbanceStartValue = Number(document.getElementById('sim-disturbance-start')?.value ?? state.simulationConfig.disturbanceStart);
+  state.simulationConfig = {
+    duration: durationValue === '' || !Number.isFinite(parsedDuration) ? null : Math.max(0.1, parsedDuration),
+    sampleCount: Number.isFinite(sampleCountValue) ? Math.max(10, Math.floor(sampleCountValue)) : 1000,
+    amplitude: Number.isFinite(amplitudeValue) ? amplitudeValue : 1,
+    frequency: Number.isFinite(frequencyValue) ? Math.max(0.01, frequencyValue) : 1,
+    pulseWidth: Number.isFinite(pulseWidthValue) ? Math.max(0.01, pulseWidthValue) : 1,
+    disturbanceAmplitude: Number.isFinite(disturbanceValue) ? disturbanceValue : 0,
+    disturbanceStart: Number.isFinite(disturbanceStartValue) ? Math.max(0, disturbanceStartValue) : 0,
+    disturbanceType: document.getElementById('sim-disturbance-type')?.value || 'none',
+    initialState: parseInitialStateInput(document.getElementById('sim-initial-state')?.value),
+  };
+}
+
+function syncSimulationConfigInputs() {
+  document.getElementById('sim-duration').value = state.simulationConfig.duration == null ? '' : state.simulationConfig.duration;
+  document.getElementById('sim-samples').value = state.simulationConfig.sampleCount;
+  document.getElementById('sim-amplitude').value = state.simulationConfig.amplitude;
+  document.getElementById('sim-frequency').value = state.simulationConfig.frequency;
+  document.getElementById('sim-pulse-width').value = state.simulationConfig.pulseWidth;
+  document.getElementById('sim-disturbance').value = state.simulationConfig.disturbanceAmplitude;
+  document.getElementById('sim-disturbance-start').value = state.simulationConfig.disturbanceStart;
+  document.getElementById('sim-disturbance-type').value = state.simulationConfig.disturbanceType;
+  document.getElementById('sim-initial-state').value = state.simulationConfig.initialState.join(', ');
+}
+
+function saveSessionToStorage() {
+  try {
+    localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(buildProjectPayload()));
+  } catch (err) {
+    console.warn('session autosave failed', err);
+  }
+}
+
+function restoreSessionFromStorage(showMessage = false) {
+  try {
+    const raw = localStorage.getItem(SESSION_STORAGE_KEY);
+    if (!raw) return false;
+    const data = JSON.parse(raw);
+    applyProjectPayload(data);
+    if (showMessage) clearError();
+    return true;
+  } catch (err) {
+    console.warn('session restore failed', err);
+    if (showMessage) showError(`Session 還原失敗: ${err.message}`);
+    return false;
+  }
+}
+
+function clearSessionStorage() {
+  localStorage.removeItem(SESSION_STORAGE_KEY);
+  showError('已清除本地 session autosave');
+}
+
 function updateSystemSetupCopy() {
   const modelCopy = document.getElementById('model-section-copy');
   const systemEquation = document.getElementById('system-equation');
@@ -312,6 +430,7 @@ function updateSystemSetupCopy() {
 // ============================================================
 function updateSystem() {
   try {
+    readSimulationConfigInputs();
     if (state.systemType === 'ss') {
       const A = parseMatrixInput(document.getElementById('ss-a')?.value);
       const B = parseMatrixInput(document.getElementById('ss-b')?.value, 1);
@@ -348,6 +467,7 @@ function updateController() {
     state.closedLoop = state.openLoop.feedback();
 
     updateSystemSetupCopy();
+    saveSessionToStorage();
     refreshAllCharts();
     updateStabilityPanel();
   } catch (err) {
@@ -372,9 +492,9 @@ function setComparisonVisibility() {
 }
 
 function currentResponseData(sys) {
-  if (state.responseType === 'impulse') return impulseResponse(sys);
-  if (state.responseType === 'ramp') return rampResponse(sys);
-  return stepResponse(sys);
+  if (state.responseType === 'impulse') return impulseResponse(sys, state.simulationConfig);
+  if (state.responseType === 'ramp') return rampResponse(sys, state.simulationConfig);
+  return stepResponse(sys, state.simulationConfig);
 }
 
 function updateActivePlotHeader(title, subtitle) {
@@ -409,11 +529,12 @@ function updateStabilityPanel() {
 
     const resp = currentResponseData(sys);
     const info = stepInfo(resp.t, resp.y);
+    const timeMetricSupported = !['sine', 'square'].includes(state.responseType);
 
-    if (riseEl) riseEl.textContent = fmtTime(info.riseTime);
-    if (settleEl) settleEl.textContent = fmtTime(info.settlingTime);
-    if (overEl) overEl.textContent = fmtPercent(info.overshoot);
-    if (essEl) essEl.textContent = info.steadyStateError !== undefined ? info.steadyStateError.toPrecision(3) : '—';
+    if (riseEl) riseEl.textContent = timeMetricSupported ? fmtTime(info.riseTime) : '—';
+    if (settleEl) settleEl.textContent = timeMetricSupported ? fmtTime(info.settlingTime) : '—';
+    if (overEl) overEl.textContent = timeMetricSupported ? fmtPercent(info.overshoot) : '—';
+    if (essEl) essEl.textContent = timeMetricSupported && info.steadyStateError !== undefined ? info.steadyStateError.toPrecision(3) : '—';
 
     // 2. Determine Stability (Strict Pole Check)
     const poles = sys.poles();
@@ -468,7 +589,14 @@ function compactLegend() {
 
 function renderTimeResponse(sys, targetId = 'chart-active') {
   const resp = currentResponseData(sys);
-  const responseTitles = { step: 'Step Response', impulse: 'Impulse Response', ramp: 'Ramp Response' };
+  const responseTitles = {
+    step: 'Step Response',
+    impulse: 'Impulse Response',
+    ramp: 'Ramp Response',
+    sine: 'Sine Response',
+    square: 'Square Response',
+    pulse: 'Pulse Response',
+  };
   const trace = {
     x: resp.t,
     y: resp.y,
@@ -518,7 +646,14 @@ function renderActivePlot(sys) {
   const plotConfig = {
     step: () => {
       updateActivePlotHeader(
-        { step: 'Step Response', impulse: 'Impulse Response', ramp: 'Ramp Response' }[state.responseType],
+        {
+          step: 'Step Response',
+          impulse: 'Impulse Response',
+          ramp: 'Ramp Response',
+          sine: 'Sine Response',
+          square: 'Square Response',
+          pulse: 'Pulse Response',
+        }[state.responseType],
         'Time-Domain'
       );
       renderTimeResponse(sys, 'chart-active');
@@ -585,6 +720,7 @@ function renderComparisonChart() {
   const target = document.getElementById('chart-compare');
   if (!target) return;
   setComparisonVisibility();
+  renderComparisonSummary();
 
   const traces = [];
   const palette = ['#6366f1', '#ec4899', '#10b981', '#f59e0b', '#22c55e', '#38bdf8'];
@@ -622,6 +758,33 @@ function renderComparisonChart() {
   Plotly.react('chart-compare', traces, layout, { responsive: true, displayModeBar: false });
 }
 
+function renderComparisonSummary() {
+  const countEl = document.getElementById('compare-count');
+  const signalEl = document.getElementById('compare-signal');
+  const riseEl = document.getElementById('compare-best-rise');
+  const overshootEl = document.getElementById('compare-best-overshoot');
+  if (!countEl || !signalEl || !riseEl || !overshootEl) return;
+
+  countEl.textContent = String(state.comparisonSnapshots.length);
+  signalEl.textContent = `${waveformLabel(state.responseType)} / Dist ${waveformLabel(state.simulationConfig.disturbanceType)}`;
+
+  if (state.comparisonSnapshots.length === 0) {
+    riseEl.textContent = '—';
+    overshootEl.textContent = '—';
+    return;
+  }
+
+  const bestRise = state.comparisonSnapshots.reduce((best, snapshot) => (
+    snapshot.metrics.riseTime < best.metrics.riseTime ? snapshot : best
+  ));
+  const bestOvershoot = state.comparisonSnapshots.reduce((best, snapshot) => (
+    snapshot.metrics.overshoot < best.metrics.overshoot ? snapshot : best
+  ));
+
+  riseEl.textContent = `${fmtTime(bestRise.metrics.riseTime)} (${bestRise.name})`;
+  overshootEl.textContent = `${fmtPercent(bestOvershoot.metrics.overshoot)} (${bestOvershoot.name})`;
+}
+
 // ============================================================
 // AI ADVISOR
 // ============================================================
@@ -643,13 +806,35 @@ async function requestAIAdvice() {
   const info = stepInfo(resp.t, resp.y);
 
   const payload = {
-    formula: state.plant.toString(),
-    riseTime: fmtTime(info.riseTime), settlingTime: fmtTime(info.settlingTime), overshoot: fmtPercent(info.overshoot),
-    steadyStateError: info.steadyStateError ? info.steadyStateError.toExponential(3) : '0',
-    gainMargin: margins.gainMarginDB === Infinity ? '∞' : fmtNum(margins.gainMarginDB),
-    phaseMargin: isNaN(margins.phaseMargin) ? '—' : fmtNum(margins.phaseMargin),
-    stability: document.getElementById('stability-indicator')?.innerText.trim(),
-    Kp: state.pidParams.Kp, Ki: state.pidParams.Ki, Kd: state.pidParams.Kd
+    request: `請針對 ${waveformLabel(state.responseType)} 響應提供控制建議`,
+    system: {
+      type: state.systemType,
+      formula: state.plant.toString(),
+      numerator: state.plant.num,
+      denominator: state.plant.den,
+    },
+    controller: {
+      type: 'pid',
+      Kp: state.pidParams.Kp,
+      Ki: state.pidParams.Ki,
+      Kd: state.pidParams.Kd,
+      formula: state.controller?.toTransferFunction?.().toString?.() ?? '',
+    },
+    simulation: {
+      ...state.simulationConfig,
+      inputWaveform: state.responseType,
+      disturbanceWaveform: state.simulationConfig.disturbanceType,
+      closedLoop: state.showClosedLoop,
+    },
+    metrics: {
+      riseTime: fmtTime(info.riseTime),
+      settlingTime: fmtTime(info.settlingTime),
+      overshoot: fmtPercent(info.overshoot),
+      steadyStateError: info.steadyStateError ? info.steadyStateError.toExponential(3) : '0',
+      gainMargin: margins.gainMarginDB === Infinity ? '∞' : fmtNum(margins.gainMarginDB),
+      phaseMargin: isNaN(margins.phaseMargin) ? '—' : fmtNum(margins.phaseMargin),
+      stability: document.getElementById('stability-indicator')?.innerText.trim(),
+    },
   };
 
   try {
@@ -692,10 +877,11 @@ function saveComparisonSnapshot() {
   const info = stepInfo(response.t, response.y);
   const snapshot = {
     id: `snap-${Date.now()}`,
-    name: `Kp ${state.pidParams.Kp.toFixed(2)} / Ki ${state.pidParams.Ki.toFixed(2)} / Kd ${state.pidParams.Kd.toFixed(2)}`,
+    name: `${waveformLabel(state.responseType)} | Kp ${state.pidParams.Kp.toFixed(2)} / Ki ${state.pidParams.Ki.toFixed(2)} / Kd ${state.pidParams.Kd.toFixed(2)}`,
     responseType: state.responseType,
     mode: state.showClosedLoop ? 'closed_loop' : 'open_loop',
     controller: { ...state.pidParams },
+    simulationConfig: { ...state.simulationConfig },
     metrics: {
       riseTime: info.riseTime,
       settlingTime: info.settlingTime,
@@ -707,6 +893,7 @@ function saveComparisonSnapshot() {
   renderSnapshotList();
   renderComparisonChart();
   switchSidebarPanel('compare');
+  saveSessionToStorage();
 }
 
 function renderSnapshotList() {
@@ -717,6 +904,7 @@ function renderSnapshotList() {
   list.querySelectorAll('.snapshot-card').forEach((node) => node.remove());
   empty.style.display = state.comparisonSnapshots.length === 0 ? 'block' : 'none';
   setComparisonVisibility();
+  renderComparisonSummary();
 
   state.comparisonSnapshots.forEach((snapshot) => {
     const card = document.createElement('div');
@@ -746,6 +934,14 @@ function applySnapshot(snapshotId) {
   const snapshot = state.comparisonSnapshots.find((item) => item.id === snapshotId);
   if (!snapshot) return;
   state.responseType = snapshot.responseType;
+  if (snapshot.simulationConfig) {
+    state.simulationConfig = {
+      ...state.simulationConfig,
+      ...snapshot.simulationConfig,
+      initialState: Array.isArray(snapshot.simulationConfig.initialState) ? snapshot.simulationConfig.initialState : [],
+    };
+    syncSimulationConfigInputs();
+  }
   const responseSelect = document.getElementById('response-type');
   if (responseSelect) responseSelect.value = snapshot.responseType;
   ['Kp', 'Ki', 'Kd'].forEach((param) => {
@@ -760,12 +956,14 @@ function deleteSnapshot(snapshotId) {
   state.comparisonSnapshots = state.comparisonSnapshots.filter((item) => item.id !== snapshotId);
   renderSnapshotList();
   renderComparisonChart();
+  saveSessionToStorage();
 }
 
 function clearSnapshots() {
   state.comparisonSnapshots = [];
   renderSnapshotList();
   renderComparisonChart();
+  saveSessionToStorage();
 }
 
 function exportComparisonSnapshots() {
@@ -808,12 +1006,15 @@ function buildProjectPayload() {
     systemType: state.systemType,
     responseType: state.responseType,
     showClosedLoop: state.showClosedLoop,
+    activePlot: state.activePlot,
+    view: state.view,
     transferFunction: {
       numerator: document.getElementById('tf-num')?.value ?? '',
       denominator: document.getElementById('tf-den')?.value ?? '',
     },
     stateSpace: { ...state.ssModel },
     controller: { ...state.pidParams },
+    simulationConfig: { ...state.simulationConfig },
     comparisonSnapshots: state.comparisonSnapshots,
     theme: state.theme,
   };
@@ -826,10 +1027,13 @@ function applyProjectPayload(data) {
   state.responseType = data.responseType || 'step';
   state.showClosedLoop = Boolean(data.showClosedLoop);
   state.comparisonSnapshots = Array.isArray(data.comparisonSnapshots) ? data.comparisonSnapshots : [];
+  state.activePlot = data.activePlot || 'step';
+  state.view = data.view || 'dashboard';
 
   const tf = data.transferFunction || {};
   const ss = data.stateSpace || {};
   const controller = data.controller || {};
+  const simulationConfig = data.simulationConfig || {};
 
   document.getElementById('tf-num').value = tf.numerator || '1';
   document.getElementById('tf-den').value = tf.denominator || '1, 3, 2';
@@ -837,6 +1041,18 @@ function applyProjectPayload(data) {
   document.getElementById('ss-b').value = ss.B || state.ssModel.B;
   document.getElementById('ss-c').value = ss.C || state.ssModel.C;
   document.getElementById('ss-d').value = ss.D || state.ssModel.D;
+  state.simulationConfig = {
+    duration: simulationConfig.duration ?? null,
+    sampleCount: simulationConfig.sampleCount ?? 1000,
+    amplitude: simulationConfig.amplitude ?? 1,
+    frequency: simulationConfig.frequency ?? 1,
+    pulseWidth: simulationConfig.pulseWidth ?? 1,
+    disturbanceAmplitude: simulationConfig.disturbanceAmplitude ?? 0,
+    disturbanceStart: simulationConfig.disturbanceStart ?? 0,
+    disturbanceType: simulationConfig.disturbanceType ?? 'none',
+    initialState: Array.isArray(simulationConfig.initialState) ? simulationConfig.initialState : [],
+  };
+  syncSimulationConfigInputs();
 
   ['Kp', 'Ki', 'Kd'].forEach((param) => {
     if (typeof controller[param] === 'number') {
@@ -850,6 +1066,9 @@ function applyProjectPayload(data) {
   if (responseSelect) responseSelect.value = state.responseType;
   const loopToggle = document.getElementById('cl-toggle');
   if (loopToggle) loopToggle.checked = state.showClosedLoop;
+  document.querySelectorAll('.plot-tab').forEach((tab) => {
+    tab.classList.toggle('active', tab.dataset.plot === state.activePlot);
+  });
 
   document.querySelectorAll('.sys-tab').forEach((tab) => {
     const active = tab.dataset.type === state.systemType;
@@ -867,6 +1086,7 @@ function applyProjectPayload(data) {
   captureStateSpaceInputs();
   renderSnapshotList();
   updateSystem();
+  switchView(state.view);
 }
 
 function exportCurrentResult(format) {
@@ -885,6 +1105,7 @@ function exportCurrentResult(format) {
       formula: state.plant.toString(),
     },
     controller: { ...state.pidParams },
+    simulationConfig: { ...state.simulationConfig },
     metrics: {
       gainMarginDB: margins.gainMarginDB,
       phaseMargin: margins.phaseMargin,

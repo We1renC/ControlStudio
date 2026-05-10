@@ -6,6 +6,41 @@ import sys
 
 from common import load_dotenv, post_json, require_env, resolve_model_source
 
+
+def normalize_control_payload(system_data):
+    if "system" in system_data or "controller" in system_data or "metrics" in system_data:
+        return {
+            "request": system_data.get("request", "N/A"),
+            "system": system_data.get("system", {}),
+            "controller": system_data.get("controller", {}),
+            "simulation": system_data.get("simulation", {}),
+            "metrics": system_data.get("metrics", {}),
+        }
+
+    return {
+        "request": system_data.get("request", "N/A"),
+        "system": {
+            "type": "transfer_function",
+            "formula": system_data.get("formula", "未知"),
+        },
+        "controller": {
+            "type": "pid",
+            "Kp": system_data.get("Kp", "N/A"),
+            "Ki": system_data.get("Ki", "N/A"),
+            "Kd": system_data.get("Kd", "N/A"),
+        },
+        "simulation": system_data.get("simulation", {}),
+        "metrics": {
+            "riseTime": system_data.get("riseTime", "N/A"),
+            "settlingTime": system_data.get("settlingTime", "N/A"),
+            "overshoot": system_data.get("overshoot", "N/A"),
+            "steadyStateError": system_data.get("steadyStateError", "N/A"),
+            "gainMargin": system_data.get("gainMargin", "N/A"),
+            "phaseMargin": system_data.get("phaseMargin", "N/A"),
+            "stability": system_data.get("stability", "未知"),
+        },
+    }
+
 def run_control_advisor():
     parser = argparse.ArgumentParser(description="Control System Smart Advisor using NVIDIA NIM.")
     parser.add_argument("--data", required=True, help="JSON string of system performance data.")
@@ -26,7 +61,13 @@ def run_control_advisor():
         print(json.dumps({"error": "Invalid JSON data provided in --data"}))
         return 1
 
-    request_summary = system_data.get("request", "N/A")
+    normalized = normalize_control_payload(system_data)
+    request_summary = normalized["request"]
+    system_summary = normalized["system"]
+    controller_summary = normalized["controller"]
+    simulation_summary = normalized["simulation"]
+    metrics_summary = normalized["metrics"]
+    structured_block = json.dumps(normalized, ensure_ascii=False, indent=2)
 
     # Construct the prompt
     prompt = f"""
@@ -35,24 +76,41 @@ def run_control_advisor():
 ### 使用者需求摘要
 {request_summary}
 
-### 系統模型 (Transfer Function)
-{system_data.get('formula', '未知')}
+### 結構化輸入資料
+```json
+{structured_block}
+```
 
-### 時域響應指標 (Step Response Metrics)
-- 上升時間 (Rise Time): {system_data.get('riseTime', 'N/A')} s
-- 調整時間 (Settling Time): {system_data.get('settlingTime', 'N/A')} s
-- 超調量 (Overshoot): {system_data.get('overshoot', 'N/A')} %
-- 穩態誤差 (Steady-state Error): {system_data.get('steadyStateError', 'N/A')}
-
-### 頻域穩定性指標 (Stability Margins)
-- 增益裕度 (Gain Margin): {system_data.get('gainMargin', 'N/A')} dB
-- 相位裕度 (Phase Margin): {system_data.get('phaseMargin', 'N/A')} deg
-- 穩定性判定: {system_data.get('stability', '未知')}
+### 系統模型
+- 模型類型: {system_summary.get('type', 'transfer_function')}
+- Transfer Function: {system_summary.get('formula', '未知')}
 
 ### 當前 PID 參數
-- Kp: {system_data.get('Kp', 'N/A')}
-- Ki: {system_data.get('Ki', 'N/A')}
-- Kd: {system_data.get('Kd', 'N/A')}
+- Kp: {controller_summary.get('Kp', 'N/A')}
+- Ki: {controller_summary.get('Ki', 'N/A')}
+- Kd: {controller_summary.get('Kd', 'N/A')}
+- Controller TF: {controller_summary.get('formula', 'N/A')}
+
+### 模擬設定
+- Input Waveform: {simulation_summary.get('inputWaveform', 'N/A')}
+- Disturbance Waveform: {simulation_summary.get('disturbanceWaveform', 'none')}
+- Duration: {simulation_summary.get('duration', 'auto')}
+- Sample Count: {simulation_summary.get('sampleCount', 'N/A')}
+- Input Amplitude: {simulation_summary.get('amplitude', 'N/A')}
+- Disturbance Amplitude: {simulation_summary.get('disturbanceAmplitude', '0')}
+- Disturbance Start: {simulation_summary.get('disturbanceStart', '0')}
+- Initial State: {simulation_summary.get('initialState', [])}
+
+### 時域響應指標
+- 上升時間 (Rise Time): {metrics_summary.get('riseTime', 'N/A')}
+- 調整時間 (Settling Time): {metrics_summary.get('settlingTime', 'N/A')}
+- 超調量 (Overshoot): {metrics_summary.get('overshoot', 'N/A')}
+- 穩態誤差 (Steady-state Error): {metrics_summary.get('steadyStateError', 'N/A')}
+
+### 頻域穩定性指標
+- 增益裕度 (Gain Margin): {metrics_summary.get('gainMargin', 'N/A')}
+- 相位裕度 (Phase Margin): {metrics_summary.get('phaseMargin', 'N/A')}
+- 穩定性判定: {metrics_summary.get('stability', '未知')}
 
 ### 任務
 請提供以下內容：
@@ -60,6 +118,7 @@ def run_control_advisor():
 2. **PID 調整建議**：針對上述指標，建議應該增加還是減少 Kp, Ki, Kd，並解釋原因。
 3. **穩定性分析**：解釋增益/相位裕度對系統安全性的影響。
 4. **下一步建議**：推薦使用者嘗試的具體參數範圍。
+5. **Simulation 注意事項**：若輸入波形、干擾或初始條件會影響判讀，請明確指出。
 
 請使用繁體中文回覆，並以 Markdown 格式輸出。
 """
