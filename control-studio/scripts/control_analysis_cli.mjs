@@ -1,6 +1,7 @@
 import { TransferFunction } from '../js/control/transfer-function.js';
 import { stateSpaceToTransferFunction } from '../js/control/state-space.js';
 import { PIDController } from '../js/control/pid.js';
+import { leadLagTransferFunction } from '../js/control/compensator.js';
 import { impulseResponse, rampResponse, stepResponse, simulateTimeResponse } from '../js/analysis/time-response.js';
 import { bodeData, nyquistData } from '../js/analysis/frequency-response.js';
 import { rootLocusData } from '../js/analysis/root-locus.js';
@@ -15,7 +16,10 @@ function buildPlant(system) {
 
 function buildController(controller) {
   if (!controller || controller.type !== 'pid') return null;
-  return new PIDController(controller.Kp ?? 1, controller.Ki ?? 0.5, controller.Kd ?? 0.1, controller.N ?? 100);
+  const pid = new PIDController(controller.Kp ?? 1, controller.Ki ?? 0.5, controller.Kd ?? 0.1, controller.N ?? 100);
+  const compensator = leadLagTransferFunction(controller.compensator ?? {});
+  const tf = pid.toTransferFunction().series(compensator);
+  return { toTransferFunction: () => tf };
 }
 
 function selectResponse(system, waveform, config) {

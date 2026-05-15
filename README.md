@@ -18,7 +18,8 @@
 - `configs/model_registry.json`：模型能力、角色、endpoint 與實測狀態。
 - `configs/task_profiles.json`：任務拆解、workflow、階段與品質 rubric。
 - `control-studio/`：控制系統視覺化工作台，含 PID 調參、穩定性分析與 AI 建議橋接。
-  - 目前已支援 Transfer Function / State Space（SISO）輸入、Step/Impulse/Ramp/Sine/Square/Pulse、Nyquist、project save/load、autosave/restore session、結果快照比較與較低擁擠度的 sidebar workspace。
+  - 目前已支援 Transfer Function / State Space（SISO）輸入、Lead/Lag 補償器、Step/Impulse/Ramp/Sine/Square/Pulse、Nyquist、project save/load、autosave/restore session、結果快照比較與較低擁擠度的 sidebar workspace。
+  - Block Diagram 目前暫時擱置，進階功能優先走 SISO transfer function / frequency response / stability validation。
   - 啟動前端可使用 `python3 control-studio/scripts/serve_studio.py`。
   - Unified API：先安裝 `./.venv/bin/pip install -r control-studio/requirements-api.txt`，再執行 `./.venv/bin/python control-studio/scripts/control_api.py`
 

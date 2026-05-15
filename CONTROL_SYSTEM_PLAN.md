@@ -52,6 +52,7 @@
 - SISO State-Space 輸入與 transfer function 轉換
 - ZPK 輸入與複數零極點解析
 - PID 參數調整
+- Lead / Lag 補償器
 - Step Response
 - Impulse / Ramp / Sine / Square / Pulse response
 - Bode Plot
@@ -74,7 +75,6 @@
 ### 尚未完成能力
 - 離散時間系統
 - MIMO
-- Lead / Lag 補償器
 - State Feedback / LQR / LQG
 - Observer / Kalman Filter
 - Robust Control / MPC
@@ -160,8 +160,7 @@
 - 補更多 State-Space 直接分析能力
 
 ### P2
-- Lead / Lag
-- 更完整 block editor 同步分析
+- 更完整 block editor 同步分析（目前暫時擱置）
 - 匯出報告
 
 ## 8. UI Plan
@@ -256,7 +255,7 @@
 ### Stage 2: Engineering Expansion
 - FastAPI service layer
 - 前端分析 API 化
-- Better block diagram syncing
+- Better block diagram syncing（暫時擱置，待 SISO 進階控制穩定後再恢復）
 
 ### Stage 3: Advanced Control
 - MIMO

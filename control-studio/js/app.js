@@ -2,6 +2,7 @@ import { TransferFunction } from './control/transfer-function.js';
 import { parseMatrixInput, stateSpaceToTransferFunction, controllabilityMatrix, observabilityMatrix } from './control/state-space.js';
 import { matRank } from './math/matrix.js';
 import { PIDController } from './control/pid.js';
+import { compensatorDescription, leadLagTransferFunction, normalizeCompensatorConfig } from './control/compensator.js';
 import { impulseResponse, rampResponse, stepResponse } from './analysis/time-response.js';
 import { bodeData, nyquistData, autoFreqRange, nicholsData, nyquistEncirclements } from './analysis/frequency-response.js';
 import { rootLocusData, rootLocusAsymptotes } from './analysis/root-locus.js';
@@ -19,6 +20,7 @@ const state = {
   closedLoop: null,
   openLoop: null,
   pidParams: { Kp: 1, Ki: 0.5, Kd: 0.1, N: 100 },
+  compensator: { mode: 'none', gain: 1, tau: 1, alpha: 0.2 },
   showClosedLoop: true,
   systemType: 'tf',
   responseType: 'step',
@@ -132,6 +134,16 @@ function initEventListeners() {
         updateController();
       });
     }
+  });
+
+  ['comp-mode', 'comp-gain', 'comp-tau', 'comp-alpha'].forEach((id) => {
+    const handler = debounce(() => {
+      readCompensatorInputs();
+      updateCompensatorVisibility();
+      updateController();
+    }, 150);
+    document.getElementById(id)?.addEventListener('input', handler);
+    document.getElementById(id)?.addEventListener('change', handler);
   });
 
   document.getElementById('cl-toggle')?.addEventListener('change', (e) => {
@@ -340,6 +352,35 @@ function renderStateSpaceEquationBlock(matrices) {
   `;
 }
 
+function readCompensatorInputs() {
+  state.compensator = normalizeCompensatorConfig({
+    mode: document.getElementById('comp-mode')?.value || 'none',
+    gain: Number(document.getElementById('comp-gain')?.value ?? state.compensator.gain),
+    tau: Number(document.getElementById('comp-tau')?.value ?? state.compensator.tau),
+    alpha: Number(document.getElementById('comp-alpha')?.value ?? state.compensator.alpha),
+  });
+}
+
+function syncCompensatorInputs() {
+  const config = normalizeCompensatorConfig(state.compensator);
+  state.compensator = config;
+  const mode = document.getElementById('comp-mode');
+  const gain = document.getElementById('comp-gain');
+  const tau = document.getElementById('comp-tau');
+  const alpha = document.getElementById('comp-alpha');
+  if (mode) mode.value = config.mode;
+  if (gain) gain.value = config.gain;
+  if (tau) tau.value = config.tau;
+  if (alpha) alpha.value = config.alpha;
+  updateCompensatorVisibility();
+}
+
+function updateCompensatorVisibility() {
+  const fields = document.getElementById('comp-fields');
+  const mode = document.getElementById('comp-mode')?.value || state.compensator.mode;
+  if (fields) fields.style.display = mode === 'none' ? 'none' : 'block';
+}
+
 function parseInitialStateInput(value) {
   const text = String(value ?? '').trim();
   if (!text) return [];
@@ -442,7 +483,10 @@ function updateSystemSetupCopy() {
     modelCopy.textContent = '直接輸入 plant 的分子與分母係數；上方會同步更新成具體傳遞函數。';
   }
 
-  controllerEquation.innerHTML = renderTransferFunctionEquation('C(s) =', controllerTf, `Kp=${state.pidParams.Kp.toFixed(2)}, Ki=${state.pidParams.Ki.toFixed(2)}, Kd=${state.pidParams.Kd.toFixed(2)}`);
+  controllerEquation.innerHTML = [
+    renderTransferFunctionEquation('C(s) =', controllerTf, `PID: Kp=${state.pidParams.Kp.toFixed(2)}, Ki=${state.pidParams.Ki.toFixed(2)}, Kd=${state.pidParams.Kd.toFixed(2)}`),
+    renderTransferFunctionEquation('Cc(s) =', leadLagTransferFunction(state.compensator), compensatorDescription(state.compensator)),
+  ].join('');
 
   const loopParts = [
     renderTransferFunctionEquation('L(s) =', state.openLoop, 'Open-loop transfer function'),
@@ -525,11 +569,19 @@ function clearFieldErrors() {
 function updateController() {
   if (!state.plant) return;
   try {
+    readCompensatorInputs();
     const { Kp, Ki, Kd, N } = state.pidParams;
-    state.controller = new PIDController(Kp, Ki, Kd, N);
+    const pid = new PIDController(Kp, Ki, Kd, N);
+    const compensatorTf = leadLagTransferFunction(state.compensator);
+    const controllerTf = pid.toTransferFunction().series(compensatorTf);
+    state.controller = {
+      toTransferFunction: () => controllerTf,
+      pid,
+      compensator: { ...state.compensator },
+    };
 
     // Series connection
-    state.openLoop = state.controller.toTransferFunction().series(state.plant);
+    state.openLoop = controllerTf.series(state.plant);
     // Unity negative feedback
     state.closedLoop = state.openLoop.feedback();
 
@@ -959,6 +1011,7 @@ async function requestAIAdvice() {
       Kp: state.pidParams.Kp,
       Ki: state.pidParams.Ki,
       Kd: state.pidParams.Kd,
+      compensator: { ...state.compensator },
       formula: state.controller?.toTransferFunction?.().toString?.() ?? '',
     },
     simulation: {
@@ -1042,10 +1095,11 @@ function saveComparisonSnapshot() {
   const info = stepInfo(response.t, response.y);
   const snapshot = {
     id: `snap-${Date.now()}`,
-    name: `${waveformLabel(state.responseType)} | Kp ${state.pidParams.Kp.toFixed(2)} / Ki ${state.pidParams.Ki.toFixed(2)} / Kd ${state.pidParams.Kd.toFixed(2)}`,
+    name: `${waveformLabel(state.responseType)} | Kp ${state.pidParams.Kp.toFixed(2)} / Ki ${state.pidParams.Ki.toFixed(2)} / Kd ${state.pidParams.Kd.toFixed(2)} / ${state.compensator.mode}`,
     responseType: state.responseType,
     mode: state.showClosedLoop ? 'closed_loop' : 'open_loop',
     controller: { ...state.pidParams },
+    compensator: { ...state.compensator },
     simulationConfig: { ...state.simulationConfig },
     metrics: {
       riseTime: info.riseTime,
@@ -1114,6 +1168,10 @@ function applySnapshot(snapshotId) {
     document.getElementById(`pid-${param}`).value = snapshot.controller[param];
     document.getElementById(`pid-${param}-val`).textContent = snapshot.controller[param].toFixed(2);
   });
+  if (snapshot.compensator) {
+    state.compensator = normalizeCompensatorConfig(snapshot.compensator);
+    syncCompensatorInputs();
+  }
   updateController();
 }
 
@@ -1179,6 +1237,7 @@ function buildProjectPayload() {
     },
     stateSpace: { ...state.ssModel },
     controller: { ...state.pidParams },
+    compensator: { ...state.compensator },
     simulationConfig: { ...state.simulationConfig },
     comparisonSnapshots: state.comparisonSnapshots,
     theme: state.theme,
@@ -1199,6 +1258,7 @@ function applyProjectPayload(data) {
   const tf = data.transferFunction || {};
   const ss = data.stateSpace || {};
   const controller = data.controller || {};
+  const compensator = data.compensator || controller.compensator || {};
   const simulationConfig = data.simulationConfig || {};
 
   document.getElementById('tf-num').value = tf.numerator || '1';
@@ -1227,6 +1287,8 @@ function applyProjectPayload(data) {
       document.getElementById(`pid-${param}-val`).textContent = controller[param].toFixed(2);
     }
   });
+  state.compensator = normalizeCompensatorConfig(compensator);
+  syncCompensatorInputs();
 
   const responseSelect = document.getElementById('response-type');
   if (responseSelect) responseSelect.value = state.responseType;
@@ -1275,7 +1337,7 @@ function exportCurrentResult(format) {
       denominator: state.plant.den,
       formula: state.plant.toString(),
     },
-    controller: { ...state.pidParams },
+    controller: { ...state.pidParams, compensator: { ...state.compensator } },
     simulationConfig: { ...state.simulationConfig },
     metrics: {
       gainMarginDB: margins.gainMarginDB,

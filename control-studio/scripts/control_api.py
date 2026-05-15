@@ -50,6 +50,7 @@ class PIDConfig(BaseModel):
     Ki: float = 0.5
     Kd: float = 0.1
     N: float = 100.0
+    compensator: Dict[str, Any] = Field(default_factory=dict)
 
 
 class SimulationConfig(BaseModel):

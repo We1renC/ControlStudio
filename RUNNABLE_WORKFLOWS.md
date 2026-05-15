@@ -150,6 +150,8 @@ python3 control-studio/scripts/serve_studio.py
 ./.venv/bin/python control-studio/scripts/control_api.py
 ```
 
+ControlStudio 的進階控制目前優先支援 Lead/Lag 補償器；Block Diagram 入口暫時擱置，後續驗證先以 SISO transfer function、Bode/Nyquist/Nichols 與 stability metrics 為主。
+
 ## 接手建議
 後續 agent 若要繼續做：
 1. 先確認 `.env` 存在，但不要把內容寫進 commit。

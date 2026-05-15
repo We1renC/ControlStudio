@@ -106,6 +106,8 @@ git log --oneline -5
 - `control-studio/requirements-api.txt` 已列出 FastAPI / uvicorn / pydantic 依賴，可用 `./.venv/bin/pip install -r control-studio/requirements-api.txt` 安裝。
 - `control-studio/js/analysis/time-response.js` 已補內部 RK4 substepping，避免低 sample count 時穩定系統數值爆掉。
 - `control-studio` 已補 Nichols Chart、ZPK 輸入、Export PNG、Routh-Hurwitz 表、autoFreqRange、Root Locus asymptotes、Nyquist encirclement 計數、輸入驗證強化。
+- `control-studio` 已補 Lead/Lag 補償器，作為 PID 後串接的 `Cc(s)=Kc(tau*s+1)/(alpha*tau*s+1)`。
+- Block Diagram 目前暫時擱置，UI 入口已標示 paused；後續進階控制先走 SISO transfer function / frequency response / stability validation。
 - `control-studio` Block Editor 已補上拓撲分析（串聯 / 回授）、節點編輯（雙擊）、節點刪除、Zoom/Pan、Undo/Redo、Diagram save/load。
 - `control-studio/js/control/zpk.js` 新增 ZPK model 輸入與複數根解析。
 - `control-studio/js/math/matrix.js` 新增 `matRank` 用於計算矩陣秩。

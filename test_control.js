@@ -5,6 +5,7 @@ import { rootLocusAsymptotes } from './control-studio/js/analysis/root-locus.js'
 import { stateSpaceToTransferFunction, controllabilityMatrix, observabilityMatrix } from './control-studio/js/control/state-space.js';
 import { stepInfo, stabilityMargins, routhTable } from './control-studio/js/control/stability.js';
 import { PIDController } from './control-studio/js/control/pid.js';
+import { leadLagTransferFunction } from './control-studio/js/control/compensator.js';
 import { parsePolyString } from './control-studio/js/utils/format.js';
 import { zpkToTransferFunction, parseRootsString, parseComplexRoot } from './control-studio/js/control/zpk.js';
 import { polydiv, polymul } from './control-studio/js/math/polynomial.js';
@@ -217,6 +218,23 @@ try {
   assertNear('Complex closed-loop final value', complexResponse.y[complexResponse.y.length - 1], 5, 1e-4);
   if (!Number.isFinite(complexInfo.settlingTime)) throw new Error('Complex settling time should be finite');
   console.log('Complex unstable/pole-zero/low-PM equivalence test passed');
+
+  // Lead compensator math equivalence:
+  // Cc(s) = 2(0.5s+1)/(0.1s+1) = (s+2)/(0.1s+1), zero=-2, pole=-10.
+  const leadComp = leadLagTransferFunction({ mode: 'lead', gain: 2, tau: 0.5, alpha: 0.2 });
+  assertPolyNear('Lead compensator numerator', leadComp.num, [10, 20]);
+  assertPolyNear('Lead compensator denominator', leadComp.den, [1, 10]);
+  if (!leadComp.zeros().some(z => Math.abs(z.re + 2) < 1e-6)) throw new Error('Lead zero should be at -2');
+  if (!leadComp.poles().some(p => Math.abs(p.re + 10) < 1e-6)) throw new Error('Lead pole should be at -10');
+
+  // Lag compensator math equivalence:
+  // Cc(s) = (s+1)/(5s+1), zero=-1, pole=-0.2.
+  const lagComp = leadLagTransferFunction({ mode: 'lag', gain: 1, tau: 1, alpha: 5 });
+  assertPolyNear('Lag compensator numerator', lagComp.num, [0.2, 0.2]);
+  assertPolyNear('Lag compensator denominator', lagComp.den, [1, 0.2]);
+  if (!lagComp.zeros().some(z => Math.abs(z.re + 1) < 1e-6)) throw new Error('Lag zero should be at -1');
+  if (!lagComp.poles().some(p => Math.abs(p.re + 0.2) < 1e-6)) throw new Error('Lag pole should be at -0.2');
+  console.log('Lead/Lag compensator tests passed');
 
   console.log('Tests Passed!');
 } catch (e) {

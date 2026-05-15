@@ -172,7 +172,7 @@
     <div class="header-actions">
       <div class="view-switch">
         <button class="btn btn-sm active" id="view-dashboard">Dashboard</button>
-        <button class="btn btn-sm" id="view-editor">Block Diagram</button>
+        <button class="btn btn-sm" id="view-editor" disabled title="Block Diagram is paused for advanced-control work">Block Diagram Paused</button>
       </div>
       <div class="divider-v"></div>
       <button class="btn btn-sm" id="theme-toggle">
@@ -266,6 +266,28 @@
           <div class="slider-group" style="margin-bottom:0;">
             <div class="slider-header"><span>Derivative (Kd)</span><span id="pid-Kd-val">0.10</span></div>
             <input type="range" id="pid-Kd" min="0" max="5" step="0.01" value="0.1">
+          </div>
+          <div class="input-group" style="margin-top:var(--space-4);">
+            <label>Lead / Lag Compensator</label>
+            <select id="comp-mode" style="background:var(--bg-tertiary); color:var(--text-primary); border:1px solid var(--border-primary); border-radius:var(--radius-sm); padding:8px 12px; font-size:12px;">
+              <option value="none">None</option>
+              <option value="lead">Lead</option>
+              <option value="lag">Lag</option>
+            </select>
+          </div>
+          <div id="comp-fields" style="display:none;">
+            <div class="input-group">
+              <label>Compensator Gain (Kc)</label>
+              <input type="number" id="comp-gain" min="0.01" step="0.1" value="1">
+            </div>
+            <div class="input-group">
+              <label>Time Constant (tau)</label>
+              <input type="number" id="comp-tau" min="0.01" step="0.1" value="1">
+            </div>
+            <div class="input-group" style="margin-bottom:0;">
+              <label>Alpha (lead: &lt;1, lag: &gt;1)</label>
+              <input type="number" id="comp-alpha" min="0.01" step="0.1" value="0.2">
+            </div>
           </div>
         </section>
 
