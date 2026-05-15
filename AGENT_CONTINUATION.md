@@ -35,6 +35,7 @@
   - `control-studio/requirements-api.txt`
   - `test_control.js`
   - `CONTROL_SYSTEM_PLAN.md`
+  - `CONTROL_SYSTEM_VERIFICATION_CASES.md`
 - 已建立 symlink：
   - `/Users/w.rc/.config/agents/skills/nvidia-model-selector`
   - 指向 `/Users/w.rc/nvdiaOSsupport/skills/nvidia-model-selector`
@@ -96,6 +97,7 @@ git log --oneline -5
 - `test_control.js` 已驗證基本極點判定與 step response 指標。
 - `control_advisor_workflow.py --help` 可正常執行。
 - `CONTROL_SYSTEM_PLAN.md` 已整理控制系統盤點、MVP 範圍與後續 roadmap。
+- `CONTROL_SYSTEM_VERIFICATION_CASES.md` 已定義五個具數學推導的控制系統驗證案例，涵蓋一階、二階欠阻尼、初始不穩定/pole-zero/低 PM、RHP zero、State-Space 等價。
 - `control-studio` 已補上 State Space（SISO）輸入、Step/Impulse/Ramp 切換、Nyquist Plot、project save/load 與 JSON/CSV 匯出。
 - `control-studio` UI 已改成 sidebar workspace tabs（Model / Sim / Advisor / Compare），並支援 comparison snapshots 疊圖比較。
 - `control-studio/scripts/serve_studio.py` 已提供固定的本地前端啟動入口（預設 `http://127.0.0.1:8765`）。
