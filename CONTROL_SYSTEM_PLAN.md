@@ -40,36 +40,45 @@
   - `control-studio/js/editor/`
 - AI 顧問：
   - `workflows/control_advisor_workflow.py`
-  - `control-studio/scripts/advisor_server.py`
+  - `control-studio/scripts/control_api.py`
+  - `control-studio/requirements-api.txt`
 - Smoke test：
   - `test_control.js`
 
 ### 已完成能力
 - SISO 傳遞函數輸入
+- SISO State-Space 輸入與 transfer function 轉換
+- ZPK 輸入與複數零極點解析
 - PID 參數調整
 - Step Response
+- Impulse / Ramp / Sine / Square / Pulse response
 - Bode Plot
+- Nyquist Plot
+- Nichols Chart
 - Root Locus
 - Pole-Zero Map
 - Gain Margin / Phase Margin
 - Rise Time / Settling Time / Overshoot / Steady-State Error
+- Routh-Hurwitz table
 - Closed-loop / open-loop 基本切換
-- Block Diagram Editor 基礎版
+- Project save/load
+- Session autosave / restore
+- Comparison snapshots 與摘要
+- JSON / CSV / PNG 匯出
+- Block Diagram Editor 與 diagram save/load、Undo/Redo、Zoom/Pan
 - AI 控制器建議
+- Unified FastAPI API（analysis + advisor）
 
 ### 尚未完成能力
-- 完整 State-Space 輸入與分析
-- ZPK 正式輸入流程
 - 離散時間系統
 - MIMO
-- Impulse / Ramp / Nichols 正式支援
 - Lead / Lag 補償器
 - State Feedback / LQR / LQG
 - Observer / Kalman Filter
 - Robust Control / MPC
-- 結果比較視窗
-- 專案儲存與匯出
 - 自動產生報告
+- 前端分析流程全面切到統一 API
+- 更完整的輸入驗證與瀏覽器級回歸測試
 
 ## 4. Scope Definition
 
@@ -124,8 +133,9 @@
 ### Current Architecture
 - Frontend: static HTML/CSS/JS
 - Charting: Plotly CDN
-- Bridge server: Python `http.server`
-- AI analysis: `nv-agent` + NVIDIA model routing
+- Static server: Python `http.server`
+- Unified API: FastAPI (`control_api.py`)
+- AI analysis: `nv-agent` + NVIDIA model routing + unified advisor endpoint
 - Numerical engine: local JS implementations
 
 ### Migration Strategy
@@ -137,22 +147,18 @@
 ## 7. MVP Backlog
 
 ### P0
-- 整理 `control-studio` 啟動方式
-- 補結果匯出（JSON / CSV / PNG）
 - 補前端錯誤處理與輸入驗證
-- 補正式文件與頁面說明
+- 補瀏覽器級回歸驗證
+- 補統一 API 啟動與依賴說明
 - 補 smoke test 到更多實際使用流程
 
 ### P1
-- 補 State-Space 真正可用輸入/分析流程
-- 顯示 Nyquist Plot
-- 補 Impulse / Ramp response
-- 加入參數方案比較
-- 支援專案存檔與載入
+- 將前端分析逐步切到統一 API
+- 擴充 comparison 指標與案例管理
+- 補更多 State-Space 直接分析能力
 
 ### P2
 - Lead / Lag
-- ZPK 正式輸入
 - 更完整 block editor 同步分析
 - 匯出報告
 
@@ -163,9 +169,10 @@
   - 系統輸入面板
   - 控制器面板
   - 穩定性面板
-  - 四個圖表區
+  - 主圖切換區與 comparison 區
 - Block Diagram Editor
 - AI Advisor Panel
+- Project / Export 工具列
 
 ### Future UI
 - Result Comparison View
@@ -175,7 +182,14 @@
 
 ## 9. API Plan
 
-後續若引入後端 API，先定義以下端點：
+目前已實作的 API：
+
+- `GET /health`
+- `POST /api/control/system/response`
+- `POST /api/control/system/stability`
+- `POST /api/control/advisor`
+
+後續可擴充的 API：
 
 - `POST /api/control/system/analyze`
 - `POST /api/control/system/step`
@@ -233,18 +247,14 @@
 - 完成 MVP 邊界定義
 
 ### Stage 1: Complete MVP
-- 補匯出
 - 補輸入驗證
-- 補 project save/load
-- 補 Nyquist / Impulse / Ramp 中至少一部分
 - 讓 AI advisor 與前端互動更穩定
+- 補統一 API 的實際操作與回歸驗證
 
 ### Stage 2: Engineering Expansion
-- State-Space
-- ZPK
-- Parameter comparison
-- Better block diagram syncing
 - FastAPI service layer
+- 前端分析 API 化
+- Better block diagram syncing
 
 ### Stage 3: Advanced Control
 - MIMO

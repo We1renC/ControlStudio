@@ -31,7 +31,8 @@
 - 已建立控制系統工作台：
   - `control-studio/index.html`
   - `control-studio/js/`
-  - `control-studio/scripts/advisor_server.py`
+  - `control-studio/scripts/control_api.py`
+  - `control-studio/requirements-api.txt`
   - `test_control.js`
   - `CONTROL_SYSTEM_PLAN.md`
 - 已建立 symlink：
@@ -99,7 +100,9 @@ git log --oneline -5
 - `control-studio` UI 已改成 sidebar workspace tabs（Model / Sim / Advisor / Compare），並支援 comparison snapshots 疊圖比較。
 - `control-studio/scripts/serve_studio.py` 已提供固定的本地前端啟動入口（預設 `http://127.0.0.1:8765`）。
 - `control-studio` 已補上 simulation config（duration/sample count/amplitude/disturbance/initial state）、autosave/restore session、waveform 擴充與 comparison 指標摘要。
-- `control-studio/scripts/control_api.py` 已提供統合的 FastAPI 服務，整合原本的 Advisor Bridge 與基礎分析。
+- `control-studio/scripts/control_api.py` 已提供統合的 FastAPI 服務，整合原本的 Advisor Bridge 與基礎分析；前端 AI advisor 已優先改打 `127.0.0.1:8770/api/control/advisor`。
+- `control-studio/requirements-api.txt` 已列出 FastAPI / uvicorn / pydantic 依賴，可用 `./.venv/bin/pip install -r control-studio/requirements-api.txt` 安裝。
+- `control-studio/js/analysis/time-response.js` 已補內部 RK4 substepping，避免低 sample count 時穩定系統數值爆掉。
 - `control-studio` 已補 Nichols Chart、ZPK 輸入、Export PNG、Routh-Hurwitz 表、autoFreqRange、Root Locus asymptotes、Nyquist encirclement 計數、輸入驗證強化。
 - `control-studio` Block Editor 已補上拓撲分析（串聯 / 回授）、節點編輯（雙擊）、節點刪除、Zoom/Pan、Undo/Redo、Diagram save/load。
 - `control-studio/js/control/zpk.js` 新增 ZPK model 輸入與複數根解析。

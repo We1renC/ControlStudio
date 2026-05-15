@@ -51,6 +51,7 @@ try {
   const ramp = rampResponse(sys1);
   const configuredStep = stepResponse(sys1, { duration: 10, sampleCount: 11, amplitude: 2 });
   const legacyStep = stepResponse(sys1, 10);
+  const coarseStep = stepResponse(sys1, { duration: 10, sampleCount: 20 });
   const sineResponse = simulateTimeResponse(sys1, 'sine', { duration: 2, sampleCount: 20, amplitude: 1.5, frequency: 0.5 });
   const disturbanceResponse = stepResponse(sys1, { duration: 5, sampleCount: 20, disturbanceType: 'step', disturbanceAmplitude: 0.5, disturbanceStart: 2 });
   const nyq = nyquistData(sys1);
@@ -58,6 +59,7 @@ try {
   console.log('Ramp final sample:', ramp.y[ramp.y.length - 1]);
   console.log('Configured step samples:', configuredStep.t.length, configuredStep.y[configuredStep.y.length - 1]);
   console.log('Legacy step samples:', legacyStep.t.length);
+  console.log('Coarse step final sample:', coarseStep.y[coarseStep.y.length - 1]);
   console.log('Sine response samples:', sineResponse.t.length);
   console.log('Disturbance response final sample:', disturbanceResponse.y[disturbanceResponse.y.length - 1]);
   console.log('Nyquist first point:', { re: nyq.re[0], im: nyq.im[0] });
@@ -70,6 +72,9 @@ try {
   }
   if (legacyStep.t.length !== 1000) {
     throw new Error(`Legacy duration call should keep 1000 samples, got ${legacyStep.t.length}`);
+  }
+  if (!Number.isFinite(coarseStep.y[coarseStep.y.length - 1]) || Math.abs(coarseStep.y[coarseStep.y.length - 1] - 1) > 0.1) {
+    throw new Error('Low sampleCount step response became numerically unstable');
   }
   if (sineResponse.t.length !== 20) {
     throw new Error(`Expected 20 sine samples, got ${sineResponse.t.length}`);

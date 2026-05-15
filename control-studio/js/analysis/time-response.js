@@ -81,6 +81,9 @@ export function simulateTimeResponse(sys, type = 'step', durationOrOptions = nul
 
   const nPoints = options.sampleCount;
   const dt = tEnd / (nPoints - 1);
+  const maxInternalStep = Math.min(0.02, Math.max(0.002, tEnd / 500));
+  const integrationSteps = Math.max(1, Math.ceil(dt / maxInternalStep));
+  const internalDt = dt / integrationSteps;
   const tArr = [];
   const yArr = [];
 
@@ -126,15 +129,19 @@ export function simulateTimeResponse(sys, type = 'step', durationOrOptions = nul
     const curY = getOutput(curX, u);
     yArr.push(curY);
 
-    // RK4 Integration step
-    const netInput = u + disturbance;
-    const k1 = getDx(curX, netInput);
-    const k2 = getDx(curX.map((v, j) => v + k1[j] * dt / 2), netInput);
-    const k3 = getDx(curX.map((v, j) => v + k2[j] * dt / 2), netInput);
-    const k4 = getDx(curX.map((v, j) => v + k3[j] * dt), netInput);
+    for (let step = 0; step < integrationSteps; step++) {
+      const subTime = t + step * internalDt;
+      const subInput = responseInput(type, subTime, options);
+      const subDisturbance = disturbanceInput(subTime, options);
+      const netInput = subInput + subDisturbance;
+      const k1 = getDx(curX, netInput);
+      const k2 = getDx(curX.map((v, j) => v + k1[j] * internalDt / 2), netInput);
+      const k3 = getDx(curX.map((v, j) => v + k2[j] * internalDt / 2), netInput);
+      const k4 = getDx(curX.map((v, j) => v + k3[j] * internalDt), netInput);
 
-    for (let j = 0; j < n; j++) {
-      curX[j] += (dt / 6) * (k1[j] + 2 * k2[j] + 2 * k3[j] + k4[j]);
+      for (let j = 0; j < n; j++) {
+        curX[j] += (internalDt / 6) * (k1[j] + 2 * k2[j] + 2 * k3[j] + k4[j]);
+      }
     }
 
     if (Math.abs(curY) > 1e12) break; // Safety cutoff

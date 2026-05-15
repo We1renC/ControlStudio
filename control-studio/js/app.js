@@ -979,14 +979,38 @@ async function requestAIAdvice() {
   };
 
   try {
-    const response = await fetch('http://localhost:8766', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-    const result = await response.json();
+    let result = null;
+    let lastError = null;
+    const endpoints = [
+      'http://127.0.0.1:8770/api/control/advisor',
+      'http://localhost:8770/api/control/advisor',
+      'http://localhost:8766',
+    ];
+
+    for (const endpoint of endpoints) {
+      try {
+        const response = await fetch(endpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        const body = await response.json();
+        if (!response.ok) {
+          throw new Error(body.detail || body.error || `HTTP ${response.status}`);
+        }
+        result = body;
+        break;
+      } catch (err) {
+        lastError = err;
+      }
+    }
+
     loading.style.display = 'none';
-    if (result.success) renderMarkdown(textDiv, result.analysis);
-    else textDiv.innerHTML = `<p style="color:var(--color-unstable)">錯誤: ${result.error}</p>`;
+    if (result?.success) renderMarkdown(textDiv, result.analysis);
+    else textDiv.innerHTML = `<p style="color:var(--color-unstable)">錯誤: ${result?.error || lastError?.message || '無法取得 AI 建議'}</p>`;
   } catch (err) {
     loading.style.display = 'none';
-    textDiv.innerHTML = `<p style="color:var(--color-unstable)">連線失敗: 確保 Bridge Server 已啟動</p>`;
+    textDiv.innerHTML = `<p style="color:var(--color-unstable)">連線失敗: 請先啟動 Unified API（127.0.0.1:8770）</p>`;
   } finally { btn.disabled = false; }
 }
 
