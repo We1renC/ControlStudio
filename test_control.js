@@ -4,12 +4,25 @@ import { nyquistData, autoFreqRange, nicholsData, nyquistEncirclements } from '.
 import { rootLocusAsymptotes } from './control-studio/js/analysis/root-locus.js';
 import { stateSpaceToTransferFunction, controllabilityMatrix, observabilityMatrix } from './control-studio/js/control/state-space.js';
 import { stepInfo, stabilityMargins, routhTable } from './control-studio/js/control/stability.js';
+import { PIDController } from './control-studio/js/control/pid.js';
 import { parsePolyString } from './control-studio/js/utils/format.js';
 import { zpkToTransferFunction, parseRootsString, parseComplexRoot } from './control-studio/js/control/zpk.js';
-import { polydiv } from './control-studio/js/math/polynomial.js';
+import { polydiv, polymul } from './control-studio/js/math/polynomial.js';
 import { matRank } from './control-studio/js/math/matrix.js';
 
 try {
+  const assertNear = (name, actual, expected, tolerance = 1e-6) => {
+    if (!Number.isFinite(actual) || Math.abs(actual - expected) > tolerance) {
+      throw new Error(`${name}: expected ${expected}, got ${actual}`);
+    }
+  };
+  const assertPolyNear = (name, actual, expected, tolerance = 1e-6) => {
+    if (actual.length !== expected.length) {
+      throw new Error(`${name}: expected length ${expected.length}, got ${actual.length}`);
+    }
+    actual.forEach((value, idx) => assertNear(`${name}[${idx}]`, value, expected[idx], tolerance));
+  };
+
   // Test 1/(s+1)
   const num1 = parsePolyString('1');
   const den1 = parsePolyString('1, 1');
@@ -155,7 +168,58 @@ try {
   console.log('SS Observability Rank:', rankO);
   if (rankC !== 2 || rankO !== 2) throw new Error('Expected SS to be fully controllable and observable');
 
+  // Complex engineering case:
+  // G(s) = (s+1)/((s-2)(s+1)(s+4)) starts unstable, contains pole-zero cancellation,
+  // and Kp=10 yields an intentionally low phase margin (~15 deg).
+  const complexPlant = new TransferFunction([1, 1], [1, 3, -6, -8]);
+  const complexPlantPoles = complexPlant.poles();
+  const complexPlantZeros = complexPlant.zeros();
+  if (complexPlant.isStable()) throw new Error('Complex plant should be initially unstable');
+  if (!complexPlantPoles.some(p => Math.abs(p.re - 2) < 1e-6 && Math.abs(p.im) < 1e-6)) {
+    throw new Error('Complex plant should include an unstable RHP pole at +2');
+  }
+  if (!complexPlantZeros.some(z => Math.abs(z.re + 1) < 1e-6 && Math.abs(z.im) < 1e-6)) {
+    throw new Error('Complex plant should include a zero at -1');
+  }
+  if (!complexPlantPoles.some(p => Math.abs(p.re + 1) < 1e-6 && Math.abs(p.im) < 1e-6)) {
+    throw new Error('Complex plant should include a cancellable pole at -1');
+  }
+
+  const complexController = new PIDController(10, 0, 0, 100);
+  const complexOpenLoop = complexController.toTransferFunction().series(complexPlant);
+  const complexClosedLoop = complexOpenLoop.feedback();
+
+  // Hand derivation:
+  // C(s)=10, L(s)=10(s+1)/(s^3+3s^2-6s-8)
+  // T(s)=L/(1+L)=10(s+1)/(s^3+3s^2+4s+2).
+  // PIDController's P-only implementation carries an equivalent (s+100)/(s+100)
+  // derivative-filter cancellation, so compare against the unreduced expected form.
+  const expectedReducedNum = [10, 10];
+  const expectedReducedDen = [1, 3, 4, 2];
+  const filterCancellation = [1, 100];
+  const expectedUnreducedNum = polymul(expectedReducedNum, filterCancellation);
+  const expectedUnreducedDen = polymul(expectedReducedDen, filterCancellation);
+  assertPolyNear('Complex closed-loop numerator equals hand derivation', complexClosedLoop.num, expectedUnreducedNum);
+  assertPolyNear('Complex closed-loop denominator equals hand derivation', complexClosedLoop.den, expectedUnreducedDen);
+
+  const reduceNumByFilter = polydiv(complexClosedLoop.num, filterCancellation);
+  const reduceDenByFilter = polydiv(complexClosedLoop.den, filterCancellation);
+  assertPolyNear('Reduced complex numerator', reduceNumByFilter.quotient, expectedReducedNum);
+  assertPolyNear('Reduced complex denominator', reduceDenByFilter.quotient, expectedReducedDen);
+  assertPolyNear('Complex numerator filter remainder', reduceNumByFilter.remainder, [0]);
+  assertPolyNear('Complex denominator filter remainder', reduceDenByFilter.remainder, [0]);
+
+  const complexMargins = stabilityMargins(complexOpenLoop);
+  const complexResponse = stepResponse(complexClosedLoop, { duration: 12, sampleCount: 1200, amplitude: 1 });
+  const complexInfo = stepInfo(complexResponse.t, complexResponse.y);
+  if (!complexClosedLoop.isStable()) throw new Error('Complex closed-loop should be stable after Kp=10');
+  assertNear('Complex phase margin', complexMargins.phaseMargin, 15.000630277515455, 1e-6);
+  assertNear('Complex closed-loop final value', complexResponse.y[complexResponse.y.length - 1], 5, 1e-4);
+  if (!Number.isFinite(complexInfo.settlingTime)) throw new Error('Complex settling time should be finite');
+  console.log('Complex unstable/pole-zero/low-PM equivalence test passed');
+
   console.log('Tests Passed!');
 } catch (e) {
   console.error('Error:', e);
+  process.exitCode = 1;
 }
