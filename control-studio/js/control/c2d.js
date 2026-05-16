@@ -2,9 +2,9 @@
  * c2d.js — Continuous-to-discrete transfer function conversion.
  * Supports Tustin (bilinear) for any-order TF, and ZOH for first-order TF.
  */
-import { polymul, polyscale } from '../math/polynomial.js';
-import { matCreate, matExp } from '../math/matrix.js';
-import { stateSpaceToTransferFunction, tfToControllableCanonical } from './state-space.js';
+import { polymul, polyscale } from '../math/polynomial.js?v=p5';
+import { matCreate, matExp } from '../math/matrix.js?v=p5';
+import { stateSpaceToTransferFunction, tfToControllableCanonical } from './state-space.js?v=p5';
 import { DiscreteTransferFunction } from './discrete-transfer-function.js';
 
 function validateTs(Ts) {

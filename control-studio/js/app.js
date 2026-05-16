@@ -1,7 +1,7 @@
 import { TransferFunction } from './control/transfer-function.js';
 import { DiscreteTransferFunction } from './control/discrete-transfer-function.js';
-import { parseMatrixInput, stateSpaceToTransferFunction, controllabilityMatrix, observabilityMatrix } from './control/state-space.js';
-import { matRank } from './math/matrix.js';
+import { parseMatrixInput, stateSpaceToTransferFunction, controllabilityMatrix, observabilityMatrix } from './control/state-space.js?v=p5';
+import { matRank } from './math/matrix.js?v=p5';
 import { PIDController } from './control/pid.js';
 import { compensatorDescription, designLagCompensator, designLeadCompensator, leadLagTransferFunction, normalizeCompensatorConfig } from './control/compensator.js?v=control-lag-1';
 import { impulseResponse, rampResponse, stepResponse } from './analysis/time-response.js';
@@ -12,7 +12,7 @@ import { rootLocusData, rootLocusAsymptotes, rootLocusBreakPoints, rootLocusJwCr
 import { stabilityMargins, stepInfo, routhTable } from './control/stability.js';
 import { parsePolyString, fmtNum, fmtDeg, fmtDB, fmtTime, fmtPercent } from './utils/format.js';
 import { zpkToTransferFunction, parseRootsString } from './control/zpk.js';
-import { c2dTustin, c2dZOH } from './control/c2d.js';
+import { c2dTustin, c2dZOH } from './control/c2d.js?v=p5';
 import { specsToTargetPoles, designLeadForPM, deadbeatGain } from './control/design.js?v=p5';
 import { polyadd, polyscale, polyroots } from './math/polynomial.js?v=p4';
 import { BlockEditor } from './editor/editor.js';

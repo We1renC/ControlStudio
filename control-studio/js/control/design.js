@@ -6,9 +6,9 @@
  */
 import { stabilityMargins } from './stability.js';
 import { designLeadCompensator, leadLagTransferFunction } from './compensator.js';
-import { matCreate, matMul, matIdentity, matInverse } from '../math/matrix.js';
-import { controllabilityMatrix } from './state-space.js';
-import { c2dZOH } from './c2d.js';
+import { matCreate, matMul, matIdentity, matInverse } from '../math/matrix.js?v=p5';
+import { controllabilityMatrix } from './state-space.js?v=p5';
+import { c2dZOH } from './c2d.js?v=p5';
 import { DiscreteTransferFunction } from './discrete-transfer-function.js';
 
 /**
