@@ -29,11 +29,13 @@ test -f "$ROOT_DIR/workflows/control_advisor_workflow.py"
 test -f "$ROOT_DIR/control-studio/index.html"
 test -f "$ROOT_DIR/control-studio/scripts/control_api.py"
 test -f "$ROOT_DIR/control-studio/scripts/control_analysis_cli.mjs"
+test -f "$ROOT_DIR/control-studio/scripts/verify_control_cases.mjs"
 test -f "$ROOT_DIR/control-studio/scripts/serve_studio.py"
 test -f "$ROOT_DIR/control-studio/requirements-api.txt"
 test -f "$ROOT_DIR/control-studio/js/control/state-space.js"
 test -f "$ROOT_DIR/control-studio/js/control/zpk.js"
 test -f "$ROOT_DIR/control-studio/js/control/compensator.js"
+test -f "$ROOT_DIR/control-studio/js/verification/verification-cases.js"
 test -f "$ROOT_DIR/test_control.js"
 test -f "$ROOT_DIR/cli/nv_agent_cli.py"
 test -x "$ROOT_DIR/nv-agent"
@@ -71,6 +73,7 @@ python3 "$ROOT_DIR/workflows/ocr_rag_workflow.py" >/tmp/nvidia-ocr-rag.txt
 "$ROOT_DIR/nv-agent" run-plan /tmp/nvidia-agent-control-plan.json --dry-run >/tmp/nvidia-agent-control-run-plan.txt
 python3 "$ROOT_DIR/workflows/control_advisor_workflow.py" --help >/tmp/nvidia-control-advisor-help.txt
 node "$ROOT_DIR/test_control.js" >/tmp/nvidia-control-test.txt
+node "$ROOT_DIR/control-studio/scripts/verify_control_cases.mjs" >/tmp/nvidia-control-verification-cases.txt
 node "$ROOT_DIR/control-studio/scripts/control_analysis_cli.mjs" '{"system":{"type":"transfer_function","num":[1],"den":[1,1]},"controller":{"type":"pid","Kp":1,"Ki":0.5,"Kd":0.1},"simulation":{"mode":"closed_loop","inputWaveform":"step","sampleCount":20}}' >/tmp/nvidia-control-api-cli.json
 
 grep -q "bge-m3" /tmp/nvidia-model-selector-bge.md
@@ -98,6 +101,7 @@ grep -q "Polydiv test passed" /tmp/nvidia-control-test.txt
 grep -q "Routh-Hurwitz test passed" /tmp/nvidia-control-test.txt
 grep -q "Lead/Lag compensator tests passed" /tmp/nvidia-control-test.txt
 grep -q "Nichols data points" /tmp/nvidia-control-test.txt
+grep -q "Verification fixtures passed: 5/5" /tmp/nvidia-control-verification-cases.txt
 grep -q "\"response\"" /tmp/nvidia-control-api-cli.json
 grep -q "AGENT_CONTINUATION.md" "$ROOT_DIR/AGENTS.md"
 grep -q "./nv-agent plan" "$ROOT_DIR/AGENT_USAGE.md"
