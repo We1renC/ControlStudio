@@ -541,6 +541,7 @@
             </div>
             <button class="btn btn-sm" id="btn-design-deadbeat" style="width:100%;justify-content:center;margin-bottom:8px;">Compute Deadbeat Gain K</button>
             <div id="design-deadbeat-out" style="font-size:11px;font-family:monospace;color:var(--text-secondary);background:rgba(15,17,23,.4);padding:8px;border-radius:6px;line-height:1.6;display:none;"></div>
+            <button class="btn btn-sm" id="btn-copy-deadbeat-k" style="width:100%;justify-content:center;margin-top:6px;display:none;">📋 複製增益向量到剪貼簿</button>
           </div>
         </section>
 
@@ -661,6 +662,12 @@
                 <div style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">Step Preview</div>
                 <div id="rl-step-preview" style="height:90px;"></div>
               </div>
+              <div style="width:100%;border-top:1px solid var(--border-primary);padding-top:10px;margin-top:4px;display:flex;align-items:center;gap:10px;">
+                <button class="btn btn-primary btn-sm" id="btn-apply-rlocus-k" style="flex:1;justify-content:center;">
+                  套用 K 為比例控制器 (Ki=Kd=0)
+                </button>
+                <span style="font-size:11px;color:var(--text-muted);flex:1.2;">將目前 K 值寫入 Kp，清除 Ki/Kd，並切換至 Controller 分頁</span>
+              </div>
             </div>
           </div>
 
@@ -713,6 +720,6 @@
 
   <div id="error-msg" style="position:fixed; bottom:20px; right:20px; background:var(--color-unstable); color:white; padding:12px 20px; border-radius:var(--radius-md); font-size:13px; display:none; z-index:1000; box-shadow:0 10px 25px rgba(0,0,0,0.2);"></div>
 
-  <script type="module" src="js/app.js?v=audit-fix-1"></script>
+  <script type="module" src="js/app.js?v=apply-back-1"></script>
 </body>
 </html>

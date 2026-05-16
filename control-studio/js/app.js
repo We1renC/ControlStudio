@@ -221,6 +221,8 @@ function initEventListeners() {
   document.getElementById('btn-design-lead')?.addEventListener('click', computeDesignLeadFromPM);
   document.getElementById('btn-apply-design-lead')?.addEventListener('click', applyDesignLeadToController);
   document.getElementById('btn-design-deadbeat')?.addEventListener('click', computeDeadbeat);
+  document.getElementById('btn-apply-rlocus-k')?.addEventListener('click', applyRlocusKToController);
+  document.getElementById('btn-copy-deadbeat-k')?.addEventListener('click', copyDeadbeatGains);
   document.getElementById('btn-apply-pid-preset')?.addEventListener('click', applyPIDPreset);
   document.getElementById('btn-apply-lead-helper')?.addEventListener('click', applyLeadHelper);
   document.getElementById('btn-apply-lag-helper')?.addEventListener('click', applyLagHelper);
@@ -480,6 +482,7 @@ function computeDesignTargetPoles() {
       `<div>ωd = ${wd}  rad/s</div>`,
       `<div style="margin-top:6px;color:var(--color-stable);">Target poles:</div>`,
       `<div>s = ${(-result.sigma).toFixed(4)} ± j${wd}</div>`,
+      `<div style="margin-top:8px;color:var(--text-muted);font-size:10px;">💡 前往 Root Locus 圖，拖曳 K 滑桿直到閉迴路極點接近上方目標位置，再按「套用 K」回寫控制器。</div>`,
     ].join('');
     clearError();
   } catch (err) {
@@ -529,31 +532,53 @@ function computeDesignLeadFromPM() {
   }
 }
 
+let _lastDeadbeatResult = null;
+
 function computeDeadbeat() {
   const out = document.getElementById('design-deadbeat-out');
+  const copyBtn = document.getElementById('btn-copy-deadbeat-k');
   if (!state.plant) {
     out.style.display = 'block';
     out.style.color = 'var(--color-unstable)';
     out.textContent = '請先在 System 分頁套用 plant。';
+    if (copyBtn) copyBtn.style.display = 'none';
     return;
   }
   try {
     const ts = parseFloat(document.getElementById('design-deadbeat-ts').value);
     const result = deadbeatGain(state.plant, ts);
+    _lastDeadbeatResult = result;
     out.style.display = 'block';
     out.style.color = '';
     const kStr = result.K.map((v, i) => `k${i} = ${v.toFixed(4)}`).join(',  ');
     out.innerHTML = [
-      `<div style="color:var(--color-accent);font-weight:700;">State feedback K (Ackermann)</div>`,
-      `<div>${kStr}</div>`,
-      `<div style="color:var(--color-stable);margin-top:6px;">→ closed-loop eigenvalues all at z=0</div>`,
-      `<div>settles in ≤ ${result.K.length} samples = ${(result.K.length * result.Ts).toFixed(3)} s</div>`,
+      `<div style="color:var(--color-accent);font-weight:700;">State Feedback K (Ackermann)</div>`,
+      `<div style="margin:4px 0;">${kStr}</div>`,
+      `<div style="color:var(--color-stable);margin-top:4px;">→ 閉迴路特徵值全部在 z=0</div>`,
+      `<div>最多 ${result.K.length} 個取樣步驟 = ${(result.K.length * result.Ts).toFixed(3)} s 後穩定</div>`,
+      `<div style="margin-top:6px;color:var(--text-muted);font-size:10px;">⚠ 此為狀態回授增益（State Feedback），需搭配完整狀態估測器（觀測器）實作，無法直接套用為 PID 參數。</div>`,
     ].join('');
+    if (copyBtn) copyBtn.style.display = 'block';
   } catch (err) {
     out.style.display = 'block';
     out.style.color = 'var(--color-unstable)';
     out.textContent = err.message;
+    _lastDeadbeatResult = null;
+    if (copyBtn) copyBtn.style.display = 'none';
   }
+}
+
+function copyDeadbeatGains() {
+  if (!_lastDeadbeatResult) return;
+  const text = `K = [${_lastDeadbeatResult.K.map(v => v.toFixed(6)).join(', ')}]  (Ts=${_lastDeadbeatResult.Ts}s)`;
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = document.getElementById('btn-copy-deadbeat-k');
+    if (btn) {
+      const orig = btn.textContent;
+      btn.textContent = '✓ Copied!';
+      setTimeout(() => { btn.textContent = orig; }, 1500);
+    }
+  }).catch(() => {/* ignore clipboard errors */});
 }
 
 function applyDesignLeadToController() {
@@ -1404,10 +1429,33 @@ function renderRootLocus(sys, targetId = 'chart-rlocus') {
 
 let _rlocusInteractiveSys = null;
 let _rlocusKMax = 100;
+let _currentRlocusK = null;
+
+/** Apply the Root Locus selected gain K as a pure proportional controller (Ki=Kd=0). */
+function applyRlocusKToController() {
+  if (_currentRlocusK === null || !state.plant) return;
+  const K = _currentRlocusK;
+  setPIDFromController({ Kp: K, Ki: 0, Kd: 0 }, 'rlocus-gain');
+  // Reset compensator to none so only Kp acts
+  state.compensator = { mode: 'none', gain: 1, tau: 1, alpha: 0.2 };
+  syncCompensatorInputs();
+  updateController();
+  // Navigate to Controller tab so user sees the result
+  document.querySelector('[data-sidebar="controller"]')?.click();
+  // Brief flash feedback on the button
+  const btn = document.getElementById('btn-apply-rlocus-k');
+  if (btn) {
+    const orig = btn.textContent;
+    btn.textContent = '✓ Applied!';
+    btn.style.background = '#10b981';
+    setTimeout(() => { btn.textContent = orig; btn.style.background = ''; }, 1500);
+  }
+}
 
 function updateRlocusGain(K) {
   if (!_rlocusInteractiveSys) return;
   const sys = _rlocusInteractiveSys;
+  _currentRlocusK = K;   // track for applyRlocusKToController
 
   const panel = document.getElementById('rl-gain-info');
   if (panel) panel.style.display = 'flex';
