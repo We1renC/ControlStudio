@@ -894,13 +894,19 @@ function computeObserverSimulation() {
     if (!L) throw new Error('請先計算 Observer Gain L 或 Kalman Gain L_kf');
 
     const duration = parseFloat(document.getElementById('obs-sim-duration')?.value || '10');
-    const result = simulateObserver(model, L, { duration, dt: 0.01, u: () => 1 });
+    // Plant starts at x0=[1,0,...] so observer (x̂=0) must catch up → demonstrates convergence
+    const n = model.A.length;
+    const x0 = Array.from({ length: n }, (_, i) => (i === 0 ? 1 : 0));
+    const result = simulateObserver(model, L, { duration, dt: 0.01, u: () => 1, x0 });
     state.phase8.simulation = result;
 
+    const initErr = result.eNorm[0] || 1;
+    const finalErr = result.eNorm[result.eNorm.length - 1];
+    const converged = finalErr < 0.01 * initErr ? 'Yes ✓' : finalErr < 0.1 * initErr ? 'Partial' : 'No';
     setPhase7Output('phase8-sim-out', [
       `<div style="color:var(--color-accent);font-weight:700;">Observer Simulation (step input)</div>`,
-      `<div>Duration: ${fmtNum(duration, 1)} s &nbsp;|&nbsp; Final eNorm: ${fmtNum(result.eNorm[result.eNorm.length - 1], 6)}</div>`,
-      `<div style="color:var(--color-stable);">Observer converged: ${result.eNorm[result.eNorm.length - 1] < 0.01 * (result.eNorm[10] || 1) ? 'Yes' : 'Partial'}</div>`,
+      `<div>Duration: ${fmtNum(duration, 1)} s &nbsp;|&nbsp; Initial eNorm: ${fmtNum(initErr, 4)} &nbsp;|&nbsp; Final: ${fmtNum(finalErr, 4)}</div>`,
+      `<div style="color:var(--color-stable);">Observer converged: ${converged}</div>`,
     ].join(''));
 
     if (typeof Plotly !== 'undefined') {
