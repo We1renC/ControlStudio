@@ -2,7 +2,7 @@ import { TransferFunction } from './control/transfer-function.js';
 import { parseMatrixInput, stateSpaceToTransferFunction, controllabilityMatrix, observabilityMatrix } from './control/state-space.js';
 import { matRank } from './math/matrix.js';
 import { PIDController } from './control/pid.js';
-import { compensatorDescription, designLeadCompensator, leadLagTransferFunction, normalizeCompensatorConfig } from './control/compensator.js?v=control-phase1-1';
+import { compensatorDescription, designLagCompensator, designLeadCompensator, leadLagTransferFunction, normalizeCompensatorConfig } from './control/compensator.js?v=control-lag-1';
 import { impulseResponse, rampResponse, stepResponse } from './analysis/time-response.js';
 import { bodeData, nyquistData, autoFreqRange, nicholsData, nyquistEncirclements } from './analysis/frequency-response.js';
 import { rootLocusData, rootLocusAsymptotes } from './analysis/root-locus.js';
@@ -21,7 +21,7 @@ const state = {
   openLoop: null,
   pidParams: { Kp: 1, Ki: 0.5, Kd: 0.1, N: 100 },
   compensator: { mode: 'none', gain: 1, tau: 1, alpha: 0.2 },
-  controllerDesign: { source: 'manual', preset: null, leadTarget: null },
+  controllerDesign: { source: 'manual', preset: null, leadTarget: null, lagTarget: null },
   showClosedLoop: true,
   systemType: 'tf',
   responseType: 'step',
@@ -141,7 +141,7 @@ function initEventListeners() {
   ['comp-mode', 'comp-gain', 'comp-tau', 'comp-alpha'].forEach((id) => {
     const handler = debounce(() => {
       readCompensatorInputs();
-      state.controllerDesign = { ...state.controllerDesign, source: 'manual', leadTarget: null };
+      state.controllerDesign = { ...state.controllerDesign, source: 'manual', leadTarget: null, lagTarget: null };
       updateCompensatorVisibility();
       updateController();
     }, 150);
@@ -179,6 +179,7 @@ function initEventListeners() {
   document.getElementById('btn-apply')?.addEventListener('click', updateSystem);
   document.getElementById('btn-apply-pid-preset')?.addEventListener('click', applyPIDPreset);
   document.getElementById('btn-apply-lead-helper')?.addEventListener('click', applyLeadHelper);
+  document.getElementById('btn-apply-lag-helper')?.addEventListener('click', applyLagHelper);
   document.getElementById('btn-save-project')?.addEventListener('click', saveProjectFile);
   document.getElementById('btn-load-project')?.addEventListener('click', () => document.getElementById('project-file-input')?.click());
   document.getElementById('btn-export-json')?.addEventListener('click', () => exportCurrentResult('json'));
@@ -429,6 +430,7 @@ function applyLeadHelper() {
       ...state.controllerDesign,
       source: 'lead-helper',
       leadTarget: { phaseBoostDeg, crossoverFreq },
+      lagTarget: null,
     };
     syncCompensatorInputs();
     updateController();
@@ -437,6 +439,31 @@ function applyLeadHelper() {
     const message = err.message.includes('phase boost') ? 'Target PM boost 必須介於 0 到 90 度之間' : err.message;
     if (err.message.includes('phase boost')) setFieldError('lead-target-phase', message);
     if (err.message.includes('crossover')) setFieldError('lead-target-wc', message);
+    showError(message);
+    scheduleSmokeDiagnostics();
+  }
+}
+
+function applyLagHelper() {
+  try {
+    clearFieldErrors();
+    const improvementFactor = readRequiredPositiveNumber('lag-improvement', 'Lag improvement');
+    const crossoverFreq = readRequiredPositiveNumber('lag-target-wc', 'Crossover wc');
+    const config = designLagCompensator({ improvementFactor, crossoverFreq });
+    state.compensator = config;
+    state.controllerDesign = {
+      ...state.controllerDesign,
+      source: 'lag-helper',
+      leadTarget: null,
+      lagTarget: { improvementFactor, crossoverFreq },
+    };
+    syncCompensatorInputs();
+    updateController();
+    clearError();
+  } catch (err) {
+    const message = err.message.includes('improvement') ? 'Lag improvement 必須大於 1' : err.message;
+    if (err.message.includes('improvement')) setFieldError('lag-improvement', message);
+    if (err.message.includes('crossover')) setFieldError('lag-target-wc', message);
     showError(message);
     scheduleSmokeDiagnostics();
   }
@@ -702,7 +729,7 @@ function setFieldError(id, msg) {
 
 function clearFieldErrors() {
   document.querySelectorAll('.field-hint').forEach(h => h.remove());
-  ['tf-num', 'tf-den', 'zpk-zeros', 'zpk-poles', 'zpk-gain', 'ss-a', 'ss-b', 'ss-c', 'ss-d', 'comp-gain', 'comp-tau', 'comp-alpha', 'preset-ku', 'preset-tu', 'preset-plant-k', 'preset-fopdt', 'lead-target-phase', 'lead-target-wc'].forEach(id => {
+  ['tf-num', 'tf-den', 'zpk-zeros', 'zpk-poles', 'zpk-gain', 'ss-a', 'ss-b', 'ss-c', 'ss-d', 'comp-gain', 'comp-tau', 'comp-alpha', 'preset-ku', 'preset-tu', 'preset-plant-k', 'preset-fopdt', 'lead-target-phase', 'lead-target-wc', 'lag-improvement', 'lag-target-wc'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.style.borderColor = '';
   });
@@ -1478,6 +1505,7 @@ function applyProjectPayload(data) {
     source: controllerDesign.source || 'manual',
     preset: controllerDesign.preset || null,
     leadTarget: controllerDesign.leadTarget || null,
+    lagTarget: controllerDesign.lagTarget || null,
   };
   syncCompensatorInputs();
 

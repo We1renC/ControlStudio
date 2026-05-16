@@ -47,3 +47,24 @@ export function designLeadCompensator({ phaseBoostDeg, crossoverFreq, gainStrate
   const gain = gainStrategy === 'unity-at-crossover' ? Math.sqrt(alpha) : 1;
   return normalizeCompensatorConfig({ mode: 'lead', gain, tau, alpha });
 }
+
+export function designLagCompensator({ improvementFactor, crossoverFreq, zeroRatio = 10 } = {}) {
+  const factor = Number(improvementFactor);
+  const wc = Number(crossoverFreq);
+  const ratio = Number(zeroRatio);
+  if (!Number.isFinite(factor) || factor <= 1) {
+    throw new Error('Lag improvement factor must be greater than 1');
+  }
+  if (!Number.isFinite(wc) || wc <= 0) {
+    throw new Error('Lag crossover frequency must be greater than 0');
+  }
+  if (!Number.isFinite(ratio) || ratio <= 1) {
+    throw new Error('Lag zero ratio must be greater than 1');
+  }
+  return normalizeCompensatorConfig({
+    mode: 'lag',
+    gain: factor,
+    tau: ratio / wc,
+    alpha: factor,
+  });
+}

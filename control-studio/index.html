@@ -333,6 +333,17 @@
             </div>
           </div>
           <button class="btn btn-sm" id="btn-apply-lead-helper" style="width:100%; justify-content:center;">Apply Lead Helper</button>
+          <div class="summary-grid" style="margin-top:var(--space-4); margin-bottom:var(--space-2);">
+            <div class="input-group" style="margin-bottom:0;">
+              <label>Lag Improvement</label>
+              <input type="number" id="lag-improvement" min="1.01" step="0.1" value="5">
+            </div>
+            <div class="input-group" style="margin-bottom:0;">
+              <label>Crossover wc (rad/s)</label>
+              <input type="number" id="lag-target-wc" min="0.01" step="0.1" value="3">
+            </div>
+          </div>
+          <button class="btn btn-sm" id="btn-apply-lag-helper" style="width:100%; justify-content:center;">Apply Lag Helper</button>
         </section>
 
         <section class="section-panel">
@@ -581,6 +592,6 @@
 
   <div id="error-msg" style="position:fixed; bottom:20px; right:20px; background:var(--color-unstable); color:white; padding:12px 20px; border-radius:var(--radius-md); font-size:13px; display:none; z-index:1000; box-shadow:0 10px 25px rgba(0,0,0,0.2);"></div>
 
-  <script type="module" src="js/app.js?v=control-phase1-2"></script>
+  <script type="module" src="js/app.js?v=control-lag-1"></script>
 </body>
 </html>

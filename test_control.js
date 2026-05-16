@@ -5,7 +5,7 @@ import { rootLocusAsymptotes } from './control-studio/js/analysis/root-locus.js'
 import { stateSpaceToTransferFunction, controllabilityMatrix, observabilityMatrix } from './control-studio/js/control/state-space.js';
 import { stepInfo, stabilityMargins, routhTable } from './control-studio/js/control/stability.js';
 import { PIDController } from './control-studio/js/control/pid.js';
-import { designLeadCompensator, leadLagTransferFunction } from './control-studio/js/control/compensator.js';
+import { designLagCompensator, designLeadCompensator, leadLagTransferFunction } from './control-studio/js/control/compensator.js';
 import { parsePolyString } from './control-studio/js/utils/format.js';
 import { zpkToTransferFunction, parseRootsString, parseComplexRoot } from './control-studio/js/control/zpk.js';
 import { polydiv, polymul } from './control-studio/js/math/polynomial.js';
@@ -259,6 +259,20 @@ try {
   assertNear('Lead helper alpha', designedLead.alpha, expectedAlpha, 1e-12);
   assertNear('Lead helper tau', designedLead.tau, expectedTau, 1e-12);
   assertNear('Lead helper gain', designedLead.gain, Math.sqrt(expectedAlpha), 1e-12);
+
+  // Lag helper:
+  // alpha=improvementFactor, tau=zeroRatio/wc, gain=improvementFactor.
+  // This places the lag zero below crossover and raises DC gain by alpha.
+  const designedLag = designLagCompensator({ improvementFactor: 5, crossoverFreq: 2, zeroRatio: 10 });
+  assertNear('Lag helper alpha', designedLag.alpha, 5, 1e-12);
+  assertNear('Lag helper tau', designedLag.tau, 5, 1e-12);
+  assertNear('Lag helper gain', designedLag.gain, 5, 1e-12);
+  const designedLagTf = leadLagTransferFunction(designedLag);
+  assertNear('Lag helper DC gain', designedLagTf.dcGain(), 5, 1e-12);
+  const unityComp = leadLagTransferFunction({ mode: 'none' });
+  if (designedLagTf.dcGain() <= unityComp.dcGain()) {
+    throw new Error('Lag helper should increase low-frequency gain');
+  }
   console.log('Lead/Lag compensator tests passed');
 
   console.log('Tests Passed!');

@@ -115,6 +115,7 @@ git log --oneline -5
 - `control-studio` 已強化輸入驗證：TF 分母不可全 0、ZPK zeros/poles 有欄位錯誤、State-Space A/B/C/D 會標示對應欄位、Lead/Lag alpha/tau/gain 有模式限制；本輪已用 in-app browser 驗證壞輸入不會覆蓋原可用模型。
 - `control-studio` 已補 PID presets 與 Lead design helper：UI 可套用 Ziegler-Nichols / Cohen-Coon PID preset，Lead helper 可用 target phase boost 與 crossover 產生 `alpha/tau/gain`；`test_control.js` 已驗證公式。
 - `control-studio` Compare 面板已補 controller comparison table，snapshot 會保存 PM/GM/rise/settling/overshoot/ESS、controller formula、open/closed-loop formula 與 compensator config；本輪已用 in-app browser 驗證表格與 comparison plot。
+- `control-studio` 已補 Lag design helper：以 improvement factor 與 crossover 產生 lag `gain/tau/alpha`，用於提升低頻 DC gain；`test_control.js` 與 in-app browser 已驗證。
 - Block Diagram 目前暫時擱置，UI 入口已標示 paused；後續進階控制先走 SISO transfer function / frequency response / stability validation。
 - `control-studio` Block Editor 已補上拓撲分析（串聯 / 回授）、節點編輯（雙擊）、節點刪除、Zoom/Pan、Undo/Redo、Diagram save/load。
 - `control-studio/js/control/zpk.js` 新增 ZPK model 輸入與複數根解析。
