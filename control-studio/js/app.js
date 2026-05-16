@@ -1370,6 +1370,16 @@ function renderRootLocus(sys, targetId = 'chart-rlocus') {
   const layout = PLOTLY_LAYOUT_BASE();
   layout.showlegend = targetId === 'chart-active';
   if (layout.showlegend) layout.legend = compactLegend();
+  if (targetId === 'chart-active') {
+    layout.annotations = [{
+      xref: 'paper', yref: 'paper', x: 0.01, y: 0.99,
+      xanchor: 'left', yanchor: 'top',
+      text: '💡 Click a branch or drag the K-slider below to pick a gain',
+      showarrow: false,
+      font: { size: 10, color: getCSS('--text-muted') },
+      bgcolor: 'rgba(15,17,23,.6)', borderpad: 4,
+    }];
+  }
   Plotly.react(targetId, traces, layout, { responsive: true, displayModeBar: false });
 
   if (targetId === 'chart-active') {
@@ -1494,6 +1504,16 @@ function renderPoleZeroMap(sys, targetId = 'chart-pzmap') {
   if (isDiscrete) {
     layout.yaxis = { ...layout.yaxis, scaleanchor: 'x', scaleratio: 1 };
     layout.xaxis = { ...layout.xaxis, title: 'Real (z-plane)' };
+    if (targetId === 'chart-active') {
+      layout.annotations = [{
+        xref: 'paper', yref: 'paper', x: 0.01, y: 0.99,
+        xanchor: 'left', yanchor: 'top',
+        text: '💡 Click a pole (×) to see |z|, decay rate and equivalent s-plane metrics',
+        showarrow: false,
+        font: { size: 10, color: getCSS('--text-muted') },
+        bgcolor: 'rgba(15,17,23,.6)', borderpad: 4,
+      }];
+    }
   }
   layout.showlegend = targetId === 'chart-active';
   if (layout.showlegend) layout.legend = compactLegend();

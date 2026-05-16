@@ -2,7 +2,7 @@ import { TransferFunction } from './control-studio/js/control/transfer-function.
 import { DiscreteTransferFunction } from './control-studio/js/control/discrete-transfer-function.js';
 import { discreteStepResponse, discreteImpulseResponse } from './control-studio/js/analysis/discrete-response.js';
 import { impulseResponse, rampResponse, simulateTimeResponse, stepResponse } from './control-studio/js/analysis/time-response.js';
-import { nyquistData, autoFreqRange, nicholsData, nyquistEncirclements } from './control-studio/js/analysis/frequency-response.js';
+import { bodeData, nyquistData, autoFreqRange, nicholsData, nyquistEncirclements } from './control-studio/js/analysis/frequency-response.js';
 import { rootLocusAsymptotes, rootLocusBreakPoints, rootLocusJwCrossings, sortRootLocusBranches } from './control-studio/js/analysis/root-locus.js';
 import { stateSpaceToTransferFunction, controllabilityMatrix, observabilityMatrix } from './control-studio/js/control/state-space.js';
 import { stepInfo, stabilityMargins, routhTable } from './control-studio/js/control/stability.js';
@@ -549,6 +549,54 @@ try {
     }
   }
   console.log('Phase 5 Deadbeat test passed');
+
+  // ── Audit follow-ups: analytical verification cases ──────────────────────
+
+  // (A) Bode of 1/(s+1) at ω=1: |G|=1/√2 (-3.0103 dB), phase=-45°
+  const a1 = new TransferFunction([1], [1, 1]);
+  // Hit ω=1 exactly: ask for 2 points at the same frequency.
+  const a1Bode = bodeData(a1, 1, 1, 2);
+  assertNear('1/(s+1) magDB at ω=1', a1Bode.magDB[0], -3.0103, 1e-3);
+  assertNear('1/(s+1) phase at ω=1', a1Bode.phaseDeg[0], -45, 1e-3);
+
+  // (B) Tustin always preserves DC gain across orders
+  for (const sysC of [new TransferFunction([2], [1, 2]), new TransferFunction([1, 3], [1, 3, 2]), new TransferFunction([1], [1, 6, 11, 6])]) {
+    const td = c2dTustin(sysC, 0.05);
+    assertNear(`Tustin DC gain preserved (order ${sysC.den.length - 1})`, td.dcGain(), sysC.dcGain(), 1e-9);
+  }
+
+  // (C) Nyquist encirclements: K/(s+1)^3 with K=10 is closed-loop unstable
+  // (s+1)^3 + 10 = 0 → 1 real and 2 RHP roots, Z=2, P=0 → N=2 CW encirclements
+  const cubic = new TransferFunction([10], [1, 3, 3, 1]);
+  const Nenc = nyquistEncirclements(cubic);
+  if (Nenc !== 2) throw new Error(`Expected N=2 for 10/(s+1)^3, got ${Nenc}`);
+  // And the K=1 case (closed-loop stable) gives N=0
+  const cubic0 = new TransferFunction([1], [1, 3, 3, 1]);
+  const Nenc0 = nyquistEncirclements(cubic0);
+  if (Nenc0 !== 0) throw new Error(`Expected N=0 for 1/(s+1)^3, got ${Nenc0}`);
+
+  // (D) Cohen-Coon outside valid range must throw rather than return negative Td
+  let threwOnHighR = false;
+  try { PIDController.cohenCoon(1, 1, 2); } catch { threwOnHighR = true; }
+  if (!threwOnHighR) throw new Error('Cohen-Coon should refuse r > 1.2');
+
+  // (E) stepInfo SSE with explicit reference (no longer hard-coded to 1)
+  // Steady-state output 2 vs reference 2 → SSE = 0; vs reference 1 (legacy) → SSE = 1.
+  const fakeT = Array.from({ length: 100 }, (_, i) => i * 0.1);
+  const fakeY = fakeT.map((t) => (t < 0.1 ? 0 : 2));
+  const infoExplicit = stepInfo(fakeT, fakeY, 2, 2);
+  assertNear('stepInfo SSE with ref=2', infoExplicit.steadyStateError, 0, 1e-12);
+  const infoLegacy = stepInfo(fakeT, fakeY, 2);
+  assertNear('stepInfo SSE legacy default ref=1', infoLegacy.steadyStateError, 1, 1e-12);
+
+  // (F) Discrete TF: causal pure-delay G(z) = z⁻¹/(1 + 0·z⁻¹) has 1 pole at z=0
+  const delayOnly = new DiscreteTransferFunction([0, 1], [1, 0], 0.1);
+  const dPoles = delayOnly.poles();
+  if (dPoles.length !== 1 || Math.abs(dPoles[0].re) > 1e-9 || Math.abs(dPoles[0].im) > 1e-9) {
+    throw new Error(`Expected single pole at z=0 for causal pure delay, got ${JSON.stringify(dPoles)}`);
+  }
+
+  console.log('Audit follow-up tests passed');
 
   console.log('Tests Passed!');
 } catch (e) {

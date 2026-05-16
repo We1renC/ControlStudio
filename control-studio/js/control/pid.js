@@ -51,12 +51,21 @@ export class PIDController {
     }
   }
 
-  /** Cohen-Coon tuning from first-order plus dead-time model */
+  /**
+   * Cohen-Coon tuning from first-order plus dead-time (FOPDT) model.
+   * G(s) = K · e^{-td·s} / (τs + 1). Multiple "Cohen-Coon" tables exist; we use
+   * the early-form table that matches the original 1953 paper coefficients.
+   * NOTE: validity range is roughly r = td/τ ≤ 1; for very large dead-time
+   * ratios (r > ~1.23) the Td denominator can flip sign — guarded below.
+   */
   static cohenCoon(K, tau, td) {
+    if (!(K > 0 && tau > 0 && td > 0)) throw new Error('Cohen-Coon: K, τ, td must be positive');
     const r = td / tau;
+    if (r > 1.2) throw new Error(`Cohen-Coon: dead-time ratio r=${r.toFixed(2)} > 1.2 is outside the valid range; use a different tuner.`);
     const Kp = (1.35 / K) * (tau / td) * (1 + 0.18 * r / (1 - 0.18 * r));
     const Ti = td * (2.5 - 2 * r) / (1 - 0.39 * r);
     const Td = 0.37 * td * tau / (tau - 0.81 * td);
+    if (!(Ti > 0 && Td > 0)) throw new Error('Cohen-Coon: computed Ti or Td is non-positive; FOPDT model may be ill-conditioned');
     return new PIDController(Kp, Kp / Ti, Kp * Td);
   }
 

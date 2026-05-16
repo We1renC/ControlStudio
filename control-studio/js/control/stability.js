@@ -8,7 +8,18 @@ import { Complex } from '../math/complex.js';
  */
 export function stabilityMargins(sys) {
   if (!sys) return { gainMargin: Infinity, gainMarginDB: Infinity, phaseMargin: NaN, gainCrossover: NaN, phaseCrossover: NaN };
-  const wMin = 1e-3, wMax = 1e4;
+  // Auto-extend the frequency window to cover all pole/zero break frequencies
+  // (clamped to a reasonable [1e-4, 1e6]). Fixed-window scans silently miss
+  // crossovers far from the default range.
+  const breaks = [];
+  try {
+    for (const p of sys.poles()) { const m = Math.hypot(p.re, p.im); if (m > 0) breaks.push(m); }
+    for (const z of sys.zeros()) { const m = Math.hypot(z.re, z.im); if (m > 0) breaks.push(m); }
+  } catch { /* ignore */ }
+  const minBreak = breaks.length ? Math.min(...breaks) : 1;
+  const maxBreak = breaks.length ? Math.max(...breaks) : 1;
+  const wMin = Math.max(1e-4, Math.min(1e-3, minBreak / 100));
+  const wMax = Math.min(1e6, Math.max(1e4, maxBreak * 100));
   const nPoints = 2000;
   const logMin = Math.log10(wMin), logMax = Math.log10(wMax);
 
@@ -40,7 +51,7 @@ export function stabilityMargins(sys) {
 /**
  * Compute step response performance metrics.
  */
-export function stepInfo(tArr, yArr, finalValue = null) {
+export function stepInfo(tArr, yArr, finalValue = null, reference = null) {
   if (!tArr || tArr.length < 5) return { riseTime: null, settlingTime: null, overshoot: 0 };
   const n = tArr.length;
   const yInit = yArr[0];
@@ -64,7 +75,11 @@ export function stepInfo(tArr, yArr, finalValue = null) {
     if (Math.abs(yArr[i] - yFinal) > band) { st = tArr[i]; break; }
   }
 
-  return { riseTime, settlingTime: st, overshoot, steadyStateError: Math.abs(1 - yFinal) };
+  // SSE = |setpoint − steady-state output|. Caller should pass the reference setpoint
+  // (e.g. step amplitude). For backward compatibility, default is 1 (unit step from 0).
+  const ref = reference !== null ? reference : 1;
+  const steadyStateError = Math.abs(ref - yFinal);
+  return { riseTime, settlingTime: st, overshoot, steadyStateError };
 }
 
 /**
