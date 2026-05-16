@@ -45,6 +45,15 @@ export function polyvalReal(coeffs, x) {
   return r;
 }
 
+/** Derivative of polynomial in high-degree-first form. */
+export function polyderiv(coeffs) {
+  const n = coeffs.length - 1;
+  if (n <= 0) return [0];
+  const result = new Array(n);
+  for (let i = 0; i < n; i++) result[i] = coeffs[i] * (n - i);
+  return result;
+}
+
 /** Convert roots to real polynomial coefficients */
 export function rootsToRealPoly(roots) {
   if (!roots.length) return [1];

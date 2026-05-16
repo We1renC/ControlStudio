@@ -7,7 +7,7 @@ import { compensatorDescription, designLagCompensator, designLeadCompensator, le
 import { impulseResponse, rampResponse, stepResponse } from './analysis/time-response.js';
 import { discreteStepResponse } from './analysis/discrete-response.js';
 import { bodeData, nyquistData, autoFreqRange, nicholsData, nyquistEncirclements } from './analysis/frequency-response.js';
-import { rootLocusData, rootLocusAsymptotes } from './analysis/root-locus.js';
+import { rootLocusData, rootLocusAsymptotes, rootLocusBreakPoints, rootLocusJwCrossings, sortRootLocusBranches } from './analysis/root-locus.js';
 import { stabilityMargins, stepInfo, routhTable } from './control/stability.js';
 import { parsePolyString, fmtNum, fmtDeg, fmtDB, fmtTime, fmtPercent } from './utils/format.js';
 import { zpkToTransferFunction, parseRootsString } from './control/zpk.js';
@@ -1125,24 +1125,85 @@ function renderActivePlot(sys) {
 function renderRootLocus(sys, targetId = 'chart-rlocus') {
   const result = rootLocusData(sys);
   if (!result || !result.roots || result.roots.length === 0) return;
-  const nPoles = result.roots[0].length;
-  const branches = Array.from({ length: nPoles }, () => ({ re: [], im: [] }));
-  for (let i = 0; i < result.roots.length; i++) {
+  const sortedSteps = sortRootLocusBranches(result.roots);
+  const nPoles = sortedSteps[0].length;
+  const branches = Array.from({ length: nPoles }, () => ({ re: [], im: [], k: [] }));
+  for (let i = 0; i < sortedSteps.length; i++) {
     for (let j = 0; j < nPoles; j++) {
-      if (result.roots[i][j]) {
-        branches[j].re.push(result.roots[i][j].re);
-        branches[j].im.push(result.roots[i][j].im);
+      if (sortedSteps[i][j]) {
+        branches[j].re.push(sortedSteps[i][j].re);
+        branches[j].im.push(sortedSteps[i][j].im);
+        branches[j].k.push(result.gains[i]);
       }
     }
   }
   const traces = branches.map((b, idx) => ({
     x: b.re,
     y: b.im,
+    customdata: b.k,
     type: 'scatter',
     mode: 'lines',
     name: `Branch ${idx + 1}`,
+    hovertemplate: 'Re=%{x:.3f}<br>Im=%{y:.3f}<br>K=%{customdata:.3f}<extra></extra>',
     line: { width: 1.5, color: getCSS('--color-accent'), opacity: 0.6 },
   }));
+
+  // Open-loop poles (X) and zeros (O) — starting/ending points of locus
+  const olPoles = sys.poles();
+  const olZeros = sys.zeros();
+  traces.push({
+    x: olPoles.map((p) => p.re), y: olPoles.map((p) => p.im),
+    type: 'scatter', mode: 'markers', name: 'Open-loop poles',
+    marker: { symbol: 'x', size: 10, color: getCSS('--color-unstable'), line: { width: 2 } },
+    showlegend: targetId === 'chart-active',
+  });
+  if (olZeros.length > 0) {
+    traces.push({
+      x: olZeros.map((z) => z.re), y: olZeros.map((z) => z.im),
+      type: 'scatter', mode: 'markers', name: 'Open-loop zeros',
+      marker: { symbol: 'circle-open', size: 10, color: getCSS('--color-accent'), line: { width: 2 } },
+      showlegend: targetId === 'chart-active',
+    });
+  }
+
+  // Breakaway / break-in points
+  try {
+    const breaks = rootLocusBreakPoints(sys);
+    if (breaks.length > 0) {
+      traces.push({
+        x: breaks.map((b) => b.s), y: breaks.map(() => 0),
+        type: 'scatter', mode: 'markers+text',
+        text: breaks.map((b) => `K=${fmtNum(b.K)}`),
+        textposition: 'top center', textfont: { size: 10, color: getCSS('--text-muted') },
+        name: 'Break points',
+        marker: { symbol: 'square', size: 9, color: getCSS('--color-warning') || '#f59e0b' },
+        hovertemplate: '%{text}<br>s=%{x:.4f}<extra>%{fullData.name}</extra>',
+        showlegend: targetId === 'chart-active',
+      });
+    }
+  } catch { /* ignore */ }
+
+  // jω crossings (critical K)
+  try {
+    const cross = rootLocusJwCrossings(sys, 1e3, 400);
+    if (cross.length > 0) {
+      const xs = [], ys = [], labels = [];
+      for (const c of cross) {
+        xs.push(0, 0); ys.push(c.omega, -c.omega);
+        labels.push(`K*=${fmtNum(c.K)}`, `K*=${fmtNum(c.K)}`);
+      }
+      traces.push({
+        x: xs, y: ys,
+        type: 'scatter', mode: 'markers+text',
+        text: labels, textposition: 'middle right',
+        textfont: { size: 10, color: getCSS('--color-unstable') },
+        name: 'jω crossings',
+        marker: { symbol: 'diamond', size: 10, color: getCSS('--color-unstable') },
+        hovertemplate: '%{text}<br>ω=%{y:.4f}<extra>%{fullData.name}</extra>',
+        showlegend: targetId === 'chart-active',
+      });
+    }
+  } catch { /* ignore */ }
 
   // Add asymptotes
   try {

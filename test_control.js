@@ -3,7 +3,7 @@ import { DiscreteTransferFunction } from './control-studio/js/control/discrete-t
 import { discreteStepResponse, discreteImpulseResponse } from './control-studio/js/analysis/discrete-response.js';
 import { impulseResponse, rampResponse, simulateTimeResponse, stepResponse } from './control-studio/js/analysis/time-response.js';
 import { nyquistData, autoFreqRange, nicholsData, nyquistEncirclements } from './control-studio/js/analysis/frequency-response.js';
-import { rootLocusAsymptotes } from './control-studio/js/analysis/root-locus.js';
+import { rootLocusAsymptotes, rootLocusBreakPoints, rootLocusJwCrossings, sortRootLocusBranches } from './control-studio/js/analysis/root-locus.js';
 import { stateSpaceToTransferFunction, controllabilityMatrix, observabilityMatrix } from './control-studio/js/control/state-space.js';
 import { stepInfo, stabilityMargins, routhTable } from './control-studio/js/control/stability.js';
 import { PIDController } from './control-studio/js/control/pid.js';
@@ -391,6 +391,43 @@ try {
   assertNear('C2D DC gain match (ZOH)', zoh3.dcGain(), sys3c.dcGain(), 1e-9);
 
   console.log('C2D (Tustin/ZOH) tests passed');
+
+  // ── Phase 3 Root Locus: G(s)=1/(s(s+1)(s+2)) classic case ────────────────
+  // d/ds(s^3+3s^2+2s) = 3s^2+6s+2 = 0  →  s = -1 ± √3/3
+  // breakaway at s≈-0.4226 (K≈0.3849); other root invalid (K<0)
+  // Routh: K=6 → jω crossing at ω = ±√2
+  const rlPlant = new TransferFunction([1], [1, 3, 2, 0]);
+  const breakA = rootLocusBreakPoints(rlPlant);
+  if (breakA.length !== 1) throw new Error(`Expected 1 breakaway, got ${breakA.length}`);
+  assertNear('RL break s', breakA[0].s, -1 + Math.sqrt(3) / 3, 1e-6);
+  assertNear('RL break K', breakA[0].K, 0.3849001794597505, 1e-6);
+  if (breakA[0].kind !== 'breakaway') throw new Error('Expected breakaway kind');
+
+  const crossA = rootLocusJwCrossings(rlPlant, 20, 600);
+  if (crossA.length < 1) throw new Error('Expected at least 1 jω crossing');
+  const primary = crossA.find((c) => Math.abs(c.K - 6) < 0.2);
+  if (!primary) throw new Error(`Expected jω crossing near K=6, got ${JSON.stringify(crossA)}`);
+  assertNear('RL jω crossing K', primary.K, 6, 0.05);
+  assertNear('RL jω crossing ω', primary.omega, Math.sqrt(2), 0.02);
+
+  // ── Phase 3 Root Locus: G(s)=1/(s(s+2)) — breakaway at midpoint ──────────
+  const rlPlant2 = new TransferFunction([1], [1, 2, 0]);
+  const breakB = rootLocusBreakPoints(rlPlant2);
+  if (breakB.length !== 1) throw new Error(`Expected 1 breakaway in case B, got ${breakB.length}`);
+  assertNear('RL2 break s', breakB[0].s, -1, 1e-9);
+  assertNear('RL2 break K', breakB[0].K, 1, 1e-9);
+  const crossB = rootLocusJwCrossings(rlPlant2, 100, 300);
+  if (crossB.length !== 0) throw new Error('Case B should have no jω crossings (always stable)');
+
+  // ── Phase 3: branch sorting keeps complex conjugates continuous ──────────
+  // Build two synthetic steps where polyroots could return them swapped.
+  const stepA = [{ re: 0, im: 1 }, { re: 0, im: -1 }];
+  const stepB = [{ re: -0.1, im: -1.1 }, { re: -0.1, im: 1.1 }]; // swapped order
+  const sortedBranches = sortRootLocusBranches([stepA, stepB]);
+  if (sortedBranches[1][0].im < 0) throw new Error('Branch 0 should stay on positive imaginary side after sort');
+  if (sortedBranches[1][1].im > 0) throw new Error('Branch 1 should stay on negative imaginary side after sort');
+
+  console.log('Root Locus (break points / jω crossings / branch sort) tests passed');
 
   console.log('Tests Passed!');
 } catch (e) {
