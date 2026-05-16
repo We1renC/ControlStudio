@@ -53,8 +53,9 @@
     .chart-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--space-2); font-size: 13px; font-weight: 600; color: var(--text-secondary); }
     .chart-body { flex: 1; min-height: 200px; }
     .plot-workspace { display:flex; flex-direction:column; gap:var(--space-4); min-height: 0; min-width: 0; }
-    .plot-switcher { display:flex; flex-wrap:wrap; gap:8px; background: var(--bg-secondary); border:1px solid var(--border-primary); border-radius: var(--radius-lg); padding: 10px; }
-    .plot-tab { border:1px solid var(--border-primary); background: var(--bg-tertiary); color: var(--text-secondary); border-radius: var(--radius-sm); padding: 8px 12px; font-size:12px; font-weight:600; cursor:pointer; }
+    .plot-switcher { display:flex; flex-wrap:nowrap; overflow-x:auto; gap:8px; background: var(--bg-secondary); border:1px solid var(--border-primary); border-radius: var(--radius-lg); padding: 10px; scrollbar-width:none; }
+    .plot-switcher::-webkit-scrollbar { display:none; }
+    .plot-tab { border:1px solid var(--border-primary); background: var(--bg-tertiary); color: var(--text-secondary); border-radius: var(--radius-sm); padding: 8px 12px; font-size:12px; font-weight:600; cursor:pointer; white-space:nowrap; flex-shrink:0; }
     .plot-tab.active { background: var(--color-accent); border-color: var(--color-accent); color: white; }
     .plot-stage { display:grid; grid-template-columns: minmax(0, 1fr) 220px; gap:var(--space-4); align-items:stretch; min-width: 0; }
     .plot-main { min-width: 0; min-height: clamp(340px, 58vh, 560px); }
@@ -585,42 +586,51 @@
           </div>
 
           <div style="margin-top:14px;border-top:1px solid var(--border-primary);padding-top:12px;">
-            <div style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;">Phase 7: State Feedback / Lyapunov / LQR</div>
-            <p style="font-size:11px;color:var(--text-muted);line-height:1.6;margin-bottom:8px;">
-              限 continuous-time、低階 SISO state-space；TF 會先轉 controllable canonical form。
-            </p>
+            <!-- Collapsible Phase 7 header -->
+            <button id="btn-p7-toggle" onclick="(()=>{const b=document.getElementById('p7-body');const open=b.style.display!=='none';b.style.display=open?'none':'block';this.querySelector('.p7-chevron').style.transform=open?'rotate(-90deg)':'rotate(0deg)'})()" style="width:100%;background:none;border:none;cursor:pointer;display:flex;align-items:center;justify-content:space-between;padding:0;margin-bottom:6px;">
+              <span style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;">State Feedback / Lyapunov / LQR</span>
+              <span class="p7-chevron" style="color:var(--text-muted);font-size:12px;transition:transform 0.2s;">▾</span>
+            </button>
+            <div id="p7-body" style="display:none;">
+              <p style="font-size:11px;color:var(--text-muted);line-height:1.6;margin-bottom:8px;">
+                限 continuous-time、低階 SISO；TF 自動轉 controllable canonical form。
+              </p>
 
-            <div class="input-group" style="margin-bottom:8px;">
-              <label>Desired Poles</label>
-              <input type="text" id="sf-desired-poles" value="-2, -3" placeholder="-2, -3">
-            </div>
-            <button class="btn btn-sm" id="btn-phase7-place" style="width:100%;justify-content:center;margin-bottom:8px;">Compute State Feedback K</button>
-            <div id="phase7-place-out" style="font-size:11px;font-family:monospace;color:var(--text-secondary);background:rgba(15,17,23,.4);padding:8px;border-radius:6px;line-height:1.6;display:none;"></div>
-
-            <div style="margin-top:12px;border-top:1px solid var(--border-primary);padding-top:12px;">
+              <!-- Pole Placement -->
               <div class="input-group" style="margin-bottom:8px;">
-                <label>Lyapunov Q Matrix</label>
-                <textarea id="lyapunov-q" rows="3" placeholder="留白 = Q = I">1 0
-0 1</textarea>
+                <label>Desired Poles</label>
+                <input type="text" id="sf-desired-poles" value="-2, -3" placeholder="-2, -3">
               </div>
-              <button class="btn btn-sm" id="btn-phase7-lyapunov" style="width:100%;justify-content:center;margin-bottom:8px;">Run Lyapunov Proof</button>
-              <div id="phase7-lyapunov-out" style="font-size:11px;font-family:monospace;color:var(--text-secondary);background:rgba(15,17,23,.4);padding:8px;border-radius:6px;line-height:1.6;display:none;"></div>
-            </div>
+              <button class="btn btn-sm" id="btn-phase7-place" style="width:100%;justify-content:center;margin-bottom:8px;">Compute State Feedback K</button>
+              <div id="phase7-place-out" style="font-size:11px;font-family:monospace;color:var(--text-secondary);background:rgba(15,17,23,.4);padding:8px;border-radius:6px;line-height:1.6;display:none;"></div>
 
-            <div style="margin-top:12px;border-top:1px solid var(--border-primary);padding-top:12px;">
-              <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
-                <div class="input-group">
-                  <label>LQR Q Matrix</label>
-                  <textarea id="lqr-q" rows="3">1 0
+              <!-- Lyapunov -->
+              <div style="margin-top:12px;border-top:1px solid var(--border-primary);padding-top:12px;">
+                <div class="input-group" style="margin-bottom:8px;">
+                  <label>Lyapunov Q Matrix</label>
+                  <textarea id="lyapunov-q" rows="2" placeholder="留白 = Q = I">1 0
 0 1</textarea>
                 </div>
-                <div class="input-group">
-                  <label>LQR R</label>
-                  <input type="number" id="lqr-r" value="1" step="0.1" min="0.01">
-                </div>
+                <button class="btn btn-sm" id="btn-phase7-lyapunov" style="width:100%;justify-content:center;margin-bottom:8px;">Run Lyapunov Proof</button>
+                <div id="phase7-lyapunov-out" style="font-size:11px;font-family:monospace;color:var(--text-secondary);background:rgba(15,17,23,.4);padding:8px;border-radius:6px;line-height:1.6;display:none;"></div>
               </div>
-              <button class="btn btn-sm" id="btn-phase7-lqr" style="width:100%;justify-content:center;margin-bottom:8px;">Compute LQR Gain</button>
-              <div id="phase7-lqr-out" style="font-size:11px;font-family:monospace;color:var(--text-secondary);background:rgba(15,17,23,.4);padding:8px;border-radius:6px;line-height:1.6;display:none;"></div>
+
+              <!-- LQR -->
+              <div style="margin-top:12px;border-top:1px solid var(--border-primary);padding-top:12px;">
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
+                  <div class="input-group">
+                    <label>LQR Q Matrix</label>
+                    <textarea id="lqr-q" rows="2">1 0
+0 1</textarea>
+                  </div>
+                  <div class="input-group">
+                    <label>LQR R</label>
+                    <input type="number" id="lqr-r" value="1" step="0.1" min="0.01">
+                  </div>
+                </div>
+                <button class="btn btn-sm" id="btn-phase7-lqr" style="width:100%;justify-content:center;margin-bottom:8px;">Compute LQR Gain</button>
+                <div id="phase7-lqr-out" style="font-size:11px;font-family:monospace;color:var(--text-secondary);background:rgba(15,17,23,.4);padding:8px;border-radius:6px;line-height:1.6;display:none;"></div>
+              </div>
             </div>
           </div>
         </section>
@@ -722,7 +732,7 @@
                 <div id="zpole-s-metrics" style="font-size:12px;font-family:monospace;color:var(--text-secondary);line-height:1.6;">—</div>
               </div>
             </div>
-            <div id="rl-gain-info" style="display:none; border-top:1px solid var(--border-primary); padding:10px 14px; display:none; gap:16px; align-items:flex-start; background:var(--bg-tertiary); flex-wrap:wrap;">
+            <div id="rl-gain-info" style="display:none; border-top:1px solid var(--border-primary); padding:10px 14px; gap:16px; align-items:flex-start; background:var(--bg-tertiary); flex-wrap:wrap;">
               <div style="min-width:160px;">
                 <div style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;">Selected Gain</div>
                 <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
