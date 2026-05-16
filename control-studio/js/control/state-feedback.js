@@ -16,7 +16,7 @@ import {
   matTranspose,
   matTrace,
 } from '../math/matrix.js';
-import { controllabilityMatrix, stateSpaceToTransferFunction, tfToControllableCanonical } from './state-space.js';
+import { controllabilityMatrix, observabilityMatrix, stateSpaceToTransferFunction, tfToControllableCanonical } from './state-space.js';
 import { parseRootsString } from './zpk.js';
 
 function toComplex(root) {
@@ -228,6 +228,117 @@ export function solveLqr(A, B, Q = null, R = [[1]], options = {}) {
     residualNorm,
     riccatiResidualNorm: maxAbsMatrix(riccatiResidual),
   };
+}
+
+export function placeObserver(A, C, desiredPoles) {
+  const n = A.length;
+  const Wo = observabilityMatrix(A, C);
+  const observabilityRank = matRank(Wo);
+  if (observabilityRank !== n) {
+    throw new Error(`System not fully observable: rank(Wo)=${observabilityRank}, n=${n}`);
+  }
+  const At = matTranspose(A);
+  const Ct = matTranspose(C);
+  const result = placeStateFeedback(At, Ct, desiredPoles);
+  const L = matTranspose(result.K);
+  const Aobs = matSub(A, matMul(L, C));
+  return { L, desiredPoles: result.desiredPoles, observabilityRank, Aobs };
+}
+
+export function solveLqe(A, C, Qn, Rn) {
+  const At = matTranspose(A);
+  const Ct = matTranspose(C);
+  const RnMat = Array.isArray(Rn[0]) ? Rn : [[Rn]];
+  const result = solveLqr(At, Ct, Qn, RnMat);
+  const L_kf = matTranspose(result.K);
+  const Aobs = matSub(A, matMul(L_kf, C));
+  return {
+    L: L_kf,
+    Pe: matSymmetrize(result.P),
+    Qn: result.Q,
+    Rn: result.R,
+    Aobs,
+    residualNorm: result.residualNorm,
+    riccatiResidualNorm: result.riccatiResidualNorm,
+  };
+}
+
+export function simulateObserver(model, L, options = {}) {
+  const { duration = 10, dt = 0.01, u = 'step', x0 = null, xhat0 = null } = options;
+  const { A, B, C, D } = model;
+  const n = A.length;
+  const p = C.length;
+  const m = B[0].length;
+
+  const x = x0 ? x0.map((v) => [v]) : matCreate(n, 1, 0);
+  const xhat = xhat0 ? xhat0.map((v) => [v]) : matCreate(n, 1, 0);
+
+  const steps = Math.round(duration / dt);
+  const t = [];
+  const y = [];
+  const yhat = [];
+  const eNorm = [];
+  const xArr = [];
+  const xhatArr = [];
+
+  const uFn = typeof u === 'function' ? u : () => 1;
+
+  // Build matrices for simulation
+  // Aobs = A - L*C
+  const Aobs = matSub(A, matMul(L, C));
+
+  for (let i = 0; i <= steps; i++) {
+    const ti = i * dt;
+    const uVal = uFn(ti);
+    const uVec = matCreate(m, 1, 0);
+    uVec[0][0] = uVal;
+
+    // Plant output: y = C*x + D*u
+    const Cx = matMul(C, x);
+    const Du = matMul(D, uVec);
+    const yi = Cx[0][0] + Du[0][0];
+
+    // Observer output: yhat = C*xhat + D*u
+    const Cxhat = matMul(C, xhat);
+    const yhati = Cxhat[0][0] + Du[0][0];
+
+    // Error norm ||x - xhat||_2
+    let errSq = 0;
+    for (let j = 0; j < n; j++) {
+      const diff = x[j][0] - xhat[j][0];
+      errSq += diff * diff;
+    }
+
+    t.push(ti);
+    y.push(yi);
+    yhat.push(yhati);
+    eNorm.push(Math.sqrt(errSq));
+    xArr.push(x.map((row) => row[0]));
+    xhatArr.push(xhat.map((row) => row[0]));
+
+    if (i === steps) break;
+
+    // Euler update: plant dx = A*x + B*u
+    const Ax = matMul(A, x);
+    const Bu = matMul(B, uVec);
+    const dxPlant = matAdd(Ax, Bu);
+
+    // y as column vector for observer
+    const yVec = matCreate(p, 1, 0);
+    yVec[0][0] = yi;
+
+    // Observer: dxhat = Aobs*xhat + B*u + L*y
+    const Aobsxhat = matMul(Aobs, xhat);
+    const Ly = matMul(L, yVec);
+    const dxObs = matAdd(matAdd(Aobsxhat, Bu), Ly);
+
+    for (let j = 0; j < n; j++) {
+      x[j][0] += dt * dxPlant[j][0];
+      xhat[j][0] += dt * dxObs[j][0];
+    }
+  }
+
+  return { t, y, yhat, eNorm, x: xArr, xhat: xhatArr };
 }
 
 export function closedLoopTransferFromStateFeedback(model, K) {

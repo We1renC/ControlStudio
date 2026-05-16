@@ -16,7 +16,7 @@ import { c2dTustin, c2dZOH } from './control/c2d.js?v=p5';
 import { specsToTargetPoles, designLeadForPM, deadbeatGain } from './control/design.js?v=p5';
 import { polyadd, polyscale, polyroots } from './math/polynomial.js?v=p4';
 import { Complex } from './math/complex.js';
-import { analyzeLyapunov, closedLoopTransferFromStateFeedback, placeStateFeedback, resolveDesignStateSpace, solveLqr } from './control/state-feedback.js?v=p7';
+import { analyzeLyapunov, closedLoopTransferFromStateFeedback, placeObserver, placeStateFeedback, resolveDesignStateSpace, solveLqe, simulateObserver, solveLqr } from './control/state-feedback.js?v=p7';
 import { BlockEditor } from './editor/editor.js';
 
 // ============================================================
@@ -63,6 +63,11 @@ const state = {
     placement: null,
     lyapunov: null,
     lqr: null,
+  },
+  phase8: {
+    observer: null,
+    kalman: null,
+    simulation: null,
   },
 };
 
@@ -239,6 +244,9 @@ function initEventListeners() {
   document.getElementById('btn-phase7-place')?.addEventListener('click', computeStateFeedbackPlacement);
   document.getElementById('btn-phase7-lyapunov')?.addEventListener('click', computeLyapunovProof);
   document.getElementById('btn-phase7-lqr')?.addEventListener('click', computeLqrDesign);
+  document.getElementById('btn-phase8-observer')?.addEventListener('click', computeObserverPlacement);
+  document.getElementById('btn-phase8-kalman')?.addEventListener('click', computeKalmanGain);
+  document.getElementById('btn-phase8-simulate')?.addEventListener('click', computeObserverSimulation);
   document.getElementById('btn-apply-rlocus-k')?.addEventListener('click', applyRlocusKToController);
   document.getElementById('btn-apply-poles-k')?.addEventListener('click', applyPolesKToController);
   document.getElementById('btn-zn-pid')?.addEventListener('click', () => applyZNPIDFromRlocus('PID'));
@@ -820,6 +828,115 @@ function computeLqrDesign() {
   } catch (err) {
     state.phase7.lqr = null;
     setPhase7Output('phase7-lqr-out', escapeHtml(err.message), true);
+    showError(err.message);
+  }
+}
+
+function computeObserverPlacement() {
+  try {
+    clearFieldErrors();
+    const model = currentPhase7DesignModel();
+    const desiredPoles = document.getElementById('obs-desired-poles')?.value || '-4, -6';
+    const result = placeObserver(model.A, model.C, desiredPoles);
+    state.phase8.observer = result;
+
+    const Lrows = result.L.map((row) => `[${row.map((v) => fmtNum(v, 4)).join(', ')}]`).join(', ');
+    setPhase7Output('phase8-observer-out', [
+      `<div style="color:var(--color-accent);font-weight:700;">Observer Gain L (Luenberger)</div>`,
+      `<div>L = [${Lrows}]</div>`,
+      `<div>rank(Wo) = ${result.observabilityRank}/${model.A.length}</div>`,
+      `<div style="margin-top:6px;color:var(--color-stable);">Desired observer poles</div>`,
+      `<div>${result.desiredPoles.map((p) => formatPoleForUI(p, 's')).join('<br>')}</div>`,
+      `<div style="margin-top:6px;color:var(--text-muted);font-size:10px;">Observer poles should be ~3-10× faster than closed-loop poles for good estimation.</div>`,
+    ].join(''));
+    clearError();
+  } catch (err) {
+    state.phase8.observer = null;
+    setPhase7Output('phase8-observer-out', escapeHtml(err.message), true);
+    showError(err.message);
+  }
+}
+
+function computeKalmanGain() {
+  try {
+    clearFieldErrors();
+    const model = currentPhase7DesignModel();
+    const n = model.A.length;
+    const Qn = readPhase7SquareMatrix('obs-qn', n, true);
+    const Rn = readRequiredPositiveNumber('obs-rn', 'Measurement Noise Rn');
+    const result = solveLqe(model.A, model.C, Qn, [[Rn]]);
+    state.phase8.kalman = result;
+
+    const Lrows = result.L.map((row) => `[${row.map((v) => fmtNum(v, 4)).join(', ')}]`).join(', ');
+    const Pehtml = formatMatrixHtml(result.Pe, 5);
+    setPhase7Output('phase8-kalman-out', [
+      `<div style="color:var(--color-accent);font-weight:700;">Kalman Gain L_kf</div>`,
+      `<div>L_kf = [${Lrows}]</div>`,
+      `<div>ΔK residual = ${fmtNum(result.residualNorm, 6)}</div>`,
+      `<div>CARE residual = ${fmtNum(result.riccatiResidualNorm, 6)}</div>`,
+      `<div style="margin-top:6px;color:var(--color-accent);">Pe (error covariance)</div>`,
+      `<div>${Pehtml}</div>`,
+      `<div style="margin-top:6px;color:var(--text-muted);font-size:10px;">Kalman gain minimizes estimation error covariance under Gaussian noise.</div>`,
+    ].join(''));
+    clearError();
+  } catch (err) {
+    state.phase8.kalman = null;
+    setPhase7Output('phase8-kalman-out', escapeHtml(err.message), true);
+    showError(err.message);
+  }
+}
+
+function computeObserverSimulation() {
+  try {
+    clearFieldErrors();
+    const model = currentPhase7DesignModel();
+    const L = state.phase8.kalman?.L ?? state.phase8.observer?.L;
+    if (!L) throw new Error('請先計算 Observer Gain L 或 Kalman Gain L_kf');
+
+    const duration = parseFloat(document.getElementById('obs-sim-duration')?.value || '10');
+    const result = simulateObserver(model, L, { duration, dt: 0.01, u: () => 1 });
+    state.phase8.simulation = result;
+
+    setPhase7Output('phase8-sim-out', [
+      `<div style="color:var(--color-accent);font-weight:700;">Observer Simulation (step input)</div>`,
+      `<div>Duration: ${fmtNum(duration, 1)} s &nbsp;|&nbsp; Final eNorm: ${fmtNum(result.eNorm[result.eNorm.length - 1], 6)}</div>`,
+      `<div style="color:var(--color-stable);">Observer converged: ${result.eNorm[result.eNorm.length - 1] < 0.01 * (result.eNorm[10] || 1) ? 'Yes' : 'Partial'}</div>`,
+    ].join(''));
+
+    if (typeof Plotly !== 'undefined') {
+      const traces = [
+        {
+          x: result.t, y: result.y,
+          mode: 'lines', name: 'y(t) actual',
+          line: { color: 'var(--color-accent)', width: 1.5 },
+        },
+        {
+          x: result.t, y: result.yhat,
+          mode: 'lines', name: 'ŷ(t) estimated',
+          line: { color: 'var(--color-stable)', width: 1.5, dash: 'dot' },
+        },
+        {
+          x: result.t, y: result.eNorm,
+          mode: 'lines', name: '‖e‖₂',
+          yaxis: 'y2',
+          line: { color: 'var(--color-unstable)', width: 1 },
+        },
+      ];
+      const layout = {
+        paper_bgcolor: 'transparent', plot_bgcolor: 'transparent',
+        margin: { t: 10, r: 55, b: 30, l: 40 },
+        font: { size: 10, color: 'var(--text-muted)' },
+        legend: { font: { size: 9 }, orientation: 'h', y: 1.15 },
+        xaxis: { title: 't (s)', gridcolor: 'rgba(255,255,255,0.06)' },
+        yaxis: { title: 'y', gridcolor: 'rgba(255,255,255,0.06)' },
+        yaxis2: { title: '‖e‖₂', overlaying: 'y', side: 'right', showgrid: false },
+      };
+      Plotly.newPlot('chart-obs-sim', traces, layout, { responsive: true, displayModeBar: false });
+    }
+    clearError();
+  } catch (err) {
+    state.phase8.simulation = null;
+    setPhase7Output('phase8-sim-out', escapeHtml(err.message), true);
     showError(err.message);
   }
 }

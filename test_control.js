@@ -17,7 +17,7 @@ import { discreteBodeData } from './control-studio/js/analysis/discrete-frequenc
 import { matExp, matIdentity, matMul, matSub, matScale } from './control-studio/js/math/matrix.js';
 import { tfToControllableCanonical } from './control-studio/js/control/state-space.js';
 import { matRank } from './control-studio/js/math/matrix.js';
-import { analyzeLyapunov, closedLoopTransferFromStateFeedback, placeStateFeedback, solveLqr } from './control-studio/js/control/state-feedback.js';
+import { analyzeLyapunov, closedLoopTransferFromStateFeedback, placeObserver, placeStateFeedback, simulateObserver, solveLqe, solveLqr } from './control-studio/js/control/state-feedback.js';
 
 try {
   const assertNear = (name, actual, expected, tolerance = 1e-6) => {
@@ -615,6 +615,59 @@ try {
   if (!lqrTf.isStable()) throw new Error('LQR closed-loop should be stable');
 
   console.log('Phase 7 (Lyapunov / Pole Placement / LQR) tests passed');
+
+  // ── Phase 8 (Observer / Kalman) ───────────────────────────────────────────
+  const obsModel = {
+    A: [[0, 1], [-2, -3]],
+    B: [[0], [1]],
+    C: [[1, 0]],
+    D: [[0]],
+  };
+
+  // Test 1: Luenberger observer for simple 2nd-order system
+  // A = [[0,1],[-2,-3]], C = [[1,0]], desired observer poles: -4, -5
+  // By duality: K_dual places poles of A^T - C^T*K = eig at -4,-5
+  // => L = K_dual^T, eig(A - L*C) = [-4, -5]
+  const obs = placeObserver(obsModel.A, obsModel.C, '-4, -5');
+  if (obs.observabilityRank !== 2) throw new Error(`Observer rank should be 2, got ${obs.observabilityRank}`);
+  // Verify eig(Aobs) ≈ [-4, -5]: trace = -9, det = 20
+  const Aobs1 = obs.Aobs;
+  const traceAobs1 = Aobs1[0][0] + Aobs1[1][1];
+  const detAobs1 = Aobs1[0][0] * Aobs1[1][1] - Aobs1[0][1] * Aobs1[1][0];
+  assertNear('Observer Aobs trace (= -4 + -5)', traceAobs1, -9, 1e-6);
+  assertNear('Observer Aobs det (= (-4)*(-5))', detAobs1, 20, 1e-6);
+
+  // Test 2: LQE (Kalman) dual of LQR
+  // Same system, Qn = I, Rn = 1
+  // Verify: L_kf produces stable Aobs (all eigenvalues have negative real part)
+  const kf = solveLqe(obsModel.A, obsModel.C, [[1, 0], [0, 1]], [[1]]);
+  const traceAobsKf = kf.Aobs[0][0] + kf.Aobs[1][1];
+  const detAobsKf = kf.Aobs[0][0] * kf.Aobs[1][1] - kf.Aobs[0][1] * kf.Aobs[1][0];
+  // Stable: trace < 0 and det > 0 (for 2x2 real system)
+  if (traceAobsKf >= 0) throw new Error(`Kalman Aobs trace should be negative (stable), got ${traceAobsKf}`);
+  if (detAobsKf <= 0) throw new Error(`Kalman Aobs det should be positive (stable), got ${detAobsKf}`);
+  if (kf.riccatiResidualNorm > 1e-6) throw new Error(`LQE Riccati residual too large: ${kf.riccatiResidualNorm}`);
+
+  // Test 3: simulateObserver convergence
+  // Plant starts at x0=[1,0], observer starts at x̂=0 (wrong IC).
+  // After 10s with stable Luenberger observer (poles -4,-5),
+  // eNorm at t=10s should be < 0.01 * eNorm at t=0.5s.
+  const simResult = simulateObserver(obsModel, obs.L, {
+    duration: 10,
+    dt: 0.01,
+    u: () => 1,
+    x0: [1, 0],   // non-zero plant IC
+    xhat0: [0, 0], // observer starts at wrong IC
+  });
+  const idx05 = Math.round(0.5 / 0.01); // index for t≈0.5s
+  const eNormEarly = simResult.eNorm[idx05] || simResult.eNorm[1];
+  const eNormFinal = simResult.eNorm[simResult.eNorm.length - 1];
+  if (eNormFinal > 0.01 * eNormEarly) {
+    throw new Error(`Observer did not converge: eNorm(10s)=${eNormFinal} should be < 0.01 * eNorm(0.5s)=${eNormEarly}`);
+  }
+  if (simResult.t.length < 10) throw new Error('simulateObserver returned too few time points');
+
+  console.log('Phase 8 (Observer / Kalman) tests passed');
 
   // ── Audit follow-ups: analytical verification cases ──────────────────────
 
