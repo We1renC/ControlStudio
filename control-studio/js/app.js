@@ -1,14 +1,17 @@
 import { TransferFunction } from './control/transfer-function.js';
+import { DiscreteTransferFunction } from './control/discrete-transfer-function.js';
 import { parseMatrixInput, stateSpaceToTransferFunction, controllabilityMatrix, observabilityMatrix } from './control/state-space.js';
 import { matRank } from './math/matrix.js';
 import { PIDController } from './control/pid.js';
 import { compensatorDescription, designLagCompensator, designLeadCompensator, leadLagTransferFunction, normalizeCompensatorConfig } from './control/compensator.js?v=control-lag-1';
 import { impulseResponse, rampResponse, stepResponse } from './analysis/time-response.js';
+import { discreteStepResponse } from './analysis/discrete-response.js';
 import { bodeData, nyquistData, autoFreqRange, nicholsData, nyquistEncirclements } from './analysis/frequency-response.js';
 import { rootLocusData, rootLocusAsymptotes } from './analysis/root-locus.js';
 import { stabilityMargins, stepInfo, routhTable } from './control/stability.js';
 import { parsePolyString, fmtNum, fmtDeg, fmtDB, fmtTime, fmtPercent } from './utils/format.js';
 import { zpkToTransferFunction, parseRootsString } from './control/zpk.js';
+import { c2dTustin, c2dZOH } from './control/c2d.js';
 import { BlockEditor } from './editor/editor.js';
 
 // ============================================================
@@ -23,6 +26,8 @@ const state = {
   compensator: { mode: 'none', gain: 1, tau: 1, alpha: 0.2 },
   controllerDesign: { source: 'manual', preset: null, leadTarget: null, lagTarget: null },
   showClosedLoop: true,
+  domain: 's',
+  sampleTime: 0.1,
   systemType: 'tf',
   responseType: 'step',
   activePlot: 'step',
@@ -107,15 +112,46 @@ function initEventListeners() {
   document.querySelectorAll('.sys-tab').forEach(tab => {
     tab.addEventListener('click', (e) => {
       state.systemType = e.target.dataset.type;
+      state.domain = state.systemType === 'dtf' ? 'z' : 's';
       document.querySelectorAll('.sys-tab').forEach(t => t.classList.remove('active'));
       e.target.classList.add('active');
       document.querySelectorAll('.sys-input-section').forEach(s => s.style.display = 'none');
       document.getElementById(`sys-${e.target.dataset.type}`)?.style.setProperty('display', 'block');
+      updateDomainUI();
       updateSystemSetupCopy();
     });
   });
   ['zpk-zeros', 'zpk-poles', 'zpk-gain'].forEach((id) => {
     document.getElementById(id)?.addEventListener('input', debounce(updateSystem, 300));
+  });
+
+  ['dtf-num', 'dtf-den', 'dtf-ts'].forEach((id) => {
+    document.getElementById(id)?.addEventListener('input', debounce(updateSystem, 300));
+  });
+
+  document.getElementById('btn-c2d')?.addEventListener('click', () => {
+    if (!state.plant || state.domain !== 's') return;
+    const Ts = Number(document.getElementById('c2d-ts')?.value);
+    const method = document.getElementById('c2d-method')?.value || 'tustin';
+    try {
+      const disc = method === 'zoh' ? c2dZOH(state.plant, Ts) : c2dTustin(state.plant, Ts);
+      state.plant = disc;
+      state.domain = 'z';
+      state.sampleTime = Ts;
+      state.systemType = 'dtf';
+      document.getElementById('dtf-num').value = disc.num.map((c) => parseFloat(c.toFixed(6))).join(', ');
+      document.getElementById('dtf-den').value = disc.den.map((c) => parseFloat(c.toFixed(6))).join(', ');
+      document.getElementById('dtf-ts').value = Ts;
+      document.querySelectorAll('.sys-tab').forEach((t) => t.classList.remove('active'));
+      document.querySelectorAll('.sys-tab').forEach((t) => { if (t.dataset.type === 'dtf') t.classList.add('active'); });
+      document.querySelectorAll('.sys-input-section').forEach((s) => { s.style.display = 'none'; });
+      document.getElementById('sys-dtf').style.display = 'block';
+      updateDomainUI();
+      refreshAllCharts();
+      clearError();
+    } catch (err) {
+      showError(err.message);
+    }
   });
 
   document.getElementById('tf-num')?.addEventListener('input', debounce(updateSystem, 300));
@@ -657,6 +693,28 @@ function updateSystem() {
   try {
     readSimulationConfigInputs();
     clearFieldErrors();
+
+    if (state.systemType === 'dtf') {
+      const num = parsePolyString(document.getElementById('dtf-num')?.value);
+      const den = parsePolyString(document.getElementById('dtf-den')?.value);
+      const Ts = Number(document.getElementById('dtf-ts')?.value);
+      if (!num) { setFieldError('dtf-num', '請輸入有效的分子係數'); throw new Error('無效的分子係數'); }
+      if (!den) { setFieldError('dtf-den', '請輸入有效的分母係數'); throw new Error('無效的分母係數'); }
+      if (!Number.isFinite(Ts) || Ts <= 0) { setFieldError('dtf-ts', 'Ts 必須為正數'); throw new Error('無效的 sample time'); }
+      state.plant = new DiscreteTransferFunction(num, den, Ts);
+      state.domain = 'z';
+      state.sampleTime = Ts;
+      clearError();
+      updateDomainUI();
+      updateSystemSetupCopy();
+      saveSessionToStorage();
+      refreshAllCharts();
+      return;
+    }
+
+    state.domain = 's';
+    updateDomainUI();
+
     if (state.systemType === 'ss') {
       const A = parseStateMatrixField('ss-a');
       const B = parseStateMatrixField('ss-b', 1);
@@ -768,13 +826,59 @@ function updateController() {
 
 function refreshAllCharts() {
   if (!state.plant) return;
-  const sys = state.showClosedLoop ? (state.closedLoop || state.plant) : state.plant;
 
+  if (state.domain === 'z') {
+    renderDiscreteStepChart();
+    renderPoleZeroMap(state.plant, 'chart-pzmap');
+    scheduleSmokeDiagnostics();
+    return;
+  }
+
+  const sys = state.showClosedLoop ? (state.closedLoop || state.plant) : state.plant;
   renderActivePlot(sys);
   renderRootLocus(state.plant);
   renderPoleZeroMap(sys);
   renderComparisonChart();
   scheduleSmokeDiagnostics();
+}
+
+function renderDiscreteStepChart(targetId = 'chart-active') {
+  const sys = state.plant;
+  if (!(sys instanceof DiscreteTransferFunction)) return;
+  const sampleCount = Math.min(state.simulationConfig.sampleCount || 200, 500);
+  const amplitude = state.simulationConfig.amplitude || 1;
+  const data = discreteStepResponse(sys, { sampleCount, amplitude });
+  const stable = sys.isStable();
+  const layout = PLOTLY_LAYOUT_BASE();
+  layout.xaxis = { ...layout.xaxis, title: 'Time (s)' };
+  layout.yaxis = { ...layout.yaxis, title: 'Amplitude' };
+  const trace = {
+    x: data.t,
+    y: data.y,
+    type: 'scatter',
+    mode: 'lines+markers',
+    name: 'Discrete Step',
+    line: { color: stable ? getCSS('--color-stable') : getCSS('--color-unstable'), width: 2 },
+    marker: { size: 3 },
+  };
+  Plotly.react(targetId, [trace], layout, { responsive: true, displayModeBar: false });
+  updateActivePlotHeader(
+    'Discrete Step Response',
+    `z-domain · Ts = ${sys.sampleTime}s · ${stable ? 'Stable' : 'Unstable'}`
+  );
+}
+
+function updateDomainUI() {
+  const isZ = state.domain === 'z';
+  document.querySelectorAll('.s-domain-only').forEach((el) => {
+    el.style.display = isZ ? 'none' : '';
+  });
+  if (isZ && ['bode', 'nyquist', 'nichols', 'rlocus'].includes(state.activePlot)) {
+    state.activePlot = 'step';
+    document.querySelectorAll('.plot-tab').forEach((t) => {
+      t.classList.toggle('active', t.dataset.plot === 'step');
+    });
+  }
 }
 
 function setComparisonVisibility() {
@@ -1010,8 +1114,9 @@ function renderActivePlot(sys) {
       renderRootLocus(state.plant, 'chart-active');
     },
     pzmap: () => {
-      updateActivePlotHeader('Pole-Zero Map', 'S-Plane');
-      renderPoleZeroMap(sys, 'chart-active');
+      const isZ = state.domain === 'z';
+      updateActivePlotHeader('Pole-Zero Map', isZ ? 'Z-Plane' : 'S-Plane');
+      renderPoleZeroMap(isZ ? state.plant : sys, 'chart-active');
     },
   };
   (plotConfig[state.activePlot] || plotConfig.step)();
@@ -1072,14 +1177,35 @@ function renderRootLocus(sys, targetId = 'chart-rlocus') {
 }
 
 function renderPoleZeroMap(sys, targetId = 'chart-pzmap') {
+  const isDiscrete = sys instanceof DiscreteTransferFunction;
   const pList = sys.poles();
   const zList = sys.zeros();
-  const pTrace = { x: pList.map(p => p.re), y: pList.map(p => p.im), type: 'scatter', mode: 'markers', name: 'Poles', marker: { symbol: 'x', size: 10, color: getCSS('--color-unstable') } };
-  const zTrace = { x: zList.map(z => z.re), y: zList.map(z => z.im), type: 'scatter', mode: 'markers', name: 'Zeros', marker: { symbol: 'circle-open', size: 10, color: getCSS('--color-accent') } };
+  const traces = [];
+
+  if (isDiscrete) {
+    const theta = Array.from({ length: 361 }, (_, i) => (i * Math.PI) / 180);
+    traces.push({
+      x: theta.map((t) => Math.cos(t)),
+      y: theta.map((t) => Math.sin(t)),
+      type: 'scatter',
+      mode: 'lines',
+      name: 'Unit Circle',
+      line: { color: getCSS('--text-muted'), width: 1, dash: 'dot' },
+      showlegend: false,
+    });
+  }
+
+  traces.push({ x: pList.map((p) => p.re), y: pList.map((p) => p.im), type: 'scatter', mode: 'markers', name: 'Poles', marker: { symbol: 'x', size: 10, color: getCSS('--color-unstable') } });
+  traces.push({ x: zList.map((z) => z.re), y: zList.map((z) => z.im), type: 'scatter', mode: 'markers', name: 'Zeros', marker: { symbol: 'circle-open', size: 10, color: getCSS('--color-accent') } });
+
   const layout = PLOTLY_LAYOUT_BASE();
+  if (isDiscrete) {
+    layout.yaxis = { ...layout.yaxis, scaleanchor: 'x', scaleratio: 1 };
+    layout.xaxis = { ...layout.xaxis, title: 'Real (z-plane)' };
+  }
   layout.showlegend = targetId === 'chart-active';
   if (layout.showlegend) layout.legend = compactLegend();
-  Plotly.react(targetId, [pTrace, zTrace], layout, { responsive: true, displayModeBar: false });
+  Plotly.react(targetId, traces, layout, { responsive: true, displayModeBar: false });
 }
 
 function renderComparisonChart() {

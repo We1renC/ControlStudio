@@ -1,6 +1,6 @@
 import { TransferFunction } from './control-studio/js/control/transfer-function.js';
 import { DiscreteTransferFunction } from './control-studio/js/control/discrete-transfer-function.js';
-import { discreteStepResponse } from './control-studio/js/analysis/discrete-response.js';
+import { discreteStepResponse, discreteImpulseResponse } from './control-studio/js/analysis/discrete-response.js';
 import { impulseResponse, rampResponse, simulateTimeResponse, stepResponse } from './control-studio/js/analysis/time-response.js';
 import { nyquistData, autoFreqRange, nicholsData, nyquistEncirclements } from './control-studio/js/analysis/frequency-response.js';
 import { rootLocusAsymptotes } from './control-studio/js/analysis/root-locus.js';
@@ -11,6 +11,7 @@ import { designLagCompensator, designLeadCompensator, leadLagTransferFunction } 
 import { parsePolyString } from './control-studio/js/utils/format.js';
 import { zpkToTransferFunction, parseRootsString, parseComplexRoot } from './control-studio/js/control/zpk.js';
 import { polydiv, polymul } from './control-studio/js/math/polynomial.js';
+import { c2dTustin, c2dZOH } from './control-studio/js/control/c2d.js';
 import { matRank } from './control-studio/js/math/matrix.js';
 
 try {
@@ -277,17 +278,119 @@ try {
   }
   console.log('Lead/Lag compensator tests passed');
 
-  // Discrete transfer function baseline:
-  // G(z)=0.5/(1-0.5z^-1), y[k]=0.5u[k]+0.5y[k-1], unit step -> 1-0.5^(k+1).
+  // ── Discrete Case 1: first-order baseline + impulse response ──────────────
+  // G(z)=0.5/(1-0.5z^-1), step: y[k]=1-0.5^(k+1), impulse: y[k]=0.5^(k+1)
   const discrete = new DiscreteTransferFunction([0.5], [1, -0.5], 0.1);
   if (!discrete.isStable()) throw new Error('Discrete pole at 0.5 should be stable');
-  assertNear('Discrete DC gain', discrete.dcGain(), 1);
-  assertNear('Discrete pole', discrete.poles()[0].re, 0.5, 1e-9);
-  const discreteStep = discreteStepResponse(discrete, { sampleCount: 6, amplitude: 1 });
-  const expectedDiscreteY = [0.5, 0.75, 0.875, 0.9375, 0.96875, 0.984375];
-  expectedDiscreteY.forEach((expected, idx) => assertNear(`Discrete step y[${idx}]`, discreteStep.y[idx], expected, 1e-12));
-  assertNear('Discrete sample time', discreteStep.t[1], 0.1, 1e-12);
-  console.log('Discrete transfer function tests passed');
+  assertNear('D1 DC gain', discrete.dcGain(), 1);
+  assertNear('D1 pole re', discrete.poles()[0].re, 0.5, 1e-9);
+  const d1Step = discreteStepResponse(discrete, { sampleCount: 6, amplitude: 1 });
+  [0.5, 0.75, 0.875, 0.9375, 0.96875, 0.984375].forEach((e, k) =>
+    assertNear(`D1 step y[${k}]`, d1Step.y[k], e, 1e-12));
+  assertNear('D1 sample time', d1Step.t[1], 0.1, 1e-12);
+  const d1Imp = discreteImpulseResponse(discrete, { sampleCount: 6, amplitude: 1 });
+  [0.5, 0.25, 0.125, 0.0625, 0.03125, 0.015625].forEach((e, k) =>
+    assertNear(`D1 impulse y[${k}]`, d1Imp.y[k], e, 1e-12));
+
+  // ── Discrete Case 2: second-order, two real stable poles ──────────────────
+  // G(z)=1/(1-0.75z^-1+0.125z^-2), poles at 0.5 and 0.25
+  // Analytical step: y[k] = 8/3 - 2*(0.5)^k + (1/3)*(0.25)^k
+  const disc2 = new DiscreteTransferFunction([1], [1, -0.75, 0.125], 0.1);
+  if (!disc2.isStable()) throw new Error('D2 poles inside unit circle should be stable');
+  assertNear('D2 DC gain', disc2.dcGain(), 8 / 3, 1e-9);
+  const d2Poles = disc2.poles().map((p) => p.re).sort((a, b) => b - a);
+  assertNear('D2 pole[0]', d2Poles[0], 0.5, 1e-9);
+  assertNear('D2 pole[1]', d2Poles[1], 0.25, 1e-9);
+  const d2Step = discreteStepResponse(disc2, { sampleCount: 5, amplitude: 1 });
+  [0, 1, 2, 3, 4].forEach((k) => {
+    const expected = 8 / 3 - 2 * Math.pow(0.5, k) + (1 / 3) * Math.pow(0.25, k);
+    assertNear(`D2 step y[${k}]`, d2Step.y[k], expected, 1e-9);
+  });
+
+  // ── Discrete Case 3: second-order, complex conjugate poles (underdamped) ──
+  // G(z)=0.25/(1-0.6z^-1+0.25z^-2), poles at 0.3±0.4j (|poles|=0.5)
+  // Step response computed via difference equation: y[k]=0.25u[k]+0.6y[k-1]-0.25y[k-2]
+  const disc3 = new DiscreteTransferFunction([0.25], [1, -0.6, 0.25], 0.05);
+  if (!disc3.isStable()) throw new Error('D3 complex poles inside unit circle should be stable');
+  assertNear('D3 DC gain', disc3.dcGain(), 0.25 / 0.65, 1e-9);
+  const d3Poles = disc3.poles();
+  assertNear('D3 pole re', d3Poles[0].re, 0.3, 1e-9);
+  assertNear('D3 pole |im|', Math.abs(d3Poles[0].im), 0.4, 1e-9);
+  assertNear('D3 pole magnitude', Math.hypot(d3Poles[0].re, d3Poles[0].im), 0.5, 1e-9);
+  const d3Step = discreteStepResponse(disc3, { sampleCount: 5, amplitude: 1 });
+  [0.25, 0.40, 0.4275, 0.4065, 0.387025].forEach((e, k) =>
+    assertNear(`D3 step y[${k}]`, d3Step.y[k], e, 1e-9));
+
+  // ── Discrete Case 4: unstable system ──────────────────────────────────────
+  // G(z)=1/(1-1.2z^-1), pole at 1.2 (outside unit circle)
+  // Step response: y[k]=sum_{i=0}^{k} 1.2^i — diverges
+  const discUnstable = new DiscreteTransferFunction([1], [1, -1.2], 0.1);
+  if (discUnstable.isStable()) throw new Error('D4 pole at 1.2 should be unstable');
+  assertNear('D4 pole re', discUnstable.poles()[0].re, 1.2, 1e-9);
+  const d4Step = discreteStepResponse(discUnstable, { sampleCount: 6, amplitude: 1 });
+  assertNear('D4 step y[0]', d4Step.y[0], 1.0, 1e-12);
+  assertNear('D4 step y[5]', d4Step.y[5], 9.92992, 1e-9);
+  if (d4Step.y[5] <= d4Step.y[0]) throw new Error('D4 unstable step response should diverge');
+
+  // ── Discrete Case 5: system with explicit zero ────────────────────────────
+  // G(z)=(0.5-0.3z^-1)/(1-0.5z^-1), zero at 0.6, pole at 0.5, DC gain=0.4
+  const disc5 = new DiscreteTransferFunction([0.5, -0.3], [1, -0.5], 0.1);
+  if (!disc5.isStable()) throw new Error('D5 pole at 0.5 should be stable');
+  assertNear('D5 DC gain', disc5.dcGain(), 0.4, 1e-9);
+  assertNear('D5 zero re', disc5.zeros()[0].re, 0.6, 1e-9);
+  assertNear('D5 pole re', disc5.poles()[0].re, 0.5, 1e-9);
+  const d5Step = discreteStepResponse(disc5, { sampleCount: 5, amplitude: 1 });
+  [0.5, 0.45, 0.425, 0.4125, 0.40625].forEach((e, k) =>
+    assertNear(`D5 step y[${k}]`, d5Step.y[k], e, 1e-9));
+
+  console.log('Discrete transfer function tests passed (5 cases)');
+
+  // ── C2D Case 1: Tustin on G(s)=1/(s+1), Ts=0.1 ────────────────────────────
+  // G_d(z) = (1/21)(1+z^-1) / (1 - 19/21 z^-1); DC gain must equal G(0)=1
+  const sys1c = new TransferFunction([1], [1, 1]);
+  const tustin1 = c2dTustin(sys1c, 0.1);
+  assertNear('Tustin1 DC gain', tustin1.dcGain(), 1, 1e-9);
+  if (!tustin1.isStable()) throw new Error('Tustin1 discretized G(s)=1/(s+1) should be stable');
+  assertNear('Tustin1 num[0]', tustin1.num[0], 1 / 21, 1e-9);
+  assertNear('Tustin1 num[1]', tustin1.num[1], 1 / 21, 1e-9);
+  assertNear('Tustin1 den[1]', tustin1.den[1], -19 / 21, 1e-9);
+  assertNear('Tustin1 Ts', tustin1.sampleTime, 0.1, 1e-12);
+
+  // ── C2D Case 2: Tustin on G(s)=1/(s^2+3s+2), Ts=0.05 ────────────────────
+  // G(0)=0.5; Tustin must preserve DC gain
+  const sys2c = new TransferFunction([1], [1, 3, 2]);
+  const tustin2 = c2dTustin(sys2c, 0.05);
+  assertNear('Tustin2 DC gain', tustin2.dcGain(), 0.5, 1e-9);
+  if (!tustin2.isStable()) throw new Error('Tustin2 discretized 2nd-order should be stable');
+  if (tustin2.poles().length !== 2) throw new Error('Tustin2 should have 2 poles');
+
+  // ── C2D Case 3: ZOH on G(s)=1/(s+1), Ts=0.1 ─────────────────────────────
+  // Standard ZOH: G_ZOH(z) = (1-zp)·z^-1 / (1 - zp·z^-1)
+  // num=[0, (1-zp)], den=[1, -zp]; y[k] = y_c(k·Ts) = 1 - e^(-k·Ts)
+  const zoh1 = c2dZOH(sys1c, 0.1);
+  const expectedZp = Math.exp(-0.1);
+  assertNear('ZOH1 DC gain', zoh1.dcGain(), 1, 1e-9);
+  assertNear('ZOH1 pole', zoh1.poles()[0].re, expectedZp, 1e-9);
+  assertNear('ZOH1 num[0]', zoh1.num[0], 0, 1e-12);
+  assertNear('ZOH1 num[1]', zoh1.num[1], (1 - expectedZp), 1e-9);
+  if (!zoh1.isStable()) throw new Error('ZOH1 should be stable');
+
+  // ── C2D Case 3b: ZOH step response matches continuous y_c(k·Ts) ──────────
+  // G(s)=1/(s+1): y_c(t) = 1 - e^(-t); ZOH must sample this exactly
+  const zoh1Step = discreteStepResponse(zoh1, { sampleCount: 6, amplitude: 1 });
+  for (let k = 0; k < 6; k++) {
+    const yContinuous = 1 - Math.exp(-k * 0.1);
+    assertNear(`ZOH step y[${k}] vs continuous`, zoh1Step.y[k], yContinuous, 1e-9);
+  }
+
+  // ── C2D Case 4: Tustin and ZOH agree on DC gain ──────────────────────────
+  const sys3c = new TransferFunction([2], [1, 2]);
+  const tustin3 = c2dTustin(sys3c, 0.05);
+  const zoh3 = c2dZOH(sys3c, 0.05);
+  assertNear('C2D DC gain match (Tustin)', tustin3.dcGain(), sys3c.dcGain(), 1e-9);
+  assertNear('C2D DC gain match (ZOH)', zoh3.dcGain(), sys3c.dcGain(), 1e-9);
+
+  console.log('C2D (Tustin/ZOH) tests passed');
 
   console.log('Tests Passed!');
 } catch (e) {

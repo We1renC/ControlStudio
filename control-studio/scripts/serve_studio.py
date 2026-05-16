@@ -6,7 +6,7 @@ import argparse
 import os
 
 
-ROOT_DIR = Path("/Users/w.rc/nvdiaOSsupport/control-studio")
+ROOT_DIR = Path(__file__).resolve().parent.parent
 
 
 def parse_args():

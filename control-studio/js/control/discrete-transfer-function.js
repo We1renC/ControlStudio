@@ -9,7 +9,7 @@ export class DiscreteTransferFunction {
   constructor(num, den, sampleTime = 1) {
     if (!Array.isArray(num) || num.length === 0) num = [1];
     if (!Array.isArray(den) || den.length === 0) den = [1];
-    this.num = trimPoly(num.map(Number));
+    this.num = num.map(Number);
     this.den = trimPoly(den.map(Number));
     this.sampleTime = Number(sampleTime);
     if (!Number.isFinite(this.sampleTime) || this.sampleTime <= 0) {

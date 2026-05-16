@@ -9,13 +9,10 @@ function normalizeDiscreteOptions(options = {}) {
   };
 }
 
-export function discreteStepResponse(sys, options = {}) {
-  const config = normalizeDiscreteOptions(options);
+function runDifferenceEquation(sys, u, sampleCount) {
   const t = [];
   const y = [];
-  const u = new Array(config.sampleCount).fill(config.amplitude);
-
-  for (let k = 0; k < config.sampleCount; k += 1) {
+  for (let k = 0; k < sampleCount; k += 1) {
     let yk = 0;
     for (let i = 0; i < sys.num.length; i += 1) {
       if (k - i >= 0) yk += sys.num[i] * u[k - i];
@@ -26,6 +23,20 @@ export function discreteStepResponse(sys, options = {}) {
     t.push(k * sys.sampleTime);
     y.push(yk);
   }
+  return { t, y };
+}
 
+export function discreteStepResponse(sys, options = {}) {
+  const config = normalizeDiscreteOptions(options);
+  const u = new Array(config.sampleCount).fill(config.amplitude);
+  const { t, y } = runDifferenceEquation(sys, u, config.sampleCount);
+  return { t, y, options: config };
+}
+
+export function discreteImpulseResponse(sys, options = {}) {
+  const config = normalizeDiscreteOptions(options);
+  const u = new Array(config.sampleCount).fill(0);
+  u[0] = config.amplitude;
+  const { t, y } = runDifferenceEquation(sys, u, config.sampleCount);
   return { t, y, options: config };
 }
