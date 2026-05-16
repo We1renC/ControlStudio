@@ -602,6 +602,7 @@ function refreshAllCharts() {
   renderRootLocus(state.plant);
   renderPoleZeroMap(sys);
   renderComparisonChart();
+  scheduleSmokeDiagnostics();
 }
 
 function setComparisonVisibility() {
@@ -946,9 +947,11 @@ function renderComparisonChart() {
   layout.legend = compactLegend();
   if (traces.length === 0) {
     Plotly.purge('chart-compare');
+    scheduleSmokeDiagnostics();
     return;
   }
   Plotly.react('chart-compare', traces, layout, { responsive: true, displayModeBar: false });
+  scheduleSmokeDiagnostics();
 }
 
 function renderComparisonSummary() {
@@ -1390,4 +1393,95 @@ function exportChartPNG() {
   });
 }
 
+function plotDiagnostics(id) {
+  const el = document.getElementById(id);
+  if (!el) return { id, exists: false };
+  const rect = el.getBoundingClientRect();
+  const fullData = Array.isArray(el._fullData) ? el._fullData : [];
+  const layout = el._fullLayout || {};
+  return {
+    id,
+    exists: true,
+    visible: rect.width > 0 && rect.height > 0,
+    width: Math.round(rect.width),
+    height: Math.round(rect.height),
+    traces: fullData.length,
+    traceNames: fullData.map((trace) => trace.name).filter(Boolean),
+    legend: Boolean(layout.showlegend),
+  };
+}
+
+function controlStudioSmokeState() {
+  const errorEl = document.getElementById('error-msg');
+  const sys = state.showClosedLoop ? (state.closedLoop || state.plant) : state.plant;
+  const response = sys ? currentResponseData(sys) : null;
+  return {
+    systemType: state.systemType,
+    responseType: state.responseType,
+    activePlot: state.activePlot,
+    showClosedLoop: state.showClosedLoop,
+    plantFormula: state.plant?.toString?.() || null,
+    closedLoopFormula: state.closedLoop?.toString?.() || null,
+    controllerFormula: state.controller?.toTransferFunction?.().toString?.() || null,
+    stabilityText: document.getElementById('stability-indicator')?.innerText.trim() || null,
+    equationText: {
+      system: document.getElementById('system-equation')?.innerText.trim() || '',
+      controller: document.getElementById('controller-equation')?.innerText.trim() || '',
+      loop: document.getElementById('loop-equation')?.innerText.trim() || '',
+    },
+    plots: {
+      active: plotDiagnostics('chart-active'),
+      rootLocus: plotDiagnostics('chart-rlocus'),
+      poleZero: plotDiagnostics('chart-pzmap'),
+      compare: plotDiagnostics('chart-compare'),
+    },
+    responseLength: response?.t?.length || 0,
+    snapshotCount: state.comparisonSnapshots.length,
+    compareVisible: document.getElementById('compare-section')?.classList.contains('active') || false,
+    errorVisible: errorEl?.style.display !== 'none',
+    errorText: errorEl?.textContent || '',
+  };
+}
+
+function runControlStudioSmoke() {
+  const requiredPlots = ['active', 'rootLocus', 'poleZero'];
+  const diagnostics = controlStudioSmokeState();
+  const failures = [];
+  if (!diagnostics.plantFormula) failures.push('missing plant formula');
+  if (!diagnostics.closedLoopFormula) failures.push('missing closed-loop formula');
+  if (diagnostics.responseLength < 10) failures.push('response data has too few samples');
+  requiredPlots.forEach((key) => {
+    const plot = diagnostics.plots[key];
+    if (!plot.exists || !plot.visible) failures.push(`${key} plot is not visible`);
+    if (plot.traces < 1) failures.push(`${key} plot has no traces`);
+  });
+  if (!diagnostics.plots.active.legend) failures.push('active plot legend is disabled');
+  if (!diagnostics.equationText.system.includes('G(s)')) failures.push('system equation is not rendered');
+  if (!diagnostics.equationText.controller.includes('C(s)')) failures.push('controller equation is not rendered');
+  if (!diagnostics.equationText.loop.includes('T(s)')) failures.push('closed-loop equation is not rendered');
+  return { ok: failures.length === 0, failures, diagnostics };
+}
+
+function writeSmokeDiagnostics() {
+  const result = runControlStudioSmoke();
+  let marker = document.getElementById('control-studio-smoke-state');
+  if (!marker) {
+    marker = document.createElement('script');
+    marker.id = 'control-studio-smoke-state';
+    marker.type = 'application/json';
+    document.body.appendChild(marker);
+  }
+  marker.textContent = JSON.stringify(result);
+  document.documentElement.dataset.controlStudioSmokeOk = result.ok ? 'true' : 'false';
+  document.documentElement.dataset.controlStudioSmokeFailures = result.failures.join('; ');
+}
+
+function scheduleSmokeDiagnostics() {
+  window.setTimeout(writeSmokeDiagnostics, 0);
+}
+
 window.toggleTheme = toggleTheme;
+window.ControlStudioSmoke = {
+  getState: controlStudioSmokeState,
+  run: runControlStudioSmoke,
+};
