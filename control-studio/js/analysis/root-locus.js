@@ -2,7 +2,7 @@
  * root-locus.js — Root locus computation
  * Traces how poles of 1 + K·G(s) = 0 move as K varies.
  */
-import { polyroots, polyadd, polyscale, polymul, polysub, polyderiv, polyvalReal } from '../math/polynomial.js?v=p3';
+import { polyroots, polyadd, polyscale, polymul, polysub, polyderiv, polyvalReal } from '../math/polynomial.js?v=p4';
 
 /**
  * Compute root locus data.
@@ -154,8 +154,12 @@ function denominatorPolesNearby(sys, s) {
  * @returns {{ K: number, omega: number }[]}
  */
 export function rootLocusJwCrossings(sys, kMax = 1e4, samples = 400) {
+  // Logarithmic spacing: fine resolution near K=0 where low-gain crossings hide
+  const kMin = 1e-3;
   const kSweep = [];
-  for (let i = 1; i <= samples; i++) kSweep.push((kMax * i) / samples);
+  for (let i = 0; i < samples; i++) {
+    kSweep.push(kMin * Math.pow(kMax / kMin, i / (samples - 1)));
+  }
   const branches = sortRootLocusBranches(kSweep.map((k) => polyroots(polyadd(sys.den, polyscale(sys.num, k)))));
   const crossings = [];
   const n = branches[0]?.length || 0;

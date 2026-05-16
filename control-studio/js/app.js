@@ -7,12 +7,12 @@ import { compensatorDescription, designLagCompensator, designLeadCompensator, le
 import { impulseResponse, rampResponse, stepResponse } from './analysis/time-response.js';
 import { discreteStepResponse } from './analysis/discrete-response.js';
 import { bodeData, nyquistData, autoFreqRange, nicholsData, nyquistEncirclements } from './analysis/frequency-response.js';
-import { rootLocusData, rootLocusAsymptotes, rootLocusBreakPoints, rootLocusJwCrossings, sortRootLocusBranches } from './analysis/root-locus.js?v=p3';
+import { rootLocusData, rootLocusAsymptotes, rootLocusBreakPoints, rootLocusJwCrossings, sortRootLocusBranches } from './analysis/root-locus.js?v=p4';
 import { stabilityMargins, stepInfo, routhTable } from './control/stability.js';
 import { parsePolyString, fmtNum, fmtDeg, fmtDB, fmtTime, fmtPercent } from './utils/format.js';
 import { zpkToTransferFunction, parseRootsString } from './control/zpk.js';
 import { c2dTustin, c2dZOH } from './control/c2d.js';
-import { polyadd, polyscale, polyroots } from './math/polynomial.js?v=p3';
+import { polyadd, polyscale, polyroots } from './math/polynomial.js?v=p4';
 import { BlockEditor } from './editor/editor.js';
 
 // ============================================================
