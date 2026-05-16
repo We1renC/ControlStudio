@@ -53,12 +53,15 @@ const state = {
     D: '0',
   },
   comparisonSnapshots: [],
+  analysisSource: 'local',
+  apiAnalysis: { status: 'idle', message: '', lastResult: null, diff: null },
   theme: 'dark',
   view: 'dashboard',
   editor: null,
 };
 
 const SESSION_STORAGE_KEY = 'control-studio-session-v1';
+let apiAnalysisRequestId = 0;
 
 // ============================================================
 // INIT
@@ -216,6 +219,11 @@ function initEventListeners() {
   });
 
   document.getElementById('btn-ai-advisor')?.addEventListener('click', requestAIAdvice);
+  document.getElementById('analysis-source')?.addEventListener('change', (e) => {
+    state.analysisSource = e.target.value || 'local';
+    saveSessionToStorage();
+    updateStabilityPanel();
+  });
   document.getElementById('btn-apply')?.addEventListener('click', updateSystem);
   document.getElementById('rl-k-slider')?.addEventListener('input', (e) => updateRlocusGain(parseFloat(e.target.value)));
   document.getElementById('btn-design-poles')?.addEventListener('click', computeDesignTargetPoles);
@@ -235,6 +243,7 @@ function initEventListeners() {
   document.getElementById('btn-load-project')?.addEventListener('click', () => document.getElementById('project-file-input')?.click());
   document.getElementById('btn-export-json')?.addEventListener('click', () => exportCurrentResult('json'));
   document.getElementById('btn-export-csv')?.addEventListener('click', () => exportCurrentResult('csv'));
+  document.getElementById('btn-export-report')?.addEventListener('click', exportMarkdownReport);
   document.getElementById('btn-export-png')?.addEventListener('click', exportChartPNG);
   document.getElementById('project-file-input')?.addEventListener('change', loadProjectFile);
   document.getElementById('btn-save-snapshot')?.addEventListener('click', saveComparisonSnapshot);
@@ -1177,6 +1186,7 @@ function updateStabilityPanel() {
     ind.className = `status-pill ${status}`;
     ind.innerHTML = `<span class="status-dot"></span> ${label}`;
     renderStabilityAnalysis(stability);
+    scheduleApiAnalysis({ margins, info, stability });
 
     // Routh-Hurwitz table
     const routhEl = document.getElementById('routh-table-body');
@@ -1201,6 +1211,153 @@ function updateStabilityPanel() {
   } catch (err) {
     console.error("穩定性分析面板刷新出錯:", err);
   }
+}
+
+function buildAnalysisRequestPayload() {
+  const simulation = {
+    mode: state.showClosedLoop ? 'closed_loop' : 'open_loop',
+    inputWaveform: state.responseType,
+    ...state.simulationConfig,
+  };
+  const controller = {
+    type: 'pid',
+    Kp: state.pidParams.Kp,
+    Ki: state.pidParams.Ki,
+    Kd: state.pidParams.Kd,
+    N: state.pidParams.N,
+    compensator: { ...state.compensator },
+  };
+
+  if (state.systemType === 'ss') {
+    return {
+      system: {
+        type: 'state_space',
+        A: parseMatrixInput(document.getElementById('ss-a')?.value || ''),
+        B: parseMatrixInput(document.getElementById('ss-b')?.value || ''),
+        C: parseMatrixInput(document.getElementById('ss-c')?.value || ''),
+        D: parseMatrixInput(document.getElementById('ss-d')?.value || ''),
+      },
+      controller,
+      simulation,
+    };
+  }
+
+  return {
+    system: {
+      type: 'transfer_function',
+      num: state.plant?.num || [1],
+      den: state.plant?.den || [1],
+    },
+    controller,
+    simulation,
+  };
+}
+
+function scheduleApiAnalysis(local) {
+  const statusEl = document.getElementById('api-analysis-status');
+  if (!statusEl) return;
+  if (state.analysisSource === 'local') {
+    state.apiAnalysis = { status: 'idle', message: '', lastResult: null, diff: null };
+    statusEl.style.display = 'none';
+    return;
+  }
+
+  if (state.domain === 'z') {
+    state.apiAnalysis = {
+      status: 'not_applicable',
+      message: 'FastAPI analysis currently supports continuous-time TF/SS only.',
+      lastResult: null,
+      diff: null,
+    };
+    renderApiAnalysisStatus();
+    return;
+  }
+
+  runApiAnalysis(local);
+}
+
+async function runApiAnalysis(local) {
+  const requestId = ++apiAnalysisRequestId;
+  state.apiAnalysis = { status: 'checking', message: 'Checking FastAPI analysis...', lastResult: null, diff: null };
+  renderApiAnalysisStatus();
+
+  try {
+    const payload = buildAnalysisRequestPayload();
+    const response = await fetch('http://127.0.0.1:8770/api/control/system/response', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    const body = await response.json();
+    if (!response.ok) throw new Error(body.detail || `HTTP ${response.status}`);
+    if (requestId !== apiAnalysisRequestId) return;
+
+    const diff = compareApiMetrics(local, body.metrics || {});
+    state.apiAnalysis = {
+      status: diff.maxAbs <= 1e-3 ? 'ok' : 'diff',
+      message: diff.maxAbs <= 1e-3 ? 'FastAPI matches local metrics.' : 'FastAPI differs from local metrics.',
+      lastResult: body,
+      diff,
+    };
+    if (state.analysisSource === 'api') applyApiMetricDisplay(body.metrics || {});
+  } catch (err) {
+    if (requestId !== apiAnalysisRequestId) return;
+    state.apiAnalysis = {
+      status: 'error',
+      message: `FastAPI unavailable: ${err.message}`,
+      lastResult: null,
+      diff: null,
+    };
+  }
+  renderApiAnalysisStatus();
+}
+
+function compareApiMetrics(local, apiMetrics) {
+  const pairs = [
+    ['riseTime', local.info?.riseTime, apiMetrics.riseTime],
+    ['settlingTime', local.info?.settlingTime, apiMetrics.settlingTime],
+    ['overshoot', local.info?.overshoot, apiMetrics.overshoot],
+    ['steadyStateError', local.info?.steadyStateError, apiMetrics.steadyStateError],
+    ['phaseMargin', local.margins?.phaseMargin, apiMetrics.phaseMargin],
+    ['gainMarginDB', local.margins?.gainMarginDB, apiMetrics.gainMarginDB],
+  ];
+  const rows = pairs.map(([name, a, b]) => ({
+    name,
+    local: a,
+    api: b,
+    abs: Number.isFinite(a) && Number.isFinite(b) ? Math.abs(a - b) : (a === b ? 0 : NaN),
+  }));
+  const finite = rows.map((row) => row.abs).filter(Number.isFinite);
+  return { maxAbs: finite.length ? Math.max(...finite) : 0, rows };
+}
+
+function applyApiMetricDisplay(metrics) {
+  const riseEl = document.getElementById('rise-time');
+  const settleEl = document.getElementById('settling-time');
+  const overEl = document.getElementById('overshoot');
+  const essEl = document.getElementById('ess-value');
+  const gmEl = document.getElementById('gm-value');
+  const pmEl = document.getElementById('pm-value');
+  if (riseEl) riseEl.textContent = fmtTime(metrics.riseTime);
+  if (settleEl) settleEl.textContent = fmtTime(metrics.settlingTime);
+  if (overEl) overEl.textContent = fmtPercent(metrics.overshoot);
+  if (essEl) essEl.textContent = Number.isFinite(metrics.steadyStateError) ? metrics.steadyStateError.toPrecision(3) : '—';
+  if (gmEl) gmEl.textContent = metrics.gainMarginDB === Infinity ? '∞' : fmtDB(metrics.gainMarginDB);
+  if (pmEl) pmEl.textContent = isNaN(metrics.phaseMargin) ? '—' : fmtDeg(metrics.phaseMargin);
+}
+
+function renderApiAnalysisStatus() {
+  const statusEl = document.getElementById('api-analysis-status');
+  if (!statusEl) return;
+  const current = state.apiAnalysis;
+  statusEl.style.display = current.status === 'idle' ? 'none' : 'block';
+  const tone = current.status === 'ok' ? 'var(--color-stable)'
+    : current.status === 'checking' ? 'var(--text-secondary)'
+      : 'var(--color-unstable)';
+  const diffText = current.diff
+    ? `<div style="margin-top:6px;font-size:11px;color:var(--text-muted);">max |local-api| = ${fmtNum(current.diff.maxAbs, 4)}</div>`
+    : '';
+  statusEl.innerHTML = `<strong style="color:${tone};">${escapeHtml(current.status.toUpperCase())}</strong><div>${escapeHtml(current.message)}</div>${diffText}`;
 }
 
 function renderStabilityAnalysis(analysis) {
@@ -2196,6 +2353,7 @@ function buildProjectPayload() {
     controllerDesign: { ...state.controllerDesign },
     compensator: { ...state.compensator },
     simulationConfig: { ...state.simulationConfig },
+    analysisSource: state.analysisSource,
     comparisonSnapshots: state.comparisonSnapshots,
     theme: state.theme,
     editorDiagram: state.editor?.serialize?.() || null,
@@ -2208,6 +2366,7 @@ function applyProjectPayload(data) {
   state.systemType = data.systemType === 'ss' ? 'ss' : 'tf';
   state.responseType = data.responseType || 'step';
   state.showClosedLoop = Boolean(data.showClosedLoop);
+  state.analysisSource = data.analysisSource || 'local';
   state.comparisonSnapshots = Array.isArray(data.comparisonSnapshots) ? data.comparisonSnapshots : [];
   state.activePlot = data.activePlot || 'step';
   state.view = data.view || 'dashboard';
@@ -2256,6 +2415,8 @@ function applyProjectPayload(data) {
 
   const responseSelect = document.getElementById('response-type');
   if (responseSelect) responseSelect.value = state.responseType;
+  const analysisSelect = document.getElementById('analysis-source');
+  if (analysisSelect) analysisSelect.value = state.analysisSource;
   const loopToggle = document.getElementById('cl-toggle');
   if (loopToggle) loopToggle.checked = state.showClosedLoop;
   document.querySelectorAll('.plot-tab').forEach((tab) => {
@@ -2286,14 +2447,27 @@ function applyProjectPayload(data) {
   switchView(state.view);
 }
 
-function exportCurrentResult(format) {
+function buildCurrentAnalysisExport() {
   if (!state.plant) return;
   const sys = state.showClosedLoop ? (state.closedLoop || state.plant) : state.plant;
-  const response = currentResponseData(sys);
-  const margins = stabilityMargins(state.openLoop || state.plant);
+  const isDiscrete = state.domain === 'z' || sys instanceof DiscreteTransferFunction;
+  const response = isDiscrete
+    ? discreteStepResponse(sys, {
+      sampleCount: Math.min(state.simulationConfig.sampleCount || 200, 500),
+      amplitude: state.simulationConfig.amplitude || 1,
+    })
+    : currentResponseData(sys);
+  const margins = isDiscrete ? {
+    gainMarginDB: Infinity,
+    phaseMargin: NaN,
+  } : stabilityMargins(state.openLoop || state.plant);
   const info = stepInfo(response.t, response.y);
-  const payload = {
+  const stability = analyzeStability(sys, { domain: state.domain, margins });
+  return {
+    version: 2,
+    exportedAt: new Date().toISOString(),
     systemType: state.systemType,
+    domain: state.domain,
     responseType: state.responseType,
     mode: state.showClosedLoop ? 'closed_loop' : 'open_loop',
     transferFunction: {
@@ -2312,17 +2486,79 @@ function exportCurrentResult(format) {
       overshoot: info.overshoot,
       steadyStateError: info.steadyStateError ?? null,
     },
+    stability,
+    apiAnalysis: { ...state.apiAnalysis, lastResult: undefined },
     response,
   };
+}
 
+function exportCurrentResult(format) {
+  const payload = buildCurrentAnalysisExport();
+  if (!payload) return;
   const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
   if (format === 'csv') {
     const rows = ['time,response'];
-    response.t.forEach((t, idx) => rows.push(`${t},${response.y[idx]}`));
+    payload.response.t.forEach((t, idx) => rows.push(`${t},${payload.response.y[idx]}`));
     downloadFile(`control-response-${timestamp}.csv`, 'text/csv;charset=utf-8', rows.join('\n'));
     return;
   }
   downloadFile(`control-analysis-${timestamp}.json`, 'application/json;charset=utf-8', JSON.stringify(payload, null, 2));
+}
+
+function exportMarkdownReport() {
+  const payload = buildCurrentAnalysisExport();
+  if (!payload) return;
+  const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+  downloadFile(`control-report-${timestamp}.md`, 'text/markdown;charset=utf-8', renderMarkdownReport(payload));
+}
+
+function renderMarkdownReport(payload) {
+  const metrics = payload.metrics || {};
+  const stability = payload.stability || {};
+  const recs = stability.recommendations || [];
+  return [
+    '# ControlStudio Analysis Report',
+    '',
+    `Generated: ${payload.exportedAt}`,
+    '',
+    '## System',
+    '',
+    `- Domain: ${payload.domain}-domain`,
+    `- System type: ${payload.systemType}`,
+    `- Mode: ${payload.mode}`,
+    `- Plant: ${payload.transferFunction?.formula || 'n/a'}`,
+    `- Controller: Kp=${fmtNum(payload.controller?.Kp, 4)}, Ki=${fmtNum(payload.controller?.Ki, 4)}, Kd=${fmtNum(payload.controller?.Kd, 4)}`,
+    `- Compensator: ${payload.controller?.compensator?.mode || 'none'}`,
+    '',
+    '## Metrics',
+    '',
+    `- Gain margin: ${metrics.gainMarginDB === Infinity ? 'infinity' : fmtDB(metrics.gainMarginDB)}`,
+    `- Phase margin: ${Number.isFinite(metrics.phaseMargin) ? fmtDeg(metrics.phaseMargin) : 'n/a'}`,
+    `- Rise time: ${fmtTime(metrics.riseTime)}`,
+    `- Settling time: ${fmtTime(metrics.settlingTime)}`,
+    `- Overshoot: ${fmtPercent(metrics.overshoot)}`,
+    `- Steady-state error: ${Number.isFinite(metrics.steadyStateError) ? fmtNum(metrics.steadyStateError, 6) : 'n/a'}`,
+    '',
+    '## Stability Analysis',
+    '',
+    `- Status: ${stability.status || 'unknown'}`,
+    `- Risk: ${stability.risk || 'unknown'}`,
+    `- Summary: ${stability.summary || 'n/a'}`,
+    `- Dominant pole: ${stability.dominantPole ? formatPoleForUI(stability.dominantPole, stability.domain) : 'n/a'}`,
+    `- Stability margin: ${Number.isFinite(stability.stabilityMargin) ? fmtNum(stability.stabilityMargin, 6) : 'n/a'}`,
+    `- Minimum damping ratio: ${Number.isFinite(stability.minDamping) ? fmtNum(stability.minDamping, 6) : 'n/a'}`,
+    '',
+    '## Recommendations',
+    '',
+    ...(recs.length ? recs.map((rec) => `- ${rec}`) : ['- n/a']),
+    '',
+    '## API Analysis',
+    '',
+    `- Source mode: ${state.analysisSource}`,
+    `- Status: ${payload.apiAnalysis?.status || 'idle'}`,
+    `- Message: ${payload.apiAnalysis?.message || 'n/a'}`,
+    '',
+  ].join('\n');
 }
 
 function downloadFile(name, type, content) {

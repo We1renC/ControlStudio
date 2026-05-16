@@ -125,14 +125,12 @@ Exit criteria: 已達成。
 
 | ID | Priority | Status | Item | Rationale | Dependencies | Verification |
 | --- | --- | --- | --- | --- | --- | --- |
-| CS-P6-01 | P1 | Next | Frontend analysis API toggle | 讓前端可選 local JS 或 API backend | API contract tests | 兩種模式同 payload 結果一致 |
-| CS-P6-02 | P1 | Next | API error surface in UI | API down / invalid payload 時 UI 應明確可恢復 | unified API | browser smoke |
-| CS-P6-03 | P1 | Next | Report export baseline | 先輸出 JSON/Markdown 報告 | existing export | 匯出包含 model/controller/metrics/plots metadata |
-| CS-P6-04 | P2 | Planned | Regression dashboard command | 一條命令跑 CLI/API/browser smoke | validation script | CI-like local report |
+| CS-P6-01 | P1 | Done | Frontend analysis API toggle | 讓前端可選 local JS 或 API backend | API contract tests | `analysis-source` 支援 Local JS / FastAPI / Compare Local/API |
+| CS-P6-02 | P1 | Done | API error surface in UI | API down / invalid payload 時 UI 應明確可恢復 | unified API | `api-analysis-status` 顯示 checking / ok / diff / error |
+| CS-P6-03 | P1 | Done | Report export baseline | 先輸出 JSON/Markdown 報告 | existing export | `btn-export-report` 匯出 Markdown，包含 model/controller/metrics/stability/API status |
+| CS-P6-04 | P2 | Done | Regression dashboard command | 一條命令跑 CLI/API/browser smoke | validation script | `node control-studio/scripts/control_regression_dashboard.mjs` |
 
-Exit criteria:
-- API 與 local JS 差異被可視化或記錄。
-- 任何 API failure 不會清空使用者目前專案狀態。
+Exit criteria: 已達成。
 
 ### Phase 7: State Feedback / Lyapunov / LQR
 
@@ -180,15 +178,14 @@ Exit criteria:
 
 建議後續 agent 依序做：
 
-1. `feat(control): add report export baseline`
-   - JSON/Markdown 報告包含 model/controller/metrics/plot metadata。
-
-2. `feat(control): add frontend analysis API toggle`
-   - 讓前端可選 local JS 或 FastAPI backend。
-   - 對同 payload 顯示 API/local 差異或錯誤狀態。
-
-3. `feat(control): add lyapunov stability analysis`
+1. `feat(control): add lyapunov stability analysis`
    - 先做 low-order continuous State-Space 的 `AᵀP + PA = -I`、P 正定性檢查與 UI proof panel。
+
+2. `feat(control): add state feedback scaffold`
+   - 先做 low-order SISO pole placement 與 controllability guard。
+
+3. `feat(control): add lqr baseline`
+   - 先做 2x2 / low-order CARE baseline，再補 Q/R tuning panel。
 
 ## Do Not Start Yet
 

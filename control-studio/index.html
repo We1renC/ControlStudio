@@ -471,12 +471,22 @@
             <label>Initial State Vector</label>
             <input type="text" id="sim-initial-state" placeholder="e.g. 0, 0">
           </div>
+          <div class="input-group">
+            <label>Analysis Source</label>
+            <select id="analysis-source" style="background:var(--bg-tertiary); color:var(--text-primary); border:1px solid var(--border-primary); border-radius:var(--radius-sm); padding:8px 12px; font-size:12px;">
+              <option value="local">Local JS</option>
+              <option value="api">FastAPI</option>
+              <option value="compare">Compare Local/API</option>
+            </select>
+          </div>
+          <div class="stability-summary" id="api-analysis-status" style="display:none;"></div>
           <p class="section-copy" style="margin-bottom:var(--space-4);">autosave 會保留目前模型、PID、simulation config、比較快照與視圖狀態。</p>
           <div class="button-grid">
             <button class="btn btn-sm" id="btn-save-project" style="justify-content:center;">Save Project</button>
             <button class="btn btn-sm" id="btn-load-project" style="justify-content:center;">Load Project</button>
             <button class="btn btn-sm" id="btn-export-json" style="justify-content:center;">Export JSON</button>
             <button class="btn btn-sm" id="btn-export-csv" style="justify-content:center;">Export CSV</button>
+            <button class="btn btn-sm" id="btn-export-report" style="justify-content:center;">Export Report MD</button>
             <button class="btn btn-sm" id="btn-export-png" style="justify-content:center;">Export PNG</button>
             <button class="btn btn-sm" id="btn-restore-session" style="justify-content:center;">Restore Session</button>
             <button class="btn btn-sm" id="btn-clear-session" style="justify-content:center;">Clear Session</button>

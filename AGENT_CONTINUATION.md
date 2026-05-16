@@ -129,6 +129,7 @@ git log --oneline -5
 - `control-studio` Advisor / design result 已支援 apply-back 到 controller；直接 pole-placement K computation 已移除不必要的手動 Root Locus 步驟。
 - `control-studio` 已補 z-domain interaction 與 Deadbeat gain design；UI 可 copy/apply deadbeat K。
 - `control-studio` 已補工程化 Stability Analysis summary：continuous/discrete 都可輸出 risk level、dominant pole、stability margin、damping ratio、natural frequency 與 recommendations；`test_control.js` 已覆蓋 continuous stable/unstable 與 discrete stable/unstable。
+- `control-studio` Phase 6 已補齊：Markdown report export、Local JS / FastAPI / Compare Local/API analysis source toggle、API analysis status surface、`control_regression_dashboard.mjs` 回歸 dashboard 指令。
 - `node test_control.js`、`node control-studio/scripts/verify_control_cases.mjs`、`node control-studio/scripts/verify_control_api_contract.mjs` 是目前控制系統主要驗證基線。
 - Block Diagram 目前暫時擱置，UI 入口已標示 paused；後續進階控制先走 SISO transfer function / frequency response / stability validation。
 - `control-studio` Block Editor 已補上拓撲分析（串聯 / 回授）、節點編輯（雙擊）、節點刪除、Zoom/Pan、Undo/Redo、Diagram save/load。
@@ -141,20 +142,19 @@ git log --oneline -5
 - `test_control.js` 已擴充涵蓋 ZPK、polydiv、Routh、Nichols、encirclement、asymptotes、SS Rank 測試。
 
 ## 後續可做
-1. 控制系統下一步依 `CONTROL_SYSTEM_BACKLOG.md`：先做 `feat(control): add report export baseline`。
-2. 接著做 `feat(control): add frontend analysis API toggle`，讓前端可選 local JS / FastAPI backend，並顯示差異或 API error。
-3. 再做 `feat(control): add lyapunov stability analysis`，先限 continuous low-order State-Space，預設 `Q=I`，求解 `AᵀP + PA = -Q` 並檢查 `P>0`。
-4. 接著做 `feat(control): add state feedback scaffold`，先限 low-order SISO pole placement 與 controllability guard。
-5. 再接 LQR baseline / Q-R tuning；Observer / Kalman、LQR production UI、MIMO、MPC、Robust Control 仍為後續，不要未補設計文件就直接開。
-6. Block Diagram 目前維持 paused；不要新增 block diagram 功能，除非使用者重新明確恢復。
-7. 加 `agents/openai.yaml` UI metadata。
-8. 增強 evaluator：從 heuristic 檢查升級成 judge model + golden dataset。
-9. 若 NVIDIA Build Models 更新，先更新根目錄資料檔，再同步 `skills/nvidia-model-selector/references/`。
-10. 視需求把 `search_models.py` 加上 `--top-category-summary` 或 fuzzy ranking。
-11. 若要更實用，補上本地文件切 chunk / PDF 轉圖 / OCR 結果快取。
-12. 加 parallel runner 與 leaderboard，追蹤同任務多模型輸出品質。
-13. 將 OCR/RAG 的 endpoint source 也改成完整 registry-driven，而不只傳入 model id。
-14. 補 Electron packaging 與教學模式。
+1. 控制系統下一步依 `CONTROL_SYSTEM_BACKLOG.md`：先做 `feat(control): add lyapunov stability analysis`，限 continuous low-order State-Space，預設 `Q=I`，求解 `AᵀP + PA = -Q` 並檢查 `P>0`。
+2. 接著做 `feat(control): add state feedback scaffold`，先限 low-order SISO pole placement 與 controllability guard。
+3. 再接 `feat(control): add lqr baseline` / Q-R tuning；Observer / Kalman、LQR production UI、MIMO、MPC、Robust Control 仍為後續，不要未補設計文件就直接開。
+4. 若繼續產品化，可把 Markdown report baseline 擴成報告模板編輯器與 PDF/HTML export。
+5. Block Diagram 目前維持 paused；不要新增 block diagram 功能，除非使用者重新明確恢復。
+6. 加 `agents/openai.yaml` UI metadata。
+7. 增強 evaluator：從 heuristic 檢查升級成 judge model + golden dataset。
+8. 若 NVIDIA Build Models 更新，先更新根目錄資料檔，再同步 `skills/nvidia-model-selector/references/`。
+9. 視需求把 `search_models.py` 加上 `--top-category-summary` 或 fuzzy ranking。
+10. 若要更實用，補上本地文件切 chunk / PDF 轉圖 / OCR 結果快取。
+11. 加 parallel runner 與 leaderboard，追蹤同任務多模型輸出品質。
+12. 將 OCR/RAG 的 endpoint source 也改成完整 registry-driven，而不只傳入 model id。
+13. 補 Electron packaging 與教學模式。
 
 ## 注意事項
 - 這個專案不需要 `.agent-handoff.md`。

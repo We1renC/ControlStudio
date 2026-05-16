@@ -31,6 +31,7 @@ test -f "$ROOT_DIR/control-studio/scripts/control_api.py"
 test -f "$ROOT_DIR/control-studio/scripts/control_analysis_cli.mjs"
 test -f "$ROOT_DIR/control-studio/scripts/verify_control_cases.mjs"
 test -f "$ROOT_DIR/control-studio/scripts/verify_control_api_contract.mjs"
+test -f "$ROOT_DIR/control-studio/scripts/control_regression_dashboard.mjs"
 test -f "$ROOT_DIR/control-studio/scripts/serve_studio.py"
 test -f "$ROOT_DIR/control-studio/requirements-api.txt"
 test -f "$ROOT_DIR/control-studio/js/control/state-space.js"
@@ -78,6 +79,7 @@ python3 "$ROOT_DIR/workflows/control_advisor_workflow.py" --help >/tmp/nvidia-co
 node "$ROOT_DIR/test_control.js" >/tmp/nvidia-control-test.txt
 node "$ROOT_DIR/control-studio/scripts/verify_control_cases.mjs" >/tmp/nvidia-control-verification-cases.txt
 node "$ROOT_DIR/control-studio/scripts/verify_control_api_contract.mjs" >/tmp/nvidia-control-api-contract.txt
+node "$ROOT_DIR/control-studio/scripts/control_regression_dashboard.mjs" >/tmp/nvidia-control-regression-dashboard.txt
 node "$ROOT_DIR/control-studio/scripts/control_analysis_cli.mjs" '{"system":{"type":"transfer_function","num":[1],"den":[1,1]},"controller":{"type":"pid","Kp":1,"Ki":0.5,"Kd":0.1},"simulation":{"mode":"closed_loop","inputWaveform":"step","sampleCount":20}}' >/tmp/nvidia-control-api-cli.json
 
 grep -q "bge-m3" /tmp/nvidia-model-selector-bge.md
@@ -109,6 +111,7 @@ grep -q "Discrete transfer function tests passed" /tmp/nvidia-control-test.txt
 grep -q "Nichols data points" /tmp/nvidia-control-test.txt
 grep -q "Verification fixtures passed: 5/5" /tmp/nvidia-control-verification-cases.txt
 grep -q "API contract fixtures passed: 5/5" /tmp/nvidia-control-api-contract.txt
+grep -q "ControlStudio regression dashboard: PASS" /tmp/nvidia-control-regression-dashboard.txt
 grep -q "\"response\"" /tmp/nvidia-control-api-cli.json
 grep -q "AGENT_CONTINUATION.md" "$ROOT_DIR/AGENTS.md"
 grep -q "./nv-agent plan" "$ROOT_DIR/AGENT_USAGE.md"
@@ -124,6 +127,8 @@ grep -q "Block Diagram expansion" "$ROOT_DIR/CONTROL_SYSTEM_BACKLOG.md"
 grep -q "ControlStudioSmoke" "$ROOT_DIR/control-studio/js/app.js"
 grep -q "Lead compensator 需要 0 < alpha < 1" "$ROOT_DIR/control-studio/js/app.js"
 grep -q "comparison-table" "$ROOT_DIR/control-studio/index.html"
+grep -q "btn-export-report" "$ROOT_DIR/control-studio/index.html"
+grep -q "analysis-source" "$ROOT_DIR/control-studio/index.html"
 grep -q "designLeadCompensator" "$ROOT_DIR/control-studio/js/control/compensator.js"
 grep -q "designLagCompensator" "$ROOT_DIR/control-studio/js/control/compensator.js"
 grep -q "control-advisor" "$ROOT_DIR/AGENT_CONTINUATION.md"

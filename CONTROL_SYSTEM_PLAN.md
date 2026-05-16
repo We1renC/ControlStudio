@@ -87,6 +87,10 @@
 - Comparison snapshots 與摘要
 - Controller comparison table
 - JSON / CSV / PNG 匯出
+- Markdown report export baseline
+- Frontend analysis source toggle：Local JS / FastAPI / Compare Local/API
+- API analysis status surface：checking / ok / diff / error
+- Regression dashboard command
 - Block Diagram Editor 與 diagram save/load、Undo/Redo、Zoom/Pan
 - AI 控制器建議
 - Unified FastAPI API（analysis + advisor）
@@ -97,8 +101,8 @@
 - Observer / Kalman Filter
 - Robust Control / MPC
 - 自動產生報告
-- 前端分析流程全面切到統一 API，並提供 local/API 差異顯示
-- Regression dashboard command
+- 完整自動報告編輯器 / 報告模板
+- 前端分析流程預設全面切到統一 API
 - Electron packaging / 教學模式
 
 ## 4. Scope Definition
@@ -185,8 +189,10 @@
 - Done：離散系統、C2D、z-plane、discrete Bode
 - Done：Root Locus 互動設計、ZN PID from Ku/Tu
 - Done：Closed-loop design assistant、Deadbeat gain
-- Next：將前端分析逐步切到統一 API
-- Next：Report export baseline
+- Done：Report export baseline
+- Done：Frontend local/API analysis toggle
+- Done：API error surface in UI
+- Done：Regression dashboard command
 
 ### P2
 - Planned：State Feedback / Lyapunov Stability Analysis / LQR scaffold
@@ -286,10 +292,11 @@
 
 ### Stage 2: Engineering Expansion
 - FastAPI service layer
-- 前端分析 API 化（Next）
-- Report export baseline（Next）
+- 前端分析 API 化（Local JS / FastAPI / Compare Local/API toggle）
+- Report export baseline
+- Regression dashboard command
 - Better block diagram syncing（暫時擱置，待 SISO 進階控制穩定後再恢復）
-- Status: In Progress
+- Status: Done
 
 ### Stage 3: Advanced Control
 - Lyapunov Stability Analysis
