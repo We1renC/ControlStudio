@@ -53,36 +53,52 @@
 - SISO 傳遞函數輸入
 - SISO State-Space 輸入與 transfer function 轉換
 - ZPK 輸入與複數零極點解析
+- 離散 Transfer Function，使用 z^-1 係數與 sample time
+- Continuous-to-discrete conversion：Tustin / ZOH
 - PID 參數調整
+- PID presets：Ziegler-Nichols / Cohen-Coon
+- Root Locus ultimate gain Ku/Tu 轉 Ziegler-Nichols P / PI / PID
 - Lead / Lag 補償器
+- Lead / Lag design helper
 - Step Response
 - Impulse / Ramp / Sine / Square / Pulse response
+- Discrete step / impulse response
 - Bode Plot
+- Discrete Bode Plot
 - Nyquist Plot
 - Nichols Chart
 - Root Locus
+- Root Locus break points / jω crossings / branch sorting
+- Interactive Root Locus gain picker
 - Pole-Zero Map
+- z-plane Pole-Zero Map 與 unit-circle stability metrics
 - Gain Margin / Phase Margin
 - Rise Time / Settling Time / Overshoot / Steady-State Error
 - Routh-Hurwitz table
 - Closed-loop / open-loop 基本切換
+- Closed-loop design assistant：由 overshoot / settling time 推 target poles
+- Lead design for target phase margin
+- Deadbeat gain design for z-domain
+- Advisor / design result apply-back 到 controller
+- Direct pole-placement K computation（移除手動 Root Locus 步驟）
 - Project save/load
 - Session autosave / restore
 - Comparison snapshots 與摘要
+- Controller comparison table
 - JSON / CSV / PNG 匯出
 - Block Diagram Editor 與 diagram save/load、Undo/Redo、Zoom/Pan
 - AI 控制器建議
 - Unified FastAPI API（analysis + advisor）
 
 ### 尚未完成能力
-- 離散時間系統
 - MIMO
-- State Feedback / LQR / LQG
+- State Feedback / LQR / LQG production UI
 - Observer / Kalman Filter
 - Robust Control / MPC
 - 自動產生報告
-- 前端分析流程全面切到統一 API
-- 更完整的輸入驗證與瀏覽器級回歸測試
+- 前端分析流程全面切到統一 API，並提供 local/API 差異顯示
+- Regression dashboard command
+- Electron packaging / 教學模式
 
 ## 4. Scope Definition
 
@@ -97,6 +113,10 @@
 - PID 參數滑桿調整
 - AI Advisor
 - 模擬結果匯出
+- 離散 SISO baseline
+- C2D baseline
+- Root Locus 互動設計
+- Closed-loop design assistant
 
 ### 非 MVP 範圍
 - MIMO
@@ -123,6 +143,8 @@
 - 加入專案儲存/載入
 - 比較多組參數結果
 - 支援 State-Space 與更完整的 block diagram 建模
+- 由規格設計 state feedback / LQR / observer
+- 匯出 Markdown / JSON 報告
 
 ## 6. System Architecture
 
@@ -140,30 +162,35 @@
 - Static server: Python `http.server`
 - Unified API: FastAPI (`control_api.py`)
 - AI analysis: `nv-agent` + NVIDIA model routing + unified advisor endpoint
-- Numerical engine: local JS implementations
+- Numerical engine: local JS implementations，包含 continuous TF/SS/ZPK、discrete TF、C2D、frequency response、root locus、closed-loop design assistant
 
 ### Migration Strategy
 1. 先保留現有 `control-studio/` 作為互動原型
 2. 將數值核心與 UI state 抽離成明確模組
 3. 補 FastAPI API 層，讓前後端責任清楚
 4. 視情況把重計算轉到 Python 或 WASM
+5. 前端新增 local/API analysis toggle，先比對結果再逐步切換預設路徑
 
 ## 7. MVP Backlog
 
 ### P0
-- 補前端錯誤處理與輸入驗證
-- 補瀏覽器級回歸驗證
-- 補統一 API 啟動與依賴說明
-- 補 smoke test 到更多實際使用流程
+- Done：補前端錯誤處理與輸入驗證
+- Done：補瀏覽器級回歸驗證
+- Done：補統一 API 啟動與依賴說明
+- Done：補 smoke test 到更多實際使用流程
 
 ### P1
-- 將前端分析逐步切到統一 API
-- 擴充 comparison 指標與案例管理
-- 補更多 State-Space 直接分析能力
+- Done：Controller design presets、Lead/Lag helper、comparison table
+- Done：離散系統、C2D、z-plane、discrete Bode
+- Done：Root Locus 互動設計、ZN PID from Ku/Tu
+- Done：Closed-loop design assistant、Deadbeat gain
+- Next：將前端分析逐步切到統一 API
+- Next：Report export baseline
 
 ### P2
-- 更完整 block editor 同步分析（目前暫時擱置）
-- 匯出報告
+- Planned：State Feedback / LQR scaffold
+- Planned：Observer / Kalman
+- Paused：更完整 block editor 同步分析
 
 ## 8. UI Plan
 
@@ -248,23 +275,27 @@
 - 確立啟動方式
 - 完成 smoke tests
 - 完成 MVP 邊界定義
+- Status: Done
 
 ### Stage 1: Complete MVP
 - 補輸入驗證
 - 讓 AI advisor 與前端互動更穩定
 - 補統一 API 的實際操作與回歸驗證
+- Status: Done
 
 ### Stage 2: Engineering Expansion
 - FastAPI service layer
-- 前端分析 API 化
+- 前端分析 API 化（Next）
+- Report export baseline（Next）
 - Better block diagram syncing（暫時擱置，待 SISO 進階控制穩定後再恢復）
+- Status: In Progress
 
 ### Stage 3: Advanced Control
-- MIMO
+- Low-order State Feedback / Pole Placement
 - LQR / LQG
 - Observer / Kalman
-- Robust Control
-- MPC
+- MIMO / Robust Control / MPC（延後）
+- Status: Planned
 
 ### Stage 4: Productization
 - Electron desktop packaging

@@ -7,6 +7,10 @@
 
 ## 目前狀態
 - 已建立獨立 git repo，避免被 `/Users/w.rc` 外層 git 混入。
+- 控制系統目前同步基線：
+  - Branch: `codex/control-system-latest`
+  - Latest commit: `3f77118 feat(rlocus): ZN PID tuning from ultimate gain Ku/Tu`
+  - 使用者提供的 `claude/distracted-wing-fa0639` 節點與此 commit 對齊；該 branch 另有 worktree 使用中，因此本線以 `codex/control-system-latest` 接續。
 - 已完成 NVIDIA Build Models 資料集中管理。
 - 已新增 agent 入口文件：
   - `AGENTS.md`：專案規則、標準流程、擴充規則與品質判準。
@@ -117,6 +121,14 @@ git log --oneline -5
 - `control-studio` Compare 面板已補 controller comparison table，snapshot 會保存 PM/GM/rise/settling/overshoot/ESS、controller formula、open/closed-loop formula 與 compensator config；本輪已用 in-app browser 驗證表格與 comparison plot。
 - `control-studio` 已補 Lag design helper：以 improvement factor 與 crossover 產生 lag `gain/tau/alpha`，用於提升低頻 DC gain；`test_control.js` 與 in-app browser 已驗證。
 - `control-studio` 已補離散系統核心 baseline：`DiscreteTransferFunction` 使用 z^-1 係數與 sample time，`discreteStepResponse` 用差分方程產生 step response；`test_control.js` 已用 `0.5/(1-0.5z^-1)` 驗證。
+- `control-studio` 已補離散時間 UI mode、z-plane pole-zero / unit-circle stability metrics，以及 continuous-to-discrete conversion（Tustin / ZOH）。
+- `control-studio` 已補 `discreteBodeData` 與 high-order ZOH；`test_control.js` 已覆蓋 C2D、high-order ZOH 與 discrete Bode。
+- `control-studio` Root Locus 已補 break points、jω crossings、branch sorting 與 interactive gain picker；`test_control.js` 已覆蓋 Root Locus 進階案例。
+- `control-studio` Root Locus 已補由 ultimate gain Ku/Tu 產生 Ziegler-Nichols P / PI / PID，最新 checkpoint 為 `3f77118`。
+- `control-studio` 已補 closed-loop design assistant：由 overshoot / settling time 轉 target poles，並可根據 target phase margin 產生 Lead design。
+- `control-studio` Advisor / design result 已支援 apply-back 到 controller；直接 pole-placement K computation 已移除不必要的手動 Root Locus 步驟。
+- `control-studio` 已補 z-domain interaction 與 Deadbeat gain design；UI 可 copy/apply deadbeat K。
+- `node test_control.js`、`node control-studio/scripts/verify_control_cases.mjs`、`node control-studio/scripts/verify_control_api_contract.mjs` 是目前控制系統主要驗證基線。
 - Block Diagram 目前暫時擱置，UI 入口已標示 paused；後續進階控制先走 SISO transfer function / frequency response / stability validation。
 - `control-studio` Block Editor 已補上拓撲分析（串聯 / 回授）、節點編輯（雙擊）、節點刪除、Zoom/Pan、Undo/Redo、Diagram save/load。
 - `control-studio/js/control/zpk.js` 新增 ZPK model 輸入與複數根解析。
@@ -128,17 +140,19 @@ git log --oneline -5
 - `test_control.js` 已擴充涵蓋 ZPK、polydiv、Routh、Nichols、encirclement、asymptotes、SS Rank 測試。
 
 ## 後續可做
-1. 加 `agents/openai.yaml` UI metadata。
-2. 增強 evaluator：從 heuristic 檢查升級成 judge model + golden dataset。
-3. 若 NVIDIA Build Models 更新，先更新根目錄資料檔，再同步 `skills/nvidia-model-selector/references/`。
-4. 視需求把 `search_models.py` 加上 `--top-category-summary` 或 fuzzy ranking。
-5. 若要更實用，補上本地文件切 chunk / PDF 轉圖 / OCR 結果快取。
-6. 加 parallel runner 與 leaderboard，追蹤同任務多模型輸出品質。
-7. 將 OCR/RAG 的 endpoint source 也改成完整 registry-driven，而不只傳入 model id。
-8. 補 MIMO 支援、LQR/LQG/MPC 進階控制。
-9. 補離散時間系統（z-domain）支援。
-10. 補 Electron packaging 與教學模式。
-11. 控制系統開發請依 `CONTROL_SYSTEM_BACKLOG.md` 順序推進；Block Diagram 目前維持 paused。
+1. 控制系統下一步依 `CONTROL_SYSTEM_BACKLOG.md`：先做 `feat(control): add report export baseline`。
+2. 接著做 `feat(control): add frontend analysis API toggle`，讓前端可選 local JS / FastAPI backend，並顯示差異或 API error。
+3. 再做 `feat(control): add state feedback scaffold`，先限 low-order SISO pole placement 與 controllability guard。
+4. Observer / Kalman、LQR production UI、MIMO、MPC、Robust Control 仍為後續，不要未補設計文件就直接開。
+5. Block Diagram 目前維持 paused；不要新增 block diagram 功能，除非使用者重新明確恢復。
+6. 加 `agents/openai.yaml` UI metadata。
+7. 增強 evaluator：從 heuristic 檢查升級成 judge model + golden dataset。
+8. 若 NVIDIA Build Models 更新，先更新根目錄資料檔，再同步 `skills/nvidia-model-selector/references/`。
+9. 視需求把 `search_models.py` 加上 `--top-category-summary` 或 fuzzy ranking。
+10. 若要更實用，補上本地文件切 chunk / PDF 轉圖 / OCR 結果快取。
+11. 加 parallel runner 與 leaderboard，追蹤同任務多模型輸出品質。
+12. 將 OCR/RAG 的 endpoint source 也改成完整 registry-driven，而不只傳入 model id。
+13. 補 Electron packaging 與教學模式。
 
 ## 注意事項
 - 這個專案不需要 `.agent-handoff.md`。
