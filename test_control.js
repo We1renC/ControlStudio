@@ -13,6 +13,9 @@ import { zpkToTransferFunction, parseRootsString, parseComplexRoot } from './con
 import { polydiv, polymul } from './control-studio/js/math/polynomial.js';
 import { c2dTustin, c2dZOH } from './control-studio/js/control/c2d.js';
 import { specsToTargetPoles, designLeadForPM } from './control-studio/js/control/design.js';
+import { discreteBodeData } from './control-studio/js/analysis/discrete-frequency-response.js';
+import { matExp } from './control-studio/js/math/matrix.js';
+import { tfToControllableCanonical } from './control-studio/js/control/state-space.js';
 import { matRank } from './control-studio/js/math/matrix.js';
 
 try {
@@ -467,6 +470,70 @@ try {
   if (!easy.skipped) throw new Error('Easy plant should skip lead design');
 
   console.log('Phase 4 (design specs / lead from PM) tests passed');
+
+  // ── Phase 5 matExp: e^0 = I, e^(diag(a,b)) = diag(e^a, e^b) ───────────────
+  const expI = matExp([[0, 0], [0, 0]]);
+  assertNear('matExp(0)[0][0]', expI[0][0], 1, 1e-12);
+  assertNear('matExp(0)[1][1]', expI[1][1], 1, 1e-12);
+  const expDiag = matExp([[1, 0], [0, -2]]);
+  assertNear('matExp(diag)[0][0]', expDiag[0][0], Math.exp(1), 1e-9);
+  assertNear('matExp(diag)[1][1]', expDiag[1][1], Math.exp(-2), 1e-9);
+  // Non-diagonal via similarity: A = P D P⁻¹ → e^A = P e^D P⁻¹
+  // Easy check: A = [[0,1],[-1,0]] → e^A = [[cos1, sin1],[-sin1, cos1]]
+  const expRot = matExp([[0, 1], [-1, 0]]);
+  assertNear('matExp rot [0][0]', expRot[0][0], Math.cos(1), 1e-9);
+  assertNear('matExp rot [0][1]', expRot[0][1], Math.sin(1), 1e-9);
+  assertNear('matExp rot [1][0]', expRot[1][0], -Math.sin(1), 1e-9);
+
+  // ── Phase 5 controllable canonical: G(s) = (s+1)/(s²+3s+2) ────────────────
+  const ccf = tfToControllableCanonical([1, 1], [1, 3, 2]);
+  if (ccf.A.length !== 2) throw new Error('CCF A should be 2x2');
+  assertPolyNear('CCF A row 0', ccf.A[0], [0, 1]);
+  assertPolyNear('CCF A row 1', ccf.A[1], [-2, -3]);
+  assertPolyNear('CCF B', ccf.B.map(r => r[0]), [0, 1]);
+  assertPolyNear('CCF C', ccf.C[0], [1, 1]);
+
+  // ── Phase 5 high-order ZOH: G(s)=1/(s²+3s+2) at Ts=0.1 ────────────────────
+  // 2nd-order ZOH must preserve DC gain and stability
+  const gc2 = new TransferFunction([1], [1, 3, 2]);
+  const dc2 = c2dZOH(gc2, 0.1);
+  assertNear('ZOH 2nd DC gain', dc2.dcGain(), gc2.dcGain(), 1e-6);
+  if (!dc2.isStable()) throw new Error('ZOH of stable 2nd-order should be stable');
+  // y[0] must be 0 (one-sample delay from ZOH)
+  const dc2Step = discreteStepResponse(dc2, { sampleCount: 120 });
+  assertNear('ZOH 2nd y[0]', dc2Step.y[0], 0, 1e-12);
+  // Steady-state matches DC gain (after >10 time constants)
+  assertNear('ZOH 2nd y[∞]', dc2Step.y[dc2Step.y.length - 1], gc2.dcGain(), 5e-3);
+
+  // ── Phase 5 high-order ZOH: G(s)=1/(s³+6s²+11s+6) at Ts=0.05 ─────────────
+  const gc3 = new TransferFunction([1], [1, 6, 11, 6]);
+  const dc3 = c2dZOH(gc3, 0.05);
+  if (dc3.den.length !== 4) throw new Error(`3rd-order ZOH should yield 3rd-order DTF, got ${dc3.den.length - 1}`);
+  if (!dc3.isStable()) throw new Error('ZOH of stable 3rd-order should be stable');
+  assertNear('ZOH 3rd DC gain', dc3.dcGain(), gc3.dcGain(), 1e-6);
+
+  // ── Phase 5 discrete Bode: G(z) = 1 has 0 dB / 0° everywhere ──────────────
+  const unityZ = new DiscreteTransferFunction([1], [1], 0.1);
+  const bodeU = discreteBodeData(unityZ, { samples: 50 });
+  for (let i = 0; i < bodeU.magDB.length; i++) {
+    assertNear(`unity Bode magDB[${i}]`, bodeU.magDB[i], 0, 1e-9);
+    assertNear(`unity Bode phase[${i}]`, bodeU.phaseDeg[i], 0, 1e-9);
+  }
+  assertNear('Nyquist freq', bodeU.omegaNyquist, Math.PI / 0.1, 1e-12);
+
+  // Discrete Bode of G(z) = z⁻¹ (pure unit delay): |G|=1, phase=-ωTs (rad)→deg
+  const delayZ = new DiscreteTransferFunction([0, 1], [1], 0.1);
+  const bodeD = discreteBodeData(delayZ, { samples: 100 });
+  for (let i = 0; i < bodeD.mag.length; i++) {
+    assertNear(`delay |G|[${i}]`, bodeD.mag[i], 1, 1e-9);
+  }
+  // Phase at ω = π/(2Ts): θ = -π/2 rad = -90°
+  const halfIdx = Math.floor(bodeD.w.length * 0.5);
+  // Check that phase is roughly linear: ph ≈ -ωTs * 180/π
+  const expectedPh = -bodeD.w[halfIdx] * 0.1 * 180 / Math.PI;
+  assertNear('delay phase mid', bodeD.phaseDeg[halfIdx], expectedPh, 1e-3);
+
+  console.log('Phase 5 (matExp / CCF / high-order ZOH / discrete Bode) tests passed');
 
   console.log('Tests Passed!');
 } catch (e) {

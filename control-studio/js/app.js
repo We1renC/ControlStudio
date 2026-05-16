@@ -7,6 +7,7 @@ import { compensatorDescription, designLagCompensator, designLeadCompensator, le
 import { impulseResponse, rampResponse, stepResponse } from './analysis/time-response.js';
 import { discreteStepResponse } from './analysis/discrete-response.js';
 import { bodeData, nyquistData, autoFreqRange, nicholsData, nyquistEncirclements } from './analysis/frequency-response.js';
+import { discreteBodeData } from './analysis/discrete-frequency-response.js?v=p5';
 import { rootLocusData, rootLocusAsymptotes, rootLocusBreakPoints, rootLocusJwCrossings, sortRootLocusBranches } from './analysis/root-locus.js?v=p4';
 import { stabilityMargins, stepInfo, routhTable } from './control/stability.js';
 import { parsePolyString, fmtNum, fmtDeg, fmtDB, fmtTime, fmtPercent } from './utils/format.js';
@@ -914,7 +915,15 @@ function refreshAllCharts() {
   if (!state.plant) return;
 
   if (state.domain === 'z') {
-    renderDiscreteStepChart();
+    if (state.activePlot === 'bode') {
+      renderBodePlot(state.plant, 'chart-active');
+      updateActivePlotHeader('Bode (DTFT)', `z-domain · Ts=${state.plant.sampleTime}s`);
+    } else if (state.activePlot === 'pzmap') {
+      renderPoleZeroMap(state.plant, 'chart-active');
+      updateActivePlotHeader('Pole-Zero Map', 'Z-Plane');
+    } else {
+      renderDiscreteStepChart();
+    }
     renderPoleZeroMap(state.plant, 'chart-pzmap');
     scheduleSmokeDiagnostics();
     return;
@@ -959,7 +968,7 @@ function updateDomainUI() {
   document.querySelectorAll('.s-domain-only').forEach((el) => {
     el.style.display = isZ ? 'none' : '';
   });
-  if (isZ && ['bode', 'nyquist', 'nichols', 'rlocus'].includes(state.activePlot)) {
+  if (isZ && ['nyquist', 'nichols', 'rlocus'].includes(state.activePlot)) {
     state.activePlot = 'step';
     document.querySelectorAll('.plot-tab').forEach((t) => {
       t.classList.toggle('active', t.dataset.plot === 'step');
@@ -1114,16 +1123,28 @@ function renderTimeResponse(sys, targetId = 'chart-active') {
 }
 
 function renderBodePlot(sys, targetId = 'chart-active') {
-  const range = autoFreqRange(sys);
-  const data = bodeData(sys, range.wMin, range.wMax);
+  const isDiscrete = sys instanceof DiscreteTransferFunction;
+  const data = isDiscrete
+    ? discreteBodeData(sys, { samples: 500 })
+    : (() => { const r = autoFreqRange(sys); return bodeData(sys, r.wMin, r.wMax); })();
   const mTrace = { x: data.w, y: data.magDB, type: 'scatter', mode: 'lines', name: 'Magnitude (dB)', line: { color: getCSS('--color-accent'), width: 2 } };
   const pTrace = { x: data.w, y: data.phaseDeg, type: 'scatter', mode: 'lines', name: 'Phase (deg)', line: { color: getCSS('--color-secondary'), width: 2 }, yaxis: 'y2' };
+  const traces = [mTrace, pTrace];
+  if (isDiscrete) {
+    // Mark Nyquist frequency π/Ts as a vertical dashed line
+    traces.push({
+      x: [data.omegaNyquist, data.omegaNyquist], y: [Math.min(...data.magDB), Math.max(...data.magDB)],
+      type: 'scatter', mode: 'lines', line: { color: getCSS('--color-unstable'), width: 1, dash: 'dash' },
+      name: `Nyquist π/Ts=${fmtNum(data.omegaNyquist)}`,
+      hoverinfo: 'skip',
+    });
+  }
   const layout = PLOTLY_LAYOUT_BASE();
   layout.xaxis.type = 'log';
   layout.yaxis2 = { overlaying: 'y', side: 'right', gridcolor: 'transparent' };
   layout.showlegend = true;
   layout.legend = compactLegend();
-  Plotly.react(targetId, [mTrace, pTrace], layout, { responsive: true, displayModeBar: false });
+  Plotly.react(targetId, traces, layout, { responsive: true, displayModeBar: false });
 }
 
 function renderNyquistPlot(sys, targetId = 'chart-active') {
@@ -1184,8 +1205,9 @@ function renderActivePlot(sys) {
       renderTimeResponse(sys, 'chart-active');
     },
     bode: () => {
-      updateActivePlotHeader('Bode Plot', 'Frequency-Domain');
-      renderBodePlot(loopSys, 'chart-active');
+      const isZ = state.domain === 'z';
+      updateActivePlotHeader('Bode Plot', isZ ? `z-domain (DTFT) · Ts=${state.plant.sampleTime}s` : 'Frequency-Domain');
+      renderBodePlot(isZ ? state.plant : loopSys, 'chart-active');
     },
     nyquist: () => {
       updateActivePlotHeader('Nyquist Plot', 'Frequency-Domain');

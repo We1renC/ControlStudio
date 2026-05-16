@@ -3,6 +3,8 @@
  * Supports Tustin (bilinear) for any-order TF, and ZOH for first-order TF.
  */
 import { polymul, polyscale } from '../math/polynomial.js';
+import { matCreate, matExp } from '../math/matrix.js';
+import { stateSpaceToTransferFunction, tfToControllableCanonical } from './state-space.js';
 import { DiscreteTransferFunction } from './discrete-transfer-function.js';
 
 function validateTs(Ts) {
@@ -62,14 +64,52 @@ export function c2dTustin(sys, Ts) {
  */
 export function c2dZOH(sys, Ts) {
   validateTs(Ts);
-  if (sys.den.length !== 2) throw new Error('ZOH 目前僅支援一階系統（分母次數 = 1）');
-  if (sys.num.length > 2) throw new Error('ZOH：分子次數不得超過分母次數');
-  const b0 = sys.num[sys.num.length - 1];
-  const a1 = sys.den[0];
-  const a0 = sys.den[1];
-  if (Math.abs(a1) < 1e-12) throw new Error('ZOH：分母首項係數不可為 0');
-  if (Math.abs(a0) < 1e-12) throw new Error('ZOH：純積分器請改用 Tustin');
-  const zp = Math.exp((-Ts * a0) / a1);
-  const gain = (b0 / a0) * (1 - zp);
-  return new DiscreteTransferFunction([0, gain], [1, -zp], Ts);
+  if (sys.num.length > sys.den.length) throw new Error('ZOH：分子次數不得超過分母次數');
+  const n = sys.den.length - 1;
+  if (n === 0) throw new Error('ZOH 需要至少一階系統');
+
+  // Fast path for first-order: closed-form (also robust for pure integrators)
+  if (n === 1) {
+    const a1 = sys.den[0];
+    const a0 = sys.den[1];
+    const b0 = sys.num[sys.num.length - 1];
+    if (Math.abs(a1) < 1e-12) throw new Error('ZOH：分母首項係數不可為 0');
+    if (Math.abs(a0) < 1e-12) throw new Error('ZOH：純積分器請改用 Tustin');
+    const zp = Math.exp((-Ts * a0) / a1);
+    const gain = (b0 / a0) * (1 - zp);
+    return new DiscreteTransferFunction([0, gain], [1, -zp], Ts);
+  }
+
+  // General N-th order: SS path with augmented matrix exponential
+  //   [A_d  B_d]     ( [A  B]·Ts )
+  //   [ 0    I ] = exp( [0  0]    )
+  const { A, B, C, D } = tfToControllableCanonical(sys.num, sys.den);
+  const aug = matCreate(n + 1, n + 1, 0);
+  for (let i = 0; i < n; i++) {
+    for (let j = 0; j < n; j++) aug[i][j] = A[i][j] * Ts;
+    aug[i][n] = B[i][0] * Ts;
+  }
+  const expAug = matExp(aug);
+  const Ad = matCreate(n, n);
+  const Bd = matCreate(n, 1);
+  for (let i = 0; i < n; i++) {
+    for (let j = 0; j < n; j++) Ad[i][j] = expAug[i][j];
+    Bd[i][0] = expAug[i][n];
+  }
+  const tf = stateSpaceToTransferFunction(Ad, Bd, C, D);
+  return tfToDtf(tf, Ts);
+}
+
+/**
+ * Convert a polynomial-form TransferFunction to a DiscreteTransferFunction.
+ * The high-degree-first coefficient array is identical to the z⁻¹ representation
+ * after padding the numerator with leading zeros to match denominator length
+ * and normalising the leading denominator coefficient to 1.
+ */
+function tfToDtf(tf, Ts) {
+  const denArr = tf.den.map(Number);
+  let numArr = tf.num.map(Number);
+  const diff = denArr.length - numArr.length;
+  if (diff > 0) numArr = [...new Array(diff).fill(0), ...numArr];
+  return new DiscreteTransferFunction(numArr, denArr, Ts);
 }

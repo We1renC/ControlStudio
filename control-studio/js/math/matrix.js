@@ -88,6 +88,42 @@ export function matInverse(A) {
   return aug.map(row => row.slice(n));
 }
 
+/**
+ * Matrix exponential via scaling-and-squaring + truncated Taylor series.
+ * Accurate for small / moderate matrices; sufficient for control workbench use.
+ */
+export function matExp(A) {
+  const n = A.length;
+  // Infinity-norm of A
+  let norm = 0;
+  for (let i = 0; i < n; i++) {
+    let row = 0;
+    for (let j = 0; j < n; j++) row += Math.abs(A[i][j]);
+    if (row > norm) norm = row;
+  }
+  const k = norm < 1 ? 0 : Math.ceil(Math.log2(norm) + 1);
+  const factor = 1 / Math.pow(2, k);
+  const X = matScale(A, factor);
+  // Taylor series for e^X with X scaled to have ||X|| < 1
+  let result = matIdentity(n);
+  let term = matIdentity(n);
+  for (let i = 1; i <= 60; i++) {
+    term = matScale(matMul(term, X), 1 / i);
+    result = matAdd(result, term);
+    let tnorm = 0;
+    for (let r = 0; r < n; r++) {
+      for (let c = 0; c < n; c++) {
+        const v = Math.abs(term[r][c]);
+        if (v > tnorm) tnorm = v;
+      }
+    }
+    if (tnorm < 1e-18) break;
+  }
+  // Square k times to undo scaling
+  for (let i = 0; i < k; i++) result = matMul(result, result);
+  return result;
+}
+
 /** Calculate the rank of a matrix using Gaussian elimination */
 export function matRank(A) {
   if (!A || !A.length) return 0;

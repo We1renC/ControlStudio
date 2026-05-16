@@ -117,6 +117,43 @@ export function stateSpaceToTransferFunction(A, B, C, D) {
   return new TransferFunction(num, den);
 }
 
+/**
+ * Convert a continuous TF to controllable canonical state-space form.
+ * Assumes strictly proper (numerator degree < denominator degree).
+ *
+ *   A = [[0,1,0,…,0], [0,0,1,…,0], …, [-a0,-a1,…,-a_{n-1}]]
+ *   B = [[0],…,[0],[1]]
+ *   C = [b0, b1, …, b_m, 0,…,0]  (1 × n)
+ *   D = 0
+ *
+ * num/den are high-degree-first arrays.
+ */
+export function tfToControllableCanonical(num, den) {
+  if (!Array.isArray(num) || !Array.isArray(den) || den.length < 2) {
+    throw new Error('tfToControllableCanonical 需要有效的 num / den');
+  }
+  const lead = den[0];
+  if (Math.abs(lead) < 1e-15) throw new Error('den 首項係數不可為 0');
+  const denN = den.map((c) => c / lead);
+  const numN = num.map((c) => c / lead);
+  const n = denN.length - 1;
+  const m = numN.length - 1;
+  if (m >= n) throw new Error('tfToControllableCanonical 目前僅支援嚴格 proper (deg num < deg den)');
+
+  const A = Array.from({ length: n }, () => new Array(n).fill(0));
+  for (let i = 0; i < n - 1; i++) A[i][i + 1] = 1;
+  for (let j = 0; j < n; j++) A[n - 1][j] = -denN[n - j];
+
+  const B = Array.from({ length: n }, () => [0]);
+  B[n - 1][0] = 1;
+
+  const C = [new Array(n).fill(0)];
+  for (let i = 0; i <= m; i++) C[0][i] = numN[m - i];
+
+  const D = [[0]];
+  return { A, B, C, D };
+}
+
 export function controllabilityMatrix(A, B) {
   const n = A.length;
   if (!n) return [];
