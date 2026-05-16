@@ -1,4 +1,6 @@
 import { TransferFunction } from './control-studio/js/control/transfer-function.js';
+import { DiscreteTransferFunction } from './control-studio/js/control/discrete-transfer-function.js';
+import { discreteStepResponse } from './control-studio/js/analysis/discrete-response.js';
 import { impulseResponse, rampResponse, simulateTimeResponse, stepResponse } from './control-studio/js/analysis/time-response.js';
 import { nyquistData, autoFreqRange, nicholsData, nyquistEncirclements } from './control-studio/js/analysis/frequency-response.js';
 import { rootLocusAsymptotes } from './control-studio/js/analysis/root-locus.js';
@@ -274,6 +276,18 @@ try {
     throw new Error('Lag helper should increase low-frequency gain');
   }
   console.log('Lead/Lag compensator tests passed');
+
+  // Discrete transfer function baseline:
+  // G(z)=0.5/(1-0.5z^-1), y[k]=0.5u[k]+0.5y[k-1], unit step -> 1-0.5^(k+1).
+  const discrete = new DiscreteTransferFunction([0.5], [1, -0.5], 0.1);
+  if (!discrete.isStable()) throw new Error('Discrete pole at 0.5 should be stable');
+  assertNear('Discrete DC gain', discrete.dcGain(), 1);
+  assertNear('Discrete pole', discrete.poles()[0].re, 0.5, 1e-9);
+  const discreteStep = discreteStepResponse(discrete, { sampleCount: 6, amplitude: 1 });
+  const expectedDiscreteY = [0.5, 0.75, 0.875, 0.9375, 0.96875, 0.984375];
+  expectedDiscreteY.forEach((expected, idx) => assertNear(`Discrete step y[${idx}]`, discreteStep.y[idx], expected, 1e-12));
+  assertNear('Discrete sample time', discreteStep.t[1], 0.1, 1e-12);
+  console.log('Discrete transfer function tests passed');
 
   console.log('Tests Passed!');
 } catch (e) {

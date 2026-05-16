@@ -36,6 +36,8 @@ test -f "$ROOT_DIR/control-studio/requirements-api.txt"
 test -f "$ROOT_DIR/control-studio/js/control/state-space.js"
 test -f "$ROOT_DIR/control-studio/js/control/zpk.js"
 test -f "$ROOT_DIR/control-studio/js/control/compensator.js"
+test -f "$ROOT_DIR/control-studio/js/control/discrete-transfer-function.js"
+test -f "$ROOT_DIR/control-studio/js/analysis/discrete-response.js"
 test -f "$ROOT_DIR/control-studio/js/verification/verification-cases.js"
 test -f "$ROOT_DIR/test_control.js"
 test -f "$ROOT_DIR/cli/nv_agent_cli.py"
@@ -103,6 +105,7 @@ grep -q "Polydiv test passed" /tmp/nvidia-control-test.txt
 grep -q "Routh-Hurwitz test passed" /tmp/nvidia-control-test.txt
 grep -q "PID preset tests passed" /tmp/nvidia-control-test.txt
 grep -q "Lead/Lag compensator tests passed" /tmp/nvidia-control-test.txt
+grep -q "Discrete transfer function tests passed" /tmp/nvidia-control-test.txt
 grep -q "Nichols data points" /tmp/nvidia-control-test.txt
 grep -q "Verification fixtures passed: 5/5" /tmp/nvidia-control-verification-cases.txt
 grep -q "API contract fixtures passed: 5/5" /tmp/nvidia-control-api-contract.txt

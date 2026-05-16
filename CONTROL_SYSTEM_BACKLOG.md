@@ -67,8 +67,8 @@ Exit criteria:
 
 | ID | Priority | Status | Item | Rationale | Dependencies | Verification |
 | --- | --- | --- | --- | --- | --- | --- |
-| CS-P2-01 | P1 | Planned | Discrete transfer function model | 需要支援 `G(z)`、sample time、z-plane poles/zeros | TF parser extension | 可輸入 `z^-1` 或係數形式，poles/zeros 正確 |
-| CS-P2-02 | P1 | Planned | Discrete step response | 離散系統不能沿用 continuous RK4 | discrete TF model | 與已知 difference equation 結果一致 |
+| CS-P2-01 | P1 | Done | Discrete transfer function model | 需要支援 `G(z)`、sample time、z-plane poles/zeros | TF parser extension | `DiscreteTransferFunction` 支援 z^-1 係數、sample time、poles、zeros、DC gain、unit-circle stability |
+| CS-P2-02 | P1 | Done | Discrete step response | 離散系統不能沿用 continuous RK4 | discrete TF model | `test_control.js` 驗證 `G(z)=0.5/(1-0.5z^-1)` 的差分方程 step response |
 | CS-P2-03 | P2 | Planned | z-plane pole-zero map | 需要 unit circle 與 stability 判定 | Plotly pzmap | poles inside unit circle = stable |
 | CS-P2-04 | P2 | Planned | Continuous-to-discrete basic conversion | 支援 ZOH / Tustin 基礎轉換 | sample time UI | 簡單一階系統轉換公式可驗 |
 
@@ -141,8 +141,9 @@ Exit criteria:
 
 建議後續 agent 依序做：
 
-1. `feat(control): add discrete transfer-function baseline`
-   - 先補資料模型與差分方程驗證，不急著擴大 UI。
+1. `feat(control): add discrete UI mode`
+   - 在 Model/Sim 面板加入 discrete transfer-function 輸入與 sample time。
+   - UI 明確顯示 `z-domain`，並避免誤用 continuous RK4。
 
 2. `feat(control): add frontend analysis API toggle`
    - 讓前端可選 local JS 或 FastAPI backend。
