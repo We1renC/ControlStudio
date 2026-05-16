@@ -134,3 +134,190 @@ export function routhTable(den) {
   return { table, stable: signChanges === 0, signChanges };
 }
 
+/**
+ * Engineering stability summary for continuous or discrete SISO systems.
+ *
+ * Continuous systems are stable when every pole is in the open LHP.
+ * Discrete systems are stable when every pole is inside the unit circle.
+ */
+export function analyzeStability(sys, options = {}) {
+  if (!sys || typeof sys.poles !== 'function') {
+    return {
+      domain: options.domain || 's',
+      status: 'unknown',
+      risk: 'unknown',
+      summary: 'No system model available.',
+      poles: [],
+      dominantPole: null,
+      recommendations: ['Create or update a plant model before running stability analysis.'],
+    };
+  }
+
+  const domain = options.domain || (Number.isFinite(sys.sampleTime) ? 'z' : 's');
+  const poles = sys.poles();
+  const margins = options.margins || null;
+  const poleDetails = domain === 'z'
+    ? poles.map((pole) => discretePoleMetrics(pole, sys.sampleTime))
+    : poles.map(continuousPoleMetrics);
+  const dominantPole = poleDetails.length
+    ? poleDetails.reduce((best, pole) => pole.dominance > best.dominance ? pole : best, poleDetails[0])
+    : null;
+
+  const unstablePoles = poleDetails.filter((pole) => pole.stability === 'unstable');
+  const marginalPoles = poleDetails.filter((pole) => pole.stability === 'marginal');
+  const minDamping = finiteMin(poleDetails.map((pole) => pole.dampingRatio));
+  const minDistance = finiteMin(poleDetails.map((pole) => pole.stabilityMargin));
+
+  let status = 'stable';
+  if (unstablePoles.length > 0) status = 'unstable';
+  else if (marginalPoles.length > 0) status = 'marginal';
+
+  const warnings = [];
+  const recommendations = [];
+
+  if (status === 'unstable') {
+    warnings.push(domain === 'z'
+      ? `${unstablePoles.length} pole(s) outside the unit circle.`
+      : `${unstablePoles.length} pole(s) in the right-half plane.`);
+    recommendations.push('Retune the controller or reduce loop gain before using this design.');
+  } else if (status === 'marginal') {
+    warnings.push(domain === 'z'
+      ? `${marginalPoles.length} pole(s) on or very close to the unit circle.`
+      : `${marginalPoles.length} pole(s) on or very close to the imaginary axis.`);
+    recommendations.push('Add damping or move the dominant poles farther inside the stable region.');
+  }
+
+  if (status === 'stable') {
+    if (domain === 's' && Number.isFinite(minDistance) && minDistance < 0.1) {
+      warnings.push('Dominant pole is close to the imaginary axis.');
+      recommendations.push('Increase damping or shift closed-loop poles farther left.');
+    }
+    if (domain === 'z' && Number.isFinite(minDistance) && minDistance < 0.05) {
+      warnings.push('Dominant pole is close to the unit circle.');
+      recommendations.push('Increase damping or use a smaller effective closed-loop pole radius.');
+    }
+  }
+
+  if (Number.isFinite(minDamping) && minDamping < 0.35 && status !== 'unstable') {
+    warnings.push('Low damping ratio may lead to oscillatory response.');
+    recommendations.push('Use derivative action, Lead compensation, or reduce aggressive gain.');
+  }
+
+  if (margins && domain === 's') {
+    if (Number.isFinite(margins.phaseMargin) && margins.phaseMargin < 30) {
+      warnings.push('Phase margin is below 30 deg.');
+      recommendations.push('Raise phase margin before deployment; target at least 45-60 deg.');
+    } else if (Number.isFinite(margins.phaseMargin) && margins.phaseMargin < 45) {
+      warnings.push('Phase margin is below the common 45 deg engineering target.');
+      recommendations.push('Consider Lead compensation or lower crossover frequency.');
+    }
+
+    if (Number.isFinite(margins.gainMarginDB) && margins.gainMarginDB < 6) {
+      warnings.push('Gain margin is below 6 dB.');
+      recommendations.push('Reduce loop gain or add compensation to improve robustness.');
+    }
+  }
+
+  if (recommendations.length === 0) {
+    recommendations.push(status === 'stable'
+      ? 'Design has acceptable pole stability. Validate against actuator limits and disturbances next.'
+      : 'Review plant/controller parameters and rerun stability analysis.');
+  }
+
+  const risk = classifyRisk(status, warnings, margins, domain);
+  const summary = buildStabilitySummary({ status, risk, domain, dominantPole, warnings });
+
+  return {
+    domain,
+    status,
+    risk,
+    summary,
+    poles: poleDetails,
+    dominantPole,
+    minDamping,
+    stabilityMargin: minDistance,
+    warnings,
+    recommendations: [...new Set(recommendations)],
+  };
+}
+
+function continuousPoleMetrics(pole) {
+  const omegaN = Math.hypot(pole.re, pole.im);
+  const dampingRatio = omegaN > 1e-12 ? -pole.re / omegaN : NaN;
+  const stabilityMargin = -pole.re;
+  let stability = 'stable';
+  if (pole.re > 1e-8) stability = 'unstable';
+  else if (Math.abs(pole.re) <= 1e-8) stability = 'marginal';
+  return {
+    re: pole.re,
+    im: pole.im,
+    magnitude: omegaN,
+    dampingRatio,
+    naturalFrequency: omegaN,
+    decayRate: -pole.re,
+    timeConstant: pole.re < -1e-12 ? -1 / pole.re : Infinity,
+    stabilityMargin,
+    stability,
+    dominance: pole.re,
+  };
+}
+
+function discretePoleMetrics(pole, sampleTime = 1) {
+  const radius = Math.hypot(pole.re, pole.im);
+  const angle = Math.atan2(pole.im, pole.re);
+  const Ts = Number.isFinite(sampleTime) && sampleTime > 0 ? sampleTime : 1;
+  const sigma = radius > 1e-15 ? Math.log(radius) / Ts : -Infinity;
+  const omegaD = angle / Ts;
+  const omegaN = Math.hypot(sigma, omegaD);
+  const dampingRatio = Number.isFinite(omegaN) && omegaN > 1e-12 ? -sigma / omegaN : NaN;
+  const stabilityMargin = 1 - radius;
+  let stability = 'stable';
+  if (radius > 1 + 1e-8) stability = 'unstable';
+  else if (Math.abs(radius - 1) <= 1e-8) stability = 'marginal';
+  return {
+    re: pole.re,
+    im: pole.im,
+    magnitude: radius,
+    dampingRatio,
+    naturalFrequency: omegaN,
+    decayRate: -sigma,
+    timeConstant: sigma < -1e-12 ? -1 / sigma : Infinity,
+    stabilityMargin,
+    stability,
+    equivalentSigma: sigma,
+    equivalentOmegaD: omegaD,
+    dominance: radius,
+  };
+}
+
+function finiteMin(values) {
+  const finite = values.filter(Number.isFinite);
+  return finite.length ? Math.min(...finite) : NaN;
+}
+
+function classifyRisk(status, warnings, margins, domain) {
+  if (status === 'unstable') return 'critical';
+  if (status === 'marginal') return 'high';
+  if (warnings.length >= 2) return 'medium';
+  if (warnings.length === 1) return 'watch';
+  if (domain === 's' && margins && Number.isFinite(margins.phaseMargin) && margins.phaseMargin >= 60) return 'low';
+  return 'low';
+}
+
+function buildStabilitySummary({ status, risk, domain, dominantPole, warnings }) {
+  const region = domain === 'z' ? 'unit circle' : 'left-half plane';
+  if (status === 'unstable') return `Unstable: at least one pole violates the ${region} criterion.`;
+  if (status === 'marginal') return `Marginal: pole(s) are on the stability boundary.`;
+  const dominant = dominantPole ? formatPoleSummary(dominantPole, domain) : 'no dominant pole';
+  if (warnings.length > 0) return `Stable but ${risk}: ${dominant}; ${warnings[0]}`;
+  return `Stable: all poles satisfy the ${region} criterion; dominant pole ${dominant}.`;
+}
+
+function formatPoleSummary(pole, domain) {
+  const re = Number.isFinite(pole.re) ? pole.re.toFixed(3) : String(pole.re);
+  const imAbs = Number.isFinite(pole.im) ? Math.abs(pole.im).toFixed(3) : String(Math.abs(pole.im));
+  const sign = pole.im >= 0 ? '+' : '-';
+  const base = `${re} ${sign} j${imAbs}`;
+  if (domain === 'z') return `z = ${base} (|z|=${pole.magnitude.toFixed(3)})`;
+  return `s = ${base}`;
+}

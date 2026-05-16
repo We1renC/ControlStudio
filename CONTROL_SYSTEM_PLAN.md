@@ -74,6 +74,7 @@
 - z-plane Pole-Zero Map 與 unit-circle stability metrics
 - Gain Margin / Phase Margin
 - Rise Time / Settling Time / Overshoot / Steady-State Error
+- 工程化 Stability Analysis summary：risk level、dominant pole、stability margin、damping ratio、natural frequency、recommendations
 - Routh-Hurwitz table
 - Closed-loop / open-loop 基本切換
 - Closed-loop design assistant：由 overshoot / settling time 推 target poles

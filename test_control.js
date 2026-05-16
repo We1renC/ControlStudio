@@ -5,7 +5,7 @@ import { impulseResponse, rampResponse, simulateTimeResponse, stepResponse } fro
 import { bodeData, nyquistData, autoFreqRange, nicholsData, nyquistEncirclements } from './control-studio/js/analysis/frequency-response.js';
 import { rootLocusAsymptotes, rootLocusBreakPoints, rootLocusJwCrossings, sortRootLocusBranches } from './control-studio/js/analysis/root-locus.js';
 import { stateSpaceToTransferFunction, controllabilityMatrix, observabilityMatrix } from './control-studio/js/control/state-space.js';
-import { stepInfo, stabilityMargins, routhTable } from './control-studio/js/control/stability.js';
+import { stepInfo, stabilityMargins, routhTable, analyzeStability } from './control-studio/js/control/stability.js';
 import { PIDController } from './control-studio/js/control/pid.js';
 import { designLagCompensator, designLeadCompensator, leadLagTransferFunction } from './control-studio/js/control/compensator.js';
 import { parsePolyString } from './control-studio/js/utils/format.js';
@@ -144,6 +144,16 @@ try {
   const routh2 = routhTable([1, -1, 1]);
   if (routh2.stable) throw new Error('Routh should be unstable for s^2-s+1');
   console.log('Routh-Hurwitz test passed');
+
+  // Stability analysis summary
+  const stableAnalysis = analyzeStability(sys1, { domain: 's', margins: stabilityMargins(sys1) });
+  if (stableAnalysis.status !== 'stable') throw new Error(`Expected stable analysis, got ${stableAnalysis.status}`);
+  if (stableAnalysis.risk !== 'low') throw new Error(`Expected low risk for 1/(s+1), got ${stableAnalysis.risk}`);
+  assertNear('Stable dominant pole', stableAnalysis.dominantPole.re, -1, 1e-9);
+  const unstableAnalysis = analyzeStability(sys2, { domain: 's', margins: stabilityMargins(sys2) });
+  if (unstableAnalysis.status !== 'unstable') throw new Error(`Expected unstable analysis, got ${unstableAnalysis.status}`);
+  if (unstableAnalysis.risk !== 'critical') throw new Error(`Expected critical risk, got ${unstableAnalysis.risk}`);
+  console.log('Stability analysis summary tests passed');
 
   // autoFreqRange
   const range = autoFreqRange(sys1);
@@ -286,6 +296,10 @@ try {
   // G(z)=0.5/(1-0.5z^-1), step: y[k]=1-0.5^(k+1), impulse: y[k]=0.5^(k+1)
   const discrete = new DiscreteTransferFunction([0.5], [1, -0.5], 0.1);
   if (!discrete.isStable()) throw new Error('Discrete pole at 0.5 should be stable');
+  const discreteAnalysis = analyzeStability(discrete, { domain: 'z' });
+  if (discreteAnalysis.status !== 'stable') throw new Error(`Expected stable discrete analysis, got ${discreteAnalysis.status}`);
+  assertNear('Discrete dominant radius', discreteAnalysis.dominantPole.magnitude, 0.5, 1e-9);
+  assertNear('Discrete stability margin', discreteAnalysis.stabilityMargin, 0.5, 1e-9);
   assertNear('D1 DC gain', discrete.dcGain(), 1);
   assertNear('D1 pole re', discrete.poles()[0].re, 0.5, 1e-9);
   const d1Step = discreteStepResponse(discrete, { sampleCount: 6, amplitude: 1 });
@@ -330,6 +344,9 @@ try {
   // Step response: y[k]=sum_{i=0}^{k} 1.2^i — diverges
   const discUnstable = new DiscreteTransferFunction([1], [1, -1.2], 0.1);
   if (discUnstable.isStable()) throw new Error('D4 pole at 1.2 should be unstable');
+  const discUnstableAnalysis = analyzeStability(discUnstable, { domain: 'z' });
+  if (discUnstableAnalysis.status !== 'unstable') throw new Error('D4 analysis should be unstable');
+  if (discUnstableAnalysis.risk !== 'critical') throw new Error('D4 analysis should be critical risk');
   assertNear('D4 pole re', discUnstable.poles()[0].re, 1.2, 1e-9);
   const d4Step = discreteStepResponse(discUnstable, { sampleCount: 6, amplitude: 1 });
   assertNear('D4 step y[0]', d4Step.y[0], 1.0, 1e-12);

@@ -128,6 +128,7 @@ git log --oneline -5
 - `control-studio` 已補 closed-loop design assistant：由 overshoot / settling time 轉 target poles，並可根據 target phase margin 產生 Lead design。
 - `control-studio` Advisor / design result 已支援 apply-back 到 controller；直接 pole-placement K computation 已移除不必要的手動 Root Locus 步驟。
 - `control-studio` 已補 z-domain interaction 與 Deadbeat gain design；UI 可 copy/apply deadbeat K。
+- `control-studio` 已補工程化 Stability Analysis summary：continuous/discrete 都可輸出 risk level、dominant pole、stability margin、damping ratio、natural frequency 與 recommendations；`test_control.js` 已覆蓋 continuous stable/unstable 與 discrete stable/unstable。
 - `node test_control.js`、`node control-studio/scripts/verify_control_cases.mjs`、`node control-studio/scripts/verify_control_api_contract.mjs` 是目前控制系統主要驗證基線。
 - Block Diagram 目前暫時擱置，UI 入口已標示 paused；後續進階控制先走 SISO transfer function / frequency response / stability validation。
 - `control-studio` Block Editor 已補上拓撲分析（串聯 / 回授）、節點編輯（雙擊）、節點刪除、Zoom/Pan、Undo/Redo、Diagram save/load。

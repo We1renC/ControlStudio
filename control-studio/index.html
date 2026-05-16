@@ -91,6 +91,17 @@
     .button-grid { display:grid; grid-template-columns: repeat(2, 1fr); gap:var(--space-2); }
     .metric-grid { display:grid; grid-template-columns: 1fr 1fr; gap:var(--space-2); font-size:11px; color:var(--text-muted); }
     .metric-grid strong { display:block; color:var(--text-primary); font-size:13px; font-weight:600; margin-top:2px; }
+    .stability-analysis { margin-top: var(--space-4); display: grid; gap: var(--space-2); }
+    .stability-summary { border: 1px solid var(--border-primary); border-radius: var(--radius-sm); padding: 10px 12px; background: rgba(15,17,23,0.28); font-size: 12px; line-height: 1.5; color: var(--text-secondary); }
+    .stability-summary strong { color: var(--text-primary); }
+    .stability-risk { display: inline-flex; align-items: center; gap: 6px; padding: 3px 8px; border-radius: 999px; font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.4px; }
+    .stability-risk.low { background: rgba(16,185,129,0.14); color: var(--color-stable); }
+    .stability-risk.watch { background: rgba(245,158,11,0.14); color: #f59e0b; }
+    .stability-risk.medium { background: rgba(236,72,153,0.14); color: var(--color-secondary); }
+    .stability-risk.high, .stability-risk.critical { background: rgba(239,68,68,0.14); color: var(--color-unstable); }
+    .stability-pole-grid { display:grid; grid-template-columns: 1fr 1fr; gap: var(--space-2); font-size: 11px; color: var(--text-muted); }
+    .stability-pole-grid strong { display:block; color: var(--text-primary); font-size: 12px; margin-top: 2px; overflow-wrap: anywhere; }
+    .stability-list { margin: 0; padding-left: 16px; color: var(--text-secondary); font-size: 11px; line-height: 1.55; }
     .toolbar-inline { display:flex; justify-content:space-between; align-items:center; gap:var(--space-2); margin-bottom:var(--space-4); }
     .sys-tab-group { display: flex; background: var(--bg-tertiary); padding: 3px; border-radius: var(--radius-md); margin-bottom: var(--space-4); }
     .sys-tab { flex: 1; text-align: center; padding: 6px; font-size: 12px; font-weight: 600; cursor: pointer; border-radius: var(--radius-sm); color: var(--text-secondary); }
@@ -486,6 +497,24 @@
           <div style="margin-top:var(--space-4); display:flex; justify-content:space-between; align-items:center;">
             <span style="font-size:12px; color:var(--text-secondary);">Current Status</span>
             <div id="stability-indicator" class="status-pill stable"><span class="status-dot"></span> STABLE</div>
+          </div>
+          <div class="stability-analysis" id="stability-analysis">
+            <div class="stability-summary">
+              <div style="display:flex;justify-content:space-between;gap:8px;align-items:center;margin-bottom:6px;">
+                <strong>Stability Analysis</strong>
+                <span id="stability-risk" class="stability-risk low">LOW</span>
+              </div>
+              <div id="stability-summary-text">—</div>
+            </div>
+            <div class="stability-pole-grid">
+              <div>Dominant Pole<strong id="dominant-pole">—</strong></div>
+              <div>Stability Margin<strong id="pole-margin">—</strong></div>
+              <div>Damping Ratio<strong id="damping-ratio">—</strong></div>
+              <div>Natural Frequency<strong id="natural-frequency">—</strong></div>
+            </div>
+            <ul class="stability-list" id="stability-recommendations">
+              <li>—</li>
+            </ul>
           </div>
           <details style="margin-top:var(--space-4);">
             <summary style="font-size:11px; color:var(--text-muted); cursor:pointer;">Routh-Hurwitz Table</summary>

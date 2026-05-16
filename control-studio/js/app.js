@@ -9,7 +9,7 @@ import { discreteStepResponse } from './analysis/discrete-response.js';
 import { bodeData, nyquistData, autoFreqRange, nicholsData, nyquistEncirclements } from './analysis/frequency-response.js';
 import { discreteBodeData } from './analysis/discrete-frequency-response.js?v=p5';
 import { rootLocusData, rootLocusAsymptotes, rootLocusBreakPoints, rootLocusJwCrossings, sortRootLocusBranches } from './analysis/root-locus.js?v=p4';
-import { stabilityMargins, stepInfo, routhTable } from './control/stability.js';
+import { stabilityMargins, stepInfo, routhTable, analyzeStability } from './control/stability.js';
 import { parsePolyString, fmtNum, fmtDeg, fmtDB, fmtTime, fmtPercent } from './utils/format.js';
 import { zpkToTransferFunction, parseRootsString } from './control/zpk.js';
 import { c2dTustin, c2dZOH } from './control/c2d.js?v=p5';
@@ -1139,11 +1139,23 @@ function updateStabilityPanel() {
 
   try {
     // 1. Calculate Metrics
-    const margins = stabilityMargins(ol);
+    const isDiscrete = state.domain === 'z' || sys instanceof DiscreteTransferFunction;
+    const margins = isDiscrete ? {
+      gainMargin: Infinity,
+      gainMarginDB: Infinity,
+      phaseMargin: NaN,
+      gainCrossover: NaN,
+      phaseCrossover: NaN,
+    } : stabilityMargins(ol);
     if (gmEl) gmEl.textContent = margins.gainMarginDB === Infinity ? '∞' : fmtDB(margins.gainMarginDB);
     if (pmEl) pmEl.textContent = isNaN(margins.phaseMargin) ? '—' : fmtDeg(margins.phaseMargin);
 
-    const resp = currentResponseData(sys);
+    const resp = isDiscrete
+      ? discreteStepResponse(sys, {
+        sampleCount: Math.min(state.simulationConfig.sampleCount || 200, 500),
+        amplitude: state.simulationConfig.amplitude || 1,
+      })
+      : currentResponseData(sys);
     const info = stepInfo(resp.t, resp.y);
     const timeMetricSupported = !['sine', 'square'].includes(state.responseType);
 
@@ -1153,28 +1165,27 @@ function updateStabilityPanel() {
     if (essEl) essEl.textContent = timeMetricSupported && info.steadyStateError !== undefined ? info.steadyStateError.toPrecision(3) : '—';
 
     // 2. Determine Stability (Strict Pole Check)
-    const poles = sys.poles();
-    let status = 'stable';
-    let label = 'STABLE';
+    const stability = analyzeStability(sys, { domain: state.domain, margins });
+    let status = stability.status === 'unknown' ? 'marginal' : stability.status;
+    let label = status.toUpperCase();
 
-    const hasUnstablePole = poles.some(p => p.re > 1e-6);
-    const hasMarginalPole = poles.some(p => Math.abs(p.re) < 1e-6);
-
-    if (hasUnstablePole || resp.y.some(v => Math.abs(v) > 1e8)) {
+    if (resp.y.some(v => Math.abs(v) > 1e8)) {
       status = 'unstable';
       label = 'UNSTABLE';
-    } else if (hasMarginalPole) {
-      status = 'marginal';
-      label = 'MARGINAL';
     }
 
     ind.className = `status-pill ${status}`;
     ind.innerHTML = `<span class="status-dot"></span> ${label}`;
+    renderStabilityAnalysis(stability);
 
     // Routh-Hurwitz table
     const routhEl = document.getElementById('routh-table-body');
     if (routhEl) {
       try {
+        if (isDiscrete) {
+          routhEl.innerHTML = '<tr><td colspan="4">Routh-Hurwitz applies to continuous-time denominators only.</td></tr>';
+          return;
+        }
         const targetDen = sys.den;
         const routh = routhTable(targetDen);
         const labels = [];
@@ -1190,6 +1201,47 @@ function updateStabilityPanel() {
   } catch (err) {
     console.error("穩定性分析面板刷新出錯:", err);
   }
+}
+
+function renderStabilityAnalysis(analysis) {
+  const riskEl = document.getElementById('stability-risk');
+  const summaryEl = document.getElementById('stability-summary-text');
+  const poleEl = document.getElementById('dominant-pole');
+  const marginEl = document.getElementById('pole-margin');
+  const dampingEl = document.getElementById('damping-ratio');
+  const wnEl = document.getElementById('natural-frequency');
+  const recEl = document.getElementById('stability-recommendations');
+
+  if (riskEl) {
+    riskEl.className = `stability-risk ${analysis.risk || 'low'}`;
+    riskEl.textContent = (analysis.risk || 'low').toUpperCase();
+  }
+  if (summaryEl) summaryEl.textContent = analysis.summary || '—';
+
+  const pole = analysis.dominantPole;
+  if (poleEl) poleEl.textContent = pole ? formatPoleForUI(pole, analysis.domain) : '—';
+  if (marginEl) {
+    marginEl.textContent = Number.isFinite(analysis.stabilityMargin)
+      ? (analysis.domain === 'z' ? fmtNum(analysis.stabilityMargin, 3) : `${fmtNum(analysis.stabilityMargin, 3)} rad/s`)
+      : '—';
+  }
+  if (dampingEl) dampingEl.textContent = Number.isFinite(analysis.minDamping) ? fmtNum(analysis.minDamping, 3) : '—';
+  if (wnEl) wnEl.textContent = pole && Number.isFinite(pole.naturalFrequency) ? `${fmtNum(pole.naturalFrequency, 3)} rad/s` : '—';
+  if (recEl) {
+    recEl.innerHTML = (analysis.recommendations || ['—'])
+      .slice(0, 3)
+      .map((item) => `<li>${escapeHtml(item)}</li>`)
+      .join('');
+  }
+}
+
+function formatPoleForUI(pole, domain) {
+  const re = fmtNum(pole.re, 3);
+  const im = fmtNum(Math.abs(pole.im), 3);
+  const sign = pole.im >= 0 ? '+' : '-';
+  const prefix = domain === 'z' ? 'z' : 's';
+  const suffix = domain === 'z' ? ` |z|=${fmtNum(pole.magnitude, 3)}` : '';
+  return `${prefix}=${re} ${sign} j${im}${suffix}`;
 }
 
 // ============================================================
