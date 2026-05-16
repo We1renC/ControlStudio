@@ -224,6 +224,9 @@ function initEventListeners() {
   document.getElementById('btn-design-deadbeat')?.addEventListener('click', computeDeadbeat);
   document.getElementById('btn-apply-rlocus-k')?.addEventListener('click', applyRlocusKToController);
   document.getElementById('btn-apply-poles-k')?.addEventListener('click', applyPolesKToController);
+  document.getElementById('btn-zn-pid')?.addEventListener('click', () => applyZNPIDFromRlocus('PID'));
+  document.getElementById('btn-zn-pi')?.addEventListener('click',  () => applyZNPIDFromRlocus('PI'));
+  document.getElementById('btn-zn-p')?.addEventListener('click',   () => applyZNPIDFromRlocus('P'));
   document.getElementById('btn-copy-deadbeat-k')?.addEventListener('click', copyDeadbeatGains);
   document.getElementById('btn-apply-pid-preset')?.addEventListener('click', applyPIDPreset);
   document.getElementById('btn-apply-lead-helper')?.addEventListener('click', applyLeadHelper);
@@ -1413,21 +1416,23 @@ function renderRootLocus(sys, targetId = 'chart-rlocus') {
     }
   } catch { /* ignore */ }
 
-  // jω crossings (critical K)
+  // jω crossings (critical K) — also stored for ZN PID tuning
+  let jwCrossings = [];
   try {
-    const cross = rootLocusJwCrossings(sys, 1e3, 400);
-    if (cross.length > 0) {
+    jwCrossings = rootLocusJwCrossings(sys, 1e3, 400);
+    if (targetId === 'chart-active') _rlocusJwCrossings = jwCrossings;
+    if (jwCrossings.length > 0) {
       const xs = [], ys = [], labels = [];
-      for (const c of cross) {
+      for (const c of jwCrossings) {
         xs.push(0, 0); ys.push(c.omega, -c.omega);
-        labels.push(`K*=${fmtNum(c.K)}`, `K*=${fmtNum(c.K)}`);
+        labels.push(`Ku=${fmtNum(c.K)}`, `Ku=${fmtNum(c.K)}`);
       }
       traces.push({
         x: xs, y: ys,
         type: 'scatter', mode: 'markers+text',
         text: labels, textposition: 'middle right',
         textfont: { size: 10, color: getCSS('--color-unstable') },
-        name: 'jω crossings',
+        name: 'jω crossings (Ku)',
         marker: { symbol: 'diamond', size: 10, color: getCSS('--color-unstable') },
         hovertemplate: '%{text}<br>ω=%{y:.4f}<extra>%{fullData.name}</extra>',
         showlegend: targetId === 'chart-active',
@@ -1479,6 +1484,7 @@ function renderRootLocus(sys, targetId = 'chart-rlocus') {
   if (targetId === 'chart-active') {
     _rlocusInteractiveSys = sys;
     _rlocusKMax = result.gains[result.gains.length - 1];
+    updateRlocusZNPanel();
     const slider = document.getElementById('rl-k-slider');
     if (slider) {
       slider.max = _rlocusKMax;
@@ -1499,6 +1505,7 @@ function renderRootLocus(sys, targetId = 'chart-rlocus') {
 let _rlocusInteractiveSys = null;
 let _rlocusKMax = 100;
 let _currentRlocusK = null;
+let _rlocusJwCrossings = [];   // [{K, omega}] — stored when Root Locus is rendered
 
 /** Apply the Root Locus selected gain K as a pure proportional controller (Ki=Kd=0). */
 function applyRlocusKToController() {
@@ -1513,6 +1520,66 @@ function applyRlocusKToController() {
   document.querySelector('[data-sidebar="controller"]')?.click();
   // Brief flash feedback on the button
   const btn = document.getElementById('btn-apply-rlocus-k');
+  if (btn) {
+    const orig = btn.textContent;
+    btn.textContent = '✓ Applied!';
+    btn.style.background = '#10b981';
+    setTimeout(() => { btn.textContent = orig; btn.style.background = ''; }, 1500);
+  }
+}
+
+/**
+ * Update the Ziegler-Nichols section in the Root Locus panel.
+ * Called each time the Root Locus is re-rendered.
+ */
+function updateRlocusZNPanel() {
+  const section = document.getElementById('rl-zn-section');
+  const paramsEl = document.getElementById('rl-zn-params');
+  if (!section || !paramsEl) return;
+
+  if (!_rlocusJwCrossings || _rlocusJwCrossings.length === 0) {
+    section.style.display = 'none';
+    return;
+  }
+
+  // Use the first crossing (lowest-frequency, most relevant for PID)
+  const { K: Ku, omega } = _rlocusJwCrossings[0];
+  const Tu = (2 * Math.PI) / omega;
+
+  // ZN formulas
+  const pidZN  = PIDController.zieglerNichols(Ku, Tu, 'PID');
+  const piZN   = PIDController.zieglerNichols(Ku, Tu, 'PI');
+  const pZN    = PIDController.zieglerNichols(Ku, Tu, 'P');
+
+  paramsEl.innerHTML = [
+    `<div><span style="color:var(--color-accent)">Ku</span> = ${fmtNum(Ku)}</div>`,
+    `<div><span style="color:var(--color-accent)">Tu</span> = ${fmtNum(Tu)} s  (ω = ${fmtNum(omega)} rad/s)</div>`,
+    `<div style="border-top:1px solid var(--border-primary);margin:4px 0;padding-top:4px;">`,
+    `  <b>PID:</b> Kp=${pidZN.Kp.toFixed(3)}, Ki=${pidZN.Ki.toFixed(3)}, Kd=${pidZN.Kd.toFixed(3)}`,
+    `</div>`,
+    `<div><b>PI:</b> Kp=${piZN.Kp.toFixed(3)}, Ki=${piZN.Ki.toFixed(3)}</div>`,
+    `<div><b>P:</b>  Kp=${pZN.Kp.toFixed(3)}</div>`,
+  ].join('');
+
+  section.style.display = 'block';
+}
+
+/**
+ * Apply Ziegler-Nichols tuning (from Root Locus Ku/Tu) to the PID controller.
+ * @param {'P'|'PI'|'PID'} type
+ */
+function applyZNPIDFromRlocus(type) {
+  if (!_rlocusJwCrossings || _rlocusJwCrossings.length === 0) return;
+  const { K: Ku, omega } = _rlocusJwCrossings[0];
+  const Tu = (2 * Math.PI) / omega;
+  const pid = PIDController.zieglerNichols(Ku, Tu, type);
+  setPIDFromController({ Kp: pid.Kp, Ki: pid.Ki, Kd: pid.Kd }, `zn-${type.toLowerCase()}`);
+  // Keep compensator as-is (ZN works on top of existing compensator)
+  updateController();
+  document.querySelector('[data-sidebar="controller"]')?.click();
+  // Flash the clicked button
+  const btnId = type === 'PID' ? 'btn-zn-pid' : type === 'PI' ? 'btn-zn-pi' : 'btn-zn-p';
+  const btn = document.getElementById(btnId);
   if (btn) {
     const orig = btn.textContent;
     btn.textContent = '✓ Applied!';
