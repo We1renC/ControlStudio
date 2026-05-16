@@ -655,6 +655,18 @@
 
               <!-- LQE / Kalman -->
               <div style="margin-top:12px;border-top:1px solid var(--border-primary);padding-top:12px;">
+                <div style="margin-bottom:10px;background:rgba(139,92,246,.07);border:1px solid rgba(139,92,246,.2);border-radius:6px;padding:10px;">
+                  <div style="font-size:10px;font-weight:700;color:var(--color-accent);margin-bottom:6px;text-transform:uppercase;">Bryson 法則自動建議 Q/R</div>
+                  <div class="input-group" style="margin-bottom:6px;">
+                    <label>各狀態最大可接受偏差（逗號分隔）</label>
+                    <input type="text" id="bryson-max-states" value="1, 1" placeholder="e.g. 1, 0.5">
+                  </div>
+                  <div class="input-group" style="margin-bottom:6px;">
+                    <label>最大可接受量測誤差</label>
+                    <input type="number" id="bryson-max-output" value="0.1" min="0.001" step="0.01">
+                  </div>
+                  <button class="btn btn-sm" id="btn-bryson" style="width:100%;justify-content:center;">Auto-fill Q / R via Bryson</button>
+                </div>
                 <div class="input-group" style="margin-bottom:8px;">
                   <label>Process Noise Qn</label>
                   <textarea id="obs-qn" rows="2" placeholder="n×n matrix, default = I">1 0
@@ -666,6 +678,16 @@
                 </div>
                 <button class="btn btn-sm" id="btn-phase8-kalman" style="width:100%;justify-content:center;margin-bottom:8px;">Compute Kalman Gain L_kf</button>
                 <div id="phase8-kalman-out" style="font-size:11px;font-family:monospace;color:var(--text-secondary);background:rgba(15,17,23,.4);padding:8px;border-radius:6px;line-height:1.6;display:none;"></div>
+                <!-- Q/R Sensitivity Slider -->
+                <div style="margin-top:10px;border-top:1px solid var(--border-primary);padding-top:10px;">
+                  <div style="font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase;margin-bottom:6px;">Q/R Sensitivity</div>
+                  <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+                    <span style="font-size:10px;color:var(--text-muted);">Q×</span>
+                    <input type="range" id="qr-sensitivity-slider" min="-3" max="3" step="0.1" value="0" style="flex:1;">
+                    <span id="qr-sensitivity-label" style="font-size:10px;color:var(--color-accent);min-width:40px;text-align:right;">×1</span>
+                  </div>
+                  <div id="qr-sensitivity-out" style="font-size:10px;font-family:monospace;color:var(--text-secondary);line-height:1.5;"></div>
+                </div>
               </div>
 
               <!-- Simulation -->
@@ -674,10 +696,24 @@
                   <label>Duration (s)</label>
                   <input type="number" id="obs-sim-duration" value="10" min="1" step="1">
                 </div>
-                <p style="font-size:10px;color:var(--text-muted);margin-bottom:8px;">Plant starts at x₀=[1,0,…]，Observer starts at x̂=0（初始誤差非零）→ 展示收斂過程。</p>
+                <!-- Noise controls -->
+                <div style="display:flex;gap:8px;margin-bottom:8px;">
+                  <div class="input-group" style="flex:1;margin-bottom:0;">
+                    <label>σ_w (Process Noise)</label>
+                    <input type="number" id="obs-noise-q" value="0" min="0" step="0.01" placeholder="0 = no noise">
+                  </div>
+                  <div class="input-group" style="flex:1;margin-bottom:0;">
+                    <label>σ_v (Meas. Noise)</label>
+                    <input type="number" id="obs-noise-r" value="0" min="0" step="0.01" placeholder="0 = no noise">
+                  </div>
+                </div>
+                <p style="font-size:10px;color:var(--text-muted);margin-bottom:8px;">
+                  Plant x₀=[1,0,…]，Observer x̂=0。設定 σ_w/σ_v > 0 可展示 Kalman 濾波效果。
+                </p>
                 <button class="btn btn-sm" id="btn-phase8-simulate" style="width:100%;justify-content:center;margin-bottom:8px;">Simulate Observer</button>
                 <div id="phase8-sim-out" style="font-size:11px;font-family:monospace;color:var(--text-secondary);background:rgba(15,17,23,.4);padding:8px;border-radius:6px;line-height:1.6;display:none;"></div>
                 <div id="chart-obs-sim" style="height:160px;margin-top:8px;"></div>
+                <div id="chart-obs-innov" style="height:120px;margin-top:4px;display:none;"></div>
               </div>
             </div>
           </div>

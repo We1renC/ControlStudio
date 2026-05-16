@@ -16,7 +16,7 @@ import { c2dTustin, c2dZOH } from './control/c2d.js?v=p5';
 import { specsToTargetPoles, designLeadForPM, deadbeatGain } from './control/design.js?v=p5';
 import { polyadd, polyscale, polyroots } from './math/polynomial.js?v=p4';
 import { Complex } from './math/complex.js';
-import { analyzeLyapunov, closedLoopTransferFromStateFeedback, placeObserver, placeStateFeedback, resolveDesignStateSpace, solveLqe, simulateObserver, solveLqr } from './control/state-feedback.js?v=p7';
+import { analyzeLyapunov, brysonsRule, closedLoopTransferFromStateFeedback, observerPoles, placeObserver, placeStateFeedback, resolveDesignStateSpace, solveLqe, simulateObserver, solveLqr } from './control/state-feedback.js?v=p8b';
 import { BlockEditor } from './editor/editor.js';
 
 // ============================================================
@@ -247,6 +247,8 @@ function initEventListeners() {
   document.getElementById('btn-phase8-observer')?.addEventListener('click', computeObserverPlacement);
   document.getElementById('btn-phase8-kalman')?.addEventListener('click', computeKalmanGain);
   document.getElementById('btn-phase8-simulate')?.addEventListener('click', computeObserverSimulation);
+  document.getElementById('btn-bryson')?.addEventListener('click', computeBrysonQR);
+  document.getElementById('qr-sensitivity-slider')?.addEventListener('input', updateQRSensitivity);
   document.getElementById('btn-apply-rlocus-k')?.addEventListener('click', applyRlocusKToController);
   document.getElementById('btn-apply-poles-k')?.addEventListener('click', applyPolesKToController);
   document.getElementById('btn-zn-pid')?.addEventListener('click', () => applyZNPIDFromRlocus('PID'));
@@ -850,6 +852,10 @@ function computeObserverPlacement() {
       `<div style="margin-top:6px;color:var(--text-muted);font-size:10px;">Observer poles should be ~3-10× faster than closed-loop poles for good estimation.</div>`,
     ].join(''));
     clearError();
+    // Refresh pz map to show observer poles
+    if (document.getElementById('chart-pzmap')) {
+      renderPoleZeroMap(state.plant, 'chart-pzmap');
+    }
   } catch (err) {
     state.phase8.observer = null;
     setPhase7Output('phase8-observer-out', escapeHtml(err.message), true);
@@ -879,6 +885,10 @@ function computeKalmanGain() {
       `<div style="margin-top:6px;color:var(--text-muted);font-size:10px;">Kalman gain minimizes estimation error covariance under Gaussian noise.</div>`,
     ].join(''));
     clearError();
+    // Refresh pz map to show observer poles
+    if (document.getElementById('chart-pzmap')) {
+      renderPoleZeroMap(state.plant, 'chart-pzmap');
+    }
   } catch (err) {
     state.phase8.kalman = null;
     setPhase7Output('phase8-kalman-out', escapeHtml(err.message), true);
@@ -897,7 +907,14 @@ function computeObserverSimulation() {
     // Plant starts at x0=[1,0,...] so observer (x̂=0) must catch up → demonstrates convergence
     const n = model.A.length;
     const x0 = Array.from({ length: n }, (_, i) => (i === 0 ? 1 : 0));
-    const result = simulateObserver(model, L, { duration, dt: 0.01, u: () => 1, x0 });
+
+    // Read noise inputs
+    const sigmaW = parseFloat(document.getElementById('obs-noise-q')?.value || '0');
+    const sigmaR = parseFloat(document.getElementById('obs-noise-r')?.value || '0');
+    const noiseQ = sigmaW > 0 ? sigmaW * sigmaW : null;
+    const noiseR = sigmaR > 0 ? sigmaR * sigmaR : null;
+
+    const result = simulateObserver(model, L, { duration, dt: 0.01, u: () => 1, x0, noiseQ, noiseR });
     state.phase8.simulation = result;
 
     const initErr = result.eNorm[0] || 1;
@@ -907,6 +924,7 @@ function computeObserverSimulation() {
       `<div style="color:var(--color-accent);font-weight:700;">Observer Simulation (step input)</div>`,
       `<div>Duration: ${fmtNum(duration, 1)} s &nbsp;|&nbsp; Initial eNorm: ${fmtNum(initErr, 4)} &nbsp;|&nbsp; Final: ${fmtNum(finalErr, 4)}</div>`,
       `<div style="color:var(--color-stable);">Observer converged: ${converged}</div>`,
+      noiseR ? `<div style="color:var(--text-muted);">σ_w=${fmtNum(sigmaW, 3)} σ_v=${fmtNum(sigmaR, 3)}</div>` : '',
     ].join(''));
 
     if (typeof Plotly !== 'undefined') {
@@ -914,20 +932,33 @@ function computeObserverSimulation() {
         {
           x: result.t, y: result.y,
           mode: 'lines', name: 'y(t) actual',
-          line: { color: 'var(--color-accent)', width: 1.5 },
+          line: { color: 'rgba(99,102,241,1)', width: 1.5 },
         },
+      ];
+
+      // Show noisy measurement if noise enabled
+      if (noiseR) {
+        traces.push({
+          x: result.t, y: result.yNoisy,
+          mode: 'lines', name: 'y measured (noisy)',
+          line: { color: 'rgba(255,255,255,0.25)', width: 1 },
+        });
+      }
+
+      traces.push(
         {
           x: result.t, y: result.yhat,
           mode: 'lines', name: 'ŷ(t) estimated',
-          line: { color: 'var(--color-stable)', width: 1.5, dash: 'dot' },
+          line: { color: 'rgba(16,185,129,1)', width: 1.5, dash: 'dot' },
         },
         {
           x: result.t, y: result.eNorm,
           mode: 'lines', name: '‖e‖₂',
           yaxis: 'y2',
-          line: { color: 'var(--color-unstable)', width: 1 },
+          line: { color: 'rgba(239,68,68,1)', width: 1 },
         },
-      ];
+      );
+
       const layout = {
         paper_bgcolor: 'transparent', plot_bgcolor: 'transparent',
         margin: { t: 10, r: 55, b: 30, l: 40 },
@@ -938,12 +969,90 @@ function computeObserverSimulation() {
         yaxis2: { title: '‖e‖₂', overlaying: 'y', side: 'right', showgrid: false },
       };
       Plotly.newPlot('chart-obs-sim', traces, layout, { responsive: true, displayModeBar: false });
+
+      // Innovation chart
+      const innovEl = document.getElementById('chart-obs-innov');
+      if (noiseR) {
+        if (innovEl) innovEl.style.display = 'block';
+        Plotly.newPlot('chart-obs-innov', [{
+          x: result.t, y: result.innovation,
+          mode: 'lines', name: 'innovation e[k]',
+          line: { color: 'rgba(245,158,11,0.8)', width: 1 },
+        }], {
+          paper_bgcolor: 'transparent', plot_bgcolor: 'transparent',
+          margin: { t: 10, r: 20, b: 30, l: 40 },
+          font: { size: 10, color: 'var(--text-muted)' },
+          yaxis: { title: 'innov.', gridcolor: 'rgba(255,255,255,0.06)' },
+          xaxis: { title: 't (s)', gridcolor: 'rgba(255,255,255,0.06)' },
+          showlegend: false,
+        }, { responsive: true, displayModeBar: false });
+      } else {
+        if (innovEl) innovEl.style.display = 'none';
+      }
     }
     clearError();
   } catch (err) {
     state.phase8.simulation = null;
     setPhase7Output('phase8-sim-out', escapeHtml(err.message), true);
     showError(err.message);
+  }
+}
+
+function computeBrysonQR() {
+  try {
+    const maxStatesStr = document.getElementById('bryson-max-states')?.value || '1,1';
+    const maxOutput = parseFloat(document.getElementById('bryson-max-output')?.value || '0.1');
+    const maxStates = maxStatesStr.split(',').map(s => parseFloat(s.trim())).filter(v => !isNaN(v) && v > 0);
+    if (maxStates.length === 0) throw new Error('請輸入至少一個狀態最大偏差值');
+    if (maxOutput <= 0) throw new Error('最大量測誤差必須 > 0');
+
+    const { Q, R } = brysonsRule(maxStates, maxOutput);
+
+    // Fill Qn textarea: row per line, space-separated
+    const qEl = document.getElementById('obs-qn');
+    if (qEl) qEl.value = Q.map(row => row.map(v => fmtNum(v, 4)).join(' ')).join('\n');
+
+    // Fill Rn input (scalar: R[0][0])
+    const rEl = document.getElementById('obs-rn');
+    if (rEl) rEl.value = fmtNum(R[0][0], 4);
+
+    clearError();
+  } catch (err) {
+    showError(err.message);
+  }
+}
+
+function updateQRSensitivity() {
+  const slider = document.getElementById('qr-sensitivity-slider');
+  const label = document.getElementById('qr-sensitivity-label');
+  const outEl = document.getElementById('qr-sensitivity-out');
+  if (!slider || !label || !outEl) return;
+
+  const exp = parseFloat(slider.value);
+  const alpha = Math.pow(10, exp);
+  label.textContent = alpha >= 10 ? `×${Math.round(alpha)}` : `×${alpha.toFixed(alpha < 0.01 ? 4 : 2)}`;
+
+  try {
+    const model = currentPhase7DesignModel();
+    const qRaw = document.getElementById('obs-qn')?.value || '1 0\n0 1';
+    const rVal = parseFloat(document.getElementById('obs-rn')?.value || '1');
+
+    const Qbase = qRaw.trim().split('\n').map(row => row.trim().split(/\s+/).map(Number));
+    const Qscaled = Qbase.map(row => row.map(v => v * alpha));
+    const Rn = [[rVal]];
+
+    const { L } = solveLqe(model.A, model.C, Qscaled, Rn);
+    const poles = observerPoles(model.A, model.C, L);
+
+    const poleStr = poles.map(p => {
+      const im = Math.abs(p.im) < 1e-9 ? '' : p.im > 0 ? `+j${fmtNum(Math.abs(p.im), 3)}` : `-j${fmtNum(Math.abs(p.im), 3)}`;
+      return `${fmtNum(p.re, 3)}${im}`;
+    }).join(', ');
+
+    const lStr = L.map(row => `[${row.map(v => fmtNum(v, 3)).join(', ')}]`).join(', ');
+    outEl.innerHTML = `<span style="color:var(--color-accent)">L_kf</span> = [${lStr}]<br><span style="color:var(--text-muted)">Observer poles: </span>${poleStr}`;
+  } catch (e) {
+    outEl.textContent = e.message;
   }
 }
 
@@ -2177,6 +2286,22 @@ function renderPoleZeroMap(sys, targetId = 'chart-pzmap') {
 
   traces.push({ x: pList.map((p) => p.re), y: pList.map((p) => p.im), type: 'scatter', mode: 'markers', name: 'Poles', marker: { symbol: 'x', size: 10, color: getCSS('--color-unstable') } });
   traces.push({ x: zList.map((z) => z.re), y: zList.map((z) => z.im), type: 'scatter', mode: 'markers', name: 'Zeros', marker: { symbol: 'circle-open', size: 10, color: getCSS('--color-accent') } });
+
+  // Add observer poles if computed (continuous-time only)
+  const obsL = state?.phase8?.kalman?.L ?? state?.phase8?.observer?.L;
+  if (obsL && !isDiscrete) {
+    try {
+      const model = currentPhase7DesignModel();
+      const obsPoles = observerPoles(model.A, model.C, obsL);
+      traces.push({
+        x: obsPoles.map(p => p.re),
+        y: obsPoles.map(p => p.im),
+        type: 'scatter', mode: 'markers',
+        name: 'Observer Poles',
+        marker: { symbol: 'diamond', size: 9, color: 'rgba(139,92,246,0.9)', line: { width: 1.5, color: 'rgba(139,92,246,1)' } },
+      });
+    } catch (_) { /* ignore if model not ready */ }
+  }
 
   const layout = PLOTLY_LAYOUT_BASE();
   if (isDiscrete) {

@@ -18,6 +18,14 @@ import {
 } from '../math/matrix.js';
 import { controllabilityMatrix, observabilityMatrix, stateSpaceToTransferFunction, tfToControllableCanonical } from './state-space.js';
 import { parseRootsString } from './zpk.js';
+import { polyroots } from '../math/polynomial.js';
+
+function randn() {
+  let u = 0, v = 0;
+  while (u === 0) u = Math.random();
+  while (v === 0) v = Math.random();
+  return Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v);
+}
 
 function toComplex(root) {
   return root instanceof Complex ? root : new Complex(root.re ?? root, root.im ?? 0);
@@ -264,7 +272,7 @@ export function solveLqe(A, C, Qn, Rn) {
 }
 
 export function simulateObserver(model, L, options = {}) {
-  const { duration = 10, dt = 0.01, u = 'step', x0 = null, xhat0 = null } = options;
+  const { duration = 10, dt = 0.01, u = 'step', x0 = null, xhat0 = null, noiseQ = null, noiseR = null } = options;
   const { A, B, C, D } = model;
   const n = A.length;
   const p = C.length;
@@ -276,8 +284,10 @@ export function simulateObserver(model, L, options = {}) {
   const steps = Math.round(duration / dt);
   const t = [];
   const y = [];
+  const yNoisy = [];
   const yhat = [];
   const eNorm = [];
+  const innovation = [];
   const xArr = [];
   const xhatArr = [];
 
@@ -293,14 +303,21 @@ export function simulateObserver(model, L, options = {}) {
     const uVec = matCreate(m, 1, 0);
     uVec[0][0] = uVal;
 
-    // Plant output: y = C*x + D*u
+    // Plant output: y = C*x + D*u (ground truth)
     const Cx = matMul(C, x);
     const Du = matMul(D, uVec);
     const yi = Cx[0][0] + Du[0][0];
 
+    // Measurement noise
+    const vk = noiseR ? randn() * Math.sqrt(noiseR) : 0;
+    const yi_noisy = yi + vk;
+
     // Observer output: yhat = C*xhat + D*u
     const Cxhat = matMul(C, xhat);
     const yhati = Cxhat[0][0] + Du[0][0];
+
+    // Innovation: computed BEFORE observer update
+    innovation.push(yi_noisy - yhati);
 
     // Error norm ||x - xhat||_2
     let errSq = 0;
@@ -311,6 +328,7 @@ export function simulateObserver(model, L, options = {}) {
 
     t.push(ti);
     y.push(yi);
+    yNoisy.push(yi_noisy);
     yhat.push(yhati);
     eNorm.push(Math.sqrt(errSq));
     xArr.push(x.map((row) => row[0]));
@@ -323,24 +341,55 @@ export function simulateObserver(model, L, options = {}) {
     const Bu = matMul(B, uVec);
     const dxPlant = matAdd(Ax, Bu);
 
-    // y as column vector for observer
+    // y (noisy) as column vector for observer correction
     const yVec = matCreate(p, 1, 0);
-    yVec[0][0] = yi;
+    yVec[0][0] = yi_noisy;
 
-    // Observer: dxhat = Aobs*xhat + B*u + L*y
+    // Observer: dxhat = Aobs*xhat + B*u + L*y_noisy
     const Aobsxhat = matMul(Aobs, xhat);
     const Ly = matMul(L, yVec);
     const dxObs = matAdd(matAdd(Aobsxhat, Bu), Ly);
 
     for (let j = 0; j < n; j++) {
-      x[j][0] += dt * dxPlant[j][0];
+      const wk = noiseQ ? randn() * Math.sqrt(noiseQ * dt) : 0;
+      x[j][0] += dt * dxPlant[j][0] + wk;
       xhat[j][0] += dt * dxObs[j][0];
     }
   }
 
-  return { t, y, yhat, eNorm, x: xArr, xhat: xhatArr };
+  return { t, y, yNoisy, yhat, eNorm, innovation, x: xArr, xhat: xhatArr };
 }
 
 export function closedLoopTransferFromStateFeedback(model, K) {
   return stateSpaceToTransferFunction(closedLoopA(model.A, model.B, K), model.B, model.C, model.D);
+}
+
+export function brysonsRule(maxStates, maxOutput) {
+  // maxStates: array of n values (max acceptable deviation per state)
+  // maxOutput: scalar (max acceptable measurement error)
+  const n = maxStates.length;
+  const Q = Array.from({ length: n }, (_, i) =>
+    Array.from({ length: n }, (_, j) => (i === j ? 1 / (maxStates[i] ** 2) : 0))
+  );
+  const R = [[1 / (maxOutput ** 2)]];
+  return { Q, R };
+}
+
+export function observerPoles(A, C, L) {
+  // Compute eigenvalues of A - L*C (observer closed-loop matrix)
+  const Aobs = matSub(A, matMul(L, C));
+  const n = Aobs.length;
+  // Build characteristic polynomial via Faddeev-LeVerrier algorithm
+  // char poly coefficients [1, c_{n-1}, ..., c_0] (high degree first)
+  let M = matCreate(n, n, 0);
+  const charCoeffs = [1];
+  for (let k = 1; k <= n; k++) {
+    // M = Aobs * M_prev + c_{k-1} * I  (where M_prev is M before this step)
+    // Using Faddeev-LeVerrier: M_k = Aobs * M_{k-1} + c_{k-1}*I
+    M = matAdd(matMul(Aobs, M), matScale(matIdentity(n), charCoeffs[k - 1]));
+    // c_k = -trace(Aobs * M_k) / k
+    const ck = -matTrace(matMul(Aobs, M)) / k;
+    charCoeffs.push(ck);
+  }
+  return polyroots(charCoeffs);
 }
