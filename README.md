@@ -13,6 +13,7 @@
 - `RUNNABLE_WORKFLOWS.md`：可執行 workflow 與 API key 放置說明。
 - `CONTROL_SYSTEM_PLAN.md`：控制系統工作台的盤點、MVP 範圍與後續開發路線圖。
 - `CONTROL_SYSTEM_VERIFICATION_CASES.md`：控制系統五個數學推導驗證案例，作為後續回歸測試依據。
+- `CONTROL_SYSTEM_BACKLOG.md`：控制系統後續開發優先順序、依賴與驗證計畫。
 - `workflows/`：已實作的 runnable NVIDIA workflows。
 - `nv-agent`：整合選型提問、workflow 列表、功能執行的 CLI。
 - `configs/model_registry.json`：模型能力、角色、endpoint 與實測狀態。
@@ -32,6 +33,7 @@ cat AGENTS.md
 cat AGENT_USAGE.md
 cat CONTROL_SYSTEM_PLAN.md
 cat CONTROL_SYSTEM_VERIFICATION_CASES.md
+cat CONTROL_SYSTEM_BACKLOG.md
 ./nv-agent doctor
 ```
 

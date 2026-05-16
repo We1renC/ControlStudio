@@ -1,6 +1,6 @@
 # Control System Development Plan
 
-此文件是控制系統工作台的正式開發計畫。後續 agent 若要修改 `control-studio/`、`workflows/control_advisor_workflow.py`、`test_control.js`，或擴充 `control-advisor` 任務，應先閱讀本文件與 `CONTROL_SYSTEM_VERIFICATION_CASES.md` 並依此執行。
+此文件是控制系統工作台的正式開發計畫。後續 agent 若要修改 `control-studio/`、`workflows/control_advisor_workflow.py`、`test_control.js`，或擴充 `control-advisor` 任務，應先閱讀本文件、`CONTROL_SYSTEM_VERIFICATION_CASES.md`、`CONTROL_SYSTEM_BACKLOG.md` 並依此執行。
 
 ## 1. Product Vision
 
@@ -46,6 +46,8 @@
   - `test_control.js`
 - 驗證案例：
   - `CONTROL_SYSTEM_VERIFICATION_CASES.md`
+- 開發順序：
+  - `CONTROL_SYSTEM_BACKLOG.md`
 
 ### 已完成能力
 - SISO 傳遞函數輸入
@@ -284,15 +286,16 @@
 
 1. 先讀本文件，再動手修改控制系統相關檔案。
 2. 若修改數值核心、API 分析輸出或穩定性指標，需對照 `CONTROL_SYSTEM_VERIFICATION_CASES.md` 的案例與數學推導。
-3. 以 MVP 範圍優先，不要直接跳去做 MIMO / MPC 等高複雜度功能。
-4. 若新增控制系統分析功能，必須補：
+3. 後續開發順序以 `CONTROL_SYSTEM_BACKLOG.md` 為準。
+4. 以 MVP 範圍優先，不要直接跳去做 MIMO / MPC 等高複雜度功能。
+5. 若新增控制系統分析功能，必須補：
    - 文件
    - 至少一個 smoke test 或驗證流程
    - UI 對應入口（若屬使用者可見功能）
-5. 若引入新模型類型或新控制器類型，先更新資料模型與輸入格式，再補 UI。
-6. 若新增 workflow 或控制系統相關 CLI 能力，需同步更新：
+6. 若引入新模型類型或新控制器類型，先更新資料模型與輸入格式，再補 UI。
+7. 若新增 workflow 或控制系統相關 CLI 能力，需同步更新：
    - `README.md`
    - `RUNNABLE_WORKFLOWS.md`
    - `AGENT_CONTINUATION.md`
    - `scripts/validate_nvidia_model_selector.sh`
-7. 若要從靜態前端遷移到 React/FastAPI，不要一次重寫全部；用增量替換策略。
+8. 若要從靜態前端遷移到 React/FastAPI，不要一次重寫全部；用增量替換策略。

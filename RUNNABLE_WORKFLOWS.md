@@ -151,6 +151,7 @@ python3 control-studio/scripts/serve_studio.py
 ```
 
 ControlStudio 的進階控制目前優先支援 Lead/Lag 補償器；Block Diagram 入口暫時擱置，後續驗證先以 SISO transfer function、Bode/Nyquist/Nichols 與 stability metrics 為主。
+後續開發順序請依 `CONTROL_SYSTEM_BACKLOG.md`，先完成 fixture-based verification、API contract tests，再推 controller design presets。
 
 ## 接手建議
 後續 agent 若要繼續做：
