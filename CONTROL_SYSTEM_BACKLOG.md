@@ -9,7 +9,7 @@
 目前策略：
 - Block Diagram 暫時擱置，不在近期主線投入新功能。
 - 目前主線已完成 SISO continuous/discrete、PID/Lead/Lag、Root Locus 互動設計、z-domain、C2D、Closed-loop design assistant、Deadbeat 與 Ziegler-Nichols PID from Ku/Tu。
-- 下一階段先補報告匯出、API/local 分析切換、低階 State Feedback / LQR scaffold。
+- 下一階段先補報告匯出、API/local 分析切換，接著進入低階 State Feedback / Lyapunov / LQR scaffold。
 - 每個功能必須有數學推導或 fixture 驗證，不只看 UI 是否可操作。
 - 避免一次跳到 MIMO / MPC / Robust Control；先把 SISO 進階控制鏈做穩。
 
@@ -134,21 +134,26 @@ Exit criteria:
 - API 與 local JS 差異被可視化或記錄。
 - 任何 API failure 不會清空使用者目前專案狀態。
 
-### Phase 7: State Feedback / LQR
+### Phase 7: State Feedback / Lyapunov / LQR
 
-目標：利用目前已有 State-Space、controllability / observability rank，補第一批 state-space controller design。
+目標：利用目前已有 State-Space、controllability / observability rank，補第一批 state-space controller design 與理論穩定性證明能力。
 
 | ID | Priority | Status | Item | Rationale | Dependencies | Verification |
 | --- | --- | --- | --- | --- | --- | --- |
-| CS-P7-01 | P1 | Planned | Pole placement for SISO State-Space | 進入 state feedback 的最小可行功能 | controllability matrix | 二階案例指定 poles 後，`eig(A-BK)` 等於目標 poles |
-| CS-P7-02 | P2 | Planned | State feedback UI | 輸入 desired poles、顯示 K、閉迴路 A matrix | CS-P7-01 | UI 顯示 K、閉迴路 poles、step response |
-| CS-P7-03 | P2 | Planned | LQR solver for 2x2/low-order systems | LQR 是進階控制主線，但需先限制範圍 | matrix utilities | 與已知小型 CARE 解或 fixture 對齊 |
-| CS-P7-04 | P2 | Planned | LQR Q/R tuning panel | 讓使用者調 Q/R 並看 response tradeoff | CS-P7-03 | Q/R 改變時 K 與 poles 合理變化 |
+| CS-P7-01 | P1 | Planned | Matrix definiteness utilities | Lyapunov / LQR 都需要 symmetric、positive definite、eigenvalue checks | matrix utilities | Sylvester criterion / eigenvalue fixture 對齊 |
+| CS-P7-02 | P1 | Planned | Continuous Lyapunov stability analysis | 理論驗證：`AᵀP + PA = -Q`，預設 `Q=I` | State-Space model, definiteness utilities | 對穩定二階 A 解出 `P>0`；對不穩定 A 回報 failed |
+| CS-P7-03 | P1 | Planned | Lyapunov UI proof panel | 顯示 `V(x)=xᵀPx`、`dV/dt=-xᵀQx`、P matrix、min eig(P) | CS-P7-02 | UI 顯示 Proven Stable / Failed / Not Applicable |
+| CS-P7-04 | P1 | Planned | Pole placement for SISO State-Space | 進入 state feedback 的最小可行功能 | controllability matrix | 二階案例指定 poles 後，`eig(A-BK)` 等於目標 poles |
+| CS-P7-05 | P2 | Planned | State feedback UI | 輸入 desired poles、顯示 K、閉迴路 A matrix | CS-P7-04 | UI 顯示 K、閉迴路 poles、step response |
+| CS-P7-06 | P2 | Planned | LQR solver for 2x2/low-order systems | LQR 是進階控制主線，但需先限制範圍 | matrix utilities, Lyapunov utilities | 與已知小型 CARE 解或 fixture 對齊 |
+| CS-P7-07 | P2 | Planned | LQR Q/R tuning panel | 讓使用者調 Q/R 並看 response tradeoff | CS-P7-06 | Q/R 改變時 K 與 poles 合理變化 |
 
 Exit criteria:
 - 僅支援 SISO / low-order state-space 起步。
 - 不做 MIMO UI。
 - 每個 state feedback 案例需檢查 controllability。
+- Lyapunov analysis 必須明確顯示適用條件：continuous-time、finite-dimensional state-space、Q positive definite。
+- 理論驗證結果需同時列出 P matrix 與正定性判定，不只顯示自然語言。
 
 ### Phase 8: Observer And Kalman
 
@@ -182,8 +187,8 @@ Exit criteria:
    - 讓前端可選 local JS 或 FastAPI backend。
    - 對同 payload 顯示 API/local 差異或錯誤狀態。
 
-3. `feat(control): add state feedback scaffold`
-   - 先做 low-order SISO pole placement 與 controllability guard。
+3. `feat(control): add lyapunov stability analysis`
+   - 先做 low-order continuous State-Space 的 `AᵀP + PA = -I`、P 正定性檢查與 UI proof panel。
 
 ## Do Not Start Yet
 

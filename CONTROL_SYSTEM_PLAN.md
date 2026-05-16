@@ -93,7 +93,7 @@
 
 ### 尚未完成能力
 - MIMO
-- State Feedback / LQR / LQG production UI
+- State Feedback / Lyapunov Stability Analysis / LQR / LQG production UI
 - Observer / Kalman Filter
 - Robust Control / MPC
 - 自動產生報告
@@ -144,7 +144,7 @@
 - 加入專案儲存/載入
 - 比較多組參數結果
 - 支援 State-Space 與更完整的 block diagram 建模
-- 由規格設計 state feedback / LQR / observer
+- 由規格設計 state feedback / Lyapunov proof / LQR / observer
 - 匯出 Markdown / JSON 報告
 
 ## 6. System Architecture
@@ -189,7 +189,7 @@
 - Next：Report export baseline
 
 ### P2
-- Planned：State Feedback / LQR scaffold
+- Planned：State Feedback / Lyapunov Stability Analysis / LQR scaffold
 - Planned：Observer / Kalman
 - Paused：更完整 block editor 同步分析
 
@@ -292,11 +292,19 @@
 - Status: In Progress
 
 ### Stage 3: Advanced Control
+- Lyapunov Stability Analysis
 - Low-order State Feedback / Pole Placement
 - LQR / LQG
 - Observer / Kalman
 - MIMO / Robust Control / MPC（延後）
 - Status: Planned
+
+### Phase 7 Theory Track
+- Matrix definiteness utilities：symmetric、positive definite、min eigenvalue / Sylvester checks。
+- Lyapunov Stability Analysis：先支援 continuous-time low-order State-Space，預設 `Q=I`，求解 `AᵀP + PA = -Q`。
+- Lyapunov UI proof panel：顯示 `V(x)=xᵀPx`、`dV/dt=-xᵀQx`、P matrix、min eig(P)、Proven Stable / Failed / Not Applicable。
+- State Feedback：pole placement 先限 SISO / low-order，必須檢查 controllability。
+- LQR：先做 2x2 / low-order CARE baseline，再補 Q/R tuning panel。
 
 ### Stage 4: Productization
 - Electron desktop packaging

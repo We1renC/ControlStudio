@@ -143,17 +143,18 @@ git log --oneline -5
 ## 後續可做
 1. 控制系統下一步依 `CONTROL_SYSTEM_BACKLOG.md`：先做 `feat(control): add report export baseline`。
 2. 接著做 `feat(control): add frontend analysis API toggle`，讓前端可選 local JS / FastAPI backend，並顯示差異或 API error。
-3. 再做 `feat(control): add state feedback scaffold`，先限 low-order SISO pole placement 與 controllability guard。
-4. Observer / Kalman、LQR production UI、MIMO、MPC、Robust Control 仍為後續，不要未補設計文件就直接開。
-5. Block Diagram 目前維持 paused；不要新增 block diagram 功能，除非使用者重新明確恢復。
-6. 加 `agents/openai.yaml` UI metadata。
-7. 增強 evaluator：從 heuristic 檢查升級成 judge model + golden dataset。
-8. 若 NVIDIA Build Models 更新，先更新根目錄資料檔，再同步 `skills/nvidia-model-selector/references/`。
-9. 視需求把 `search_models.py` 加上 `--top-category-summary` 或 fuzzy ranking。
-10. 若要更實用，補上本地文件切 chunk / PDF 轉圖 / OCR 結果快取。
-11. 加 parallel runner 與 leaderboard，追蹤同任務多模型輸出品質。
-12. 將 OCR/RAG 的 endpoint source 也改成完整 registry-driven，而不只傳入 model id。
-13. 補 Electron packaging 與教學模式。
+3. 再做 `feat(control): add lyapunov stability analysis`，先限 continuous low-order State-Space，預設 `Q=I`，求解 `AᵀP + PA = -Q` 並檢查 `P>0`。
+4. 接著做 `feat(control): add state feedback scaffold`，先限 low-order SISO pole placement 與 controllability guard。
+5. 再接 LQR baseline / Q-R tuning；Observer / Kalman、LQR production UI、MIMO、MPC、Robust Control 仍為後續，不要未補設計文件就直接開。
+6. Block Diagram 目前維持 paused；不要新增 block diagram 功能，除非使用者重新明確恢復。
+7. 加 `agents/openai.yaml` UI metadata。
+8. 增強 evaluator：從 heuristic 檢查升級成 judge model + golden dataset。
+9. 若 NVIDIA Build Models 更新，先更新根目錄資料檔，再同步 `skills/nvidia-model-selector/references/`。
+10. 視需求把 `search_models.py` 加上 `--top-category-summary` 或 fuzzy ranking。
+11. 若要更實用，補上本地文件切 chunk / PDF 轉圖 / OCR 結果快取。
+12. 加 parallel runner 與 leaderboard，追蹤同任務多模型輸出品質。
+13. 將 OCR/RAG 的 endpoint source 也改成完整 registry-driven，而不只傳入 model id。
+14. 補 Electron packaging 與教學模式。
 
 ## 注意事項
 - 這個專案不需要 `.agent-handoff.md`。
