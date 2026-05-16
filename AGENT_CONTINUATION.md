@@ -110,6 +110,7 @@ git log --oneline -5
 - `control-studio` 已補 Nichols Chart、ZPK 輸入、Export PNG、Routh-Hurwitz 表、autoFreqRange、Root Locus asymptotes、Nyquist encirclement 計數、輸入驗證強化。
 - `control-studio` 已補 Lead/Lag 補償器，作為 PID 後串接的 `Cc(s)=Kc(tau*s+1)/(alpha*tau*s+1)`。
 - `control-studio/scripts/verify_control_cases.mjs` 已將 `CONTROL_SYSTEM_VERIFICATION_CASES.md` 的五個數學案例轉為 fixture-based regression runner，並納入 validation script。
+- `control-studio/scripts/verify_control_api_contract.mjs` 已用同一組 verification fixtures 比對 FastAPI `/api/control/system/response`、`/api/control/system/stability` 與 JS CLI 的 formula / metrics / plot shape，並納入 validation script。
 - Block Diagram 目前暫時擱置，UI 入口已標示 paused；後續進階控制先走 SISO transfer function / frequency response / stability validation。
 - `control-studio` Block Editor 已補上拓撲分析（串聯 / 回授）、節點編輯（雙擊）、節點刪除、Zoom/Pan、Undo/Redo、Diagram save/load。
 - `control-studio/js/control/zpk.js` 新增 ZPK model 輸入與複數根解析。

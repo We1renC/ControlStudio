@@ -35,7 +35,7 @@
 | ID | Priority | Status | Item | Rationale | Dependencies | Verification |
 | --- | --- | --- | --- | --- | --- | --- |
 | CS-P0-01 | P0 | Done | Fixture-based verification runner | 五個數學推導案例已轉成可重跑 fixture，避免手動驗證流失 | `CONTROL_SYSTEM_VERIFICATION_CASES.md` | `node control-studio/scripts/verify_control_cases.mjs` 逐案輸出 pass/fail |
-| CS-P0-02 | P0 | Next | API contract tests | FastAPI 與 JS CLI 目前共用邏輯但測試不夠明確，需防止 schema drift | `control_analysis_cli.mjs`, `control_api.py` | 對 `/api/control/system/response` 與 `/api/control/system/stability` 跑 fixture |
+| CS-P0-02 | P0 | Done | API contract tests | FastAPI 與 JS CLI 目前共用邏輯但測試不夠明確，需防止 schema drift | `control_analysis_cli.mjs`, `control_api.py` | `node control-studio/scripts/verify_control_api_contract.mjs` 對 `/api/control/system/response` 與 `/api/control/system/stability` 跑 fixture |
 | CS-P0-03 | P0 | Next | Browser regression smoke | UI 已多次手動調整，需固定核心流程：輸入 plant、調 controller、看 plot、匯出 | 前端服務 `8765`, API `8770` | 使用 in-app browser 驗證無 console error、主要元件可見 |
 | CS-P0-04 | P0 | Planned | Input validation hardening | 進階控制會加入更多矩陣/參數，先統一錯誤提示與邊界條件 | 現有 field error helper | 無效 TF/SS/ZPK/Lead/Lag 參數能顯示錯誤且不破壞 state |
 
@@ -141,9 +141,9 @@ Exit criteria:
 
 建議後續 agent 依序做：
 
-1. `test(control): add api contract tests`
-   - 以 verification fixtures 打 `/api/control/system/response` 與 `/api/control/system/stability`。
-   - 確認 API 與 CLI 對同一 payload 的 formula / metrics 一致。
+1. `test(control): add browser regression smoke`
+   - 使用 in-app browser 固定核心 UI 流程。
+   - 驗證主要 plot、設定面板、匯出入口與 console error。
 
 2. `feat(control): add PID and lead design presets`
    - UI 加入 PID preset 與 Lead target PM helper。

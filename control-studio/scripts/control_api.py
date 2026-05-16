@@ -68,7 +68,7 @@ class SimulationConfig(BaseModel):
 
 
 class AnalysisRequest(BaseModel):
-    system: TransferFunctionSystem
+    system: Dict[str, Any]
     controller: Optional[PIDConfig] = None
     simulation: SimulationConfig = Field(default_factory=SimulationConfig)
 
