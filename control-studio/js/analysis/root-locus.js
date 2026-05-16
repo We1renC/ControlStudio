@@ -2,7 +2,7 @@
  * root-locus.js — Root locus computation
  * Traces how poles of 1 + K·G(s) = 0 move as K varies.
  */
-import { polyroots, polyadd, polyscale, polymul, polysub, polyderiv, polyvalReal } from '../math/polynomial.js';
+import { polyroots, polyadd, polyscale, polymul, polysub, polyderiv, polyvalReal } from '../math/polynomial.js?v=p3';
 
 /**
  * Compute root locus data.

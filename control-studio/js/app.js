@@ -7,11 +7,12 @@ import { compensatorDescription, designLagCompensator, designLeadCompensator, le
 import { impulseResponse, rampResponse, stepResponse } from './analysis/time-response.js';
 import { discreteStepResponse } from './analysis/discrete-response.js';
 import { bodeData, nyquistData, autoFreqRange, nicholsData, nyquistEncirclements } from './analysis/frequency-response.js';
-import { rootLocusData, rootLocusAsymptotes, rootLocusBreakPoints, rootLocusJwCrossings, sortRootLocusBranches } from './analysis/root-locus.js';
+import { rootLocusData, rootLocusAsymptotes, rootLocusBreakPoints, rootLocusJwCrossings, sortRootLocusBranches } from './analysis/root-locus.js?v=p3';
 import { stabilityMargins, stepInfo, routhTable } from './control/stability.js';
 import { parsePolyString, fmtNum, fmtDeg, fmtDB, fmtTime, fmtPercent } from './utils/format.js';
 import { zpkToTransferFunction, parseRootsString } from './control/zpk.js';
 import { c2dTustin, c2dZOH } from './control/c2d.js';
+import { polyadd, polyscale, polyroots } from './math/polynomial.js?v=p3';
 import { BlockEditor } from './editor/editor.js';
 
 // ============================================================
@@ -213,6 +214,7 @@ function initEventListeners() {
 
   document.getElementById('btn-ai-advisor')?.addEventListener('click', requestAIAdvice);
   document.getElementById('btn-apply')?.addEventListener('click', updateSystem);
+  document.getElementById('rl-k-slider')?.addEventListener('input', (e) => updateRlocusGain(parseFloat(e.target.value)));
   document.getElementById('btn-apply-pid-preset')?.addEventListener('click', applyPIDPreset);
   document.getElementById('btn-apply-lead-helper')?.addEventListener('click', applyLeadHelper);
   document.getElementById('btn-apply-lag-helper')?.addEventListener('click', applyLagHelper);
@@ -1235,6 +1237,101 @@ function renderRootLocus(sys, targetId = 'chart-rlocus') {
   layout.showlegend = targetId === 'chart-active';
   if (layout.showlegend) layout.legend = compactLegend();
   Plotly.react(targetId, traces, layout, { responsive: true, displayModeBar: false });
+
+  if (targetId === 'chart-active') {
+    _rlocusInteractiveSys = sys;
+    _rlocusKMax = result.gains[result.gains.length - 1];
+    const slider = document.getElementById('rl-k-slider');
+    if (slider) {
+      slider.max = _rlocusKMax;
+      slider.step = _rlocusKMax / 1000;
+      const kMaxLabel = document.getElementById('rl-k-max-label');
+      if (kMaxLabel) kMaxLabel.textContent = `K=${fmtNum(_rlocusKMax)}`;
+    }
+    const chartEl = document.getElementById('chart-active');
+    chartEl.removeAllListeners?.('plotly_click');
+    chartEl.on('plotly_click', (data) => {
+      const pt = data?.points?.[0];
+      if (!pt || typeof pt.customdata !== 'number') return;
+      updateRlocusGain(pt.customdata);
+    });
+  }
+}
+
+let _rlocusInteractiveSys = null;
+let _rlocusKMax = 100;
+
+function updateRlocusGain(K) {
+  if (!_rlocusInteractiveSys) return;
+  const sys = _rlocusInteractiveSys;
+
+  const panel = document.getElementById('rl-gain-info');
+  if (panel) panel.style.display = 'flex';
+
+  const slider = document.getElementById('rl-k-slider');
+  if (slider) slider.value = K;
+
+  const kDisp = document.getElementById('rl-k-display');
+  if (kDisp) kDisp.textContent = fmtNum(K);
+
+  const clDen = polyadd(sys.den, polyscale(sys.num, K));
+  const clPoles = polyroots(clDen);
+  const stable = clPoles.every((p) => p.re < -1e-10);
+  const marginal = !stable && clPoles.every((p) => p.re < 1e-8);
+
+  const badge = document.getElementById('rl-stability-badge');
+  if (badge) {
+    badge.textContent = stable ? 'Stable' : marginal ? 'Marginal' : 'Unstable';
+    badge.style.cssText = stable
+      ? 'background:rgba(16,185,129,.15);color:#10b981;display:inline-flex;align-items:center;padding:3px 10px;border-radius:20px;font-size:10px;font-weight:700;text-transform:uppercase;'
+      : marginal
+        ? 'background:rgba(245,158,11,.15);color:#f59e0b;display:inline-flex;align-items:center;padding:3px 10px;border-radius:20px;font-size:10px;font-weight:700;text-transform:uppercase;'
+        : 'background:rgba(239,68,68,.15);color:#ef4444;display:inline-flex;align-items:center;padding:3px 10px;border-radius:20px;font-size:10px;font-weight:700;text-transform:uppercase;';
+  }
+
+  const polesList = document.getElementById('rl-poles-list');
+  if (polesList) {
+    polesList.innerHTML = clPoles.map((p) => {
+      const imStr = Math.abs(p.im) < 1e-9 ? '' : p.im > 0 ? ` + ${fmtNum(p.im)}j` : ` − ${fmtNum(-p.im)}j`;
+      const color = p.re < -1e-10 ? '#10b981' : p.re < 1e-8 ? '#f59e0b' : '#ef4444';
+      return `<div style="color:${color}">${fmtNum(p.re)}${imStr}</div>`;
+    }).join('');
+  }
+
+  const chartEl = document.getElementById('chart-active');
+  if (chartEl?.data) {
+    const idx = chartEl.data.findIndex((t) => t.name === 'CL Poles');
+    const trace = {
+      x: clPoles.map((p) => p.re), y: clPoles.map((p) => p.im),
+      type: 'scatter', mode: 'markers', name: 'CL Poles',
+      marker: { symbol: 'circle', size: 13, color: stable ? '#10b981' : '#ef4444', line: { width: 2.5, color: '#fff' } },
+      hovertemplate: 'CL Pole<br>Re=%{x:.4f}<br>Im=%{y:.4f}<extra></extra>',
+      showlegend: true,
+    };
+    if (idx >= 0) Plotly.restyle('chart-active', { x: [trace.x], y: [trace.y], 'marker.color': [trace.marker.color] }, [idx]);
+    else Plotly.addTraces('chart-active', trace);
+  }
+
+  renderRlocusStepPreview(K, sys, clDen, stable);
+}
+
+function renderRlocusStepPreview(K, sys, clDen, stable) {
+  const el = document.getElementById('rl-step-preview');
+  if (!el) return;
+  try {
+    const clSys = new TransferFunction(polyscale(sys.num, K), clDen);
+    const resp = stepResponse(clSys, { duration: 15, sampleCount: 250 });
+    const yVals = resp.y.filter(Number.isFinite);
+    const valid = yVals.length > 0 && Math.max(...yVals.map(Math.abs)) < 1e5;
+    const layout = {
+      margin: { l: 32, r: 6, t: 4, b: 24 },
+      paper_bgcolor: 'transparent', plot_bgcolor: 'transparent',
+      xaxis: { color: '#64748b', tickfont: { size: 9 }, gridcolor: 'rgba(148,163,184,.08)', title: { text: 't (s)', font: { size: 9, color: '#64748b' } } },
+      yaxis: { color: '#64748b', tickfont: { size: 9 }, gridcolor: 'rgba(148,163,184,.08)' },
+      showlegend: false,
+    };
+    Plotly.react(el, [{ x: resp.t, y: valid ? resp.y : resp.t.map(() => 0), type: 'scatter', mode: 'lines', line: { width: 1.5, color: stable ? '#10b981' : '#ef4444' } }], layout, { responsive: true, displayModeBar: false });
+  } catch { /* ignore */ }
 }
 
 function renderPoleZeroMap(sys, targetId = 'chart-pzmap') {
