@@ -32,3 +32,18 @@ export function compensatorDescription(config = {}) {
   return `${normalized.mode.toUpperCase()} Kc=${normalized.gain}, tau=${normalized.tau}, alpha=${normalized.alpha}`;
 }
 
+export function designLeadCompensator({ phaseBoostDeg, crossoverFreq, gainStrategy = 'unity-at-crossover' } = {}) {
+  const phi = Number(phaseBoostDeg);
+  const wc = Number(crossoverFreq);
+  if (!Number.isFinite(phi) || phi <= 0 || phi >= 90) {
+    throw new Error('Lead phase boost must be between 0 and 90 degrees');
+  }
+  if (!Number.isFinite(wc) || wc <= 0) {
+    throw new Error('Lead crossover frequency must be greater than 0');
+  }
+  const sinPhi = Math.sin((phi * Math.PI) / 180);
+  const alpha = (1 - sinPhi) / (1 + sinPhi);
+  const tau = 1 / (wc * Math.sqrt(alpha));
+  const gain = gainStrategy === 'unity-at-crossover' ? Math.sqrt(alpha) : 1;
+  return normalizeCompensatorConfig({ mode: 'lead', gain, tau, alpha });
+}

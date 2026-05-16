@@ -2,7 +2,7 @@ import { TransferFunction } from './control/transfer-function.js';
 import { parseMatrixInput, stateSpaceToTransferFunction, controllabilityMatrix, observabilityMatrix } from './control/state-space.js';
 import { matRank } from './math/matrix.js';
 import { PIDController } from './control/pid.js';
-import { compensatorDescription, leadLagTransferFunction, normalizeCompensatorConfig } from './control/compensator.js';
+import { compensatorDescription, designLeadCompensator, leadLagTransferFunction, normalizeCompensatorConfig } from './control/compensator.js?v=control-phase1-1';
 import { impulseResponse, rampResponse, stepResponse } from './analysis/time-response.js';
 import { bodeData, nyquistData, autoFreqRange, nicholsData, nyquistEncirclements } from './analysis/frequency-response.js';
 import { rootLocusData, rootLocusAsymptotes } from './analysis/root-locus.js';
@@ -21,6 +21,7 @@ const state = {
   openLoop: null,
   pidParams: { Kp: 1, Ki: 0.5, Kd: 0.1, N: 100 },
   compensator: { mode: 'none', gain: 1, tau: 1, alpha: 0.2 },
+  controllerDesign: { source: 'manual', preset: null, leadTarget: null },
   showClosedLoop: true,
   systemType: 'tf',
   responseType: 'step',
@@ -129,6 +130,7 @@ function initEventListeners() {
       slider.addEventListener('input', () => {
         const val = parseFloat(slider.value);
         state.pidParams[param] = val;
+        state.controllerDesign = { ...state.controllerDesign, source: 'manual', preset: null };
         const valDisplay = document.getElementById(`pid-${param}-val`);
         if (valDisplay) valDisplay.textContent = val.toFixed(2);
         updateController();
@@ -139,6 +141,7 @@ function initEventListeners() {
   ['comp-mode', 'comp-gain', 'comp-tau', 'comp-alpha'].forEach((id) => {
     const handler = debounce(() => {
       readCompensatorInputs();
+      state.controllerDesign = { ...state.controllerDesign, source: 'manual', leadTarget: null };
       updateCompensatorVisibility();
       updateController();
     }, 150);
@@ -174,6 +177,8 @@ function initEventListeners() {
 
   document.getElementById('btn-ai-advisor')?.addEventListener('click', requestAIAdvice);
   document.getElementById('btn-apply')?.addEventListener('click', updateSystem);
+  document.getElementById('btn-apply-pid-preset')?.addEventListener('click', applyPIDPreset);
+  document.getElementById('btn-apply-lead-helper')?.addEventListener('click', applyLeadHelper);
   document.getElementById('btn-save-project')?.addEventListener('click', saveProjectFile);
   document.getElementById('btn-load-project')?.addEventListener('click', () => document.getElementById('project-file-input')?.click());
   document.getElementById('btn-export-json')?.addEventListener('click', () => exportCurrentResult('json'));
@@ -350,6 +355,91 @@ function renderStateSpaceEquationBlock(matrices) {
       ${rankStr}
     </div>
   `;
+}
+
+function syncPIDSliders() {
+  ['Kp', 'Ki', 'Kd'].forEach((param) => {
+    const input = document.getElementById(`pid-${param}`);
+    const value = document.getElementById(`pid-${param}-val`);
+    if (input) {
+      const currentMax = Number(input.max);
+      if (Number.isFinite(currentMax) && state.pidParams[param] > currentMax) input.max = state.pidParams[param] * 1.25;
+      input.value = state.pidParams[param];
+    }
+    if (value) value.textContent = state.pidParams[param].toFixed(2);
+  });
+}
+
+function setPIDFromController(controller, source) {
+  state.pidParams = {
+    ...state.pidParams,
+    Kp: controller.Kp,
+    Ki: controller.Ki,
+    Kd: controller.Kd,
+  };
+  state.controllerDesign = { ...state.controllerDesign, source, preset: source };
+  syncPIDSliders();
+  updateController();
+}
+
+function readRequiredPositiveNumber(id, label) {
+  const value = Number(document.getElementById(id)?.value);
+  if (!Number.isFinite(value) || value <= 0) {
+    setFieldError(id, `${label} 必須大於 0`);
+    throw new Error(`${label} 必須大於 0`);
+  }
+  return value;
+}
+
+function applyPIDPreset() {
+  try {
+    clearFieldErrors();
+    const preset = document.getElementById('pid-preset')?.value || 'zn-pid';
+    if (preset.startsWith('zn-')) {
+      const Ku = readRequiredPositiveNumber('preset-ku', 'Ku');
+      const Tu = readRequiredPositiveNumber('preset-tu', 'Tu');
+      const type = preset === 'zn-p' ? 'P' : preset === 'zn-pi' ? 'PI' : 'PID';
+      setPIDFromController(PIDController.zieglerNichols(Ku, Tu, type), `ziegler-nichols-${type.toLowerCase()}`);
+      clearError();
+      return;
+    }
+
+    const plantK = readRequiredPositiveNumber('preset-plant-k', 'FOPDT K');
+    const [tau, td] = parsePolyString(document.getElementById('preset-fopdt')?.value || '') || [];
+    if (!Number.isFinite(tau) || tau <= 0 || !Number.isFinite(td) || td <= 0) {
+      setFieldError('preset-fopdt', '請輸入 tau, td，且都必須大於 0');
+      throw new Error('FOPDT tau/td 必須大於 0');
+    }
+    setPIDFromController(PIDController.cohenCoon(plantK, tau, td), 'cohen-coon');
+    clearError();
+  } catch (err) {
+    showError(err.message);
+    scheduleSmokeDiagnostics();
+  }
+}
+
+function applyLeadHelper() {
+  try {
+    clearFieldErrors();
+    const phaseBoostDeg = readRequiredPositiveNumber('lead-target-phase', 'Target PM boost');
+    const crossoverFreq = readRequiredPositiveNumber('lead-target-wc', 'Crossover wc');
+    const config = designLeadCompensator({ phaseBoostDeg, crossoverFreq });
+    state.compensator = config;
+    state.controllerDesign = {
+      ...state.controllerDesign,
+      source: 'lead-helper',
+      leadTarget: { phaseBoostDeg, crossoverFreq },
+    };
+    syncCompensatorInputs();
+    updateController();
+    clearError();
+  } catch (err) {
+    const message = err.message.includes('phase boost') ? 'Target PM boost 必須介於 0 到 90 度之間' : err.message;
+    if (err.message.includes('phase boost')) setFieldError('lead-target-phase', message);
+    if (err.message.includes('crossover')) setFieldError('lead-target-wc', message);
+    showError(message);
+    scheduleSmokeDiagnostics();
+  }
 }
 
 function readCompensatorInputs() {
@@ -612,7 +702,7 @@ function setFieldError(id, msg) {
 
 function clearFieldErrors() {
   document.querySelectorAll('.field-hint').forEach(h => h.remove());
-  ['tf-num', 'tf-den', 'zpk-zeros', 'zpk-poles', 'zpk-gain', 'ss-a', 'ss-b', 'ss-c', 'ss-d', 'comp-gain', 'comp-tau', 'comp-alpha'].forEach(id => {
+  ['tf-num', 'tf-den', 'zpk-zeros', 'zpk-poles', 'zpk-gain', 'ss-a', 'ss-b', 'ss-c', 'ss-d', 'comp-gain', 'comp-tau', 'comp-alpha', 'preset-ku', 'preset-tu', 'preset-plant-k', 'preset-fopdt', 'lead-target-phase', 'lead-target-wc'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.style.borderColor = '';
   });
@@ -1070,6 +1160,7 @@ async function requestAIAdvice() {
       Ki: state.pidParams.Ki,
       Kd: state.pidParams.Kd,
       compensator: { ...state.compensator },
+      design: { ...state.controllerDesign },
       formula: state.controller?.toTransferFunction?.().toString?.() ?? '',
     },
     simulation: {
@@ -1157,6 +1248,7 @@ function saveComparisonSnapshot() {
     responseType: state.responseType,
     mode: state.showClosedLoop ? 'closed_loop' : 'open_loop',
     controller: { ...state.pidParams },
+    controllerDesign: { ...state.controllerDesign },
     compensator: { ...state.compensator },
     simulationConfig: { ...state.simulationConfig },
     metrics: {
@@ -1295,6 +1387,7 @@ function buildProjectPayload() {
     },
     stateSpace: { ...state.ssModel },
     controller: { ...state.pidParams },
+    controllerDesign: { ...state.controllerDesign },
     compensator: { ...state.compensator },
     simulationConfig: { ...state.simulationConfig },
     comparisonSnapshots: state.comparisonSnapshots,
@@ -1316,6 +1409,7 @@ function applyProjectPayload(data) {
   const tf = data.transferFunction || {};
   const ss = data.stateSpace || {};
   const controller = data.controller || {};
+  const controllerDesign = data.controllerDesign || {};
   const compensator = data.compensator || controller.compensator || {};
   const simulationConfig = data.simulationConfig || {};
 
@@ -1346,6 +1440,11 @@ function applyProjectPayload(data) {
     }
   });
   state.compensator = normalizeCompensatorConfig(compensator);
+  state.controllerDesign = {
+    source: controllerDesign.source || 'manual',
+    preset: controllerDesign.preset || null,
+    leadTarget: controllerDesign.leadTarget || null,
+  };
   syncCompensatorInputs();
 
   const responseSelect = document.getElementById('response-type');
@@ -1396,6 +1495,7 @@ function exportCurrentResult(format) {
       formula: state.plant.toString(),
     },
     controller: { ...state.pidParams, compensator: { ...state.compensator } },
+    controllerDesign: { ...state.controllerDesign },
     simulationConfig: { ...state.simulationConfig },
     metrics: {
       gainMarginDB: margins.gainMarginDB,
@@ -1478,6 +1578,7 @@ function controlStudioSmokeState() {
     plantFormula: state.plant?.toString?.() || null,
     closedLoopFormula: state.closedLoop?.toString?.() || null,
     controllerFormula: state.controller?.toTransferFunction?.().toString?.() || null,
+    controllerDesign: { ...state.controllerDesign },
     stabilityText: document.getElementById('stability-indicator')?.innerText.trim() || null,
     equationText: {
       system: document.getElementById('system-equation')?.innerText.trim() || '',

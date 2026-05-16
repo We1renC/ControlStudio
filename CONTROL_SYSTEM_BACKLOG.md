@@ -51,8 +51,8 @@ Exit criteria:
 
 | ID | Priority | Status | Item | Rationale | Dependencies | Verification |
 | --- | --- | --- | --- | --- | --- | --- |
-| CS-P1-01 | P1 | Next | PID tuning presets UI | 現有 `PIDController` 已有 Ziegler-Nichols / Cohen-Coon 靜態方法，但尚未 UI 化 | `pid.js` | 已知 Ku/Tu 或 FOPDT 參數輸入後，PID 係數符合公式 |
-| CS-P1-02 | P1 | Next | Lead design helper | Lead 已可串接，但尚未根據 target phase boost / crossover 給建議 | `compensator.js`, Bode data | 設計結果需提升 PM，並符合 `alpha=(1-sin(phi))/(1+sin(phi))` |
+| CS-P1-01 | P1 | Done | PID tuning presets UI | 現有 `PIDController` 已有 Ziegler-Nichols / Cohen-Coon 靜態方法，但尚未 UI 化 | `pid.js` | `test_control.js` 驗證 Ziegler-Nichols 與 Cohen-Coon 公式；UI 可套用 preset |
+| CS-P1-02 | P1 | Done | Lead design helper | Lead 已可串接，但尚未根據 target phase boost / crossover 給建議 | `compensator.js`, Bode data | `test_control.js` 驗證 `alpha=(1-sin(phi))/(1+sin(phi))`、`tau=1/(wc*sqrt(alpha))`；UI 可套用 target PM boost / crossover |
 | CS-P1-03 | P1 | Planned | Lag design helper | Lag 可改善低頻增益與 steady-state error，適合接在現有 frequency response | `compensator.js`, DC gain | 設計後 DC gain 提升，PM 不應大幅惡化 |
 | CS-P1-04 | P1 | Planned | Controller comparison table | 現有 snapshot 只有摘要，需要更工程化比較 controller candidates | comparison snapshots | 表格列出 PM/GM/rise/settling/overshoot/ess |
 
@@ -141,13 +141,13 @@ Exit criteria:
 
 建議後續 agent 依序做：
 
-1. `feat(control): add PID and lead design presets`
-   - UI 加入 PID preset 與 Lead target PM helper。
-   - 新增對應公式驗證。
-
-2. `feat(control): add controller comparison table`
+1. `feat(control): add controller comparison table`
    - 在 Compare 面板補工程指標表。
    - 匯出 comparison 時包含 controller formula 與 compensator config。
+
+2. `feat(control): add lag design helper`
+   - 加入 target steady-state improvement / low-frequency gain helper。
+   - 驗證 DC gain 提升且 PM 不大幅惡化。
 
 3. `feat(control): add discrete transfer-function baseline`
    - 先補資料模型與差分方程驗證，不急著擴大 UI。

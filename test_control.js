@@ -5,7 +5,7 @@ import { rootLocusAsymptotes } from './control-studio/js/analysis/root-locus.js'
 import { stateSpaceToTransferFunction, controllabilityMatrix, observabilityMatrix } from './control-studio/js/control/state-space.js';
 import { stepInfo, stabilityMargins, routhTable } from './control-studio/js/control/stability.js';
 import { PIDController } from './control-studio/js/control/pid.js';
-import { leadLagTransferFunction } from './control-studio/js/control/compensator.js';
+import { designLeadCompensator, leadLagTransferFunction } from './control-studio/js/control/compensator.js';
 import { parsePolyString } from './control-studio/js/utils/format.js';
 import { zpkToTransferFunction, parseRootsString, parseComplexRoot } from './control-studio/js/control/zpk.js';
 import { polydiv, polymul } from './control-studio/js/math/polynomial.js';
@@ -219,6 +219,22 @@ try {
   if (!Number.isFinite(complexInfo.settlingTime)) throw new Error('Complex settling time should be finite');
   console.log('Complex unstable/pole-zero/low-PM equivalence test passed');
 
+  // PID tuning presets:
+  // Ziegler-Nichols PID: Kp=0.6Ku, Ki=1.2Ku/Tu, Kd=0.075KuTu.
+  const znPid = PIDController.zieglerNichols(6, 2, 'PID');
+  assertNear('ZN PID Kp', znPid.Kp, 3.6);
+  assertNear('ZN PID Ki', znPid.Ki, 3.6);
+  assertNear('ZN PID Kd', znPid.Kd, 0.9);
+  const znPi = PIDController.zieglerNichols(6, 2, 'PI');
+  assertNear('ZN PI Kp', znPi.Kp, 2.7);
+  assertNear('ZN PI Ki', znPi.Ki, 1.62);
+  assertNear('ZN PI Kd', znPi.Kd, 0);
+  const cohenCoon = PIDController.cohenCoon(1, 5, 1);
+  assertNear('Cohen-Coon Kp', cohenCoon.Kp, 7.002074688796681, 1e-12);
+  assertNear('Cohen-Coon Ki', cohenCoon.Ki, 3.0742442205097804, 1e-12);
+  assertNear('Cohen-Coon Kd', cohenCoon.Kd, 3.09160815615128, 1e-12);
+  console.log('PID preset tests passed');
+
   // Lead compensator math equivalence:
   // Cc(s) = 2(0.5s+1)/(0.1s+1) = (s+2)/(0.1s+1), zero=-2, pole=-10.
   const leadComp = leadLagTransferFunction({ mode: 'lead', gain: 2, tau: 0.5, alpha: 0.2 });
@@ -234,6 +250,15 @@ try {
   assertPolyNear('Lag compensator denominator', lagComp.den, [1, 0.2]);
   if (!lagComp.zeros().some(z => Math.abs(z.re + 1) < 1e-6)) throw new Error('Lag zero should be at -1');
   if (!lagComp.poles().some(p => Math.abs(p.re + 0.2) < 1e-6)) throw new Error('Lag pole should be at -0.2');
+
+  // Lead helper:
+  // alpha=(1-sin(phi))/(1+sin(phi)), tau=1/(wc*sqrt(alpha)).
+  const designedLead = designLeadCompensator({ phaseBoostDeg: 35, crossoverFreq: 3 });
+  const expectedAlpha = (1 - Math.sin(35 * Math.PI / 180)) / (1 + Math.sin(35 * Math.PI / 180));
+  const expectedTau = 1 / (3 * Math.sqrt(expectedAlpha));
+  assertNear('Lead helper alpha', designedLead.alpha, expectedAlpha, 1e-12);
+  assertNear('Lead helper tau', designedLead.tau, expectedTau, 1e-12);
+  assertNear('Lead helper gain', designedLead.gain, Math.sqrt(expectedAlpha), 1e-12);
   console.log('Lead/Lag compensator tests passed');
 
   console.log('Tests Passed!');

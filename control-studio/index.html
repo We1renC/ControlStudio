@@ -268,6 +268,34 @@
             <input type="range" id="pid-Kd" min="0" max="5" step="0.01" value="0.1">
           </div>
           <div class="input-group" style="margin-top:var(--space-4);">
+            <label>PID Preset</label>
+            <select id="pid-preset" style="background:var(--bg-tertiary); color:var(--text-primary); border:1px solid var(--border-primary); border-radius:var(--radius-sm); padding:8px 12px; font-size:12px;">
+              <option value="zn-pid">Ziegler-Nichols PID</option>
+              <option value="zn-pi">Ziegler-Nichols PI</option>
+              <option value="zn-p">Ziegler-Nichols P</option>
+              <option value="cohen-coon">Cohen-Coon PID</option>
+            </select>
+          </div>
+          <div class="summary-grid" style="margin-bottom:var(--space-2);">
+            <div class="input-group" style="margin-bottom:0;">
+              <label>Ku</label>
+              <input type="number" id="preset-ku" min="0.01" step="0.1" value="6">
+            </div>
+            <div class="input-group" style="margin-bottom:0;">
+              <label>Tu</label>
+              <input type="number" id="preset-tu" min="0.01" step="0.1" value="2">
+            </div>
+            <div class="input-group" style="margin-bottom:0;">
+              <label>FOPDT K</label>
+              <input type="number" id="preset-plant-k" min="0.01" step="0.1" value="1">
+            </div>
+            <div class="input-group" style="margin-bottom:0;">
+              <label>tau / td</label>
+              <input type="text" id="preset-fopdt" value="5, 1">
+            </div>
+          </div>
+          <button class="btn btn-sm" id="btn-apply-pid-preset" style="width:100%; justify-content:center;">Apply PID Preset</button>
+          <div class="input-group" style="margin-top:var(--space-4);">
             <label>Lead / Lag Compensator</label>
             <select id="comp-mode" style="background:var(--bg-tertiary); color:var(--text-primary); border:1px solid var(--border-primary); border-radius:var(--radius-sm); padding:8px 12px; font-size:12px;">
               <option value="none">None</option>
@@ -289,6 +317,17 @@
               <input type="number" id="comp-alpha" min="0.01" step="0.1" value="0.2">
             </div>
           </div>
+          <div class="summary-grid" style="margin-top:var(--space-4); margin-bottom:var(--space-2);">
+            <div class="input-group" style="margin-bottom:0;">
+              <label>Target PM Boost (deg)</label>
+              <input type="number" id="lead-target-phase" min="1" max="89" step="1" value="35">
+            </div>
+            <div class="input-group" style="margin-bottom:0;">
+              <label>Crossover wc (rad/s)</label>
+              <input type="number" id="lead-target-wc" min="0.01" step="0.1" value="3">
+            </div>
+          </div>
+          <button class="btn btn-sm" id="btn-apply-lead-helper" style="width:100%; justify-content:center;">Apply Lead Helper</button>
         </section>
 
         <section class="section-panel">
@@ -518,6 +557,6 @@
 
   <div id="error-msg" style="position:fixed; bottom:20px; right:20px; background:var(--color-unstable); color:white; padding:12px 20px; border-radius:var(--radius-md); font-size:13px; display:none; z-index:1000; box-shadow:0 10px 25px rgba(0,0,0,0.2);"></div>
 
-  <script type="module" src="js/app.js?v=control-smoke-1"></script>
+  <script type="module" src="js/app.js?v=control-phase1-1"></script>
 </body>
 </html>
