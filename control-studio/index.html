@@ -139,6 +139,11 @@
     .snapshot-name { font-size:12px; font-weight:600; color:var(--text-primary); }
     .snapshot-meta { font-size:11px; color:var(--text-muted); display:grid; grid-template-columns: repeat(3, 1fr); gap:6px; }
     .snapshot-actions { display:flex; gap:8px; }
+    .comparison-table-wrap { overflow:auto; border:1px solid var(--border-primary); border-radius:var(--radius-sm); margin-top:var(--space-4); }
+    .comparison-table { width:100%; border-collapse:collapse; min-width:760px; font-size:11px; }
+    .comparison-table th, .comparison-table td { border-bottom:1px solid var(--border-primary); padding:7px 8px; text-align:left; color:var(--text-secondary); white-space:nowrap; }
+    .comparison-table th { color:var(--text-muted); font-weight:700; text-transform:uppercase; letter-spacing:0.3px; background:rgba(15,17,23,0.28); }
+    .comparison-table td strong { color:var(--text-primary); }
     .empty-state { border:1px dashed var(--border-primary); border-radius:var(--radius-md); padding:16px; color:var(--text-muted); font-size:12px; line-height:1.5; }
     .compare-shell { display: none; }
     .compare-shell.active { display: flex; }
@@ -483,6 +488,25 @@
           <div id="snapshot-list" class="snapshot-list">
             <div class="empty-state" id="snapshot-empty">還沒有保存任何比較快照。先調整參數後按下 Save Snapshot。</div>
           </div>
+          <div class="comparison-table-wrap">
+            <table class="comparison-table">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Kp</th>
+                  <th>Ki</th>
+                  <th>Kd</th>
+                  <th>PM</th>
+                  <th>GM</th>
+                  <th>Rise</th>
+                  <th>Settling</th>
+                  <th>Overshoot</th>
+                  <th>ESS</th>
+                </tr>
+              </thead>
+              <tbody id="comparison-table-body"><tr><td colspan="10">—</td></tr></tbody>
+            </table>
+          </div>
           <div class="button-grid" style="margin-top:var(--space-4);">
             <button class="btn btn-sm" id="btn-clear-snapshots" style="justify-content:center;">Clear Snapshots</button>
             <button class="btn btn-sm" id="btn-export-compare" style="justify-content:center;">Export Compare JSON</button>
@@ -557,6 +581,6 @@
 
   <div id="error-msg" style="position:fixed; bottom:20px; right:20px; background:var(--color-unstable); color:white; padding:12px 20px; border-radius:var(--radius-md); font-size:13px; display:none; z-index:1000; box-shadow:0 10px 25px rgba(0,0,0,0.2);"></div>
 
-  <script type="module" src="js/app.js?v=control-phase1-1"></script>
+  <script type="module" src="js/app.js?v=control-phase1-2"></script>
 </body>
 </html>

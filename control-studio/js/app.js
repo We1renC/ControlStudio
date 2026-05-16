@@ -1242,6 +1242,7 @@ function saveComparisonSnapshot() {
   const sys = state.showClosedLoop ? (state.closedLoop || state.plant) : state.plant;
   const response = currentResponseData(sys);
   const info = stepInfo(response.t, response.y);
+  const margins = stabilityMargins(state.openLoop || state.plant);
   const snapshot = {
     id: `snap-${Date.now()}`,
     name: `${waveformLabel(state.responseType)} | Kp ${state.pidParams.Kp.toFixed(2)} / Ki ${state.pidParams.Ki.toFixed(2)} / Kd ${state.pidParams.Kd.toFixed(2)} / ${state.compensator.mode}`,
@@ -1250,11 +1251,20 @@ function saveComparisonSnapshot() {
     controller: { ...state.pidParams },
     controllerDesign: { ...state.controllerDesign },
     compensator: { ...state.compensator },
+    formulas: {
+      plant: state.plant?.toString?.() || '',
+      controller: state.controller?.toTransferFunction?.().toString?.() || '',
+      openLoop: state.openLoop?.toString?.() || '',
+      closedLoop: state.closedLoop?.toString?.() || '',
+    },
     simulationConfig: { ...state.simulationConfig },
     metrics: {
+      gainMarginDB: margins.gainMarginDB,
+      phaseMargin: margins.phaseMargin,
       riseTime: info.riseTime,
       settlingTime: info.settlingTime,
       overshoot: info.overshoot,
+      steadyStateError: info.steadyStateError ?? null,
     },
     response,
   };
@@ -1274,6 +1284,7 @@ function renderSnapshotList() {
   empty.style.display = state.comparisonSnapshots.length === 0 ? 'block' : 'none';
   setComparisonVisibility();
   renderComparisonSummary();
+  renderComparisonTable();
 
   state.comparisonSnapshots.forEach((snapshot) => {
     const card = document.createElement('div');
@@ -1297,6 +1308,29 @@ function renderSnapshotList() {
     card.querySelector('[data-action="delete"]').addEventListener('click', () => deleteSnapshot(snapshot.id));
     list.appendChild(card);
   });
+}
+
+function renderComparisonTable() {
+  const body = document.getElementById('comparison-table-body');
+  if (!body) return;
+  if (state.comparisonSnapshots.length === 0) {
+    body.innerHTML = '<tr><td colspan="10">—</td></tr>';
+    return;
+  }
+  body.innerHTML = state.comparisonSnapshots.map((snapshot) => `
+    <tr>
+      <td><strong>${escapeHtml(snapshot.name)}</strong></td>
+      <td>${fmtNum(snapshot.controller?.Kp ?? 0, 3)}</td>
+      <td>${fmtNum(snapshot.controller?.Ki ?? 0, 3)}</td>
+      <td>${fmtNum(snapshot.controller?.Kd ?? 0, 3)}</td>
+      <td>${fmtDeg(snapshot.metrics?.phaseMargin)}</td>
+      <td>${fmtDB(snapshot.metrics?.gainMarginDB)}</td>
+      <td>${fmtTime(snapshot.metrics?.riseTime)}</td>
+      <td>${fmtTime(snapshot.metrics?.settlingTime)}</td>
+      <td>${fmtPercent(snapshot.metrics?.overshoot)}</td>
+      <td>${fmtNum(snapshot.metrics?.steadyStateError ?? NaN, 3)}</td>
+    </tr>
+  `).join('');
 }
 
 function applySnapshot(snapshotId) {
@@ -1593,6 +1627,7 @@ function controlStudioSmokeState() {
     },
     responseLength: response?.t?.length || 0,
     snapshotCount: state.comparisonSnapshots.length,
+    comparisonTableRows: document.querySelectorAll('#comparison-table-body tr').length,
     compareVisible: document.getElementById('compare-section')?.classList.contains('active') || false,
     errorVisible: errorEl?.style.display !== 'none',
     errorText: errorEl?.textContent || '',
