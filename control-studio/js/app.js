@@ -12,6 +12,7 @@ import { stabilityMargins, stepInfo, routhTable } from './control/stability.js';
 import { parsePolyString, fmtNum, fmtDeg, fmtDB, fmtTime, fmtPercent } from './utils/format.js';
 import { zpkToTransferFunction, parseRootsString } from './control/zpk.js';
 import { c2dTustin, c2dZOH } from './control/c2d.js';
+import { specsToTargetPoles, designLeadForPM } from './control/design.js?v=p4';
 import { polyadd, polyscale, polyroots } from './math/polynomial.js?v=p4';
 import { BlockEditor } from './editor/editor.js';
 
@@ -215,6 +216,9 @@ function initEventListeners() {
   document.getElementById('btn-ai-advisor')?.addEventListener('click', requestAIAdvice);
   document.getElementById('btn-apply')?.addEventListener('click', updateSystem);
   document.getElementById('rl-k-slider')?.addEventListener('input', (e) => updateRlocusGain(parseFloat(e.target.value)));
+  document.getElementById('btn-design-poles')?.addEventListener('click', computeDesignTargetPoles);
+  document.getElementById('btn-design-lead')?.addEventListener('click', computeDesignLeadFromPM);
+  document.getElementById('btn-apply-design-lead')?.addEventListener('click', applyDesignLeadToController);
   document.getElementById('btn-apply-pid-preset')?.addEventListener('click', applyPIDPreset);
   document.getElementById('btn-apply-lead-helper')?.addEventListener('click', applyLeadHelper);
   document.getElementById('btn-apply-lag-helper')?.addEventListener('click', applyLagHelper);
@@ -455,6 +459,86 @@ function applyPIDPreset() {
     showError(err.message);
     scheduleSmokeDiagnostics();
   }
+}
+
+let _pendingLeadDesign = null;
+
+function computeDesignTargetPoles() {
+  const out = document.getElementById('design-pole-out');
+  try {
+    const overshoot = parseFloat(document.getElementById('design-os').value);
+    const settlingTime = parseFloat(document.getElementById('design-ts').value);
+    const result = specsToTargetPoles({ overshoot, settlingTime });
+    const wd = result.omegaD.toFixed(4);
+    out.style.display = 'block';
+    out.innerHTML = [
+      `<div style="color:var(--color-accent);font-weight:700;">ζ = ${result.zeta.toFixed(4)}</div>`,
+      `<div>σ = ${result.sigma.toFixed(4)}  (real part)</div>`,
+      `<div>ωn = ${result.omegaN.toFixed(4)}  rad/s</div>`,
+      `<div>ωd = ${wd}  rad/s</div>`,
+      `<div style="margin-top:6px;color:var(--color-stable);">Target poles:</div>`,
+      `<div>s = ${(-result.sigma).toFixed(4)} ± j${wd}</div>`,
+    ].join('');
+    clearError();
+  } catch (err) {
+    out.style.display = 'block';
+    out.style.color = 'var(--color-unstable)';
+    out.textContent = err.message;
+  }
+}
+
+function computeDesignLeadFromPM() {
+  const out = document.getElementById('design-lead-out');
+  const applyBtn = document.getElementById('btn-apply-design-lead');
+  if (!state.plant) {
+    out.style.display = 'block';
+    out.style.color = 'var(--color-unstable)';
+    out.textContent = '請先在 System 分頁套用 plant。';
+    applyBtn.style.display = 'none';
+    return;
+  }
+  try {
+    const targetPM = parseFloat(document.getElementById('design-pm').value);
+    const safetyMargin = parseFloat(document.getElementById('design-safety').value) || 0;
+    const r = designLeadForPM(state.plant, { targetPM, safetyMargin });
+    out.style.display = 'block';
+    out.style.color = '';
+    if (r.skipped) {
+      out.innerHTML = `<div style="color:var(--color-stable);">已達標 (${r.reason})</div><div>current PM ≈ ${Number.isFinite(r.currentPM) ? r.currentPM.toFixed(2) + '°' : '∞'}</div>`;
+      applyBtn.style.display = 'none';
+      _pendingLeadDesign = null;
+      return;
+    }
+    out.innerHTML = [
+      `<div>current PM = ${r.currentPM.toFixed(2)}° @ ωc = ${r.crossoverFreq.toFixed(3)}</div>`,
+      `<div style="color:var(--color-accent);">phase boost = ${r.phaseBoostDeg.toFixed(2)}°</div>`,
+      `<div>α = ${r.alpha.toFixed(4)}   τ = ${r.tau.toFixed(4)}   gain = ${r.gain.toFixed(4)}</div>`,
+      `<div style="color:var(--color-stable);margin-top:4px;">achieved PM ≈ ${r.achievedPM.toFixed(2)}°</div>`,
+    ].join('');
+    _pendingLeadDesign = r;
+    applyBtn.style.display = 'inline-flex';
+    clearError();
+  } catch (err) {
+    out.style.display = 'block';
+    out.style.color = 'var(--color-unstable)';
+    out.textContent = err.message;
+    applyBtn.style.display = 'none';
+    _pendingLeadDesign = null;
+  }
+}
+
+function applyDesignLeadToController() {
+  if (!_pendingLeadDesign) return;
+  const d = _pendingLeadDesign;
+  state.compensator = { mode: 'lead', gain: d.gain, tau: d.tau, alpha: d.alpha };
+  state.controllerDesign = {
+    ...state.controllerDesign,
+    source: 'design-pm',
+    leadTarget: { targetPM: d.targetPM, phaseBoostDeg: d.phaseBoostDeg, crossoverFreq: d.crossoverFreq },
+    lagTarget: null,
+  };
+  syncCompensatorInputs();
+  updateController();
 }
 
 function applyLeadHelper() {

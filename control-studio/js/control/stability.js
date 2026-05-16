@@ -7,7 +7,7 @@ import { Complex } from '../math/complex.js';
  * Compute gain margin and phase margin from a transfer function.
  */
 export function stabilityMargins(sys) {
-  if (!sys) return { gainMargin: Infinity, gainMarginDB: Infinity, phaseMargin: NaN };
+  if (!sys) return { gainMargin: Infinity, gainMarginDB: Infinity, phaseMargin: NaN, gainCrossover: NaN, phaseCrossover: NaN };
   const wMin = 1e-3, wMax = 1e4;
   const nPoints = 2000;
   const logMin = Math.log10(wMin), logMax = Math.log10(wMax);
@@ -34,7 +34,7 @@ export function stabilityMargins(sys) {
     }
     prevPhase = phase; prevMag = mag; prevW = w;
   }
-  return { gainMargin, gainMarginDB: 20 * Math.log10(gainMargin), phaseMargin };
+  return { gainMargin, gainMarginDB: 20 * Math.log10(gainMargin), phaseMargin, gainCrossover: pmFreq, phaseCrossover: gmFreq };
 }
 
 /**

@@ -12,6 +12,7 @@ import { parsePolyString } from './control-studio/js/utils/format.js';
 import { zpkToTransferFunction, parseRootsString, parseComplexRoot } from './control-studio/js/control/zpk.js';
 import { polydiv, polymul } from './control-studio/js/math/polynomial.js';
 import { c2dTustin, c2dZOH } from './control-studio/js/control/c2d.js';
+import { specsToTargetPoles, designLeadForPM } from './control-studio/js/control/design.js';
 import { matRank } from './control-studio/js/math/matrix.js';
 
 try {
@@ -428,6 +429,44 @@ try {
   if (sortedBranches[1][1].im > 0) throw new Error('Branch 1 should stay on negative imaginary side after sort');
 
   console.log('Root Locus (break points / jω crossings / branch sort) tests passed');
+
+  // ── Phase 4 design specs: %OS=16.3, Ts=2 → ζ=0.5, σ=2, ωn=4 ──────────────
+  const spec1 = specsToTargetPoles({ overshoot: 16.3, settlingTime: 2 });
+  assertNear('Spec1 zeta', spec1.zeta, 0.5, 5e-4);
+  assertNear('Spec1 sigma', spec1.sigma, 2, 1e-9);
+  assertNear('Spec1 omegaN', spec1.omegaN, 4, 5e-3);
+  assertNear('Spec1 omegaD', spec1.omegaD, 2 * Math.sqrt(3), 5e-3);
+  assertNear('Spec1 pole re', spec1.poles[0].re, -2, 1e-9);
+  if (spec1.poles[0].im <= 0 || spec1.poles[1].im >= 0) {
+    throw new Error('Spec1 poles must be conjugate pair');
+  }
+
+  // ── Phase 4 design specs: %OS=4.32, Ts=1 → ζ≈0.707 (ITAE-ish) ────────────
+  const spec2 = specsToTargetPoles({ overshoot: 4.32, settlingTime: 1 });
+  assertNear('Spec2 zeta', spec2.zeta, Math.SQRT1_2, 1e-3);
+  assertNear('Spec2 sigma', spec2.sigma, 4, 1e-9);
+
+  // ── Phase 4 Lead design: G(s)=1/(s(s+1)), targetPM=60° ───────────────────
+  // Current PM ≈ 52° at ωc≈0.79; lead should raise PM toward 60°.
+  const ldPlant = new TransferFunction([1], [1, 1, 0]);
+  const ldBefore = stabilityMargins(ldPlant);
+  if (ldBefore.phaseMargin > 60) throw new Error('Lead test plant should start below PM=60');
+  const lead = designLeadForPM(ldPlant, { targetPM: 60, safetyMargin: 5 });
+  if (!lead || lead.skipped) throw new Error('Lead design unexpectedly skipped');
+  if (!(lead.alpha > 0 && lead.alpha < 1)) throw new Error('Lead alpha must be in (0,1)');
+  if (lead.achievedPM < lead.currentPM) {
+    throw new Error(`Lead failed to improve PM: ${lead.currentPM} → ${lead.achievedPM}`);
+  }
+  // With +5° safety, achieved PM should be close to (or above) target
+  if (lead.achievedPM < 55) {
+    throw new Error(`Lead PM achievement too weak: ${lead.achievedPM} (target ${lead.targetPM})`);
+  }
+  // Skip-path: when plant already satisfies PM, design returns skipped
+  const easyPlant = new TransferFunction([1], [1, 1]); // 1/(s+1), PM = ∞
+  const easy = designLeadForPM(easyPlant, { targetPM: 60 });
+  if (!easy.skipped) throw new Error('Easy plant should skip lead design');
+
+  console.log('Phase 4 (design specs / lead from PM) tests passed');
 
   console.log('Tests Passed!');
 } catch (e) {
