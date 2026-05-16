@@ -37,7 +37,7 @@
 | CS-P0-01 | P0 | Done | Fixture-based verification runner | 五個數學推導案例已轉成可重跑 fixture，避免手動驗證流失 | `CONTROL_SYSTEM_VERIFICATION_CASES.md` | `node control-studio/scripts/verify_control_cases.mjs` 逐案輸出 pass/fail |
 | CS-P0-02 | P0 | Done | API contract tests | FastAPI 與 JS CLI 目前共用邏輯但測試不夠明確，需防止 schema drift | `control_analysis_cli.mjs`, `control_api.py` | `node control-studio/scripts/verify_control_api_contract.mjs` 對 `/api/control/system/response` 與 `/api/control/system/stability` 跑 fixture |
 | CS-P0-03 | P0 | Done | Browser regression smoke | UI 已多次手動調整，需固定核心流程：輸入 plant、調 controller、看 plot、匯出 | 前端服務 `8765`, API `8770` | `window.ControlStudioSmoke.run()` 檢查核心公式、plot traces、legend、snapshot 狀態；本輪已用 in-app browser 驗證 |
-| CS-P0-04 | P0 | Planned | Input validation hardening | 進階控制會加入更多矩陣/參數，先統一錯誤提示與邊界條件 | 現有 field error helper | 無效 TF/SS/ZPK/Lead/Lag 參數能顯示錯誤且不破壞 state |
+| CS-P0-04 | P0 | Done | Input validation hardening | 進階控制會加入更多矩陣/參數，先統一錯誤提示與邊界條件 | 現有 field error helper | 無效 TF/SS/ZPK/Lead/Lag 參數能顯示錯誤且不破壞 state；本輪已用 browser 驗證 denominator 全零與 lead alpha 錯誤 |
 
 Exit criteria:
 - `node test_control.js` 通過。
@@ -141,17 +141,16 @@ Exit criteria:
 
 建議後續 agent 依序做：
 
-1. `fix(control): harden input validation states`
-   - 統一 TF / SS / ZPK / Lead-Lag 錯誤顯示。
-   - 無效輸入不應清空既有可用 plant/controller。
-
-2. `feat(control): add PID and lead design presets`
+1. `feat(control): add PID and lead design presets`
    - UI 加入 PID preset 與 Lead target PM helper。
    - 新增對應公式驗證。
 
-3. `feat(control): add controller comparison table`
+2. `feat(control): add controller comparison table`
    - 在 Compare 面板補工程指標表。
    - 匯出 comparison 時包含 controller formula 與 compensator config。
+
+3. `feat(control): add discrete transfer-function baseline`
+   - 先補資料模型與差分方程驗證，不急著擴大 UI。
 
 ## Do Not Start Yet
 

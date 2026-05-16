@@ -112,6 +112,7 @@ git log --oneline -5
 - `control-studio/scripts/verify_control_cases.mjs` 已將 `CONTROL_SYSTEM_VERIFICATION_CASES.md` 的五個數學案例轉為 fixture-based regression runner，並納入 validation script。
 - `control-studio/scripts/verify_control_api_contract.mjs` 已用同一組 verification fixtures 比對 FastAPI `/api/control/system/response`、`/api/control/system/stability` 與 JS CLI 的 formula / metrics / plot shape，並納入 validation script。
 - `control-studio/js/app.js` 已暴露 `window.ControlStudioSmoke.run()` 與 `getState()`，供 in-app browser 驗證 UI 公式、plot traces、legend、snapshot 與錯誤狀態。
+- `control-studio` 已強化輸入驗證：TF 分母不可全 0、ZPK zeros/poles 有欄位錯誤、State-Space A/B/C/D 會標示對應欄位、Lead/Lag alpha/tau/gain 有模式限制；本輪已用 in-app browser 驗證壞輸入不會覆蓋原可用模型。
 - Block Diagram 目前暫時擱置，UI 入口已標示 paused；後續進階控制先走 SISO transfer function / frequency response / stability validation。
 - `control-studio` Block Editor 已補上拓撲分析（串聯 / 回授）、節點編輯（雙擊）、節點刪除、Zoom/Pan、Undo/Redo、Diagram save/load。
 - `control-studio/js/control/zpk.js` 新增 ZPK model 輸入與複數根解析。

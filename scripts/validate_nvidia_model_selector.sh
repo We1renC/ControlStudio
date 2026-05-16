@@ -118,6 +118,7 @@ grep -q "CONTROL_SYSTEM_BACKLOG.md" "$ROOT_DIR/README.md"
 grep -q "Fixture-based verification runner" "$ROOT_DIR/CONTROL_SYSTEM_BACKLOG.md"
 grep -q "Block Diagram expansion" "$ROOT_DIR/CONTROL_SYSTEM_BACKLOG.md"
 grep -q "ControlStudioSmoke" "$ROOT_DIR/control-studio/js/app.js"
+grep -q "Lead compensator 需要 0 < alpha < 1" "$ROOT_DIR/control-studio/js/app.js"
 grep -q "control-advisor" "$ROOT_DIR/AGENT_CONTINUATION.md"
 grep -q "runtime model routing" "$ROOT_DIR/skills/nvidia-model-selector/SKILL.md"
 

@@ -375,6 +375,44 @@ function syncCompensatorInputs() {
   updateCompensatorVisibility();
 }
 
+function parseStateMatrixField(id, expectedCols = null) {
+  try {
+    return parseMatrixInput(document.getElementById(id)?.value, expectedCols);
+  } catch (err) {
+    setFieldError(id, err.message);
+    throw err;
+  }
+}
+
+function isZeroPolynomial(poly) {
+  return !poly || poly.every((value) => Math.abs(value) < 1e-15);
+}
+
+function readPositiveNumberField(id, label) {
+  const value = Number(document.getElementById(id)?.value);
+  if (!Number.isFinite(value) || value <= 0) {
+    setFieldError(id, `${label} 必須大於 0`);
+    throw new Error(`${label} 必須大於 0`);
+  }
+  return value;
+}
+
+function validateCompensatorInputs() {
+  const mode = document.getElementById('comp-mode')?.value || 'none';
+  if (mode === 'none') return;
+  readPositiveNumberField('comp-gain', 'Compensator gain');
+  readPositiveNumberField('comp-tau', 'Time constant tau');
+  const alpha = readPositiveNumberField('comp-alpha', 'Alpha');
+  if (mode === 'lead' && alpha >= 1) {
+    setFieldError('comp-alpha', 'Lead compensator 需要 0 < alpha < 1');
+    throw new Error('Lead compensator 需要 0 < alpha < 1');
+  }
+  if (mode === 'lag' && alpha <= 1) {
+    setFieldError('comp-alpha', 'Lag compensator 需要 alpha > 1');
+    throw new Error('Lag compensator 需要 alpha > 1');
+  }
+}
+
 function updateCompensatorVisibility() {
   const fields = document.getElementById('comp-fields');
   const mode = document.getElementById('comp-mode')?.value || state.compensator.mode;
@@ -503,12 +541,20 @@ function updateSystem() {
     readSimulationConfigInputs();
     clearFieldErrors();
     if (state.systemType === 'ss') {
-      const A = parseMatrixInput(document.getElementById('ss-a')?.value);
-      const B = parseMatrixInput(document.getElementById('ss-b')?.value, 1);
-      const C = parseMatrixInput(document.getElementById('ss-c')?.value);
-      const D = parseMatrixInput(document.getElementById('ss-d')?.value, 1);
+      const A = parseStateMatrixField('ss-a');
+      const B = parseStateMatrixField('ss-b', 1);
+      const C = parseStateMatrixField('ss-c');
+      const D = parseStateMatrixField('ss-d', 1);
       captureStateSpaceInputs();
-      state.plant = stateSpaceToTransferFunction(A, B, C, D);
+      try {
+        state.plant = stateSpaceToTransferFunction(A, B, C, D);
+      } catch (err) {
+        if (err.message.startsWith('A ')) setFieldError('ss-a', err.message);
+        else if (err.message.includes('B ')) setFieldError('ss-b', err.message);
+        else if (err.message.includes('C ')) setFieldError('ss-c', err.message);
+        else if (err.message.includes('D ')) setFieldError('ss-d', err.message);
+        throw err;
+      }
       syncTransferFunctionInputs();
     } else if (state.systemType === 'zpk') {
       const zerosStr = document.getElementById('zpk-zeros')?.value || '';
@@ -520,6 +566,10 @@ function updateSystem() {
       if (!Number.isFinite(gain) || gain === 0) {
         setFieldError('zpk-gain', 'Gain 必須為非零數值');
         throw new Error('ZPK Gain 必須為非零數值');
+      }
+      if (zerosStr.trim() && zeros.length === 0) {
+        setFieldError('zpk-zeros', '零點格式錯誤，例: -1, -2+3j');
+        throw new Error('ZPK 零點格式錯誤');
       }
       if (polesStr.trim() && poles.length === 0) {
         setFieldError('zpk-poles', '極點格式錯誤，例: -1, -2+3j');
@@ -535,12 +585,14 @@ function updateSystem() {
       const den = parsePolyString(denInput.value);
       if (!num) { setFieldError('tf-num', '請輸入有效的分子係數'); throw new Error('無效的分子係數'); }
       if (!den) { setFieldError('tf-den', '請輸入有效的分母係數'); throw new Error('無效的分母係數'); }
+      if (isZeroPolynomial(den)) { setFieldError('tf-den', '分母係數不能全為 0'); throw new Error('分母係數不能全為 0'); }
       state.plant = new TransferFunction(num, den);
     }
     clearError();
     updateController();
   } catch (err) {
     showError(err.message);
+    scheduleSmokeDiagnostics();
   }
 }
 
@@ -560,7 +612,7 @@ function setFieldError(id, msg) {
 
 function clearFieldErrors() {
   document.querySelectorAll('.field-hint').forEach(h => h.remove());
-  ['tf-num', 'tf-den', 'zpk-zeros', 'zpk-poles', 'zpk-gain', 'ss-a', 'ss-b', 'ss-c', 'ss-d'].forEach(id => {
+  ['tf-num', 'tf-den', 'zpk-zeros', 'zpk-poles', 'zpk-gain', 'ss-a', 'ss-b', 'ss-c', 'ss-d', 'comp-gain', 'comp-tau', 'comp-alpha'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.style.borderColor = '';
   });
@@ -569,6 +621,8 @@ function clearFieldErrors() {
 function updateController() {
   if (!state.plant) return;
   try {
+    clearFieldErrors();
+    validateCompensatorInputs();
     readCompensatorInputs();
     const { Kp, Ki, Kd, N } = state.pidParams;
     const pid = new PIDController(Kp, Ki, Kd, N);
@@ -590,7 +644,8 @@ function updateController() {
     refreshAllCharts();
     updateStabilityPanel();
   } catch (err) {
-    console.error("控制器更新失敗:", err);
+    showError(err.message);
+    scheduleSmokeDiagnostics();
   }
 }
 
