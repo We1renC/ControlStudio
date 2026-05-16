@@ -13,7 +13,7 @@ import { stabilityMargins, stepInfo, routhTable } from './control/stability.js';
 import { parsePolyString, fmtNum, fmtDeg, fmtDB, fmtTime, fmtPercent } from './utils/format.js';
 import { zpkToTransferFunction, parseRootsString } from './control/zpk.js';
 import { c2dTustin, c2dZOH } from './control/c2d.js';
-import { specsToTargetPoles, designLeadForPM } from './control/design.js?v=p4';
+import { specsToTargetPoles, designLeadForPM, deadbeatGain } from './control/design.js?v=p5';
 import { polyadd, polyscale, polyroots } from './math/polynomial.js?v=p4';
 import { BlockEditor } from './editor/editor.js';
 
@@ -220,6 +220,7 @@ function initEventListeners() {
   document.getElementById('btn-design-poles')?.addEventListener('click', computeDesignTargetPoles);
   document.getElementById('btn-design-lead')?.addEventListener('click', computeDesignLeadFromPM);
   document.getElementById('btn-apply-design-lead')?.addEventListener('click', applyDesignLeadToController);
+  document.getElementById('btn-design-deadbeat')?.addEventListener('click', computeDeadbeat);
   document.getElementById('btn-apply-pid-preset')?.addEventListener('click', applyPIDPreset);
   document.getElementById('btn-apply-lead-helper')?.addEventListener('click', applyLeadHelper);
   document.getElementById('btn-apply-lag-helper')?.addEventListener('click', applyLagHelper);
@@ -525,6 +526,33 @@ function computeDesignLeadFromPM() {
     out.textContent = err.message;
     applyBtn.style.display = 'none';
     _pendingLeadDesign = null;
+  }
+}
+
+function computeDeadbeat() {
+  const out = document.getElementById('design-deadbeat-out');
+  if (!state.plant) {
+    out.style.display = 'block';
+    out.style.color = 'var(--color-unstable)';
+    out.textContent = '請先在 System 分頁套用 plant。';
+    return;
+  }
+  try {
+    const ts = parseFloat(document.getElementById('design-deadbeat-ts').value);
+    const result = deadbeatGain(state.plant, ts);
+    out.style.display = 'block';
+    out.style.color = '';
+    const kStr = result.K.map((v, i) => `k${i} = ${v.toFixed(4)}`).join(',  ');
+    out.innerHTML = [
+      `<div style="color:var(--color-accent);font-weight:700;">State feedback K (Ackermann)</div>`,
+      `<div>${kStr}</div>`,
+      `<div style="color:var(--color-stable);margin-top:6px;">→ closed-loop eigenvalues all at z=0</div>`,
+      `<div>settles in ≤ ${result.K.length} samples = ${(result.K.length * result.Ts).toFixed(3)} s</div>`,
+    ].join('');
+  } catch (err) {
+    out.style.display = 'block';
+    out.style.color = 'var(--color-unstable)';
+    out.textContent = err.message;
   }
 }
 
@@ -1470,6 +1498,77 @@ function renderPoleZeroMap(sys, targetId = 'chart-pzmap') {
   layout.showlegend = targetId === 'chart-active';
   if (layout.showlegend) layout.legend = compactLegend();
   Plotly.react(targetId, traces, layout, { responsive: true, displayModeBar: false });
+
+  // Interactive z-pole inspection on main z-domain pz map
+  if (isDiscrete && targetId === 'chart-active') {
+    _zpoleSys = sys;
+    const chartEl = document.getElementById(targetId);
+    chartEl.removeAllListeners?.('plotly_click');
+    chartEl.on('plotly_click', (evt) => {
+      const pt = evt?.points?.[0];
+      if (!pt || pt.fullData?.name !== 'Poles') return;
+      showZPoleInfo({ re: pt.x, im: pt.y }, sys.sampleTime);
+    });
+  } else if (targetId === 'chart-active') {
+    // hide info card when leaving z-domain
+    const info = document.getElementById('zpole-info');
+    if (info) info.style.display = 'none';
+  }
+}
+
+let _zpoleSys = null;
+
+function showZPoleInfo(z, Ts) {
+  const info = document.getElementById('zpole-info');
+  if (!info) return;
+  info.style.display = 'flex';
+  const r = Math.hypot(z.re, z.im);
+  const theta = Math.atan2(z.im, z.re);
+  const coordEl = document.getElementById('zpole-coord');
+  const stabEl = document.getElementById('zpole-stability');
+  const zMet = document.getElementById('zpole-z-metrics');
+  const sMet = document.getElementById('zpole-s-metrics');
+
+  const imStr = Math.abs(z.im) < 1e-9 ? '' : z.im > 0 ? ` + j${fmtNum(z.im)}` : ` − j${fmtNum(-z.im)}`;
+  coordEl.textContent = `${fmtNum(z.re)}${imStr}`;
+
+  const stable = r < 1 - 1e-9;
+  const marginal = Math.abs(r - 1) <= 1e-9;
+  stabEl.textContent = stable ? 'Stable' : marginal ? 'Marginal' : 'Unstable';
+  stabEl.style.cssText = stable
+    ? 'background:rgba(16,185,129,.15);color:#10b981;display:inline-flex;align-items:center;padding:3px 10px;border-radius:20px;font-size:10px;font-weight:700;text-transform:uppercase;'
+    : marginal
+      ? 'background:rgba(245,158,11,.15);color:#f59e0b;display:inline-flex;align-items:center;padding:3px 10px;border-radius:20px;font-size:10px;font-weight:700;text-transform:uppercase;'
+      : 'background:rgba(239,68,68,.15);color:#ef4444;display:inline-flex;align-items:center;padding:3px 10px;border-radius:20px;font-size:10px;font-weight:700;text-transform:uppercase;';
+
+  // z-plane metrics
+  const angleDeg = theta * 180 / Math.PI;
+  let settleLine = '';
+  if (stable && r > 1e-9) {
+    const settleSamples = Math.log(0.02) / Math.log(r);
+    settleLine = `<div>2% settle ≈ ${settleSamples.toFixed(1)} samples (${fmtNum(settleSamples * Ts)} s)</div>`;
+  }
+  zMet.innerHTML = [
+    `<div>|z| = ${fmtNum(r)}</div>`,
+    `<div>∠z = ${fmtNum(theta)} rad (${fmtNum(angleDeg)}°)</div>`,
+    settleLine,
+  ].join('');
+
+  // s-plane equivalent via s = ln(z)/Ts
+  if (r < 1e-12) {
+    sMet.innerHTML = '<div>z ≈ 0 (deadbeat — pure delay)</div>';
+    return;
+  }
+  const sigma = -Math.log(r) / Ts;
+  const omega = theta / Ts;
+  const wn = Math.hypot(sigma, omega);
+  const zeta = wn > 1e-9 ? sigma / wn : 0;
+  sMet.innerHTML = [
+    `<div>σ = ${fmtNum(sigma)}  (decay rate)</div>`,
+    `<div>ω = ${fmtNum(omega)}  rad/s</div>`,
+    `<div>ωn = ${fmtNum(wn)}  rad/s</div>`,
+    `<div>ζ = ${fmtNum(zeta)}</div>`,
+  ].join('');
 }
 
 function renderComparisonChart() {

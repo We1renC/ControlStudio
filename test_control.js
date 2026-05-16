@@ -12,9 +12,9 @@ import { parsePolyString } from './control-studio/js/utils/format.js';
 import { zpkToTransferFunction, parseRootsString, parseComplexRoot } from './control-studio/js/control/zpk.js';
 import { polydiv, polymul } from './control-studio/js/math/polynomial.js';
 import { c2dTustin, c2dZOH } from './control-studio/js/control/c2d.js';
-import { specsToTargetPoles, designLeadForPM } from './control-studio/js/control/design.js';
+import { specsToTargetPoles, designLeadForPM, deadbeatGain } from './control-studio/js/control/design.js';
 import { discreteBodeData } from './control-studio/js/analysis/discrete-frequency-response.js';
-import { matExp } from './control-studio/js/math/matrix.js';
+import { matExp, matIdentity, matMul, matSub, matScale } from './control-studio/js/math/matrix.js';
 import { tfToControllableCanonical } from './control-studio/js/control/state-space.js';
 import { matRank } from './control-studio/js/math/matrix.js';
 
@@ -534,6 +534,21 @@ try {
   assertNear('delay phase mid', bodeD.phaseDeg[halfIdx], expectedPh, 1e-3);
 
   console.log('Phase 5 (matExp / CCF / high-order ZOH / discrete Bode) tests passed');
+
+  // ── Phase 5 Deadbeat: G(s)=1/(s²+3s+2), Ts=0.1 → all CL eigenvalues at 0 ─
+  const dbPlant = new TransferFunction([1], [1, 3, 2]);
+  const db = deadbeatGain(dbPlant, 0.1);
+  if (db.K.length !== 2) throw new Error('Deadbeat K should be 1×n');
+  // Closed-loop A_cl = A − B·K; all eigenvalues must be at 0 (i.e. A_cl² = 0)
+  const Bk = db.B.map((row, i) => db.A[i].map((_, j) => row[0] * db.K[j]));
+  const Acl = matSub(db.A, Bk);
+  const Acl2 = matMul(Acl, Acl);
+  for (let i = 0; i < 2; i++) {
+    for (let j = 0; j < 2; j++) {
+      assertNear(`Deadbeat A_cl²[${i}][${j}]`, Acl2[i][j], 0, 1e-9);
+    }
+  }
+  console.log('Phase 5 Deadbeat test passed');
 
   console.log('Tests Passed!');
 } catch (e) {

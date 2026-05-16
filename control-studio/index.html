@@ -530,6 +530,18 @@
             <div id="design-lead-out" style="font-size:11px;font-family:monospace;color:var(--text-secondary);background:rgba(15,17,23,.4);padding:8px;border-radius:6px;line-height:1.6;display:none;"></div>
             <button class="btn btn-primary btn-sm" id="btn-apply-design-lead" style="width:100%;justify-content:center;margin-top:8px;display:none;">Apply Lead to Controller</button>
           </div>
+
+          <div style="margin-top:14px;border-top:1px solid var(--border-primary);padding-top:12px;">
+            <div style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;">Deadbeat (z-domain)</div>
+            <div style="display:grid;grid-template-columns:1fr;gap:8px;margin-bottom:8px;">
+              <div class="input-group">
+                <label>Ts (sec)</label>
+                <input type="number" id="design-deadbeat-ts" value="0.1" step="0.01" min="0.001">
+              </div>
+            </div>
+            <button class="btn btn-sm" id="btn-design-deadbeat" style="width:100%;justify-content:center;margin-bottom:8px;">Compute Deadbeat Gain K</button>
+            <div id="design-deadbeat-out" style="font-size:11px;font-family:monospace;color:var(--text-secondary);background:rgba(15,17,23,.4);padding:8px;border-radius:6px;line-height:1.6;display:none;"></div>
+          </div>
         </section>
 
         <section class="section-panel">
@@ -614,6 +626,21 @@
           <div class="chart-cell plot-main">
             <div class="chart-header"><span id="active-plot-title">Step Response</span><span id="active-plot-subtitle">Time-Domain</span></div>
             <div class="chart-body" id="chart-active"></div>
+            <div id="zpole-info" style="display:none;border-top:1px solid var(--border-primary);padding:10px 14px;gap:16px;align-items:flex-start;background:var(--bg-tertiary);flex-wrap:wrap;">
+              <div style="min-width:160px;">
+                <div style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;">Selected z-pole</div>
+                <div id="zpole-coord" style="font-size:14px;font-weight:700;color:var(--color-accent);margin-bottom:4px;">—</div>
+                <div id="zpole-stability" class="status-pill" style="font-size:10px;">—</div>
+              </div>
+              <div style="flex:1;min-width:180px;">
+                <div style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;">z-plane metrics</div>
+                <div id="zpole-z-metrics" style="font-size:12px;font-family:monospace;color:var(--text-secondary);line-height:1.6;">—</div>
+              </div>
+              <div style="flex:1;min-width:200px;">
+                <div style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;">Equivalent s-plane</div>
+                <div id="zpole-s-metrics" style="font-size:12px;font-family:monospace;color:var(--text-secondary);line-height:1.6;">—</div>
+              </div>
+            </div>
             <div id="rl-gain-info" style="display:none; border-top:1px solid var(--border-primary); padding:10px 14px; display:none; gap:16px; align-items:flex-start; background:var(--bg-tertiary); flex-wrap:wrap;">
               <div style="min-width:160px;">
                 <div style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;">Selected Gain</div>
@@ -686,6 +713,6 @@
 
   <div id="error-msg" style="position:fixed; bottom:20px; right:20px; background:var(--color-unstable); color:white; padding:12px 20px; border-radius:var(--radius-md); font-size:13px; display:none; z-index:1000; box-shadow:0 10px 25px rgba(0,0,0,0.2);"></div>
 
-  <script type="module" src="js/app.js?v=phase5-zdomain-1"></script>
+  <script type="module" src="js/app.js?v=phase5-complete"></script>
 </body>
 </html>

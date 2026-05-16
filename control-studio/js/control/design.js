@@ -6,6 +6,10 @@
  */
 import { stabilityMargins } from './stability.js';
 import { designLeadCompensator, leadLagTransferFunction } from './compensator.js';
+import { matCreate, matMul, matIdentity, matInverse } from '../math/matrix.js';
+import { controllabilityMatrix } from './state-space.js';
+import { c2dZOH } from './c2d.js';
+import { DiscreteTransferFunction } from './discrete-transfer-function.js';
 
 /**
  * Map (%OS, Ts) specifications to a 2nd-order dominant pole pair.
@@ -89,3 +93,40 @@ export function designLeadForPM(plant, { targetPM, safetyMargin = 5 } = {}) {
     params,
   };
 }
+
+/**
+ * Deadbeat state-feedback gain via Ackermann's formula.
+ *
+ *   K = [0 0 … 0 1] · Wc⁻¹ · α(A)
+ *
+ * where Wc = [B AB A²B … A^{n-1}B] and α(z) = zⁿ (all desired poles at 0).
+ * Therefore α(A) = Aⁿ. The resulting closed-loop A − BK has all eigenvalues
+ * at z = 0, settling in at most n samples.
+ *
+ * @param {TransferFunction|DiscreteTransferFunction} plant
+ * @param {number} Ts sample time (ignored if plant is already discrete)
+ * @returns {{ K:number[], Ts:number, dtf:DiscreteTransferFunction, A:number[][], B:number[][] }}
+ */
+export function deadbeatGain(plant, Ts) {
+  if (!plant) throw new Error('plant required');
+  let dtf = plant instanceof DiscreteTransferFunction ? plant : c2dZOH(plant, Ts);
+  // Build controllable canonical (A, B) directly from DTF denominator.
+  const denN = dtf.den.map((c) => c / dtf.den[0]);
+  const n = denN.length - 1;
+  if (n === 0) throw new Error('deadbeat 需要至少一階系統');
+  const A = matCreate(n, n, 0);
+  for (let i = 0; i < n - 1; i++) A[i][i + 1] = 1;
+  for (let j = 0; j < n; j++) A[n - 1][j] = -denN[n - j];
+  const B = matCreate(n, 1, 0);
+  B[n - 1][0] = 1;
+  // Controllability matrix
+  const Wc = controllabilityMatrix(A, B);
+  // α(A) = Aⁿ
+  let An = matIdentity(n);
+  for (let i = 0; i < n; i++) An = matMul(An, A);
+  // K = e_n^T · Wc⁻¹ · Aⁿ  (size 1 × n)
+  const en = matCreate(1, n, 0); en[0][n - 1] = 1;
+  const K = matMul(matMul(en, matInverse(Wc)), An);
+  return { K: K[0], Ts: dtf.sampleTime, dtf, A, B };
+}
+
