@@ -15,6 +15,7 @@ import { zpkToTransferFunction, parseRootsString } from './control/zpk.js';
 import { c2dTustin, c2dZOH } from './control/c2d.js?v=p5';
 import { specsToTargetPoles, designLeadForPM, deadbeatGain } from './control/design.js?v=p5';
 import { polyadd, polyscale, polyroots } from './math/polynomial.js?v=p4';
+import { Complex } from './math/complex.js';
 import { BlockEditor } from './editor/editor.js';
 
 // ============================================================
@@ -222,6 +223,7 @@ function initEventListeners() {
   document.getElementById('btn-apply-design-lead')?.addEventListener('click', applyDesignLeadToController);
   document.getElementById('btn-design-deadbeat')?.addEventListener('click', computeDeadbeat);
   document.getElementById('btn-apply-rlocus-k')?.addEventListener('click', applyRlocusKToController);
+  document.getElementById('btn-apply-poles-k')?.addEventListener('click', applyPolesKToController);
   document.getElementById('btn-copy-deadbeat-k')?.addEventListener('click', copyDeadbeatGains);
   document.getElementById('btn-apply-pid-preset')?.addEventListener('click', applyPIDPreset);
   document.getElementById('btn-apply-lead-helper')?.addEventListener('click', applyLeadHelper);
@@ -467,28 +469,95 @@ function applyPIDPreset() {
 
 let _pendingLeadDesign = null;
 
+let _pendingPolesK = null;
+
 function computeDesignTargetPoles() {
   const out = document.getElementById('design-pole-out');
+  const applyBtn = document.getElementById('btn-apply-poles-k');
+  _pendingPolesK = null;
+  if (applyBtn) applyBtn.style.display = 'none';
+
   try {
     const overshoot = parseFloat(document.getElementById('design-os').value);
     const settlingTime = parseFloat(document.getElementById('design-ts').value);
     const result = specsToTargetPoles({ overshoot, settlingTime });
-    const wd = result.omegaD.toFixed(4);
+
+    // --- Magnitude & Angle condition check ---
+    // s* = -sigma + j*omegaD  (upper target pole)
+    // Root locus condition: K = 1/|G(s*)|  if  ∠G(s*) = odd × 180°
+    let gainHtml = '';
+    if (state.plant) {
+      const sStar = new Complex(-result.sigma, result.omegaD);
+      const Gs = state.plant.evalAt(sStar);
+      const magGs = Gs.magnitude;
+      const angleGs = Gs.angleDeg;
+
+      // Deviation from nearest odd-multiple of 180°
+      // (∠G(s*) + 180) mod 360 → 0 means exactly on locus
+      const dev = ((angleGs + 180) % 360 + 360) % 360;
+      const angleDev = Math.min(dev, 360 - dev); // symmetric, always in [0, 180]
+      const onLocus = angleDev < 10; // ±10° tolerance
+
+      if (magGs > 1e-12) {
+        const K = 1 / magGs;
+        if (onLocus) {
+          _pendingPolesK = K;
+          gainHtml = [
+            `<div style="margin-top:10px;border-top:1px solid var(--border-primary);padding-top:8px;">`,
+            `<div style="color:var(--color-stable);font-weight:700;">✓ 目標極點在根軌跡上</div>`,
+            `<div>∠G(s*) = ${angleGs.toFixed(1)}°　偏差 ${angleDev.toFixed(1)}°（需為 ±180°）</div>`,
+            `<div>K = 1 / |G(s*)| = <strong style="color:var(--color-accent);font-size:14px;">${K.toFixed(4)}</strong></div>`,
+            `</div>`,
+          ].join('');
+          if (applyBtn) applyBtn.style.display = 'block';
+        } else {
+          gainHtml = [
+            `<div style="margin-top:10px;border-top:1px solid var(--border-primary);padding-top:8px;">`,
+            `<div style="color:var(--color-unstable);font-weight:700;">✗ 目標極點不在根軌跡上</div>`,
+            `<div>∠G(s*) = ${angleGs.toFixed(1)}°　偏差 ${angleDev.toFixed(1)}°（需 &lt; 10°）</div>`,
+            `<div style="color:var(--text-muted);font-size:10px;margin-top:4px;">`,
+            `→ 純增益 K 無法將極點放到目標位置。<br>`,
+            `建議：使用下方「Design Lead from PM」加入 Lead 補償器搬移根軌跡，`,
+            `或放寬 %OS / Ts 規格。`,
+            `</div>`,
+            `</div>`,
+          ].join('');
+        }
+      }
+    }
+
     out.style.display = 'block';
+    out.style.color = '';
     out.innerHTML = [
       `<div style="color:var(--color-accent);font-weight:700;">ζ = ${result.zeta.toFixed(4)}</div>`,
       `<div>σ = ${result.sigma.toFixed(4)}  (real part)</div>`,
       `<div>ωn = ${result.omegaN.toFixed(4)}  rad/s</div>`,
-      `<div>ωd = ${wd}  rad/s</div>`,
-      `<div style="margin-top:6px;color:var(--color-stable);">Target poles:</div>`,
-      `<div>s = ${(-result.sigma).toFixed(4)} ± j${wd}</div>`,
-      `<div style="margin-top:8px;color:var(--text-muted);font-size:10px;">💡 前往 Root Locus 圖，拖曳 K 滑桿直到閉迴路極點接近上方目標位置，再按「套用 K」回寫控制器。</div>`,
+      `<div>ωd = ${result.omegaD.toFixed(4)}  rad/s</div>`,
+      `<div style="margin-top:6px;color:var(--color-stable);">Target poles: s = ${(-result.sigma).toFixed(4)} ± j${result.omegaD.toFixed(4)}</div>`,
+      gainHtml,
     ].join('');
     clearError();
   } catch (err) {
     out.style.display = 'block';
     out.style.color = 'var(--color-unstable)';
     out.textContent = err.message;
+  }
+}
+
+/** Directly apply computed K (from magnitude condition) as proportional controller. */
+function applyPolesKToController() {
+  if (_pendingPolesK === null || !state.plant) return;
+  setPIDFromController({ Kp: _pendingPolesK, Ki: 0, Kd: 0 }, 'pole-gain');
+  state.compensator = { mode: 'none', gain: 1, tau: 1, alpha: 0.2 };
+  syncCompensatorInputs();
+  updateController();
+  document.querySelector('[data-sidebar="controller"]')?.click();
+  const btn = document.getElementById('btn-apply-poles-k');
+  if (btn) {
+    const orig = btn.textContent;
+    btn.textContent = '✓ Applied!';
+    btn.style.background = '#10b981';
+    setTimeout(() => { btn.textContent = orig; btn.style.background = ''; }, 1500);
   }
 }
 
