@@ -6,6 +6,10 @@ export function matCreate(rows, cols, fill = 0) {
   return Array.from({ length: rows }, () => new Array(cols).fill(fill));
 }
 
+export function matClone(A) {
+  return A.map((row) => [...row]);
+}
+
 export function matIdentity(n) {
   const m = matCreate(n, n);
   for (let i = 0; i < n; i++) m[i][i] = 1;
@@ -32,6 +36,10 @@ export function matMul(A, B) {
 
 export function matScale(A, s) {
   return A.map(row => row.map(v => v * s));
+}
+
+export function matTrace(A) {
+  return A.reduce((sum, row, i) => sum + row[i], 0);
 }
 
 export function matTranspose(A) {
@@ -86,6 +94,53 @@ export function matInverse(A) {
     }
   }
   return aug.map(row => row.slice(n));
+}
+
+/** Solve AX=B via Gauss-Jordan elimination (small dense systems). */
+export function matSolve(A, B) {
+  const n = A.length;
+  const rhs = Array.isArray(B[0]) ? B : B.map((value) => [value]);
+  const m = rhs[0].length;
+  const aug = A.map((row, i) => [...row, ...rhs[i]]);
+
+  for (let i = 0; i < n; i++) {
+    let maxRow = i;
+    for (let k = i + 1; k < n; k++) {
+      if (Math.abs(aug[k][i]) > Math.abs(aug[maxRow][i])) maxRow = k;
+    }
+    [aug[i], aug[maxRow]] = [aug[maxRow], aug[i]];
+    const pivot = aug[i][i];
+    if (Math.abs(pivot) < 1e-14) throw new Error('Singular matrix');
+    for (let j = i; j < n + m; j++) aug[i][j] /= pivot;
+    for (let k = 0; k < n; k++) {
+      if (k === i) continue;
+      const f = aug[k][i];
+      for (let j = i; j < n + m; j++) aug[k][j] -= f * aug[i][j];
+    }
+  }
+
+  const out = aug.map((row) => row.slice(n));
+  return Array.isArray(B[0]) ? out : out.map((row) => row[0]);
+}
+
+export function matKronecker(A, B) {
+  const rows = A.length * B.length;
+  const cols = A[0].length * B[0].length;
+  const out = matCreate(rows, cols, 0);
+  for (let i = 0; i < A.length; i++) {
+    for (let j = 0; j < A[0].length; j++) {
+      for (let r = 0; r < B.length; r++) {
+        for (let c = 0; c < B[0].length; c++) {
+          out[i * B.length + r][j * B[0].length + c] = A[i][j] * B[r][c];
+        }
+      }
+    }
+  }
+  return out;
+}
+
+export function matSymmetrize(A) {
+  return A.map((row, i) => row.map((value, j) => 0.5 * (value + A[j][i])));
 }
 
 /**
@@ -151,4 +206,51 @@ export function matRank(A) {
     if (rank === m) break;
   }
   return rank;
+}
+
+export function matEigenvaluesSymmetric(A, tolerance = 1e-12, maxSweeps = 100) {
+  const n = A.length;
+  const M = matClone(matSymmetrize(A));
+
+  for (let sweep = 0; sweep < maxSweeps; sweep++) {
+    let p = 0;
+    let q = 1;
+    let max = 0;
+    for (let i = 0; i < n; i++) {
+      for (let j = i + 1; j < n; j++) {
+        const value = Math.abs(M[i][j]);
+        if (value > max) {
+          max = value;
+          p = i;
+          q = j;
+        }
+      }
+    }
+    if (max < tolerance) break;
+    const theta = 0.5 * Math.atan2(2 * M[p][q], M[q][q] - M[p][p]);
+    const c = Math.cos(theta);
+    const s = Math.sin(theta);
+    const app = c * c * M[p][p] - 2 * s * c * M[p][q] + s * s * M[q][q];
+    const aqq = s * s * M[p][p] + 2 * s * c * M[p][q] + c * c * M[q][q];
+    M[p][p] = app;
+    M[q][q] = aqq;
+    M[p][q] = 0;
+    M[q][p] = 0;
+    for (let k = 0; k < n; k++) {
+      if (k === p || k === q) continue;
+      const mkp = M[k][p];
+      const mkq = M[k][q];
+      M[k][p] = c * mkp - s * mkq;
+      M[p][k] = M[k][p];
+      M[k][q] = s * mkp + c * mkq;
+      M[q][k] = M[k][q];
+    }
+  }
+
+  return M.map((row, i) => row[i]).sort((a, b) => a - b);
+}
+
+export function matIsPositiveDefinite(A, tolerance = 1e-10) {
+  const eigenvalues = matEigenvaluesSymmetric(A);
+  return eigenvalues.every((value) => value > tolerance);
 }

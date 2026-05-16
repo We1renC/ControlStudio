@@ -583,6 +583,46 @@
             <div id="design-deadbeat-out" style="font-size:11px;font-family:monospace;color:var(--text-secondary);background:rgba(15,17,23,.4);padding:8px;border-radius:6px;line-height:1.6;display:none;"></div>
             <button class="btn btn-sm" id="btn-copy-deadbeat-k" style="width:100%;justify-content:center;margin-top:6px;display:none;">📋 複製增益向量到剪貼簿</button>
           </div>
+
+          <div style="margin-top:14px;border-top:1px solid var(--border-primary);padding-top:12px;">
+            <div style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;">Phase 7: State Feedback / Lyapunov / LQR</div>
+            <p style="font-size:11px;color:var(--text-muted);line-height:1.6;margin-bottom:8px;">
+              限 continuous-time、低階 SISO state-space；TF 會先轉 controllable canonical form。
+            </p>
+
+            <div class="input-group" style="margin-bottom:8px;">
+              <label>Desired Poles</label>
+              <input type="text" id="sf-desired-poles" value="-2, -3" placeholder="-2, -3">
+            </div>
+            <button class="btn btn-sm" id="btn-phase7-place" style="width:100%;justify-content:center;margin-bottom:8px;">Compute State Feedback K</button>
+            <div id="phase7-place-out" style="font-size:11px;font-family:monospace;color:var(--text-secondary);background:rgba(15,17,23,.4);padding:8px;border-radius:6px;line-height:1.6;display:none;"></div>
+
+            <div style="margin-top:12px;border-top:1px solid var(--border-primary);padding-top:12px;">
+              <div class="input-group" style="margin-bottom:8px;">
+                <label>Lyapunov Q Matrix</label>
+                <textarea id="lyapunov-q" rows="3" placeholder="留白 = Q = I">1 0
+0 1</textarea>
+              </div>
+              <button class="btn btn-sm" id="btn-phase7-lyapunov" style="width:100%;justify-content:center;margin-bottom:8px;">Run Lyapunov Proof</button>
+              <div id="phase7-lyapunov-out" style="font-size:11px;font-family:monospace;color:var(--text-secondary);background:rgba(15,17,23,.4);padding:8px;border-radius:6px;line-height:1.6;display:none;"></div>
+            </div>
+
+            <div style="margin-top:12px;border-top:1px solid var(--border-primary);padding-top:12px;">
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
+                <div class="input-group">
+                  <label>LQR Q Matrix</label>
+                  <textarea id="lqr-q" rows="3">1 0
+0 1</textarea>
+                </div>
+                <div class="input-group">
+                  <label>LQR R</label>
+                  <input type="number" id="lqr-r" value="1" step="0.1" min="0.01">
+                </div>
+              </div>
+              <button class="btn btn-sm" id="btn-phase7-lqr" style="width:100%;justify-content:center;margin-bottom:8px;">Compute LQR Gain</button>
+              <div id="phase7-lqr-out" style="font-size:11px;font-family:monospace;color:var(--text-secondary);background:rgba(15,17,23,.4);padding:8px;border-radius:6px;line-height:1.6;display:none;"></div>
+            </div>
+          </div>
         </section>
 
         <section class="section-panel">

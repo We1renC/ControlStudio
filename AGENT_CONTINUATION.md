@@ -41,6 +41,10 @@
   - `CONTROL_SYSTEM_PLAN.md`
   - `CONTROL_SYSTEM_VERIFICATION_CASES.md`
   - `CONTROL_SYSTEM_BACKLOG.md`
+- 控制系統目前 phase 狀態：
+  - Phase 0 ~ Phase 6：Done
+  - Phase 7（State Feedback / Lyapunov / LQR）：已實作完成，待本輪 commit
+  - Phase 8（Observer / Kalman）：Next
 - 已建立 symlink：
   - `/Users/w.rc/.config/agents/skills/nvidia-model-selector`
   - 指向 `/Users/w.rc/nvdiaOSsupport/skills/nvidia-model-selector`
@@ -130,6 +134,10 @@ git log --oneline -5
 - `control-studio` 已補 z-domain interaction 與 Deadbeat gain design；UI 可 copy/apply deadbeat K。
 - `control-studio` 已補工程化 Stability Analysis summary：continuous/discrete 都可輸出 risk level、dominant pole、stability margin、damping ratio、natural frequency 與 recommendations；`test_control.js` 已覆蓋 continuous stable/unstable 與 discrete stable/unstable。
 - `control-studio` Phase 6 已補齊：Markdown report export、Local JS / FastAPI / Compare Local/API analysis source toggle、API analysis status surface、`control_regression_dashboard.mjs` 回歸 dashboard 指令。
+- `control-studio/js/math/matrix.js` 已補 matrix definiteness utilities：`matSolve`、`matKronecker`、`matSymmetrize`、symmetric eigenvalue / positive-definite checks。
+- `control-studio/js/control/state-feedback.js` 已新增 Phase 7 核心：continuous Lyapunov solver / proof、SISO pole placement、low-order LQR baseline、state-feedback closed-loop TF preview。
+- `control-studio` Advisor 面板已新增 Phase 7 區塊，可直接輸入 desired poles、Lyapunov `Q`、LQR `Q/R`，並顯示 `K`、`P`、閉迴路 poles、step metrics。
+- `test_control.js` 已新增手推等價驗證：Lyapunov `AᵀP + PA = -I`、Ackermann pole placement、LQR CARE 小型解析案例。
 - `node test_control.js`、`node control-studio/scripts/verify_control_cases.mjs`、`node control-studio/scripts/verify_control_api_contract.mjs` 是目前控制系統主要驗證基線。
 - Block Diagram 目前暫時擱置，UI 入口已標示 paused；後續進階控制先走 SISO transfer function / frequency response / stability validation。
 - `control-studio` Block Editor 已補上拓撲分析（串聯 / 回授）、節點編輯（雙擊）、節點刪除、Zoom/Pan、Undo/Redo、Diagram save/load。
@@ -142,9 +150,9 @@ git log --oneline -5
 - `test_control.js` 已擴充涵蓋 ZPK、polydiv、Routh、Nichols、encirclement、asymptotes、SS Rank 測試。
 
 ## 後續可做
-1. 控制系統下一步依 `CONTROL_SYSTEM_BACKLOG.md`：先做 `feat(control): add lyapunov stability analysis`，限 continuous low-order State-Space，預設 `Q=I`，求解 `AᵀP + PA = -Q` 並檢查 `P>0`。
-2. 接著做 `feat(control): add state feedback scaffold`，先限 low-order SISO pole placement 與 controllability guard。
-3. 再接 `feat(control): add lqr baseline` / Q-R tuning；Observer / Kalman、LQR production UI、MIMO、MPC、Robust Control 仍為後續，不要未補設計文件就直接開。
+1. 控制系統下一步依 `CONTROL_SYSTEM_BACKLOG.md` 進入 Phase 8：先做 `feat(control): add observer pole placement`，限 low-order SISO，需檢查 observability。
+2. 再做 `feat(control): add observer simulation`，顯示 estimated state / output error 收斂。
+3. 再接 `feat(control): add kalman baseline`；MIMO、MPC、Robust Control、完整 LQG product UI 仍為後續，不要未補設計文件就直接開。
 4. 若繼續產品化，可把 Markdown report baseline 擴成報告模板編輯器與 PDF/HTML export。
 5. Block Diagram 目前維持 paused；不要新增 block diagram 功能，除非使用者重新明確恢復。
 6. 加 `agents/openai.yaml` UI metadata。

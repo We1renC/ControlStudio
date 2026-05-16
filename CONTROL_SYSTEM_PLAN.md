@@ -82,6 +82,12 @@
 - Deadbeat gain design for z-domain
 - Advisor / design result apply-back 到 controller
 - Direct pole-placement K computation（移除手動 Root Locus 步驟）
+- Matrix definiteness / symmetric eigenvalue utilities
+- Continuous Lyapunov stability proof：`AᵀP + PA = -Q`
+- Lyapunov proof panel：顯示 `V(x)=xᵀPx`、`dV/dt=-xᵀQx`、P matrix、min eig(P)
+- Low-order SISO state feedback pole placement（Ackermann）
+- Low-order LQR baseline（CARE / Kleinman iteration）
+- LQR Q/R tuning panel
 - Project save/load
 - Session autosave / restore
 - Comparison snapshots 與摘要
@@ -97,7 +103,7 @@
 
 ### 尚未完成能力
 - MIMO
-- State Feedback / Lyapunov Stability Analysis / LQR / LQG production UI
+- LQG production UI
 - Observer / Kalman Filter
 - Robust Control / MPC
 - 自動產生報告
@@ -195,7 +201,7 @@
 - Done：Regression dashboard command
 
 ### P2
-- Planned：State Feedback / Lyapunov Stability Analysis / LQR scaffold
+- Done：State Feedback / Lyapunov Stability Analysis / LQR scaffold
 - Planned：Observer / Kalman
 - Paused：更完整 block editor 同步分析
 
@@ -299,19 +305,20 @@
 - Status: Done
 
 ### Stage 3: Advanced Control
-- Lyapunov Stability Analysis
-- Low-order State Feedback / Pole Placement
-- LQR / LQG
-- Observer / Kalman
-- MIMO / Robust Control / MPC（延後）
-- Status: Planned
+- Done：Lyapunov Stability Analysis
+- Done：Low-order State Feedback / Pole Placement
+- Done：Low-order LQR baseline / Q-R tuning
+- Next：Observer / Kalman
+- Deferred：MIMO / Robust Control / MPC
+- Status: In Progress
 
 ### Phase 7 Theory Track
-- Matrix definiteness utilities：symmetric、positive definite、min eigenvalue / Sylvester checks。
-- Lyapunov Stability Analysis：先支援 continuous-time low-order State-Space，預設 `Q=I`，求解 `AᵀP + PA = -Q`。
-- Lyapunov UI proof panel：顯示 `V(x)=xᵀPx`、`dV/dt=-xᵀQx`、P matrix、min eig(P)、Proven Stable / Failed / Not Applicable。
-- State Feedback：pole placement 先限 SISO / low-order，必須檢查 controllability。
-- LQR：先做 2x2 / low-order CARE baseline，再補 Q/R tuning panel。
+- Done：Matrix definiteness utilities：symmetric、positive definite、min eigenvalue checks。
+- Done：Lyapunov Stability Analysis：支援 continuous-time low-order State-Space，預設 `Q=I`，求解 `AᵀP + PA = -Q`。
+- Done：Lyapunov UI proof panel：顯示 `V(x)=xᵀPx`、`dV/dt=-xᵀQx`、P matrix、min eig(P)、Proven Stable / Failed。
+- Done：State Feedback：SISO / low-order pole placement，包含 controllability guard。
+- Done：LQR：2x2 / low-order CARE baseline，並提供 Q/R tuning panel。
+- Verification：`test_control.js` 已新增手推等價案例，覆蓋 Lyapunov、Pole Placement、LQR。
 
 ### Stage 4: Productization
 - Electron desktop packaging

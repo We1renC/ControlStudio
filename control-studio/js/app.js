@@ -16,6 +16,7 @@ import { c2dTustin, c2dZOH } from './control/c2d.js?v=p5';
 import { specsToTargetPoles, designLeadForPM, deadbeatGain } from './control/design.js?v=p5';
 import { polyadd, polyscale, polyroots } from './math/polynomial.js?v=p4';
 import { Complex } from './math/complex.js';
+import { analyzeLyapunov, closedLoopTransferFromStateFeedback, placeStateFeedback, resolveDesignStateSpace, solveLqr } from './control/state-feedback.js?v=p7';
 import { BlockEditor } from './editor/editor.js';
 
 // ============================================================
@@ -58,6 +59,11 @@ const state = {
   theme: 'dark',
   view: 'dashboard',
   editor: null,
+  phase7: {
+    placement: null,
+    lyapunov: null,
+    lqr: null,
+  },
 };
 
 const SESSION_STORAGE_KEY = 'control-studio-session-v1';
@@ -230,6 +236,9 @@ function initEventListeners() {
   document.getElementById('btn-design-lead')?.addEventListener('click', computeDesignLeadFromPM);
   document.getElementById('btn-apply-design-lead')?.addEventListener('click', applyDesignLeadToController);
   document.getElementById('btn-design-deadbeat')?.addEventListener('click', computeDeadbeat);
+  document.getElementById('btn-phase7-place')?.addEventListener('click', computeStateFeedbackPlacement);
+  document.getElementById('btn-phase7-lyapunov')?.addEventListener('click', computeLyapunovProof);
+  document.getElementById('btn-phase7-lqr')?.addEventListener('click', computeLqrDesign);
   document.getElementById('btn-apply-rlocus-k')?.addEventListener('click', applyRlocusKToController);
   document.getElementById('btn-apply-poles-k')?.addEventListener('click', applyPolesKToController);
   document.getElementById('btn-zn-pid')?.addEventListener('click', () => applyZNPIDFromRlocus('PID'));
@@ -660,6 +669,159 @@ function copyDeadbeatGains() {
       setTimeout(() => { btn.textContent = orig; }, 1500);
     }
   }).catch(() => {/* ignore clipboard errors */});
+}
+
+function identityMatrix(n) {
+  return Array.from({ length: n }, (_, i) => Array.from({ length: n }, (_, j) => (i === j ? 1 : 0)));
+}
+
+function formatMatrixHtml(matrix, digits = 4) {
+  return matrix
+    .map((row) => row.map((value) => fmtNum(value, digits)).join('\t'))
+    .join('<br>');
+}
+
+function formatPoleListHtml(poles, domain = 's') {
+  return poles.map((pole) => formatPoleForUI(pole, domain)).join('<br>');
+}
+
+function computePreviewMetrics(tf) {
+  const response = stepResponse(tf, state.simulationConfig);
+  const info = stepInfo(response.t, response.y);
+  return { response, info };
+}
+
+function currentPhase7DesignModel() {
+  if (state.domain === 'z' || state.systemType === 'dtf') {
+    throw new Error('Phase 7 目前只支援 continuous-time model');
+  }
+  if (!state.plant) throw new Error('請先建立 plant');
+
+  if (state.systemType === 'ss') {
+    const model = resolveDesignStateSpace({
+      systemType: 'ss',
+      matrices: {
+        A: parseStateMatrixField('ss-a'),
+        B: parseStateMatrixField('ss-b', 1),
+        C: parseStateMatrixField('ss-c'),
+        D: parseStateMatrixField('ss-d', 1),
+      },
+    });
+    captureStateSpaceInputs();
+    return model;
+  }
+
+  return resolveDesignStateSpace({
+    systemType: 'tf',
+    plant: state.plant,
+  });
+}
+
+function readPhase7SquareMatrix(id, n, fallbackIdentity = false) {
+  const raw = document.getElementById(id)?.value ?? '';
+  if (!raw.trim() && fallbackIdentity) return identityMatrix(n);
+  const matrix = parseMatrixInput(raw);
+  if (matrix.length !== n || matrix.some((row) => row.length !== n)) {
+    setFieldError(id, `矩陣需為 ${n}x${n}`);
+    throw new Error(`${id} 必須是 ${n}x${n} 矩陣`);
+  }
+  return matrix;
+}
+
+function setPhase7Output(id, html, isError = false) {
+  const out = document.getElementById(id);
+  if (!out) return;
+  out.style.display = 'block';
+  out.style.color = isError ? 'var(--color-unstable)' : '';
+  out.innerHTML = html;
+}
+
+function computeStateFeedbackPlacement() {
+  try {
+    clearFieldErrors();
+    const model = currentPhase7DesignModel();
+    const desiredPoles = document.getElementById('sf-desired-poles')?.value || '';
+    const result = placeStateFeedback(model.A, model.B, desiredPoles);
+    const previewTf = closedLoopTransferFromStateFeedback(model, result.K);
+    const preview = computePreviewMetrics(previewTf);
+    state.phase7.placement = { ...result, previewTf };
+
+    setPhase7Output('phase7-place-out', [
+      `<div style="color:var(--color-accent);font-weight:700;">State Feedback K</div>`,
+      `<div>K = [${result.K[0].map((value) => fmtNum(value, 4)).join(', ')}]</div>`,
+      `<div>rank(Wc) = ${result.controllabilityRank}/${model.A.length}</div>`,
+      `<div style="margin-top:6px;color:var(--color-stable);">Desired poles</div>`,
+      `<div>${formatPoleListHtml(result.desiredPoles, 's')}</div>`,
+      `<div style="margin-top:6px;color:var(--color-stable);">Closed-loop poles</div>`,
+      `<div>${formatPoleListHtml(previewTf.poles(), 's')}</div>`,
+      `<div style="margin-top:6px;">Step rise = ${fmtTime(preview.info.riseTime)} / settling = ${fmtTime(preview.info.settlingTime)} / OS = ${fmtPercent(preview.info.overshoot)}</div>`,
+      `<div style="margin-top:6px;color:var(--text-muted);font-size:10px;">Closed-loop model uses A_cl = A - BK, with reference input through B.</div>`,
+    ].join(''));
+    clearError();
+  } catch (err) {
+    state.phase7.placement = null;
+    setPhase7Output('phase7-place-out', escapeHtml(err.message), true);
+    showError(err.message);
+  }
+}
+
+function computeLyapunovProof() {
+  try {
+    clearFieldErrors();
+    const model = currentPhase7DesignModel();
+    const n = model.A.length;
+    const Q = readPhase7SquareMatrix('lyapunov-q', n, true);
+    const result = analyzeLyapunov(model.A, Q);
+    state.phase7.lyapunov = result;
+    setPhase7Output('phase7-lyapunov-out', [
+      `<div style="color:${result.provenStable ? 'var(--color-stable)' : 'var(--color-unstable)'};font-weight:700;">${result.provenStable ? 'Lyapunov Stable Proof' : 'Lyapunov Proof Failed'}</div>`,
+      `<div>V(x) = x<sup>T</sup> P x</div>`,
+      `<div>dV/dt = -x<sup>T</sup> Q x</div>`,
+      `<div>min eig(P) = ${fmtNum(result.minEigenvalue, 6)}</div>`,
+      `<div>min eig(Q) = ${fmtNum(result.minQEigenvalue, 6)}</div>`,
+      `<div>residual ||A<sup>T</sup>P + PA + Q||∞ = ${fmtNum(result.residualNorm, 6)}</div>`,
+      `<div style="margin-top:6px;color:var(--color-accent);">P matrix</div>`,
+      `<div>${formatMatrixHtml(result.P, 5)}</div>`,
+    ].join(''));
+    clearError();
+  } catch (err) {
+    state.phase7.lyapunov = null;
+    setPhase7Output('phase7-lyapunov-out', escapeHtml(err.message), true);
+    showError(err.message);
+  }
+}
+
+function computeLqrDesign() {
+  try {
+    clearFieldErrors();
+    const model = currentPhase7DesignModel();
+    const n = model.A.length;
+    const Q = readPhase7SquareMatrix('lqr-q', n, true);
+    const R = readRequiredPositiveNumber('lqr-r', 'LQR R');
+    const result = solveLqr(model.A, model.B, Q, [[R]]);
+    const previewTf = closedLoopTransferFromStateFeedback(model, result.K);
+    const preview = computePreviewMetrics(previewTf);
+    const traceP = result.P.reduce((sum, row, index) => sum + (row[index] || 0), 0);
+    state.phase7.lqr = { ...result, previewTf };
+
+    setPhase7Output('phase7-lqr-out', [
+      `<div style="color:var(--color-accent);font-weight:700;">LQR Gain</div>`,
+      `<div>K = [${result.K[0].map((value) => fmtNum(value, 4)).join(', ')}]</div>`,
+      `<div>trace(P) = ${fmtNum(traceP, 6)}</div>`,
+      `<div>ΔK residual = ${fmtNum(result.residualNorm, 6)}</div>`,
+      `<div>CARE residual = ${fmtNum(result.riccatiResidualNorm, 6)}</div>`,
+      `<div style="margin-top:6px;color:var(--color-stable);">Closed-loop poles</div>`,
+      `<div>${formatPoleListHtml(previewTf.poles(), 's')}</div>`,
+      `<div style="margin-top:6px;">Step rise = ${fmtTime(preview.info.riseTime)} / settling = ${fmtTime(preview.info.settlingTime)} / OS = ${fmtPercent(preview.info.overshoot)}</div>`,
+      `<div style="margin-top:6px;color:var(--color-accent);">P matrix</div>`,
+      `<div>${formatMatrixHtml(result.P, 5)}</div>`,
+    ].join(''));
+    clearError();
+  } catch (err) {
+    state.phase7.lqr = null;
+    setPhase7Output('phase7-lqr-out', escapeHtml(err.message), true);
+    showError(err.message);
+  }
 }
 
 function applyDesignLeadToController() {

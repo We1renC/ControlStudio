@@ -17,6 +17,7 @@ import { discreteBodeData } from './control-studio/js/analysis/discrete-frequenc
 import { matExp, matIdentity, matMul, matSub, matScale } from './control-studio/js/math/matrix.js';
 import { tfToControllableCanonical } from './control-studio/js/control/state-space.js';
 import { matRank } from './control-studio/js/math/matrix.js';
+import { analyzeLyapunov, closedLoopTransferFromStateFeedback, placeStateFeedback, solveLqr } from './control-studio/js/control/state-feedback.js';
 
 try {
   const assertNear = (name, actual, expected, tolerance = 1e-6) => {
@@ -566,6 +567,54 @@ try {
     }
   }
   console.log('Phase 5 Deadbeat test passed');
+
+  // ── Phase 7 Lyapunov: A=[0 1; -2 -3], Q=I has analytic P > 0 ─────────────
+  // Solve A^T P + P A = -I with P symmetric:
+  // P = [[1.25, 0.25], [0.25, 0.25]]
+  const lyA = [[0, 1], [-2, -3]];
+  const lyQ = [[1, 0], [0, 1]];
+  const ly = analyzeLyapunov(lyA, lyQ);
+  if (!ly.provenStable) throw new Error('Lyapunov proof should succeed for stable A');
+  assertNear('Lyapunov P11', ly.P[0][0], 1.25, 1e-9);
+  assertNear('Lyapunov P12', ly.P[0][1], 0.25, 1e-9);
+  assertNear('Lyapunov P22', ly.P[1][1], 0.25, 1e-9);
+  if (ly.minEigenvalue <= 0) throw new Error('Lyapunov P should be positive definite');
+  if (ly.residualNorm > 1e-8) throw new Error(`Lyapunov residual too large: ${ly.residualNorm}`);
+
+  // Unstable A should fail positive-definite proof under Q=I
+  const lyUnstable = analyzeLyapunov([[0, 1], [2, 1]], lyQ);
+  if (lyUnstable.provenStable) throw new Error('Lyapunov proof should fail for unstable A');
+
+  // ── Phase 7 Pole Placement: desired poles -4, -5 → K = [18, 6] ───────────
+  const sfModel = {
+    A: [[0, 1], [-2, -3]],
+    B: [[0], [1]],
+    C: [[1, 0]],
+    D: [[0]],
+  };
+  const placed = placeStateFeedback(sfModel.A, sfModel.B, '-4, -5');
+  assertNear('Pole placement K1', placed.K[0][0], 18, 1e-9);
+  assertNear('Pole placement K2', placed.K[0][1], 6, 1e-9);
+  const placedTf = closedLoopTransferFromStateFeedback(sfModel, placed.K);
+  assertPolyNear('Placed CL denominator', placedTf.den, [1, 9, 20]);
+  const placedPoles = placedTf.poles().map((p) => p.re).sort((a, b) => a - b);
+  assertNear('Placed pole 0', placedPoles[0], -5, 1e-6);
+  assertNear('Placed pole 1', placedPoles[1], -4, 1e-6);
+
+  // ── Phase 7 LQR: same plant, Q=I, R=1 has analytic K = [sqrt(5)-2, sqrt(5)-2]
+  // From CARE:
+  // A^T P + P A - P B B^T P + I = 0
+  // K = R^-1 B^T P = [sqrt(5)-2, sqrt(5)-2]
+  const lqr = solveLqr(sfModel.A, sfModel.B, lyQ, [[1]]);
+  assertNear('LQR K1', lqr.K[0][0], Math.sqrt(5) - 2, 1e-6);
+  assertNear('LQR K2', lqr.K[0][1], Math.sqrt(5) - 2, 1e-6);
+  if (lqr.riccatiResidualNorm > 1e-6) {
+    throw new Error(`LQR Riccati residual too large: ${lqr.riccatiResidualNorm}`);
+  }
+  const lqrTf = closedLoopTransferFromStateFeedback(sfModel, lqr.K);
+  if (!lqrTf.isStable()) throw new Error('LQR closed-loop should be stable');
+
+  console.log('Phase 7 (Lyapunov / Pole Placement / LQR) tests passed');
 
   // ── Audit follow-ups: analytical verification cases ──────────────────────
 
