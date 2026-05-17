@@ -9,11 +9,11 @@
 - 已建立獨立 git repo，避免被 `/Users/w.rc` 外層 git 混入。
 - 控制系統目前同步基線：
   - Branch: `codex/control-system-latest`
-  - Latest active line: Phase 10 math core plus Scenario 5/6 browser walkthrough documentation（以 `git log --oneline -5` 為準）
+  - Latest active line: `2e2e576 feat(phase11): H∞ norm + dynamic RGA Λ(jω); update verify:all (CS-P11-03/04)`
   - Full phase audit checkpoints:
     - `7a318b3 fix(control): harden phase 7-9 theory diagnostics`
     - `46e20da fix(control): harden phase 0-6 theory checks`
-  - 使用者提供的 `claude/distracted-wing-fa0639` 節點曾對齊 `de6e0ff`；目前本線已在 `codex/control-system-latest` 接續完成 Phase 0~9 理論檢查與 hardening。
+  - 近期主線已接續完成 Phase 10 與 Phase 11 的數學核心補強；目前 codebase 已包含 matrix-sign CARE / DARE、MPC setpoint tracking / state constraints、H∞ norm 與 dynamic RGA。
 - 已完成 NVIDIA Build Models 資料集中管理。
 - 已新增 agent 入口文件：
   - `AGENTS.md`：專案規則、標準流程、擴充規則與品質判準。
@@ -48,18 +48,27 @@
   - `CONTROL_SYSTEM_PHASE10_PLAN.md`
 - 控制系統目前 phase 狀態：
   - Phase 0 ~ Phase 9：Done
-  - Phase 10：In Progress
+  - Phase 10：Done
     - Done：Phase 10 design baseline
     - Done：Schur / Hamiltonian CARE solver
     - Done：MPC baseline
     - Done：Dynamic Decoupler prototype
     - Done：Robust sensitivity baseline
-    - Done：Scenario 5 MPC / Robust UI walkthrough（結論：math-core ready, UI-not-ready）
-    - Done：Scenario 6 SISO / MIMO UI walkthrough 與 UI cleanup（已修復 MIMO mode 殘留 Phase 7 SISO-only 舊輸出、MIMO Analysis 發現性、RGA/Decoupler 表格、SV plot 擁擠、PID numeric input、LQR solver path 顯示）
-    - Next：MPC UI panel / Robust sensitivity UI / Dynamic Decoupler UI
+    - Done：MPC UI panel / Robust sensitivity UI / Dynamic Decoupler UI
+    - Done：gain/phase uncertainty envelope
+    - Done：MPC box constraints + state constraints / soft slack
+    - Done：Scenario 5 MPC / Robust UI walkthrough
+    - Done：Scenario 6 SISO / MIMO UI walkthrough 與 UI cleanup
+  - Phase 11：Done
+    - Done：DARE solver via symplectic Cayley + matrix sign
+    - Done：MPC terminal cost `P∞`
+    - Done：MPC setpoint tracking（constant / time-varying reference）
+    - Done：H∞ norm estimation
+    - Done：Dynamic RGA `Λ(jω)`
+    - Done：`verify:all` 納入 phase11 驗證
     - Paused：Teaching Mode / Electron / Report Template / Block Diagram expansion
   - Block Diagram expansion：Paused
-  - Phase 0 ~ Phase 9 已完成通盤數學理論完善度檢查；所有數學核心也已完成 hardening。後續若修改數值核心，需至少重跑 `node control-studio/scripts/verify_math_core.mjs`、`node control-studio/scripts/verify_phase10_math_core.mjs`、`node test_control.js`、`node control-studio/scripts/verify_control_cases.mjs`、`node control-studio/scripts/verify_control_api_contract.mjs`、`node control-studio/scripts/control_regression_dashboard.mjs`。
+  - Phase 0 ~ Phase 11 已完成通盤數學理論完善度檢查。後續若修改數值核心，至少重跑 `npm run verify:math`、`npm run verify:all`、`node test_control.js`、`node control-studio/scripts/control_regression_dashboard.mjs`。
 - 已建立 symlink：
   - `/Users/w.rc/.config/agents/skills/nvidia-model-selector`
   - 指向 `/Users/w.rc/nvdiaOSsupport/skills/nvidia-model-selector`
@@ -185,22 +194,23 @@ git log --oneline -5
 - Scenario 5 已用 in-app browser 實際操作 MPC / Robust 情境，結論是 Phase 10 math-core ready 但 UI-not-ready；改善項目已寫入 `CONTROL_SYSTEM_SCENARIOS.md` 與 `CONTROL_SYSTEM_BACKLOG.md`。
 - Scenario 6 已用 in-app browser 實際操作 SISO / MIMO 情境；SISO plant/PID/Lead/Stability/LQR 與 MIMO RGA/SV/Static Decoupler/MIMO LQR 均可透過 UI 完成。S6 問題已修正：切 MIMO 會清空 Phase 7/8 SISO-only 舊輸出，MIMO Analysis 置頂，RGA/Decoupler 表格化，SV plot 加高並顯示 legend，PID 支援 numeric input，LQR output 顯示 solver path。
 - `control-studio/scripts/verify_phase10_math_core.mjs` 已新增 Phase 10 專用數學核心驗證，覆蓋 Hamiltonian CARE analytic cases、Spacecraft marginal MIMO、MPC Riccati、Dynamic Decoupler、Robust `S/T/KS`；已納入 regression dashboard 與 `scripts/validate_nvidia_model_selector.sh`。
+- `control-studio/js/math/matrix.js` 已新增 matrix sign function；`control-studio/js/control/state-feedback.js` 已補 matrix-sign CARE 與 DARE solver，支援高階 CARE 與離散 terminal-cost 設計。
+- `control-studio/js/control/mpc.js` 已補 MPC setpoint tracking、steady-state target solver、state constraints / soft slack；`control-studio/js/control/robust.js` 已補 `hInfNorm()`；`control-studio/js/control/mimo.js` 已補 `dynamicRGA()`。
+- `control-studio/scripts/verify_phase11_dare.mjs`、`verify_phase11_setpoint_and_state_constraints.mjs`、`verify_phase11_hinf.mjs`、`verify_phase11_dynamic_rga.mjs` 已加入；`package.json` 現在可用 `npm run verify:math` / `npm run verify:all` 聚合驗證。
 
 ## 後續可做
-1. 控制系統下一步依 `CONTROL_SYSTEM_PHASE10_PLAN.md` 與 `CONTROL_SYSTEM_BACKLOG.md` 做 `feat(phase10): add MPC UI panel`。
-2. 再做 `feat(phase10): add robust sensitivity UI`。
-3. 再做 `feat(phase10): add dynamic decoupler UI`。
-4. Robust Control 維持分析型工具，不直接做 H∞ / μ synthesis。
-5. Teaching Mode / Electron / Report Template 目前使用者要求擱置，不要開發。
-6. Block Diagram 目前維持 paused；不要新增 block diagram 功能，除非使用者重新明確恢復。
-7. 加 `agents/openai.yaml` UI metadata。
-8. 增強 evaluator：從 heuristic 檢查升級成 judge model + golden dataset。
-9. 若 NVIDIA Build Models 更新，先更新根目錄資料檔，再同步 `skills/nvidia-model-selector/references/`。
-10. 視需求把 `search_models.py` 加上 `--top-category-summary` 或 fuzzy ranking。
-11. 若要更實用，補上本地文件切 chunk / PDF 轉圖 / OCR 結果快取。
-12. 加 parallel runner 與 leaderboard，追蹤同任務多模型輸出品質。
-13. 將 OCR/RAG 的 endpoint source 也改成完整 registry-driven，而不只傳入 model id。
-14. Electron packaging 與教學模式已依使用者要求擱置，勿自行恢復。
+1. 控制系統主線已無 Phase 10 / 11 缺口；下一步若要擴充，應先定義 Phase 12 範圍，而不是繼續沿用 Phase 10 backlog。
+2. Robust Control 仍維持分析型工具，不直接做 H∞ / μ synthesis。
+3. Teaching Mode / Electron / Report Template 目前使用者要求擱置，不要開發。
+4. Block Diagram 目前維持 paused；不要新增 block diagram 功能，除非使用者重新明確恢復。
+5. 加 `agents/openai.yaml` UI metadata。
+6. 增強 evaluator：從 heuristic 檢查升級成 judge model + golden dataset。
+7. 若 NVIDIA Build Models 更新，先更新根目錄資料檔，再同步 `skills/nvidia-model-selector/references/`。
+8. 視需求把 `search_models.py` 加上 `--top-category-summary` 或 fuzzy ranking。
+9. 若要更實用，補上本地文件切 chunk / PDF 轉圖 / OCR 結果快取。
+10. 加 parallel runner 與 leaderboard，追蹤同任務多模型輸出品質。
+11. 將 OCR/RAG 的 endpoint source 也改成完整 registry-driven，而不只傳入 model id。
+12. Electron packaging 與教學模式已依使用者要求擱置，勿自行恢復。
 
 ## 注意事項
 - 這個專案不需要 `.agent-handoff.md`。
