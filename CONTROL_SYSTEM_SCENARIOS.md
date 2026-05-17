@@ -208,15 +208,29 @@ Both outputs settle to setpoint without cross-channel interference
 | L2 | ⊞ All view 不標示是 open-loop 還是 closed-loop | MIMO grid | 使用者不確定看到的是哪個 |
 | L3 | 切換到 MIMO 後切回 SISO，sidebar 滾動位置不會回頂部 | switchSystemMode | 使用者迷失上下文 |
 
-### Improvement Backlog
+### Improvement Backlog（已完成，commit `46deba6`）
 
-依優先級：
+依優先級執行並全部驗證：
 
-1. **修 H1**：`currentPhase7DesignModel()` 加 `if (state.systemMode === 'mimo' && state.mimoPlant) return state.mimoPlant`，讓 Phase 7/8 直接用完整 MIMO ABCD。配對的 Phase 8 SISO-only 子功能（如 Kalman 一輸出簡化）需加 fallback 或 disable。
-2. **修 H2**：對齊 Stability Snapshot 和 Compare Snapshot 的 overshoot 算法 — 都用「closed-loop step response 從 peak 推算」公式統一。
-3. **修 H3**：`switchSystemMode` 加 `clearSnapshots()`，或在 Compare panel 標註 snapshot 屬於哪個 mode。
-4. **解 M1**：Bode 圖加 PM/GM marker（垂直線 + 標籤）。
-5. **解 M2**：PID 加 N 欄位或暴露 `pid.N` 滑桿。
-6. **解 M3**：把 Stability Snapshot 變成 floating panel 或永遠頂部固定。
-7. **解 M4**：在 `setPhase7Output` 或對應 setter 改 HTML 結構，每個 metric 用 `<div>` 包獨立行。
-8. **解 M5**：在 Phase 7/8 區塊頂部加 `if (mimo) showHint('此功能對 MIMO 系統的支援為 Channel-by-channel ...')`。
+| # | 問題 | 修復方式 | 驗證結果 |
+| - | - | - | - |
+| H1 | Phase 7/8 不認 MIMO | `currentPhase7DesignModel()` 開頭加 `if (state.systemMode === 'mimo' && state.mimoPlant) return mimoPlant ABCD`；SISO-only 子功能在 MIMO 模式下明確報錯 | MIMO Kalman 現在 rank(Wo)=2/2，L_kf 變成 2×2 矩陣（之前 column vector） |
+| H2 | Overshoot 兩處數字不一 | 兩處皆走 `currentResponseData(closedLoop) → stepInfo()` 同一公式；殘餘差異來自快照鎖定當時 `simulationConfig` vs 現場面板配置 | 公式統一，殘餘差異有明確語意 |
+| H3 | Compare 不清快照 | `switchSystemMode` 加 `confirm()` + `state.comparisonSnapshots = []` | 切模式後 snapshot count = 0 |
+| M1 | Bode 無 PM/GM marker | 加 ω_gc 和 ω_pc 垂直虛線 + `PM=…°` / `GM=… dB` annotation | Bode 圖實際畫出兩條綠線 + 兩個標籤 |
+| M2 | PID 缺 N filter | 新增 `pid-N` input；`PIDController` 支援 N filter（預設 ∞ 為理想 PID） | UI 可設 N=100 重現 scenario 結果 |
+| M3 | Stability 太底部 | 移到 `#panel-simulate` 第一個 section | Snapshot 一進 Sim panel 立即看到 |
+| M4 | design-pole-out 排版 | 每個 metric 用獨立 `<div display:block>` + nbsp 包裹 | 「ζ = … σ = …」分行清晰 |
+| M5 | Phase 7/8 MIMO 可點按 | 新增 `#p7-mimo-banner` / `#p8-mimo-banner`；SISO 函式在 MIMO 模式拋明確訊息引導去 MIMO LQR | 點 SISO Pole Placement 顯示「請使用 MIMO Analysis → MIMO LQR」 |
+| L1 | Step Response 標題重複 | 移除 `layout.title`（chart-header 已有）| 主圖只剩一處標題 |
+| L2 | ⊞ All 不標 loop type | grid 標題改 "All Channels (Open-loop Step Response)"，cell 標籤加 `(open)` | 每格清楚標示 |
+| L3 | 切模式 sidebar 不回頂 | `switchSystemMode` 結尾加 `aside.scrollTop = 0` | 切後立即回頂 |
+
+新增測試（`test_control.js`）：PID derivative filter N=100 與 N=∞ 兩個案例的轉換式正確性。
+
+### Lessons Learned
+
+1. **MIMO 與 Phase 7/8 一開始是分開開發的**，整合時容易產生 H1 這種「使用者切了模式但底層沒切」的問題。下次新增大型模式時，要列「跨模式依賴清單」並逐項檢查。
+2. **同一份指標出現在多處時必須來自單一來源**（H2）。Stability Snapshot 和 Compare Snapshot 若有任何計算差異都會誤導使用者。
+3. **預設視覺結果重要過數值**（M1）。Bode 圖沒 PM/GM marker 是技術上正確但 UX 上失敗的典型例子。
+4. **進階功能必須有「mode 守門員」**（M5）。SISO Pole Placement 在 MIMO 模式下不應靜默失敗，要主動引導到正確功能。
