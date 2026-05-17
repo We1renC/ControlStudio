@@ -2,9 +2,11 @@
 /**
  * verify_phase10_high_order_care.mjs
  *
- * CS-P10-17 — Measure where the dependency-free Hamiltonian eigenvector CARE
- * path stops being reliable. Goal: document the trustworthy upper bound for
- * `solveCareHamiltonianSchur` so the studio UI and BACKLOG can warn users.
+ * CS-P10-17 — Measure reliability of the Hamiltonian CARE solver across orders.
+ *
+ * Primary path for n ≥ 5 is the matrix sign function (Newton iteration, CS-P10-14
+ * Real Schur fallback). For n ≤ 4 the lightweight eigenvector path is used first
+ * with matrix sign as fallback.
  *
  * For each (n, m), run a random batch of stable plants and record:
  *   - pass rate (solver returned without throwing AND closed-loop stable)
@@ -149,18 +151,14 @@ for (const r of reports) {
   );
 }
 
-// Hard assertions: locked-in upper bound so future regressions show up.
-// These thresholds reflect the *currently observed* baseline; tighten only
-// if/when a real Schur fallback lands.
-// Thresholds calibrated to observed baseline (seed=0xBEEF0001).
-// Tighten only if/when a real Schur fallback lands.
+// Hard assertions: locked-in bounds so future regressions show up.
+// Thresholds calibrated to observed baseline (seed=0xBEEF0001) with the
+// matrix sign function (Newton iteration) as primary path for n ≥ 5.
 const ASSERTIONS = [
-  { n: 4, minPassRate: 0.95, maxResidual: 1e-10, label: 'n=4 — reliable' },
-  { n: 5, minPassRate: 0.85, maxResidual: 1e-8,  label: 'n=5 — reliable' },
-  { n: 6, minPassRate: 0.80, maxResidual: 1e-7,  label: 'n=6 — degraded but workable' },
-  // Documented failure mode — locks the upper bound. If a future change
-  // *improves* n=8, the assertion will trip and the docs should be revised.
-  { n: 8, maxPassRate: 0.20, label: 'n=8 — documented failure (eigenvector path collapses)' },
+  { n: 4, minPassRate: 0.95, maxResidual: 1e-10, label: 'n=4 — reliable (eigenvector path)' },
+  { n: 5, minPassRate: 0.90, maxResidual: 1e-12, label: 'n=5 — reliable (matrix sign function)' },
+  { n: 6, minPassRate: 0.90, maxResidual: 1e-11, label: 'n=6 — reliable (matrix sign function)' },
+  { n: 8, minPassRate: 0.90, maxResidual: 1e-11, label: 'n=8 — reliable (matrix sign function)' },
 ];
 
 let assertFails = 0;
@@ -191,11 +189,10 @@ for (const a of ASSERTIONS) {
 }
 
 console.log('');
-console.log('Documented trustworthy upper bound for dependency-free Hamiltonian path:');
-console.log('  n ≤ 4 — fully reliable (~100% pass, residual ≤ 1e-12)');
-console.log('  n = 5 — reliable (~95% pass, residual ≤ 1e-9)');
-console.log('  n = 6 — degraded but workable (~90% pass, residual up to 1e-9)');
-console.log('  n ≥ 8 — eigenvector path collapses (0% pass); real Schur fallback required');
-console.log('         (tracked as CS-P10-15 follow-up)');
+console.log('CARE solver reliability summary (matrix sign function path for n ≥ 5):');
+console.log('  n ≤ 4 — fully reliable (eigenvector path, ~100% pass, residual ≤ 1e-12)');
+console.log('  n = 5 — fully reliable (matrix sign function, ~100% pass, residual ≤ 1e-14)');
+console.log('  n = 6 — fully reliable (matrix sign function, ~100% pass, residual ≤ 1e-13)');
+console.log('  n = 8 — fully reliable (matrix sign function, ~100% pass, residual ≤ 1e-13)');
 
 if (assertFails) process.exitCode = 1;

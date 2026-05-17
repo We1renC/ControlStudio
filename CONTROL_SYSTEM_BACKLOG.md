@@ -32,9 +32,9 @@
 
 - Branch: `codex/control-system-latest`
 - Latest pre-Phase-10 synced commit: `b01f169 docs(control): mark all 9 Scenario 3+4 issues as resolved`
-- Current Phase 10 checkpoint: Phase 10.1-10.5 all done. Schur / Hamiltonian CARE solver, MPC baseline, Dynamic Decoupler prototype, Robust sensitivity baseline, **and UI integration for all three** added (commit `f945ced`).
-- Scenario 5 browser walkthrough result: Phase 10 math + UI both operational; next priority is robust edge-case fixtures and gain/phase uncertainty sweep (CS-P10-12, CS-P10-13).
-- Scenario 6 browser walkthrough result: SISO / MIMO core workflows are UI-operable; S6 UI issues have been resolved in the current Phase 9 UI cleanup line.
+- Current Phase 10 checkpoint: **All CS-P10 items done** (CS-P10-12/13/14/15/16/17/18). MPC box-constraint QP + UI, gain/phase uncertainty envelope, matrix sign function CARE (n=8 now 100% reliable).
+- Scenario 5 browser walkthrough result: Phase 10 math + UI both operational.
+- Scenario 6 browser walkthrough result: SISO / MIMO core workflows are UI-operable.
 - Latest full-theory audit:
   - `7a318b3 fix(control): harden phase 7-9 theory diagnostics`
   - `46e20da fix(control): harden phase 0-6 theory checks`
@@ -46,6 +46,7 @@
   - `node control-studio/scripts/verify_phase9_phase10_edge_cases.mjs`
   - `node control-studio/scripts/verify_phase10_care_robustness.mjs`
   - `node control-studio/scripts/verify_phase10_high_order_care.mjs`
+  - `node control-studio/scripts/verify_phase10_mpc_constraints.mjs`
   - `node test_control.js`
   - `node control-studio/scripts/verify_control_cases.mjs`
   - `node control-studio/scripts/verify_control_api_contract.mjs`
@@ -221,27 +222,25 @@ Exit criteria: 已達成。
 | CS-P10-11 | P1 | Done | Dynamic Decoupler UI | MIMO Analysis `#mimo-dyn-decoupler-out`：ωc → G(jωc), W=G⁻¹, off-diagonal residual | CS-P10-03 | f945ced；2×2 coupled plant residual=0 |
 | CS-P10-12 | P2 | Done | Robust edge-case fixtures | 補 NMP (RHP zero) / Padé delay / 1+L=0 / 高 \|S\| 等高風險 case | CS-P10-04 | `verify_phase9_phase10_edge_cases.mjs` 15/15 pass，含 NMP peak \|S\|=1.35、Padé delay loop、S+T=1 identity |
 | CS-P10-13 | P2 | Done | Gain/phase uncertainty sweep | `uncertaintyEnvelope(loop, ω, {gainFactors, phaseShiftsDeg, controllerTf})` 計算最壞情況 \|S\|/\|T\|/\|KS\| envelope；Advisor robust panel 加 `±gain%` / `±phase°` / samples 與 worst-vs-nominal 疊圖 + worst/nominal 比值 | CS-P10-10 | `verify_phase10_math_core.mjs` 4 cases；UI 驗證：plant `1/(s²+3s+2)` ±20%/±15° 7×7 sweep → worst\|S\|=1.114 vs nominal 1.05 |
-| CS-P10-14 | P2 | Planned | MPC constraint UI + QP solver | input/state hard constraint baseline (簡易 active-set QP) | CS-P10-09 | constrained MPC vs unconstrained comparison |
+| CS-P10-14 | P2 | Done | MPC constraint UI + QP solver | condensed MPC formulation + Hildreth 座標下降 box QP (u_min ≤ u ≤ u_max)；Advisor MPC panel 加 u_min/u_max 輸入與「Compare Constrained vs Unconstrained」按鈕 + 疊圖；11/11 L1-L4 驗證 case | CS-P10-09 | `verify_phase10_mpc_constraints.mjs` 11/11 pass；UI 驗證：double-integrator ±0.5 bound 比較疊圖 |
 | CS-P10-15 | P1 | Done | Schur CARE jω-boundary case | Hamiltonian 特徵值靠近虛軸 / 不 stabilizable 時 eigenvector path 會 fail；改為丟出含「stabilizability / boundary」友善訊息（非 NaN）。真正的 real Schur fallback 留待後續 | CS-P10-01 | `verify_phase10_care_robustness.mjs` 3 cases：jω uncontrollable、fully unstabilizable、near-boundary 仍可解 |
 | CS-P10-16 | P1 | Done | Schur vs Bass 對比測試（spacecraft sparse-B） | Spacecraft case 同時測 Schur 通過 (residual 1e-15) 與 Newton-Kleinman/Bass 失敗的友善訊息（已更新訊息明確推薦 Schur path） | CS-P10-01 / CS-P10-15 | `verify_phase10_care_robustness.mjs` 3 cases：Schur 通過 + Lyapunov 證、Kleinman 失敗含 Schur 提示、default path = Schur |
-| CS-P10-17 | P2 | Done | 高階 CARE 壓測 (n ≥ 4) | dependency-free eigenvector path 實測可信賴上限：n≤4 ≥95% pass，n=5 ≥85%，n=6 ≥80%，n=8 collapses (0% pass)。Real Schur fallback 仍是後續工作 | CS-P10-01 | `verify_phase10_high_order_care.mjs` 6×{n,m} 配置 + 4 assertions（含 n=8 documented-failure 上限鎖定） |
+| CS-P10-17 | P2 | Done | 高階 CARE 壓測 (n ≥ 4) + Matrix Sign Fallback | matrix sign function (Newton iteration)：n≥5 改用 sign(H) = Newton iteration → P=(I−Z)/2 stable projector → QR basis → P=YX⁻¹；n=4,5,6,8 全部 100% pass，residual ≤ 1e-13 | CS-P10-01 | `verify_phase10_high_order_care.mjs` 6×{n,m} 配置 + 4 assertions（n=8 從 0%→100%） |
 | CS-P10-18 | P2 | Done | CI / pre-push verification hook | `package.json` 加 `verify:math` (串接 7 個 runner) + `verify:all`；`scripts/git-hooks/pre-push` + `bash scripts/install-hooks.sh` 設 core.hooksPath；失敗 block push（可用 `--no-verify` 跳過） | CS-P10-12 / Phase 9-10 runners | `npm run verify:math` 跑 ~70+ cases；pre-push 失敗阻擋 push |
 | CS-P10-05 | P3 | Paused | Electron packaging | 使用者要求擱置 | 主功能凍結 | 暫不做 |
 | CS-P10-06 | P3 | Paused | 教學模式 | 使用者要求擱置 | UI 穩定 | 暫不做 |
 | CS-P10-07 | P3 | Paused | 報告模板 / 報告自動化 | 使用者要求擱置 | Scenario docs mature | 暫不做 |
 | CS-P10-08 | P3 | Paused | Block Diagram expansion | 使用者已要求先暫置 | SISO advanced stable | 恢復前需重新確認需求 |
 
-## Immediate Next 3 Commits
+## Immediate Next Commits
 
-Phase 10 數學魯棒性主線（CS-P10-12/13/15/16/17/18）全數完成。剩餘工作：
+Phase 10 全部 backlog 項目（CS-P10-12/13/14/15/16/17/18）現已全數完成，包含：
+- **CS-P10-14 Done**: MPC box constraints (Hildreth QP) + Advisor UI comparison  
+- **CS-P10-17 Done (upgraded)**: matrix sign function fallback — n=4/5/6/8 全部 100% pass, residual ≤ 1e-13
 
-1. `feat(phase10): MPC constraint UI + QP solver` (CS-P10-14)
-   - input/state hard constraint 與簡易 active-set QP；constrained vs unconstrained comparison。
-
-2. `feat(phase10): real Schur fallback for high-order CARE`
-   - CS-P10-15/17 留下的後續：替換 dependency-free eigenvector path，把 n≥7 reliable 化（目前 n=8 documented failure）。
-
-3. （視需求）擴大 uncertainty sweep 範圍：multiplicative output uncertainty、structured / parametric uncertainty。
+後續可選項目（非主線）：
+1. （視需求）擴大 uncertainty sweep：multiplicative output uncertainty、structured / parametric uncertainty
+2. （視需求）MPC state constraints：x_min ≤ x ≤ x_max 需要更完整 QP（目前只支援 u constraints）
 
 ## Do Not Start Yet
 

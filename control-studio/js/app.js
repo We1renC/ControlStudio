@@ -20,7 +20,7 @@ import { analyzeLyapunov, brysonsRule, closedLoopTransferFromStateFeedback, disc
 import { matTranspose, matSub, matMul } from './math/matrix.js?v=p5';
 import { BlockEditor } from './editor/editor.js';
 import { MIMOStateSpace, parseMIMOMatrices, rgaSteady, rgaDiagnosis, rgaInvariants, singularValueBode, staticDecoupler, applyDecoupler, dynamicDecouplerAtFrequency } from './control/mimo.js';
-import { simulateUnconstrainedMpc } from './control/mpc.js';
+import { simulateConstrainedMpc, simulateUnconstrainedMpc } from './control/mpc.js';
 import { sensitivityBode, robustPeaks, uncertaintyEnvelope } from './control/robust.js';
 import { tfToControllableCanonical } from './control/state-space.js?v=p5';
 
@@ -148,6 +148,7 @@ function initEventListeners() {
   document.getElementById('btn-mimo-lqr')?.addEventListener('click', computeMIMOLqr);
   document.getElementById('btn-mimo-dyn-decoupler')?.addEventListener('click', computeMIMODynDecoupler);
   document.getElementById('btn-mpc-simulate')?.addEventListener('click', computeMpcSimulation);
+  document.getElementById('btn-mpc-constrained')?.addEventListener('click', computeConstrainedMpc);
   document.getElementById('btn-robust')?.addEventListener('click', computeRobustSensitivity);
   document.getElementById('btn-uncertainty')?.addEventListener('click', computeUncertaintyEnvelope);
 
@@ -3928,6 +3929,97 @@ function computeMpcSimulation() {
     clearError();
   } catch (err) {
     setPhase7Output('mpc-out', escapeHtml(err.message), true);
+    showError(err.message);
+  }
+}
+
+function computeConstrainedMpc() {
+  try {
+    clearFieldErrors();
+    const Ts = parseFloat(document.getElementById('mpc-ts').value || '0.1');
+    const horizon = parseInt(document.getElementById('mpc-horizon').value || '10', 10);
+    const steps = parseInt(document.getElementById('mpc-steps').value || '30', 10);
+    const uMin = parseFloat(document.getElementById('mpc-umin').value);
+    const uMax = parseFloat(document.getElementById('mpc-umax').value);
+    if (!(Ts > 0)) throw new Error('Ts 必須 > 0');
+    if (!(horizon >= 2)) throw new Error('horizon 必須 ≥ 2');
+    if (!(steps >= 1)) throw new Error('sim steps 必須 ≥ 1');
+    if (!Number.isFinite(uMin) || !Number.isFinite(uMax)) throw new Error('u_min / u_max 必須為有限數值');
+    if (uMin >= uMax) throw new Error('u_min 必須 < u_max');
+
+    let A, B;
+    if (state.systemMode === 'mimo' && state.mimoPlant) {
+      ({ A, B } = state.mimoPlant);
+    } else if (state.plant) {
+      const ss = tfToControllableCanonical(state.plant.num, state.plant.den);
+      A = ss.A; B = ss.B;
+    } else {
+      throw new Error('請先建立 plant');
+    }
+
+    const n = A.length;
+    const m = B[0].length;
+    const { Ad, Bd } = discretizeZOH(A, B, Ts);
+    const Q = _parseMatrixText(document.getElementById('mpc-q').value, n, n, 'Q');
+    const R = _parseMatrixText(document.getElementById('mpc-r').value, m, m, 'R');
+    const x0Vals = document.getElementById('mpc-x0').value
+      .split(/[\s,]+/).filter(Boolean).map(Number);
+    if (x0Vals.length !== n) throw new Error(`x₀ 應有 ${n} 個元素`);
+    const x0 = x0Vals.map((v) => [v]);
+
+    const constraints = { uMin, uMax };
+    const simC = simulateConstrainedMpc(Ad, Bd, Q, R, horizon, x0, constraints, { steps });
+    const simU = simulateUnconstrainedMpc(Ad, Bd, Q, R, horizon, x0, { steps });
+
+    const activeSteps = simC.activeConstraintsLog.filter(Boolean).length;
+    setPhase7Output('mpc-constrained-out', [
+      `<div style="color:var(--color-accent);font-weight:700;">Constrained vs Unconstrained MPC (horizon=${horizon}, Ts=${Ts}s)</div>`,
+      `<div>u bounds: [${uMin}, ${uMax}]</div>`,
+      `<div>Active constraint steps: ${activeSteps} / ${steps}</div>`,
+      `<div>Constrained cost J  = ${fmtNum(simC.totalCost, 4)}</div>`,
+      `<div>Unconstrained cost J = ${fmtNum(simU.totalCost, 4)}</div>`,
+      `<div>Constrained ‖x_final‖∞ = ${fmtNum(simC.finalStateNormInf, 6)}</div>`,
+    ].join(''));
+
+    if (typeof Plotly !== 'undefined') {
+      const tArr = simC.x.map((_, k) => k * Ts);
+      const tArrU = simC.u.map((_, k) => k * Ts);
+      const colors = { con: '#f59e0b', unc: '#60a5fa' };
+
+      // State trajectories
+      const xTraces = [];
+      for (let i = 0; i < n; i++) {
+        xTraces.push({ x: tArr, y: simC.x.map((xk) => xk[i][0]), mode: 'lines', name: `x${i + 1} constrained`, line: { color: colors.con, width: 1.5 } });
+        xTraces.push({ x: tArr, y: simU.x.map((xk) => xk[i][0]), mode: 'lines', name: `x${i + 1} unconstrained`, line: { color: colors.unc, width: 1.5, dash: 'dash' } });
+      }
+      Plotly.newPlot('chart-mpc-constrained-x', xTraces, {
+        ...PLOTLY_LAYOUT_BASE(),
+        margin: { t: 10, r: 20, b: 30, l: 40 },
+        legend: { font: { size: 9 }, orientation: 'h', y: 1.2 },
+        xaxis: { title: 't (s)', gridcolor: 'rgba(255,255,255,0.06)' },
+        yaxis: { title: 'state x', gridcolor: 'rgba(255,255,255,0.06)' },
+      }, { responsive: true, displayModeBar: false });
+
+      // Control inputs
+      const uTraces = [];
+      for (let j = 0; j < m; j++) {
+        uTraces.push({ x: tArrU, y: simC.u.map((uk) => uk[j][0]), mode: 'lines', name: `u${j + 1} constrained`, line: { color: colors.con, width: 1.5 } });
+        uTraces.push({ x: tArrU, y: simU.u.map((uk) => uk[j][0]), mode: 'lines', name: `u${j + 1} unconstrained`, line: { color: colors.unc, width: 1.5, dash: 'dash' } });
+      }
+      // Constraint bound lines
+      uTraces.push({ x: [tArrU[0], tArrU[tArrU.length - 1]], y: [uMax, uMax], mode: 'lines', name: 'u_max', line: { color: '#ef4444', width: 1, dash: 'dot' }, showlegend: true });
+      uTraces.push({ x: [tArrU[0], tArrU[tArrU.length - 1]], y: [uMin, uMin], mode: 'lines', name: 'u_min', line: { color: '#ef4444', width: 1, dash: 'dot' }, showlegend: true });
+      Plotly.newPlot('chart-mpc-constrained-u', uTraces, {
+        ...PLOTLY_LAYOUT_BASE(),
+        margin: { t: 10, r: 20, b: 30, l: 40 },
+        legend: { font: { size: 9 }, orientation: 'h', y: 1.2 },
+        xaxis: { title: 't (s)', gridcolor: 'rgba(255,255,255,0.06)' },
+        yaxis: { title: 'control u', gridcolor: 'rgba(255,255,255,0.06)' },
+      }, { responsive: true, displayModeBar: false });
+    }
+    clearError();
+  } catch (err) {
+    setPhase7Output('mpc-constrained-out', escapeHtml(err.message), true);
     showError(err.message);
   }
 }

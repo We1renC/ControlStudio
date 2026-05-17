@@ -1,4 +1,5 @@
 import { Complex } from '../math/complex.js';
+import { hamiltonianStableSubspace } from '../math/realschur.js';
 import {
   matAdd,
   matCreate,
@@ -240,13 +241,43 @@ function complexColumnsFromVectors(vectors, startRow, rowCount) {
 }
 
 /**
+ * CARE via real Schur decomposition of the Hamiltonian matrix.
+ * Returns { P, K, Acl } or throws. Used as primary path for n ≥ 5.
+ */
+function solveCareRealSchur(A, B, Qmat, Rmat, n, m, options) {
+  const H = hamiltonianMatrix(A, B, Qmat, Rmat);
+  const { X, Y, stableCount } = hamiltonianStableSubspace(H, n);
+
+  if (stableCount < n) {
+    throw new Error(
+      `Real Schur CARE: 找到 ${stableCount} 個 stable eigenvalues，需要 ${n}。` +
+      ` 通常代表 (A,B) 不 stabilizable 或 Hamiltonian 含 jω-axis eigenvalues。`,
+    );
+  }
+
+  let Xinv;
+  try {
+    Xinv = matInverse(X);
+  } catch (e) {
+    if (e instanceof SingularMatrixError) {
+      throw new Error(
+        `Real Schur CARE: stable invariant subspace X 為 singular — (A,B) 可能不 stabilizable。`,
+      );
+    }
+    throw e;
+  }
+
+  const P = matSymmetrize(matMul(Y, Xinv));
+  return P;
+}
+
+/**
  * Continuous CARE by Hamiltonian stable invariant subspace.
  *
- * This is the same mathematical route normally implemented with a real Schur
- * decomposition in production libraries: build the Hamiltonian matrix, isolate
- * its stable invariant subspace [X;Y], then recover P = Y X^{-1}. ControlStudio
- * uses a lightweight eigenvector version so it stays dependency-free; it is
- * intended for the low-order systems supported by the current workbench.
+ * For n ≥ 5 the primary path is a real Schur decomposition (Francis QR) which is
+ * numerically more reliable than the eigenvector path for high-order systems.
+ * For n ≤ 4 the dependency-free eigenvector path is tried first (faster, same
+ * accuracy at low order), with real Schur as fallback.
  */
 export function solveCareHamiltonianSchur(A, B, Q = null, R = null, options = {}) {
   const n = A.length;
@@ -255,46 +286,87 @@ export function solveCareHamiltonianSchur(A, B, Q = null, R = null, options = {}
   const Rmat = R ? matSymmetrize(R.map((row) => [...row])) : matIdentity(m);
   const tolerance = options.tolerance || 1e-7;
 
-  if (Qmat.length !== n || Qmat[0].length !== n) {
-    throw new Error(`Q must be ${n}×${n}`);
-  }
-  if (Rmat.length !== m || Rmat[0].length !== m) {
-    throw new Error(`R must be ${m}×${m}`);
-  }
-  if (!matIsPositiveDefinite(Rmat)) {
-    throw new Error('R must be positive definite');
+  if (Qmat.length !== n || Qmat[0].length !== n) throw new Error(`Q must be ${n}×${n}`);
+  if (Rmat.length !== m || Rmat[0].length !== m) throw new Error(`R must be ${m}×${m}`);
+  if (!matIsPositiveDefinite(Rmat)) throw new Error('R must be positive definite');
+
+  // For n ≥ 5, the Durand-Kerner polynomial root-finder degrades on degree-2n
+  // characteristic polynomials. Use the real Schur path (Francis QR) as primary.
+  // For n ≤ 4, try the lightweight eigenvector path first; fall back to real Schur.
+  const useRealSchurFirst = n >= 5 || options.method === 'schur';
+
+  let P = null;
+  let usedMethod = 'hamiltonian-schur';
+  let eigenvalues = [];
+  let stable = [];
+  let imaginaryNorm = 0;
+
+  if (!useRealSchurFirst) {
+    // --- Eigenvector path (n ≤ 4) ---
+    try {
+      const H = hamiltonianMatrix(A, B, Qmat, Rmat);
+      eigenvalues = polyroots(characteristicPolynomialCoefficients(H));
+      stable = eigenvalues
+        .filter((root) => root.re < -tolerance)
+        .sort((a, b) => a.re - b.re || a.im - b.im)
+        .slice(0, n);
+
+      if (stable.length !== n) {
+        throw new Error(
+          `Hamiltonian CARE solver: 期望 ${n} 個 stable eigenvalues，實際 ${stable.length}。` +
+          ` 通常代表 (A,B) 不 stabilizable，或 Hamiltonian 含 jω-axis eigenvalues（boundary case）。` +
+          ` 建議：(1) 檢查 (A,B) 是否含 uncontrollable + 不穩定 mode；(2) 對 marginally stable plant 改用較大 Q penalty。`,
+        );
+      }
+
+      const Hc = complexMatrixFromReal(H);
+      const vectors = stable.map((lambda) => {
+        const shifted = Hc.map((row, i) => row.map((value, j) => (
+          i === j ? value.sub(lambda) : value
+        )));
+        return complexNullVector(shifted, options.nullTolerance || 1e-7);
+      });
+
+      const X = complexColumnsFromVectors(vectors, 0, n);
+      const Y = complexColumnsFromVectors(vectors, n, n);
+      let Xinv;
+      try {
+        Xinv = complexMatInverse(X, options.inverseTolerance || 1e-8);
+      } catch (e) {
+        if (e instanceof SingularMatrixError) {
+          throw new Error('eigenvector-X-singular');
+        }
+        throw e;
+      }
+      const Pc = complexMatMul(Y, Xinv);
+      imaginaryNorm = maxImagMatrix(Pc);
+      if (imaginaryNorm > (options.imaginaryTolerance || 1e-6)) {
+        throw new Error(`non-real-P:${imaginaryNorm}`);
+      }
+      P = matSymmetrize(Pc.map((row) => row.map((value) => (
+        Math.abs(value.re) < 1e-12 ? 0 : value.re
+      ))));
+      usedMethod = 'eigenvector';
+    } catch (e) {
+      // Fall through to real Schur
+      if (/不 stabilizable|not stabilizable/i.test(e.message)) throw e;
+      P = null;
+    }
   }
 
-  const H = hamiltonianMatrix(A, B, Qmat, Rmat);
-  const eigenvalues = polyroots(characteristicPolynomialCoefficients(H));
-  const stable = eigenvalues
-    .filter((root) => root.re < -tolerance)
-    .sort((a, b) => a.re - b.re || a.im - b.im)
-    .slice(0, n);
-
-  if (stable.length !== n) {
-    throw new Error(
-      `Hamiltonian CARE solver: 期望 ${n} 個 stable eigenvalues，實際 ${stable.length}。` +
-      ` 通常代表 (A,B) 不 stabilizable，或 Hamiltonian 含 jω-axis eigenvalues（boundary case）。` +
-      ` 建議：(1) 檢查 (A,B) 是否含 uncontrollable + 不穩定 mode；(2) 對 marginally stable plant 改用較大 Q penalty。`,
-    );
-  }
-
-  const Hc = complexMatrixFromReal(H);
-  const vectors = stable.map((lambda) => {
-    const shifted = Hc.map((row, i) => row.map((value, j) => (
-      i === j ? value.sub(lambda) : value
-    )));
-    return complexNullVector(shifted, options.nullTolerance || 1e-7);
-  });
-
-  const X = complexColumnsFromVectors(vectors, 0, n);
-  const Y = complexColumnsFromVectors(vectors, n, n);
-  let Xinv;
-  try {
-    Xinv = complexMatInverse(X, options.inverseTolerance || 1e-8);
-  } catch (e) {
-    if (e instanceof SingularMatrixError) {
+  if (P === null) {
+    // --- Real Schur path ---
+    try {
+      P = solveCareRealSchur(A, B, Qmat, Rmat, n, m, options);
+      usedMethod = 'real-schur';
+    } catch (e) {
+      if (useRealSchurFirst) {
+        throw new Error(
+          `Hamiltonian CARE solver: 期望 ${n} 個 stable eigenvalues（real Schur path）。` +
+          ` 通常代表 (A,B) 不 stabilizable，或 Hamiltonian 含 jω-axis eigenvalues。` +
+          ` 建議：(1) 檢查 (A,B) PBH 條件；(2) 對 marginally stable plant 改用較大 Q penalty。`,
+        );
+      }
       throw new Error(
         `Hamiltonian CARE solver: stable invariant subspace X 為 singular — ` +
         `通常代表 (A,B) 不 stabilizable，或 stable eigenvectors 線性相依（boundary case）。` +
@@ -302,16 +374,8 @@ export function solveCareHamiltonianSchur(A, B, Q = null, R = null, options = {}
         `(3) 若 plant 含 jω-axis uncontrollable mode，當前 eigenvector path 無法處理，需 real Schur fallback。`,
       );
     }
-    throw e;
   }
-  const Pc = complexMatMul(Y, Xinv);
-  const imaginaryNorm = maxImagMatrix(Pc);
-  if (imaginaryNorm > (options.imaginaryTolerance || 1e-6)) {
-    throw new Error(`Hamiltonian CARE solver produced a non-real P matrix: max imaginary=${imaginaryNorm}`);
-  }
-  const P = matSymmetrize(Pc.map((row) => row.map((value) => (
-    Math.abs(value.re) < 1e-12 ? 0 : value.re
-  ))));
+
   const K = matMul(matInverse(Rmat), matMul(matTranspose(B), P));
   const Acl = matSub(A, matMul(B, K));
   const residual = careResidual(A, B, Qmat, Rmat, P);
@@ -319,7 +383,7 @@ export function solveCareHamiltonianSchur(A, B, Q = null, R = null, options = {}
   const closedLoopLyapunov = analyzeLyapunov(Acl, matIdentity(n));
 
   if (!closedLoopLyapunov.provenStable || riccatiResidualNorm > (options.residualTolerance || 1e-5)) {
-    throw new Error(`Hamiltonian CARE solver failed validation: residual=${riccatiResidualNorm}`);
+    throw new Error(`Hamiltonian CARE solver failed validation: residual=${riccatiResidualNorm}, method=${usedMethod}`);
   }
 
   return {
@@ -336,7 +400,7 @@ export function solveCareHamiltonianSchur(A, B, Q = null, R = null, options = {}
     eigenvalues,
     stableEigenvalues: stable,
     imaginaryNorm,
-    method: 'hamiltonian-schur',
+    method: usedMethod,
     initialGainStrategy: 'hamiltonian-schur',
   };
 }

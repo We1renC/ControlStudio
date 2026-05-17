@@ -931,7 +931,7 @@
         </section>
 
         <section class="section-panel" id="mpc-panel">
-          <div class="section-title">MPC (Unconstrained, Discrete)</div>
+          <div class="section-title">MPC (Discrete, Receding-Horizon)</div>
           <p style="font-size:11px;color:var(--text-muted);line-height:1.5;margin-bottom:10px;">
             有限預測 horizon 的 LQR-MPC baseline。先把 continuous plant 用 ZOH 離散化，再用 receding-horizon 計算 u₀。<br>
             SISO 模式自動用 plant 轉 controllable canonical SS；MIMO 模式直接用 mimoPlant ABCD。
@@ -963,10 +963,30 @@
             <label>Initial state x₀ (n×1, comma separated)</label>
             <input type="text" id="mpc-x0" value="1, 0" placeholder="1, 0">
           </div>
-          <button class="btn btn-sm" id="btn-mpc-simulate" style="width:100%;justify-content:center;margin-bottom:8px;">Simulate MPC Receding-Horizon</button>
+          <button class="btn btn-sm" id="btn-mpc-simulate" style="width:100%;justify-content:center;margin-bottom:8px;">Simulate MPC (Unconstrained)</button>
           <div id="mpc-out" style="font-size:11px;font-family:monospace;color:var(--text-secondary);background:rgba(15,17,23,.4);padding:8px;border-radius:6px;line-height:1.6;display:none;margin-bottom:8px;"></div>
           <div id="chart-mpc-x" style="height:150px;"></div>
           <div id="chart-mpc-u" style="height:120px;margin-top:4px;"></div>
+
+          <div style="border-top:1px solid var(--border-color);margin:14px 0 10px;"></div>
+          <div style="font-size:11px;font-weight:600;color:var(--color-accent);margin-bottom:8px;">Input Box Constraints</div>
+          <p style="font-size:11px;color:var(--text-muted);line-height:1.5;margin-bottom:8px;">
+            限制每步 u 在 [u_min, u_max] 範圍內。使用 Hildreth 座標下降法求解 condensed QP。
+          </p>
+          <div style="display:flex;gap:8px;margin-bottom:8px;align-items:center;">
+            <div class="input-group" style="flex:1;margin-bottom:0;">
+              <label>u_min</label>
+              <input type="number" id="mpc-umin" value="-0.5" step="0.1">
+            </div>
+            <div class="input-group" style="flex:1;margin-bottom:0;">
+              <label>u_max</label>
+              <input type="number" id="mpc-umax" value="0.5" step="0.1">
+            </div>
+          </div>
+          <button class="btn btn-sm" id="btn-mpc-constrained" style="width:100%;justify-content:center;margin-bottom:8px;">Compare Constrained vs Unconstrained</button>
+          <div id="mpc-constrained-out" style="font-size:11px;font-family:monospace;color:var(--text-secondary);background:rgba(15,17,23,.4);padding:8px;border-radius:6px;line-height:1.6;display:none;margin-bottom:8px;"></div>
+          <div id="chart-mpc-constrained-x" style="height:160px;"></div>
+          <div id="chart-mpc-constrained-u" style="height:130px;margin-top:4px;"></div>
         </section>
 
         <section class="section-panel" id="robust-panel">
