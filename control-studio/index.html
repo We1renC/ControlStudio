@@ -57,6 +57,10 @@
     .plot-switcher::-webkit-scrollbar { display:none; }
     .plot-tab { border:1px solid var(--border-primary); background: var(--bg-tertiary); color: var(--text-secondary); border-radius: var(--radius-sm); padding: 8px 12px; font-size:12px; font-weight:600; cursor:pointer; white-space:nowrap; flex-shrink:0; }
     .plot-tab.active { background: var(--color-accent); border-color: var(--color-accent); color: white; }
+    .system-mode-btn { padding: 6px 8px; font-size: 11px; font-weight: 600; border-radius: var(--radius-sm); }
+    .system-mode-btn.active { background: var(--color-accent); border-color: var(--color-accent); color: white; }
+    .mimo-channel-btn { border:1px solid var(--border-primary); background: var(--bg-tertiary); color: var(--text-secondary); border-radius: var(--radius-sm); cursor:pointer; }
+    .mimo-channel-btn.active { background: var(--color-accent); border-color: var(--color-accent); color: white; }
     .plot-stage { display:grid; grid-template-columns: minmax(0, 1fr) 220px; gap:var(--space-4); align-items:stretch; min-width: 0; }
     .plot-main { min-width: 0; min-height: clamp(340px, 58vh, 560px); }
     .plot-main .chart-body { min-height: clamp(280px, 48vh, 480px); }
@@ -212,7 +216,18 @@
       </div>
 
       <div class="sidebar-panel active" id="panel-model">
-        <section class="section-panel">
+        <section class="section-panel" id="system-mode-panel">
+          <div class="section-title" style="margin-bottom:8px;">System Type</div>
+          <div style="display:flex;gap:6px;background:var(--bg-secondary);padding:4px;border-radius:var(--radius-sm);">
+            <button class="btn btn-sm system-mode-btn active" data-mode="siso" style="flex:1;justify-content:center;">SISO</button>
+            <button class="btn btn-sm system-mode-btn" data-mode="mimo" style="flex:1;justify-content:center;">MIMO</button>
+          </div>
+          <p style="font-size:10px;color:var(--text-muted);margin-top:6px;line-height:1.5;">
+            SISO：單輸入單輸出傳函。MIMO：多輸入多輸出狀態空間。
+          </p>
+        </section>
+
+        <section class="section-panel" id="siso-input-panel">
           <div class="section-title">Plant Model</div>
           <p class="section-copy" id="model-section-copy">直接輸入 plant 的係數或狀態方程；上方會同步更新成具體數學式。</p>
           <div class="sys-tab-group">
@@ -280,6 +295,56 @@
             </div>
           </div>
           <button class="btn btn-primary" style="width:100%; margin-top:var(--space-2);" id="btn-apply">Update System</button>
+        </section>
+
+        <section class="section-panel" id="mimo-input-panel" style="display:none;">
+          <div class="section-title" style="margin-bottom:8px;">MIMO State-Space</div>
+          <p style="font-size:11px;color:var(--text-muted);margin-bottom:10px;line-height:1.5;">
+            輸入 n 狀態 × m 輸入 × p 輸出 系統。各列以換行分隔、各元素以空白/逗號分隔。
+          </p>
+
+          <div style="display:flex;gap:8px;margin-bottom:8px;">
+            <div class="input-group" style="flex:1;margin-bottom:0;">
+              <label>n (states)</label>
+              <input type="number" id="mimo-n" value="2" min="1" max="6" step="1">
+            </div>
+            <div class="input-group" style="flex:1;margin-bottom:0;">
+              <label>m (inputs)</label>
+              <input type="number" id="mimo-m" value="2" min="1" max="4" step="1">
+            </div>
+            <div class="input-group" style="flex:1;margin-bottom:0;">
+              <label>p (outputs)</label>
+              <input type="number" id="mimo-p" value="2" min="1" max="4" step="1">
+            </div>
+          </div>
+
+          <div class="input-group" style="margin-bottom:8px;">
+            <label>A matrix (n × n)</label>
+            <textarea id="mimo-a" rows="3" style="font-family:monospace;">-1 0
+0 -2</textarea>
+          </div>
+
+          <div class="input-group" style="margin-bottom:8px;">
+            <label>B matrix (n × m)</label>
+            <textarea id="mimo-b" rows="3" style="font-family:monospace;">1 0
+0 1</textarea>
+          </div>
+
+          <div class="input-group" style="margin-bottom:8px;">
+            <label>C matrix (p × n)</label>
+            <textarea id="mimo-c" rows="3" style="font-family:monospace;">1 0
+0 1</textarea>
+          </div>
+
+          <div class="input-group" style="margin-bottom:8px;">
+            <label>D matrix (p × m)</label>
+            <textarea id="mimo-d" rows="2" style="font-family:monospace;">0 0
+0 0</textarea>
+          </div>
+
+          <button class="btn btn-primary btn-sm" id="btn-mimo-update" style="width:100%;justify-content:center;">Update MIMO System</button>
+
+          <div id="mimo-status-out" style="font-size:11px;font-family:monospace;color:var(--text-secondary);background:rgba(15,17,23,.4);padding:8px;border-radius:6px;line-height:1.6;margin-top:8px;display:none;"></div>
         </section>
 
         <section class="section-panel s-domain-only" id="c2d-panel">
@@ -742,7 +807,7 @@
               <!-- LQG Simulation -->
               <div style="margin-top:12px;border-top:1px solid var(--border-primary);padding-top:12px;">
                 <div style="font-size:10px;font-weight:700;color:var(--color-accent);text-transform:uppercase;margin-bottom:6px;">LQG = LQR + Kalman</div>
-                <p style="font-size:10px;color:var(--text-muted);margin-bottom:8px;">需先完成 LQR (K) 與 Kalman (L_kf)。比較 FSF (理想全狀態) vs LQG (估測狀態) 閉迴路響應。</p>
+                <p style="font-size:10px;color:var(--text-muted);margin-bottom:8px;">直接點擊即可執行（若尚未計算 LQR/Kalman，自動以預設 Q=I, R=1 計算）。比較 FSF（理想全狀態）vs LQG（估測狀態）閉迴路響應。</p>
                 <div style="display:flex;gap:8px;margin-bottom:8px;">
                   <div class="input-group" style="flex:1;margin-bottom:0;">
                     <label>Duration (s)</label>
@@ -842,6 +907,14 @@
           <button class="plot-tab s-domain-only" data-plot="nichols">Nichols</button>
           <button class="plot-tab s-domain-only" data-plot="rlocus">Root Locus</button>
           <button class="plot-tab" data-plot="pzmap">Pole-Zero</button>
+        </div>
+
+        <div id="mimo-channel-bar" style="display:none;background:var(--bg-secondary);border:1px solid var(--border-primary);border-radius:var(--radius-lg);padding:10px 14px;">
+          <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+            <span style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;">Channel</span>
+            <div id="mimo-channel-buttons" style="display:flex;gap:6px;flex-wrap:wrap;"></div>
+            <span style="font-size:10px;color:var(--text-muted);margin-left:auto;">u<sub>j</sub> → y<sub>i</sub> (column j input, row i output)</span>
+          </div>
         </div>
 
         <div class="plot-stage">

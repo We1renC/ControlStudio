@@ -13,6 +13,7 @@ import { zpkToTransferFunction, parseRootsString, parseComplexRoot } from './con
 import { polydiv, polymul } from './control-studio/js/math/polynomial.js';
 import { c2dTustin, c2dZOH } from './control-studio/js/control/c2d.js';
 import { specsToTargetPoles, designLeadForPM, deadbeatGain } from './control-studio/js/control/design.js';
+import { MIMOStateSpace, parseMIMOMatrices } from './control-studio/js/control/mimo.js';
 import { discreteBodeData } from './control-studio/js/analysis/discrete-frequency-response.js';
 import { matExp, matIdentity, matMul, matSub, matScale } from './control-studio/js/math/matrix.js';
 import { tfToControllableCanonical } from './control-studio/js/control/state-space.js';
@@ -777,6 +778,55 @@ try {
   }
 
   console.log('Phase 8 extension tests passed');
+
+  // MIMO foundation tests
+  {
+    console.log('\n=== MIMO Foundation tests ===');
+
+    const A = [[-1, 0], [0, -2]];
+    const B = [[1, 0], [0, 1]];
+    const C = [[1, 0], [0, 1]];
+    const D = [[0, 0], [0, 0]];
+    const mimo = new MIMOStateSpace(A, B, C, D);
+    if (!(mimo.n === 2 && mimo.m === 2 && mimo.p === 2)) {
+      throw new Error('MIMO dimensions incorrect');
+    }
+
+    // Each channel TF carries the full system denominator det(sI-A) = (s+1)(s+2),
+    // with channel-specific numerator that cancels one factor. Verify both poles
+    // are present and the numerator reflects the surviving channel dynamics.
+    const hasPole = (poles, target) => poles.some((p) => Math.abs(p.re - target) < 1e-6 && Math.abs(p.im) < 1e-6);
+
+    const g11 = mimo.channelTF(0, 0);
+    const polesG11 = g11.poles();
+    if (!hasPole(polesG11, -1) || !hasPole(polesG11, -2)) throw new Error(`g11 poles should include -1 and -2, got ${JSON.stringify(polesG11)}`);
+    // num should be (s+2) for u1→y1 in diag system
+    if (Math.abs(g11.num[g11.num.length - 1] - 2) > 1e-6) throw new Error(`g11 num expected [1,2], got ${g11.num}`);
+
+    const g22 = mimo.channelTF(1, 1);
+    const polesG22 = g22.poles();
+    if (!hasPole(polesG22, -1) || !hasPole(polesG22, -2)) throw new Error(`g22 poles should include -1 and -2, got ${JSON.stringify(polesG22)}`);
+    // num should be (s+1) for u2→y2
+    if (Math.abs(g22.num[g22.num.length - 1] - 1) > 1e-6) throw new Error(`g22 num expected [1,1], got ${g22.num}`);
+
+    const g12 = mimo.channelTF(0, 1);
+    const numSum = g12.num.reduce((s, v) => s + Math.abs(v), 0);
+    if (numSum > 1e-9) throw new Error(`g12 should be zero, got num=[${g12.num}]`);
+
+    const parsed = parseMIMOMatrices(
+      '-1 0\n0 -2',
+      '1 0\n0 1',
+      '1 0\n0 1',
+      '0 0\n0 0',
+    );
+    if (!(parsed.n === 2 && parsed.m === 2 && parsed.p === 2)) throw new Error('parsed dims wrong');
+
+    let threw = false;
+    try { parseMIMOMatrices('1 0\n0 1', '1 0\n0 1', '1', '0'); } catch (e) { threw = true; }
+    if (!threw) throw new Error('mismatched dimensions should throw');
+
+    console.log('MIMO Foundation tests passed');
+  }
 
   console.log('Tests Passed!');
 } catch (e) {

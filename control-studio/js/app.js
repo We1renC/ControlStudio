@@ -18,12 +18,16 @@ import { polyadd, polyscale, polyroots } from './math/polynomial.js?v=p4';
 import { Complex } from './math/complex.js';
 import { analyzeLyapunov, brysonsRule, closedLoopTransferFromStateFeedback, discretizeZOH, innovationStats, observerPoles, placeObserver, placeStateFeedback, resolveDesignStateSpace, simulateLqg, simulateObserver, solveDiscreteKalman, solveLqe, solveLqr } from './control/state-feedback.js?v=p8c';
 import { BlockEditor } from './editor/editor.js';
+import { MIMOStateSpace, parseMIMOMatrices } from './control/mimo.js';
 
 // ============================================================
 // STATE
 // ============================================================
 const state = {
   plant: null,
+  systemMode: 'siso',           // 'siso' | 'mimo'
+  mimoPlant: null,              // MIMOStateSpace instance
+  mimoChannel: { output: 0, input: 0 },  // displayed u_j → y_i
   controller: null,
   closedLoop: null,
   openLoop: null,
@@ -128,6 +132,11 @@ function initEventListeners() {
   document.querySelectorAll('.plot-tab').forEach((tab) => {
     tab.addEventListener('click', () => switchPlot(tab.dataset.plot));
   });
+
+  document.querySelectorAll('.system-mode-btn').forEach((btn) => {
+    btn.addEventListener('click', () => switchSystemMode(btn.dataset.mode));
+  });
+  document.getElementById('btn-mimo-update')?.addEventListener('click', updateMIMOSystem);
 
   document.querySelectorAll('.sys-tab').forEach(tab => {
     tab.addEventListener('click', (e) => {
@@ -1088,10 +1097,26 @@ function computeLqgSimulation() {
   try {
     clearFieldErrors();
     const model = currentPhase7DesignModel();
-    const K_lqr = state.phase7?.lqr?.K;
+
+    // Auto-compute LQR with default Q=I, R=1 if not already done
+    if (!state.phase7?.lqr?.K) {
+      const n = model.A.length;
+      const Q = Array.from({ length: n }, (_, i) => Array.from({ length: n }, (_, j) => (i === j ? 1 : 0)));
+      const lqrResult = solveLqr(model.A, model.B, Q, [[1]]);
+      const previewTf = closedLoopTransferFromStateFeedback(model, lqrResult.K);
+      state.phase7.lqr = { ...lqrResult, previewTf };
+    }
+
+    // Auto-compute Kalman L_kf with default Qn=I, Rn=1 if not already done
+    if (!state.phase8.kalman?.L && !state.phase8.observer?.L) {
+      const n = model.A.length;
+      const Qn = Array.from({ length: n }, (_, i) => Array.from({ length: n }, (_, j) => (i === j ? 1 : 0)));
+      const kalmanResult = solveLqe(model.A, model.C, Qn, [[1]]);
+      state.phase8.kalman = kalmanResult;
+    }
+
+    const K_lqr = state.phase7.lqr.K;
     const L_kf  = state.phase8.kalman?.L ?? state.phase8.observer?.L;
-    if (!K_lqr) throw new Error('請先在 State Feedback / LQR 計算 K_lqr');
-    if (!L_kf)  throw new Error('請先計算 Kalman Gain L_kf 或 Observer Gain L');
 
     const duration = parseFloat(document.getElementById('lqg-duration')?.value || '10');
     const sigmaW = parseFloat(document.getElementById('lqg-noise-q')?.value || '0');
@@ -3099,6 +3124,103 @@ function downloadFile(name, type, content) {
   link.click();
   link.remove();
   URL.revokeObjectURL(url);
+}
+
+// ============================================================
+// MIMO (Phase 9 foundation)
+// ============================================================
+function switchSystemMode(mode) {
+  state.systemMode = mode;
+  document.querySelectorAll('.system-mode-btn').forEach((b) => {
+    b.classList.toggle('active', b.dataset.mode === mode);
+  });
+
+  const sisoPanel = document.getElementById('siso-input-panel');
+  const mimoPanel = document.getElementById('mimo-input-panel');
+  const channelBar = document.getElementById('mimo-channel-bar');
+
+  if (mode === 'siso') {
+    if (sisoPanel) sisoPanel.style.display = '';
+    if (mimoPanel) mimoPanel.style.display = 'none';
+    if (channelBar) channelBar.style.display = 'none';
+    if (state.plant) refreshAllCharts();
+  } else {
+    if (sisoPanel) sisoPanel.style.display = 'none';
+    if (mimoPanel) mimoPanel.style.display = '';
+    if (!state.mimoPlant) {
+      updateMIMOSystem();
+    } else {
+      renderMIMOChannelBar();
+      applyMIMOChannel();
+    }
+  }
+}
+
+function updateMIMOSystem() {
+  try {
+    clearFieldErrors();
+    const aStr = document.getElementById('mimo-a').value;
+    const bStr = document.getElementById('mimo-b').value;
+    const cStr = document.getElementById('mimo-c').value;
+    const dStr = document.getElementById('mimo-d').value;
+    const mimoPlant = parseMIMOMatrices(aStr, bStr, cStr, dStr);
+    state.mimoPlant = mimoPlant;
+    state.mimoChannel.output = Math.min(state.mimoChannel.output, mimoPlant.p - 1);
+    state.mimoChannel.input = Math.min(state.mimoChannel.input, mimoPlant.m - 1);
+
+    const statusEl = document.getElementById('mimo-status-out');
+    if (statusEl) {
+      statusEl.style.display = 'block';
+      statusEl.innerHTML = `<div style="color:var(--color-stable);font-weight:700;">MIMO System OK ✓</div>
+        <div>n=${mimoPlant.n} states, m=${mimoPlant.m} inputs, p=${mimoPlant.p} outputs</div>
+        <div>Total channels: ${mimoPlant.p * mimoPlant.m}</div>`;
+    }
+    renderMIMOChannelBar();
+    applyMIMOChannel();
+    clearError();
+  } catch (err) {
+    const statusEl = document.getElementById('mimo-status-out');
+    if (statusEl) {
+      statusEl.style.display = 'block';
+      statusEl.innerHTML = `<div style="color:var(--color-unstable);">${escapeHtml(err.message)}</div>`;
+    }
+    showError(err.message);
+  }
+}
+
+function renderMIMOChannelBar() {
+  const bar = document.getElementById('mimo-channel-bar');
+  const btns = document.getElementById('mimo-channel-buttons');
+  if (!bar || !btns || !state.mimoPlant) return;
+  bar.style.display = 'block';
+  btns.innerHTML = '';
+  for (let i = 0; i < state.mimoPlant.p; i++) {
+    for (let j = 0; j < state.mimoPlant.m; j++) {
+      const b = document.createElement('button');
+      b.className = 'btn btn-sm mimo-channel-btn';
+      const isActive = state.mimoChannel.output === i && state.mimoChannel.input === j;
+      if (isActive) b.classList.add('active');
+      b.textContent = `u${j + 1} → y${i + 1}`;
+      b.style.padding = '4px 10px';
+      b.style.fontSize = '11px';
+      b.dataset.output = i;
+      b.dataset.input = j;
+      b.addEventListener('click', () => {
+        state.mimoChannel.output = parseInt(b.dataset.output, 10);
+        state.mimoChannel.input = parseInt(b.dataset.input, 10);
+        renderMIMOChannelBar();
+        applyMIMOChannel();
+      });
+      btns.appendChild(b);
+    }
+  }
+}
+
+function applyMIMOChannel() {
+  if (!state.mimoPlant) return;
+  const tf = state.mimoPlant.channelTF(state.mimoChannel.output, state.mimoChannel.input);
+  state.plant = tf;
+  refreshAllCharts();
 }
 
 // ============================================================
