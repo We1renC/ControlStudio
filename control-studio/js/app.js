@@ -16,7 +16,7 @@ import { c2dTustin, c2dZOH } from './control/c2d.js?v=p5';
 import { specsToTargetPoles, designLeadForPM, deadbeatGain } from './control/design.js?v=p5';
 import { polyadd, polyscale, polyroots } from './math/polynomial.js?v=p4';
 import { Complex } from './math/complex.js';
-import { analyzeLyapunov, brysonsRule, closedLoopTransferFromStateFeedback, observerPoles, placeObserver, placeStateFeedback, resolveDesignStateSpace, solveLqe, simulateObserver, solveLqr } from './control/state-feedback.js?v=p8b';
+import { analyzeLyapunov, brysonsRule, closedLoopTransferFromStateFeedback, discretizeZOH, innovationStats, observerPoles, placeObserver, placeStateFeedback, resolveDesignStateSpace, simulateLqg, simulateObserver, solveDiscreteKalman, solveLqe, solveLqr } from './control/state-feedback.js?v=p8c';
 import { BlockEditor } from './editor/editor.js';
 
 // ============================================================
@@ -68,6 +68,8 @@ const state = {
     observer: null,
     kalman: null,
     simulation: null,
+    discreteKalman: null,
+    lqg: null,
   },
 };
 
@@ -248,6 +250,8 @@ function initEventListeners() {
   document.getElementById('btn-phase8-kalman')?.addEventListener('click', computeKalmanGain);
   document.getElementById('btn-phase8-simulate')?.addEventListener('click', computeObserverSimulation);
   document.getElementById('btn-bryson')?.addEventListener('click', computeBrysonQR);
+  document.getElementById('btn-dkf')?.addEventListener('click', computeDiscreteKalman);
+  document.getElementById('btn-lqg-sim')?.addEventListener('click', computeLqgSimulation);
   document.getElementById('qr-sensitivity-slider')?.addEventListener('input', updateQRSensitivity);
   document.getElementById('btn-apply-rlocus-k')?.addEventListener('click', applyRlocusKToController);
   document.getElementById('btn-apply-poles-k')?.addEventListener('click', applyPolesKToController);
@@ -986,8 +990,23 @@ function computeObserverSimulation() {
           xaxis: { title: 't (s)', gridcolor: 'rgba(255,255,255,0.06)' },
           showlegend: false,
         }, { responsive: true, displayModeBar: false });
+        // Innovation statistics
+        const stats = innovationStats(result.innovation);
+        const statsEl = document.getElementById('innov-stats-out');
+        if (statsEl) {
+          const color = stats.isWhite ? 'var(--color-stable)' : 'var(--color-unstable)';
+          statsEl.style.display = 'block';
+          statsEl.innerHTML = [
+            `<div style="color:${color};font-weight:700;">Innovation Statistics</div>`,
+            `<div>mean=${fmtNum(stats.mean, 4)}  std=${fmtNum(stats.std, 4)}</div>`,
+            `<div>ACF(1)=${fmtNum(stats.acf1, 3)}  ACF(2)=${fmtNum(stats.acf2, 3)}  95%CI: ±${fmtNum(stats.confBand, 3)}</div>`,
+            `<div style="color:${color};">${stats.diagnosis}</div>`,
+          ].join('');
+        }
       } else {
         if (innovEl) innovEl.style.display = 'none';
+        const statsEl = document.getElementById('innov-stats-out');
+        if (statsEl) statsEl.style.display = 'none';
       }
     }
     clearError();
@@ -1018,6 +1037,105 @@ function computeBrysonQR() {
 
     clearError();
   } catch (err) {
+    showError(err.message);
+  }
+}
+
+function computeDiscreteKalman() {
+  try {
+    clearFieldErrors();
+    const model = currentPhase7DesignModel();
+    const Ts = parseFloat(document.getElementById('dkf-ts')?.value || '0.1');
+    if (Ts <= 0) throw new Error('Sample time Ts 必須 > 0');
+
+    const qdRaw = document.getElementById('dkf-qd')?.value || '1 0\n0 1';
+    const rdVal = parseFloat(document.getElementById('dkf-rd')?.value || '1');
+    if (!(rdVal > 0)) throw new Error('Measurement noise Rd 必須 > 0');
+    const Qd = qdRaw.trim().split('\n').map(row => row.trim().split(/\s+/).map(Number));
+    const Rd = [[rdVal]];
+
+    // Discretize via ZOH: Ad, Bd; Cd unchanged
+    const { Ad, Bd } = discretizeZOH(model.A, model.B, Ts);
+    const Cd = model.C;
+
+    const result = solveDiscreteKalman(Ad, Cd, Qd, Rd);
+    state.phase8.discreteKalman = { ...result, Ad, Bd, Cd, Ts };
+
+    const lStr = result.L.map(row => `[${row.map(v => fmtNum(v, 4)).join(', ')}]`).join(', ');
+    const poleStr = result.observerPolesD.map(p => {
+      const mag = Math.hypot(p.re, p.im);
+      const im = Math.abs(p.im) < 1e-9 ? '' : p.im > 0 ? `+j${fmtNum(Math.abs(p.im), 3)}` : `-j${fmtNum(Math.abs(p.im), 3)}`;
+      const stable = mag < 1 - 1e-9 ? ' ✓' : ' ✗';
+      return `${fmtNum(p.re, 3)}${im} (|z|=${fmtNum(mag, 3)}${stable})`;
+    }).join(', ');
+
+    setPhase7Output('dkf-out', [
+      `<div style="color:var(--color-accent);font-weight:700;">Discrete Kalman Gain L_kf[d]  (Ts=${Ts}s, ZOH)</div>`,
+      `<div>L_kf = [${lStr}]</div>`,
+      `<div>Iterations: ${result.iterations} &nbsp;|&nbsp; Converged: ${result.converged ? 'Yes ✓' : 'No ✗'}</div>`,
+      `<div style="color:var(--text-muted);">Observer poles (z-plane): ${poleStr}</div>`,
+      `<div style="font-size:10px;color:var(--text-muted);margin-top:4px;">Stable: all poles must be inside unit circle |z|&lt;1</div>`,
+    ].join(''));
+    clearError();
+  } catch (err) {
+    state.phase8.discreteKalman = null;
+    setPhase7Output('dkf-out', escapeHtml(err.message), true);
+    showError(err.message);
+  }
+}
+
+function computeLqgSimulation() {
+  try {
+    clearFieldErrors();
+    const model = currentPhase7DesignModel();
+    const K_lqr = state.phase7?.lqr?.K;
+    const L_kf  = state.phase8.kalman?.L ?? state.phase8.observer?.L;
+    if (!K_lqr) throw new Error('請先在 State Feedback / LQR 計算 K_lqr');
+    if (!L_kf)  throw new Error('請先計算 Kalman Gain L_kf 或 Observer Gain L');
+
+    const duration = parseFloat(document.getElementById('lqg-duration')?.value || '10');
+    const sigmaW = parseFloat(document.getElementById('lqg-noise-q')?.value || '0');
+    const sigmaV = parseFloat(document.getElementById('lqg-noise-r')?.value || '0.1');
+    const noiseQ = sigmaW > 0 ? sigmaW * sigmaW : null;
+    const noiseR = sigmaV > 0 ? sigmaV * sigmaV : null;
+
+    const result = simulateLqg(model, K_lqr, L_kf, { duration, dt: 0.01, noiseQ, noiseR });
+    state.phase8.lqg = result;
+
+    const finalErr = result.eNorm[result.eNorm.length - 1];
+    setPhase7Output('lqg-out', [
+      `<div style="color:var(--color-accent);font-weight:700;">LQG Closed-Loop Simulation</div>`,
+      `<div>LQG uses u=−K·x̂ &nbsp;|&nbsp; FSF uses u=−K·x (ideal)</div>`,
+      `<div>Final ‖x−x̂‖₂ = ${fmtNum(finalErr, 4)}</div>`,
+    ].join(''));
+
+    if (typeof Plotly !== 'undefined') {
+      Plotly.newPlot('chart-lqg-y', [
+        { x: result.t, y: result.y_fsf, mode: 'lines', name: 'y FSF (ideal)', line: { color: 'rgba(16,185,129,1)', width: 1.5 } },
+        { x: result.t, y: result.y_lqg, mode: 'lines', name: 'y LQG', line: { color: 'rgba(99,102,241,1)', width: 1.5, dash: 'dot' } },
+      ], {
+        ...PLOTLY_LAYOUT_BASE(),
+        margin: { t: 10, r: 20, b: 30, l: 40 },
+        legend: { font: { size: 9 }, orientation: 'h', y: 1.15 },
+        xaxis: { title: 't (s)', gridcolor: 'rgba(255,255,255,0.06)' },
+        yaxis: { title: 'y(t)', gridcolor: 'rgba(255,255,255,0.06)' },
+      }, { responsive: true, displayModeBar: false });
+
+      Plotly.newPlot('chart-lqg-u', [
+        { x: result.t, y: result.u_fsf, mode: 'lines', name: 'u FSF', line: { color: 'rgba(16,185,129,0.7)', width: 1, dash: 'dash' } },
+        { x: result.t, y: result.u_lqg, mode: 'lines', name: 'u LQG', line: { color: 'rgba(99,102,241,1)', width: 1 } },
+      ], {
+        ...PLOTLY_LAYOUT_BASE(),
+        margin: { t: 10, r: 20, b: 30, l: 40 },
+        legend: { font: { size: 9 }, orientation: 'h', y: 1.15 },
+        xaxis: { title: 't (s)', gridcolor: 'rgba(255,255,255,0.06)' },
+        yaxis: { title: 'u(t)', gridcolor: 'rgba(255,255,255,0.06)' },
+      }, { responsive: true, displayModeBar: false });
+    }
+    clearError();
+  } catch (err) {
+    state.phase8.lqg = null;
+    setPhase7Output('lqg-out', escapeHtml(err.message), true);
     showError(err.message);
   }
 }

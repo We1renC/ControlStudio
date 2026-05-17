@@ -17,7 +17,7 @@ import { discreteBodeData } from './control-studio/js/analysis/discrete-frequenc
 import { matExp, matIdentity, matMul, matSub, matScale } from './control-studio/js/math/matrix.js';
 import { tfToControllableCanonical } from './control-studio/js/control/state-space.js';
 import { matRank } from './control-studio/js/math/matrix.js';
-import { analyzeLyapunov, closedLoopTransferFromStateFeedback, placeObserver, placeStateFeedback, simulateObserver, solveLqe, solveLqr } from './control-studio/js/control/state-feedback.js';
+import { analyzeLyapunov, closedLoopTransferFromStateFeedback, discretizeZOH, innovationStats, placeObserver, placeStateFeedback, simulateLqg, simulateObserver, solveDiscreteKalman, solveLqe, solveLqr } from './control-studio/js/control/state-feedback.js';
 
 try {
   const assertNear = (name, actual, expected, tolerance = 1e-6) => {
@@ -716,6 +716,67 @@ try {
   }
 
   console.log('Audit follow-up tests passed');
+
+  // ─── Phase 8 Extension Tests ───────────────────────────────────────────────
+
+  // Test innovationStats: 1000 white-noise samples should have |ACF1| < 0.1
+  {
+    // Use a seeded-ish sequence via simple LCG for determinism
+    const seed = 42;
+    let lcg = seed;
+    const lcgRand = () => { lcg = (lcg * 1664525 + 1013904223) & 0xffffffff; return (lcg >>> 0) / 0xffffffff - 0.5; };
+    const wn = Array.from({ length: 1000 }, lcgRand);
+    const s = innovationStats(wn);
+    if (!Number.isFinite(s.acf1)) throw new Error(`innovationStats: acf1 is NaN`);
+    if (Math.abs(s.acf1) >= 0.1) throw new Error(`innovationStats: |ACF1|=${s.acf1.toFixed(4)} should be < 0.1 for white noise`);
+    if (s.std <= 0) throw new Error(`innovationStats: std=${s.std} should be > 0`);
+    console.log(`innovationStats: mean=${s.mean.toFixed(4)} acf1=${s.acf1.toFixed(4)} acf2=${s.acf2.toFixed(4)} isWhite=${s.isWhite}`);
+  }
+
+  // Test solveDiscreteKalman: observer poles must be inside unit circle
+  {
+    // Standard double-integrator system (continuous): A=[0 1;0 0], C=[1 0]
+    const Ac = [[0, 1], [0, 0]];
+    const Bc = [[0], [1]];
+    const Cc = [[1, 0]];
+    const Ts = 0.1;
+    const { Ad, Bd } = discretizeZOH(Ac, Bc, Ts);
+    const Qd = [[1, 0], [0, 1]];
+    const Rd = [[1]];
+    const dkf = solveDiscreteKalman(Ad, Cc, Qd, Rd);
+    if (!dkf.converged) throw new Error('solveDiscreteKalman did not converge');
+    for (const pole of dkf.observerPolesD) {
+      const mag = Math.hypot(pole.re, pole.im);
+      if (mag >= 1.0) throw new Error(`Discrete KF observer pole magnitude ${mag.toFixed(4)} >= 1 (unstable)`);
+    }
+    console.log(`solveDiscreteKalman: converged in ${dkf.iterations} iter, poles: ${dkf.observerPolesD.map(p => `|z|=${Math.hypot(p.re, p.im).toFixed(4)}`).join(', ')}`);
+  }
+
+  // Test simulateLqg: y_lqg final value close to y_fsf final value within 5%
+  {
+    const model = {
+      A: [[0, 1], [-2, -3]],
+      B: [[0], [1]],
+      C: [[1, 0]],
+      D: [[0]],
+    };
+    // Compute LQR gain first
+    const lqrResult = solveLqr(model.A, model.B, [[1, 0], [0, 1]], [[1]]);
+    // Compute Kalman gain via LQE
+    const lqeResult = solveLqe(model.A, model.C, [[1, 0], [0, 1]], [[1]]);
+    const lqgResult = simulateLqg(model, lqrResult.K, lqeResult.L, { duration: 10, dt: 0.01, noiseQ: null, noiseR: null });
+    const n = lqgResult.t.length;
+    // Compare last 10% of trajectory averages
+    const tail = Math.floor(n * 0.1);
+    const avgFsf = lqgResult.y_fsf.slice(-tail).reduce((a, b) => a + b, 0) / tail;
+    const avgLqg = lqgResult.y_lqg.slice(-tail).reduce((a, b) => a + b, 0) / tail;
+    if (!Number.isFinite(avgFsf) || !Number.isFinite(avgLqg)) throw new Error('simulateLqg: non-finite output');
+    const relErr = Math.abs(avgFsf) > 1e-6 ? Math.abs(avgLqg - avgFsf) / Math.abs(avgFsf) : Math.abs(avgLqg - avgFsf);
+    if (relErr > 0.05) throw new Error(`simulateLqg: LQG vs FSF relative error ${(relErr * 100).toFixed(2)}% > 5%`);
+    console.log(`simulateLqg: avgFsf=${avgFsf.toFixed(4)} avgLqg=${avgLqg.toFixed(4)} relErr=${(relErr * 100).toFixed(2)}%`);
+  }
+
+  console.log('Phase 8 extension tests passed');
 
   console.log('Tests Passed!');
 } catch (e) {
