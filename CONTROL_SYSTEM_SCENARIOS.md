@@ -234,3 +234,131 @@ Both outputs settle to setpoint without cross-channel interference
 2. **同一份指標出現在多處時必須來自單一來源**（H2）。Stability Snapshot 和 Compare Snapshot 若有任何計算差異都會誤導使用者。
 3. **預設視覺結果重要過數值**（M1）。Bode 圖沒 PM/GM marker 是技術上正確但 UX 上失敗的典型例子。
 4. **進階功能必須有「mode 守門員」**（M5）。SISO Pole Placement 在 MIMO 模式下不應靜默失敗，要主動引導到正確功能。
+
+---
+
+## Scenario 3: Magnetic Levitation（SISO 不穩定 plant）
+
+Date: 2026-05-17
+
+### Control Situation
+
+電磁鐵把鐵球懸浮在空中。重力把球往下拉、電磁力把球往上抬。在平衡點線性化後 plant 為：
+
+```text
+G(s) = K / (s² − a²) = 1000 / (s² − 900) = 1000 / [(s − 30)(s + 30)]
+```
+
+有一個 **RHP pole** 在 s=+30 → 開迴路不穩定。這是經典「unstable plant」教學案例，用來測 Studio 對不穩定系統的處理能力。
+
+### Design Target
+
+```text
+閉迴路穩定（必要）
+Re(eig(A − BK)) ≤ −5（衰減快於 5 rad/s）
+Overshoot ≤ 20%
+```
+
+### ControlStudio Workflow
+
+1. System tab → 輸入 TF：`num=1000, den=1, 0, -900`
+2. Pole-Zero map：**切到 Open-loop** 看到 plant 真正極點 ±30
+3. Time Response (open-loop)：響應爆炸到 10¹² 確認不穩定
+4. Advisor → Phase 7：
+   - State Feedback desired poles = `-10, -15` → K = [1050, 25]
+   - LQR Q=I, R=1 → K = [1800, 60]，CL poles 自動到 −29.5/−30.5
+
+### Observed Results
+
+| 步驟 | 期望 | 實際結果 | 通過？ |
+| - | - | - | - |
+| Open-loop step | 發散 | 10⁻¹² 增長 | ✓ |
+| Plant poles | ±30 | ±30（需切到 open-loop view）| ✓ |
+| State Feedback K | 把極點放到 −10, −15 | K=[1050,25]，CL=−10,−15 | ✓ |
+| LQR (Q=I,R=1) | CL stable | K=[1800,60]，CL=−29.5,−30.5 | ✓ |
+
+### UI/UX Findings From Scenario 3
+
+| # | 嚴重度 | 問題 | 影響 |
+| - | - | - | - |
+| S3-1 | High | PZ map 預設顯示**閉迴路**，使用者輸入新 plant 後**看不到 plant 本身極點** | 工程師無法第一眼判斷 plant 是否不穩定／在哪 |
+| S3-2 | Medium | Lyapunov 對不穩定 plant 報「Singular matrix」 | 訊息對使用者毫無幫助；應該說「plant 不穩定，Lyapunov 無正定解，請先穩定化」 |
+| S3-3 | Medium | 錯誤訊息 toast 不會自動消失，切到別 plot tab 還掛著舊錯誤 | 誤導使用者以為新操作也失敗 |
+| S3-4 | Low | Bode PM/GM 對不穩定 plant 顯示一般數字（PM=30.9°、GM=∞），未提示 Nyquist criterion 對 RHP poles 需特別解讀 | 學生可能誤判穩定性 |
+
+### Engineering Decision
+
+對不穩定 plant，必須先 Phase 7 State Feedback 或 LQR 穩定化，再做頻域分析。建議 Studio 在偵測到 plant 有 RHP poles 時自動切到 open-loop view 並 banner 提示「請先穩定化」。
+
+---
+
+## Scenario 4: Spacecraft Attitude Control（MIMO 含 integrator + gyroscopic coupling）
+
+Date: 2026-05-17
+
+### Control Situation
+
+太空船 2 軸姿態控制（pitch θ + yaw ψ），透過 gyroscopic coupling 相互影響：
+
+```text
+State    x = [θ, θ̇, ψ, ψ̇]
+Input    u = [τθ, τψ]
+Output   y = [θ, ψ]
+
+A = [[0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1], [0, −1, 0, 0]]
+B = [[0,0],[1,0],[0,0],[0,1]]
+C = [[1,0,0,0],[0,0,1,0]]
+D = [[0,0],[0,0]]
+```
+
+A 的特徵多項式 = s²(s² + 1)，所以 plant 有 4 個極點在 jω 軸上（**marginally stable + 含 double integrator**）。這是 attitude control 的典型形態。
+
+### Design Target
+
+```text
+全狀態回授穩定化
+Settling time < 5 s 兩軸
+解耦：u₁ 步階主要影響 y₁，對 y₂ 干擾 < 30%
+```
+
+### ControlStudio Workflow
+
+1. System → MIMO → n=4, m=2, p=2，輸入 ABCD
+2. ⊞ All 看到 4 channel 強耦合振盪響應
+3. Advisor → MIMO Analysis：
+   - **Compute RGA** ❌ 失敗
+   - **Plot σ_max / σ_min** ✓ κ=100
+   - **Compute MIMO LQR** ❌ 失敗
+4. Phase 8：Kalman ❌ 失敗，LQG ❌ 失敗
+
+### UI/UX Findings From Scenario 4
+
+| # | 嚴重度 | 問題 | 影響 |
+| - | - | - | - |
+| S4-1 | **Critical** | RGA 對含 integrator 的 plant 報「Singular matrix」，無解釋 | 整個 MIMO Analysis 鏈被卡住，使用者不知道是因為 G(0) 無定義 |
+| S4-2 | **Critical** | MIMO LQR 對 marginally stable plant 失敗（Newton-Kleinman initial K=0 無效）。預期應該能解（plant 可控） | LQR 是 MIMO 設計的關鍵工具，失效等於 Phase 9 對含 jω-axis plant 不可用 |
+| S4-3 | High | Phase 8 Q_n textarea 不會隨 MIMO 系統 n 自動 resize；切到 n=4 時 Q_n 仍為 2×2 預設，使用者要手動補 | 流程斷裂；應該偵測 MIMO 後自動更新預設 |
+| S4-4 | High | 「Singular matrix」這個訊息在 **4 個不同失敗原因**都用同字串（Lyapunov, RGA, LQR, LQG），無法 debug | 使用者無法判斷哪裡出錯 |
+| S4-5 | Medium | Phase 8 Kalman 在 marginally stable plant 也失敗 | LQE 同樣 Kleinman initial 問題；MIMO 含 integrator 的 plant 不能跑 Phase 8 完整鏈 |
+
+### Improvement Backlog（依優先級）
+
+1. **修 S4-1 + S4-2 + S3-2 + S4-4（同根源）**：建立**統一的 error mapping**：在數學引擎裡的 `matInverse` 拋 `SingularMatrixError`，呼叫端根據語境包裝具體訊息：
+   - RGA → 「G(0) 為奇異（plant 含 integrator）。建議改在 ω > 0 計算 RGA(ω)」
+   - LQR → 「Kleinman 從 K=0 對 marginally stable 不收斂。請提供 initial stabilizing K，或先 pole-place 後再做 LQR refinement」
+   - Lyapunov → 「Plant 不穩定，Lyapunov 方程無正定解。請先 State Feedback 穩定化」
+
+2. **修 S4-2 + S4-5**：LQR/LQE 改用 **Schur method**（直接 ARE solver via Schur decomposition）取代 Newton-Kleinman，對 marginally stable 與不穩定 plant 都能解。或保留 Kleinman 但加 fallback：偵測 marginally stable 時自動先做 pole placement 得到 stabilizing K₀ 再迭代。
+
+3. **修 S3-1**：PZ map 預設模式從「永遠 closed-loop」改為「Plant 不穩定時自動 open-loop + banner」。
+
+4. **修 S3-3**：所有錯誤 toast 加 `setTimeout(dismiss, 5000)` 自動消失，或在新操作觸發前清掉舊 error。
+
+5. **修 S4-3**：`switchSystemMode('mimo')` 或 `updateMIMOSystem()` 觸發時，自動更新 Phase 8 的 `obs-qn` textarea 為 n×n 單位矩陣（若原值與新 n 不匹配）。
+
+6. **修 S3-4**：Bode 在偵測到 RHP poles 時，PM/GM 旁顯示 ⚠ + tooltip：「Plant 不穩定，Nyquist criterion 需考慮 RHP poles 數量。穩定性需 Nyquist plot 判斷」。
+
+### Lessons Learned（新增第 5、6 條）
+
+5. **「Singular matrix」這種底層數學錯誤不能直接外漏給使用者**。每個呼叫端必須包裝為「該功能脈絡下的具體解釋」。否則使用者要回頭推測哪個矩陣奇異、為何奇異。
+6. **Newton-Kleinman LQR 對 marginally stable / unstable plant 不通用**。生產級控制工具應該用 Schur method（或 Hamiltonian eigenvector method）作為主求解器，Newton-Kleinman 只是 refinement。Studio 目前對「邊界 plant」（integrator、不穩定）的覆蓋有缺口。
