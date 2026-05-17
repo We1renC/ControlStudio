@@ -333,6 +333,7 @@
 - Done：Low-order LQR baseline / Q-R tuning
 - Done：Observer / Kalman / LQG
 - Done：MIMO 基礎 + RGA / SV Bode + Decoupler + MIMO LQR
+- Done：Phase 0~9 通盤數學理論完善度檢查與 hardening
 - Deferred：MPC / Robust Control
 - Status: Done
 
@@ -342,7 +343,7 @@
 - Done：Lyapunov UI proof panel：顯示 `V(x)=xᵀPx`、`dV/dt=-xᵀQx`、P matrix、min eig(P)、Proven Stable / Failed。
 - Done：State Feedback：SISO / low-order pole placement，包含 controllability guard。
 - Done：LQR：2x2 / low-order CARE baseline，並提供 Q/R tuning panel。
-- Verification：`test_control.js` 已新增手推等價案例，覆蓋 Lyapunov、Pole Placement、LQR。
+- Verification：`test_control.js` 已新增手推等價案例，覆蓋 Lyapunov、Pole Placement、LQR；並補 continuous LQR stabilizing initial gain、controllability rank、closed-loop Lyapunov stability 診斷。
 
 ### Phase 8 Observer / Kalman / LQG Track
 - Done：Luenberger observer via duality（`placeStateFeedback(Aᵀ, Cᵀ, poles)` → L = Kᵀ），含 observability rank guard。
@@ -354,7 +355,7 @@
 - Done：Innovation 白噪音統計（mean / std / ACF lag-1,2 vs ±1.96/√N 95% CI，自動診斷 KF tuning 品質）。
 - Done：離散 Kalman（ZOH 離散化 + Riccati 差分方程迭代，回傳 L_kf[d] 與 z-plane observer poles）。
 - Done：LQG 模擬（FSF 理想全狀態回授 vs LQG 估測狀態回授兩條響應曲線 + 控制力對比）。
-- Verification：`test_control.js` 覆蓋 Luenberger pole placement、Kalman LQE stability、observer 收斂、innovation 統計、LQG 穩態誤差。
+- Verification：`test_control.js` 覆蓋 Luenberger pole placement、Kalman LQE stability、observer 收斂、innovation 統計、LQG 穩態誤差；並補 observability rank guard、continuous LQE stabilizing branch、discrete Kalman `Rd > 0` 與 undetectable failure guard。
 
 ### Phase 9 MIMO Track
 - Done：SISO/MIMO 模式切換（toggle 在 System 面板頂部，SISO 流程完全不變）。
@@ -366,7 +367,7 @@
 - Done：Singular Value Bode（σ_max / σ_min vs 頻率，log-log 軸 + 條件數 κ）。
 - Done：Static Decoupler（W = G(0)⁻¹，套用後 B' = B·W 寫回系統）。
 - Done：MIMO LQR（R 為 m×m 矩陣的 CARE 求解，Newton-Kleinman 迭代）。
-- Verification：`test_control.js` 覆蓋 MIMO 維度驗證、對角/耦合 RGA、decoupler 後 RGA = I、MIMO LQR 收斂與閉迴路 K 對稱性。
+- Verification：`test_control.js` 覆蓋 MIMO 維度驗證、RGA invariants、3x3 complex singular values、decoupler 後 RGA = I、MIMO LQR stable/unstable analytic cases、underactuated unstable guard。
 
 ### Stage 4: Productization
 - Electron desktop packaging

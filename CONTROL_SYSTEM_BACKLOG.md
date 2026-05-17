@@ -30,11 +30,16 @@
 ## Current Baseline
 
 - Branch: `codex/control-system-latest`
-- Latest synced commit: `de6e0ff feat(phase9): MIMO Batch 4 — static decoupler + MIMO LQR (R matrix)`
+- Latest synced commit: `46e20da fix(control): harden phase 0-6 theory checks`
+- Latest full-theory audit:
+  - `7a318b3 fix(control): harden phase 7-9 theory diagnostics`
+  - `46e20da fix(control): harden phase 0-6 theory checks`
 - Validation baseline:
   - `node test_control.js`
   - `node control-studio/scripts/verify_control_cases.mjs`
   - `node control-studio/scripts/verify_control_api_contract.mjs`
+  - `node control-studio/scripts/control_regression_dashboard.mjs`
+  - `./scripts/validate_nvidia_model_selector.sh`
 
 ## Development Sequence
 

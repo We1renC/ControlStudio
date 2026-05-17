@@ -9,8 +9,11 @@
 - 已建立獨立 git repo，避免被 `/Users/w.rc` 外層 git 混入。
 - 控制系統目前同步基線：
   - Branch: `codex/control-system-latest`
-  - Latest commit: `de6e0ff feat(phase9): MIMO Batch 4 — static decoupler + MIMO LQR (R matrix)`
-  - 使用者提供的 `claude/distracted-wing-fa0639` 節點與此 commit 對齊；該 branch 另有 worktree 使用中，因此本線以 `codex/control-system-latest` 接續。
+  - Latest commit: `46e20da fix(control): harden phase 0-6 theory checks`
+  - Full phase audit checkpoints:
+    - `7a318b3 fix(control): harden phase 7-9 theory diagnostics`
+    - `46e20da fix(control): harden phase 0-6 theory checks`
+  - 使用者提供的 `claude/distracted-wing-fa0639` 節點曾對齊 `de6e0ff`；目前本線已在 `codex/control-system-latest` 接續完成 Phase 0~9 理論檢查與 hardening。
 - 已完成 NVIDIA Build Models 資料集中管理。
 - 已新增 agent 入口文件：
   - `AGENTS.md`：專案規則、標準流程、擴充規則與品質判準。
@@ -45,6 +48,7 @@
   - Phase 0 ~ Phase 9：Done
   - Phase 10（MPC / Robust Control / Dynamic Decoupler / 產品化）：Planned
   - Block Diagram expansion：Paused
+  - Phase 0 ~ Phase 9 已完成通盤數學理論完善度檢查；後續若修改數值核心，需至少重跑 `node test_control.js`、`node control-studio/scripts/verify_control_cases.mjs`、`node control-studio/scripts/verify_control_api_contract.mjs`、`node control-studio/scripts/control_regression_dashboard.mjs`。
 - 已建立 symlink：
   - `/Users/w.rc/.config/agents/skills/nvidia-model-selector`
   - 指向 `/Users/w.rc/nvdiaOSsupport/skills/nvidia-model-selector`
