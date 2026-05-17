@@ -103,9 +103,9 @@ Verification:
 
 ## Phase 10.3: Dynamic Decoupler Prototype
 
-Status: Next
+Status: Done
 
-Minimum viable scope:
+Implemented scope:
 
 - Start with 2x2 stable proper MIMO transfer-function channels.
 - Compute frequency-specific decoupler at selected crossover frequency:
@@ -120,13 +120,18 @@ W(jωc) = G(jωc)^-1
 G(jωc)W(jωc) ≈ I
 ```
 
+Implementation:
+
+- `dynamicDecouplerAtFrequency(mimoSys, omega)` in `control-studio/js/control/mimo.js`.
+- Returns complex `G(jωc)`, complex `W(jωc)`, verification matrix, off-diagonal residual, and diagonal deviation.
+
 Deferred:
 
 - Full polynomial-matrix dynamic inversion.
 - Non-minimum phase / unstable inverse handling.
 - Robust dynamic decoupling.
 
-Required verification:
+Verification:
 
 - Static-coupled tank case should match static decoupler near DC.
 - Frequency-coupled case should reduce off-diagonal magnitude at selected `ωc`.
@@ -134,7 +139,7 @@ Required verification:
 
 ## Phase 10.4: Robust Control Scope Design
 
-Status: Planned
+Status: Next
 
 Minimum viable scope:
 
@@ -166,8 +171,8 @@ Required verification:
 
 ## Recommended Next Commits
 
-1. `feat(phase10): add dynamic decoupler prototype`
-2. `docs(phase10): define robust control scope`
-3. `feat(phase10): add robust sensitivity baseline`
+1. `docs(phase10): define robust control scope`
+2. `feat(phase10): add robust sensitivity baseline`
+3. `test(phase10): add robust edge-case fixtures`
 
 Do not start Teaching Mode, Electron packaging, or Report Template until explicitly resumed.

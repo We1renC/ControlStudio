@@ -13,7 +13,7 @@ import { zpkToTransferFunction, parseRootsString, parseComplexRoot } from './con
 import { polydiv, polymul, polyroots, rootsToRealPoly } from './control-studio/js/math/polynomial.js';
 import { c2dTustin, c2dZOH } from './control-studio/js/control/c2d.js';
 import { specsToTargetPoles, designLeadForPM, deadbeatGain } from './control-studio/js/control/design.js';
-import { MIMOStateSpace, parseMIMOMatrices, rgaSteady, rgaDiagnosis, rgaInvariants, singularValueBode, evalAtJw, singularValues, staticDecoupler, applyDecoupler } from './control-studio/js/control/mimo.js';
+import { MIMOStateSpace, parseMIMOMatrices, rgaSteady, rgaDiagnosis, rgaInvariants, singularValueBode, evalAtJw, singularValues, staticDecoupler, applyDecoupler, dynamicDecouplerAtFrequency } from './control-studio/js/control/mimo.js';
 import { finiteHorizonLqr, firstMpcAction, simulateUnconstrainedMpc } from './control-studio/js/control/mpc.js';
 import { solveLqrMIMO } from './control-studio/js/control/state-feedback.js';
 import { discreteBodeData } from './control-studio/js/analysis/discrete-frequency-response.js';
@@ -1038,6 +1038,18 @@ try {
     assertNear('Decoupled RGA (2,2)', rgaNew[1][1], 1, 1e-6);
     assertNear('Decoupled RGA (1,2)', rgaNew[0][1], 0, 1e-6);
     assertNear('Decoupled RGA (2,1)', rgaNew[1][0], 0, 1e-6);
+
+    // Test 2b: Dynamic decoupler prototype inverts G(jωc) at selected frequency.
+    const dynamicDec = dynamicDecouplerAtFrequency(coupledSys4, 2);
+    assertTrue(`Dynamic decoupler off-diagonal residual: ${dynamicDec.offDiagonalNorm}`, dynamicDec.offDiagonalNorm < 1e-8);
+    assertTrue(`Dynamic decoupler diagonal residual: ${dynamicDec.diagonalDeviation}`, dynamicDec.diagonalDeviation < 1e-8);
+    let threwBadOmega = false;
+    try {
+      dynamicDecouplerAtFrequency(coupledSys4, 0);
+    } catch (err) {
+      threwBadOmega = /omega > 0/i.test(err.message);
+    }
+    assertTrue('Dynamic decoupler omega guard', threwBadOmega);
 
     // Test 3: MIMO LQR converges to the analytic diagonal solution
     const lqrResult = solveLqrMIMO(

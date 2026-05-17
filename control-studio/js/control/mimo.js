@@ -179,6 +179,78 @@ export function staticDecoupler(mimoSys) {
   return { W, G0, verification };
 }
 
+function complexIdentity(n) {
+  return Array.from({ length: n }, (_, i) =>
+    Array.from({ length: n }, (_, j) => new Complex(i === j ? 1 : 0, 0))
+  );
+}
+
+function complexMatMul(A, B) {
+  const rows = A.length;
+  const cols = B[0].length;
+  const inner = B.length;
+  return Array.from({ length: rows }, (_, i) =>
+    Array.from({ length: cols }, (_, j) => {
+      let sum = new Complex(0, 0);
+      for (let k = 0; k < inner; k++) sum = sum.add(A[i][k].mul(B[k][j]));
+      return sum;
+    })
+  );
+}
+
+function complexMatrixMaxAbs(A, predicate) {
+  let max = 0;
+  for (let i = 0; i < A.length; i++) {
+    for (let j = 0; j < A[0].length; j++) {
+      if (!predicate || predicate(i, j)) max = Math.max(max, A[i][j].magnitude);
+    }
+  }
+  return max;
+}
+
+/**
+ * Frequency-specific dynamic decoupler prototype:
+ * W(jωc) = G(jωc)^-1, verification = G(jωc)·W(jωc).
+ *
+ * This is not yet a polynomial matrix dynamic compensator. It is a selected-
+ * frequency inverse used to quantify whether dynamic decoupling is plausible
+ * around a chosen crossover frequency.
+ */
+export function dynamicDecouplerAtFrequency(mimoSys, omega) {
+  if (mimoSys.m !== mimoSys.p) {
+    throw new Error(`Dynamic decoupler needs square system (m=p). Got m=${mimoSys.m}, p=${mimoSys.p}`);
+  }
+  if (!(omega > 0)) {
+    throw new Error('Dynamic decoupler requires omega > 0 rad/s');
+  }
+
+  const G = evalAtJw(mimoSys, omega);
+  let W;
+  try {
+    W = complexSolve(G, complexIdentity(mimoSys.m));
+  } catch (e) {
+    if (/singular/i.test(e.message)) {
+      throw new Error(`G(j${omega}) is singular or ill-conditioned; choose another crossover frequency or inspect singular-value Bode.`);
+    }
+    throw e;
+  }
+  const verification = complexMatMul(G, W);
+  const offDiagonalNorm = complexMatrixMaxAbs(verification, (i, j) => i !== j);
+  let diagonalDeviation = 0;
+  for (let i = 0; i < verification.length; i++) {
+    diagonalDeviation = Math.max(diagonalDeviation, verification[i][i].sub(new Complex(1, 0)).magnitude);
+  }
+
+  return {
+    omega,
+    G,
+    W,
+    verification,
+    offDiagonalNorm,
+    diagonalDeviation,
+  };
+}
+
 /**
  * Apply a static decoupler W (m×m) to a MIMO plant: B' = B·W, D' = D·W.
  * Returns a new MIMOStateSpace with decoupled inputs.
