@@ -8,10 +8,10 @@
 
 目前策略：
 - Block Diagram 暫時擱置，不在近期主線投入新功能。
-- 目前主線已完成 SISO continuous/discrete、PID/Lead/Lag、Root Locus 互動設計、z-domain、C2D、Closed-loop design assistant、Deadbeat、Ziegler-Nichols PID from Ku/Tu，以及低階 State Feedback / Lyapunov / LQR。
-- 下一階段進入 Observer / Kalman；Block Diagram 仍維持暫置。
+- Phase 0-9 全部完成：SISO 全鏈、State Feedback / Lyapunov / LQR、Observer / Kalman / LQG、MIMO 基礎與設計（RGA / SV Bode / Decoupler / MIMO LQR）。
+- 下一階段為 MPC / Robust Control / 產品化（Electron / 報告生成）；尚未排程，待實際使用回饋。
 - 每個功能必須有數學推導或 fixture 驗證，不只看 UI 是否可操作。
-- 避免一次跳到 MIMO / MPC / Robust Control；先把 SISO 進階控制鏈做穩。
+- 控制理論主線已飽和；新功能優先考慮使用者體驗、教學模式、報告自動化。
 
 ## Priority Legend
 
@@ -30,7 +30,7 @@
 ## Current Baseline
 
 - Branch: `codex/control-system-latest`
-- Latest synced commit: `5bbc1d6 feat(control): complete phase 6 reliability`
+- Latest synced commit: `de6e0ff feat(phase9): MIMO Batch 4 — static decoupler + MIMO LQR (R matrix)`
 - Validation baseline:
   - `node test_control.js`
   - `node control-studio/scripts/verify_control_cases.mjs`
@@ -153,47 +153,69 @@ Exit criteria: 已達成。
 - Lyapunov analysis 必須明確顯示適用條件：continuous-time、finite-dimensional state-space、Q positive definite。
 - 理論驗證結果需同時列出 P matrix 與正定性判定，不只顯示自然語言。
 
-### Phase 8: Observer And Kalman
+### Phase 8: Observer / Kalman / LQG
 
-目標：在 State Feedback 穩定後補估測器，不提前讓 UI 與數學負擔爆開。
+目標：在 State Feedback 穩定後補估測器，並完整覆蓋連續/離散 Kalman 與 LQG 整合。
 
-| ID | Priority | Status | Item | Rationale | Dependencies | Verification |
-| --- | --- | --- | --- | --- | --- | --- |
-| CS-P8-01 | P2 | Planned | Luenberger observer pole placement | 先做 deterministic observer，比 Kalman 簡單且可手推 | observability matrix | `eig(A-LC)` 等於目標 observer poles |
-| CS-P8-02 | P2 | Planned | Observer simulation | 顯示 estimated state vs output error | CS-P8-01 | estimation error 收斂 |
-| CS-P8-03 | P3 | Planned | Basic Kalman filter | 需噪聲模型與 covariance UI，較晚做 | observer simulation | 小型 fixture 與理論 covariance trend 對齊 |
+| ID | Priority | Status | Item | Verification |
+| --- | --- | --- | --- | --- |
+| CS-P8-01 | P2 | Done | Luenberger observer pole placement | `eig(A-LC)=[-4,-5]` 等於目標 poles，`L=[[7],[1]]` 對 G(s)=1/(s²+3s+2) |
+| CS-P8-02 | P2 | Done | Observer simulation（含噪音注入） | x₀=[1,0]、x̂=0 時 eNorm 由 1 收斂到 <1e-8（無噪音）；噪音模式下顯示 yNoisy + innovation |
+| CS-P8-03 | P2 | Done | Steady-state Kalman (LQE) | Dual of LQR，filter CARE 解出 `L_kf=[[0.672],[-0.274]]`，CARE residual ≈ 0 |
+| CS-P8-04 | P2 | Done | Bryson 法則 Q/R 自動建議 | `Q_ii=1/δ²`, `R=1/δ_y²` 公式一致 |
+| CS-P8-05 | P2 | Done | Q/R sensitivity slider | 拖動即時更新 L_kf 與 observer poles |
+| CS-P8-06 | P2 | Done | Observer poles 疊加 Pole-Zero Map | 紫色菱形 ◆，計算後自動刷新 |
+| CS-P8-07 | P2 | Done | Innovation 白噪音統計 | mean / std / ACF lag-1,2 vs ±1.96/√N 95% CI，自動診斷 |
+| CS-P8-08 | P2 | Done | 離散 Kalman Filter | ZOH 離散化 + Riccati 差分方程，z-plane poles 全在 \|z\|<1 |
+| CS-P8-09 | P2 | Done | LQG 模擬（FSF vs LQG 對比） | 自動 fallback 計算 K_lqr 與 L_kf（預設 Q=I, R=1），兩條響應曲線疊圖 |
 
-### Phase 9: Deferred High-Complexity Features
+### Phase 9: MIMO 基礎與設計
+
+目標：把 ControlStudio 從 SISO 推進到 MIMO，但保持 SISO 流程零破壞。
+
+| ID | Priority | Status | Item | Verification |
+| --- | --- | --- | --- | --- |
+| CS-P9-01 | P2 | Done | SISO/MIMO mode toggle | SISO 模式完全不變；MIMO 模式自動顯示矩陣輸入與 channel selector |
+| CS-P9-02 | P2 | Done | MIMO State-Space 矩陣輸入 | n/m/p 維度，A/B/C/D textarea + 維度驗證 |
+| CS-P9-03 | P2 | Done | Channel selector bar | u_j→y_i 個別檢視，重用全部 6 個 SISO plot tabs |
+| CS-P9-04 | P2 | Done | ⊞ All view（matrix grid） | p×m 小格 step response 全覽，CSS grid 自適應 |
+| CS-P9-05 | P2 | Done | RGA + 配對診斷 | 對角系統 RGA=I；耦合系統 λ≠1 並提示 swap |
+| CS-P9-06 | P2 | Done | Singular Value Bode | σ_max / σ_min vs 頻率，log-log 軸 + 條件數 κ |
+| CS-P9-07 | P2 | Done | Static Decoupler | W=G(0)⁻¹，套用後 RGA = I |
+| CS-P9-08 | P2 | Done | MIMO LQR (R matrix) | Newton-Kleinman 迭代 CARE，K=m×n 矩陣，對解耦後對角系統 K=(√2−1)·I |
+
+### Phase 10: Deferred High-Complexity / Productization
 
 目標：明確標記暫緩，避免後續 agent 提早開太大的面。
 
 | ID | Priority | Status | Item | Rationale | Dependencies | Verification |
 | --- | --- | --- | --- | --- | --- | --- |
-| CS-P9-01 | P3 | Planned | MIMO | 資料模型、UI、圖表與分析都會大幅擴張 | State-Space mature | 需獨立設計文件 |
-| CS-P9-02 | P3 | Planned | MPC | 需要 optimization、constraints、horizon UI | discrete + state-space mature | 需獨立設計文件 |
-| CS-P9-03 | P3 | Planned | Robust Control | 需要 uncertainty model 與 sensitivity analysis | API + numerical engine mature | 需獨立設計文件 |
-| CS-P9-04 | P3 | Paused | Block Diagram expansion | 使用者已要求先暫置，避免分散主線 | SISO advanced stable | 恢復前需重新確認需求 |
+| CS-P10-01 | P3 | Planned | MPC | 需要 optimization、constraints、horizon UI | discrete + state-space mature | 需獨立設計文件 |
+| CS-P10-02 | P3 | Planned | Robust Control (H∞ / μ) | 需要 uncertainty model 與 sensitivity analysis | numerical engine mature | 需獨立設計文件 |
+| CS-P10-03 | P3 | Planned | Dynamic Decoupler | 頻域解耦（非僅 DC），需 polynomial matrix 運算 | MIMO mature | 對 G(s)·W(s) 對角化 |
+| CS-P10-04 | P3 | Planned | Electron packaging | 桌面打包 | 主功能凍結 | 跨平台啟動 |
+| CS-P10-05 | P3 | Planned | 教學模式 / 報告自動化 | 需要使用者回饋驅動 | UI 穩定 | 模板 + 互動 walkthrough |
+| CS-P10-06 | P3 | Paused | Block Diagram expansion | 使用者已要求先暫置 | SISO advanced stable | 恢復前需重新確認需求 |
 
 ## Immediate Next 3 Commits
 
-建議後續 agent 依序做：
+建議後續 agent 依序做（待 Phase 10 啟動時）：
 
-1. `feat(control): add observer pole placement`
-   - 先做 low-order SISO Luenberger observer，檢查 observability，輸出 `L` 與 `eig(A-LC)`。
+1. `feat(control): add MPC baseline`
+   - Discrete prediction horizon + QP solver minimum baseline。
 
-2. `feat(control): add observer simulation`
-   - 顯示 estimated state / output error 收斂，與 state feedback 串接但不強迫產品化 UI。
+2. `feat(control): add report template`
+   - Markdown 報告自動填入 model / controller / metrics / Phase 7-9 結果。
 
-3. `feat(control): add kalman baseline`
-   - 先做 low-order covariance / noise model baseline，再決定 UI 粒度。
+3. `feat(control): add teaching mode walkthrough`
+   - 引導式 tour，依 Phase 順序展示每個功能。
 
 ## Do Not Start Yet
 
 以下項目先不要直接開發：
-- MIMO
-- MPC
-- Robust Control
+- MPC（需獨立設計文件先收斂）
+- Robust Control（需 uncertainty model 設計）
 - 完整 Electron packaging
 - Block Diagram 新功能
 
-原因：目前核心驗證、API contract、SISO 進階控制還需要先站穩。
+原因：等實際使用者回饋再決定優先順序，避免猜需求。

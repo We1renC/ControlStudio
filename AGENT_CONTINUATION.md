@@ -9,7 +9,7 @@
 - 已建立獨立 git repo，避免被 `/Users/w.rc` 外層 git 混入。
 - 控制系統目前同步基線：
   - Branch: `codex/control-system-latest`
-  - Latest commit: `3f77118 feat(rlocus): ZN PID tuning from ultimate gain Ku/Tu`
+  - Latest commit: `de6e0ff feat(phase9): MIMO Batch 4 — static decoupler + MIMO LQR (R matrix)`
   - 使用者提供的 `claude/distracted-wing-fa0639` 節點與此 commit 對齊；該 branch 另有 worktree 使用中，因此本線以 `codex/control-system-latest` 接續。
 - 已完成 NVIDIA Build Models 資料集中管理。
 - 已新增 agent 入口文件：
@@ -42,9 +42,9 @@
   - `CONTROL_SYSTEM_VERIFICATION_CASES.md`
   - `CONTROL_SYSTEM_BACKLOG.md`
 - 控制系統目前 phase 狀態：
-  - Phase 0 ~ Phase 6：Done
-  - Phase 7（State Feedback / Lyapunov / LQR）：已實作完成，待本輪 commit
-  - Phase 8（Observer / Kalman）：Next
+  - Phase 0 ~ Phase 9：Done
+  - Phase 10（MPC / Robust Control / Dynamic Decoupler / 產品化）：Planned
+  - Block Diagram expansion：Paused
 - 已建立 symlink：
   - `/Users/w.rc/.config/agents/skills/nvidia-model-selector`
   - 指向 `/Users/w.rc/nvdiaOSsupport/skills/nvidia-model-selector`
@@ -138,6 +138,9 @@ git log --oneline -5
 - `control-studio/js/control/state-feedback.js` 已新增 Phase 7 核心：continuous Lyapunov solver / proof、SISO pole placement、low-order LQR baseline、state-feedback closed-loop TF preview。
 - `control-studio` Advisor 面板已新增 Phase 7 區塊，可直接輸入 desired poles、Lyapunov `Q`、LQR `Q/R`，並顯示 `K`、`P`、閉迴路 poles、step metrics。
 - `test_control.js` 已新增手推等價驗證：Lyapunov `AᵀP + PA = -I`、Ackermann pole placement、LQR CARE 小型解析案例。
+- `control-studio` 已完成 Phase 8：Luenberger observer、連續/離散 Kalman、Bryson auto Q/R、innovation whiteness、LQG 模擬與 Pole-Zero overlay。
+- `control-studio` 已完成 Phase 9：SISO/MIMO mode toggle、MIMO State-Space matrix input、channel selector、All matrix grid、RGA、Singular Value Bode、Static Decoupler、MIMO LQR（R matrix）。
+- `test_control.js` 已補 Phase 8/9 驗證，涵蓋 observer pole placement、Kalman/LQG 穩定性、RGA、decoupler、MIMO LQR。
 - `node test_control.js`、`node control-studio/scripts/verify_control_cases.mjs`、`node control-studio/scripts/verify_control_api_contract.mjs` 是目前控制系統主要驗證基線。
 - Block Diagram 目前暫時擱置，UI 入口已標示 paused；後續進階控制先走 SISO transfer function / frequency response / stability validation。
 - `control-studio` Block Editor 已補上拓撲分析（串聯 / 回授）、節點編輯（雙擊）、節點刪除、Zoom/Pan、Undo/Redo、Diagram save/load。
@@ -150,11 +153,10 @@ git log --oneline -5
 - `test_control.js` 已擴充涵蓋 ZPK、polydiv、Routh、Nichols、encirclement、asymptotes、SS Rank 測試。
 
 ## 後續可做
-1. 控制系統下一步依 `CONTROL_SYSTEM_BACKLOG.md` 進入 Phase 8：先做 `feat(control): add observer pole placement`，限 low-order SISO，需檢查 observability。
-2. 再做 `feat(control): add observer simulation`，顯示 estimated state / output error 收斂。
-3. 再接 `feat(control): add kalman baseline`；MIMO、MPC、Robust Control、完整 LQG product UI 仍為後續，不要未補設計文件就直接開。
-4. 若繼續產品化，可把 Markdown report baseline 擴成報告模板編輯器與 PDF/HTML export。
-5. Block Diagram 目前維持 paused；不要新增 block diagram 功能，除非使用者重新明確恢復。
+1. 控制系統下一步依 `CONTROL_SYSTEM_BACKLOG.md` 進入 Phase 10：先做 `feat(control): add MPC baseline`，但需先補獨立設計文件。
+2. 再做 `feat(control): add robust control scope note` 或 `feat(control): add dynamic decoupler baseline`，避免直接跳進高維頻域設計而無驗證基線。
+3. 產品化主線可優先做報告模板 / PDF/HTML export / 教學模式，而不是再擴控制理論面。
+4. Block Diagram 目前維持 paused；不要新增 block diagram 功能，除非使用者重新明確恢復。
 6. 加 `agents/openai.yaml` UI metadata。
 7. 增強 evaluator：從 heuristic 檢查升級成 judge model + golden dataset。
 8. 若 NVIDIA Build Models 更新，先更新根目錄資料檔，再同步 `skills/nvidia-model-selector/references/`。
