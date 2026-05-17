@@ -183,17 +183,39 @@ Verification:
 - Singular `1+L=0` guard.
 - Dedicated runner: `node control-studio/scripts/verify_phase10_math_core.mjs`.
 
+## Phase 10.5: UI Integration
+
+Status: Done (commit `f945ced`)
+
+Implemented：
+
+- `#mpc-panel` in Advisor — Ts / horizon / Q / R / x₀ → `simulateUnconstrainedMpc` → Plotly x(t), u(t)。
+  - SISO 用 `tfToControllableCanonical(num, den)` 取 SS。
+  - MIMO 直接吃 `state.mimoPlant.{A,B,C,D}`。
+  - ZOH 離散化重用 `discretizeZOH(A, B, Ts)`。
+- `#robust-panel` in Advisor — ω 範圍 → `sensitivityBode(L)` → |S| / |T| / |KS| 三條疊圖 + peak table。
+  - SISO only。MIMO 模式拋友善錯誤。
+  - Risk badge color：low (<1.8) / medium (1.8-2.5) / high (>2.5)。
+- Dynamic Decoupler subsection in `#mimo-analysis-panel` — ωc → `dynamicDecouplerAtFrequency` → 顯示 G(jωc), W(jωc), off-diagonal residual + 提醒「這是 selected-frequency inverse，不是 polynomial decoupler」。
+- `autoResizePhase8MatricesForMIMO` 擴充涵蓋 `mpc-q`, `mpc-r`, `mpc-x0`。
+
+Verification：
+
+- `test_control.js` 「Phase 10 UI integration smoke」區塊：
+  - MPC integrator 從 x₀=1 收斂到 final ‖x‖∞ < 0.5。
+  - Robust peak ≈ 1 for stable `L(s)=1/(s+1)`，risk=low。
+  - Diagonal MIMO dynamic decoupler off-diagonal ≈ 0。
+- 瀏覽器手動驗證（plant `1/(s²+3s+2)`）：
+  - MPC J=12.85，‖x‖∞ 從 1 收斂到 0.10，u₀=−0.0852。
+  - Robust peak |S|=1.05 (0.42 dB) @ ω=2.25 rad/s，Risk=LOW。
+  - 2×2 coupled plant (B=[[1,0.8],[0.6,1]]) Dynamic Decoupler @ ω=1：residual=0。
+
 ## Recommended Next Commits
 
-Browser walkthrough in Scenario 5 showed Phase 10 is currently **math-core ready, UI-not-ready**. Prioritize UI integration before adding more theory surface.
+Phase 10 主線（10.1-10.5）完成；後續為深化工作：
 
-1. `feat(phase10): add MPC UI panel`
-2. `feat(phase10): add robust sensitivity UI`
-3. `feat(phase10): add dynamic decoupler UI`
-
-Then continue:
-
-4. `test(phase10): add robust edge-case fixtures`
-5. `feat(phase10): add gain-phase uncertainty sweep`
+1. `test(phase10): add robust edge-case fixtures` — marginally stable loop、resonance peak 系統、Pade approximant 延遲系統。
+2. `feat(phase10): add gain-phase uncertainty sweep` — 對 K 或 phase shift 做 ±X% 掃描，計算 worst-case sensitivity。
+3. `feat(phase10): add MPC constraint UI` — 加入 input/state hard constraint 與 QP solver baseline。
 
 Do not start Teaching Mode, Electron packaging, or Report Template until explicitly resumed.

@@ -32,8 +32,8 @@
 
 - Branch: `codex/control-system-latest`
 - Latest pre-Phase-10 synced commit: `b01f169 docs(control): mark all 9 Scenario 3+4 issues as resolved`
-- Current Phase 10 checkpoint: Schur / Hamiltonian CARE solver, MPC baseline, Dynamic Decoupler prototype, and Robust sensitivity baseline added.
-- Scenario 5 browser walkthrough result: Phase 10 is math-core ready but UI-not-ready; next priority is UI integration for MPC / Robust / Dynamic Decoupler.
+- Current Phase 10 checkpoint: Phase 10.1-10.5 all done. Schur / Hamiltonian CARE solver, MPC baseline, Dynamic Decoupler prototype, Robust sensitivity baseline, **and UI integration for all three** added (commit `f945ced`).
+- Scenario 5 browser walkthrough result: Phase 10 math + UI both operational; next priority is robust edge-case fixtures and gain/phase uncertainty sweep (CS-P10-12, CS-P10-13).
 - Scenario 6 browser walkthrough result: SISO / MIMO core workflows are UI-operable; S6 UI issues have been resolved in the current Phase 9 UI cleanup line.
 - Latest full-theory audit:
   - `7a318b3 fix(control): harden phase 7-9 theory diagnostics`
@@ -210,10 +210,12 @@ Exit criteria: 已達成。
 | CS-P10-02 | P1 | Done | MPC baseline | discrete finite-horizon / unconstrained receding-horizon baseline | discrete + state-space mature | `verify_phase10_math_core.mjs` scalar Riccati + convergence |
 | CS-P10-03 | P2 | Done | Dynamic Decoupler | 頻域解耦（非僅 DC），先做 selected-frequency inverse prototype | MIMO mature | `verify_phase10_math_core.mjs` checks `G(jωc)·W(jωc)≈I` |
 | CS-P10-04 | P2 | Done | Robust Control sensitivity baseline | `S/T/KS` 與 peak sensitivity，不直接 H∞ synthesis | numerical engine mature | `verify_phase10_math_core.mjs` checks `S/T/KS` identity + singular guard |
-| CS-P10-09 | P1 | Next | MPC UI panel | 暴露 horizon / Q / R / x0 / steps，讓工程師能用介面完成 MPC baseline | CS-P10-02 | Browser smoke 顯示 `K0=0.6`, `u0=-0.6` |
-| CS-P10-10 | P1 | Next | Robust sensitivity UI | 暴露 `S/T/KS`、`Ms/Mt/MKs`、risk | CS-P10-04 | Browser smoke 顯示 `S(0)=0.5`, `T(0)=0.5` |
-| CS-P10-11 | P1 | Next | Dynamic Decoupler UI | 暴露 `ωc` input、complex W、`G(jωc)W(jωc)` residual | CS-P10-03 | Browser smoke 顯示 off-diagonal residual |
+| CS-P10-09 | P1 | Done | MPC UI panel | Advisor `#mpc-panel`：Ts/horizon/Q/R/x₀，receding-horizon sim + Plotly x(t)/u(t) | CS-P10-02 | f945ced；`test_control.js` MPC integrator 收斂測試 |
+| CS-P10-10 | P1 | Done | Robust sensitivity UI | Advisor `#robust-panel`：ω 範圍 → \|S\|/\|T\|/\|KS\| Bode + peak + risk badge | CS-P10-04 | f945ced；瀏覽器驗證 peak \|S\|=1.05 for `1/(s²+3s+2)` |
+| CS-P10-11 | P1 | Done | Dynamic Decoupler UI | MIMO Analysis `#mimo-dyn-decoupler-out`：ωc → G(jωc), W=G⁻¹, off-diagonal residual | CS-P10-03 | f945ced；2×2 coupled plant residual=0 |
 | CS-P10-12 | P2 | Planned | Robust edge-case fixtures | 補低 PM、RHP zero、high sensitivity cases | CS-P10-04 | fixture-based peak sensitivity checks |
+| CS-P10-13 | P2 | Planned | Gain/phase uncertainty sweep | 對 K 或 phase shift ±X% 掃描，計算 worst-case sensitivity | CS-P10-10 | sensitivity sweep result table |
+| CS-P10-14 | P2 | Planned | MPC constraint UI + QP solver | input/state hard constraint baseline (簡易 active-set QP) | CS-P10-09 | constrained MPC vs unconstrained comparison |
 | CS-P10-05 | P3 | Paused | Electron packaging | 使用者要求擱置 | 主功能凍結 | 暫不做 |
 | CS-P10-06 | P3 | Paused | 教學模式 | 使用者要求擱置 | UI 穩定 | 暫不做 |
 | CS-P10-07 | P3 | Paused | 報告模板 / 報告自動化 | 使用者要求擱置 | Scenario docs mature | 暫不做 |
@@ -221,16 +223,16 @@ Exit criteria: 已達成。
 
 ## Immediate Next 3 Commits
 
-建議後續 agent 依序做：
+Phase 10 主線（10.1-10.5）完成。後續為深化工作：
 
-1. `feat(phase10): add MPC UI panel`
-   - Advisor 或 Sim 面板顯示 horizon / Q / R / x0 / first action / cost。
+1. `test(phase10): add robust edge-case fixtures`
+   - 低 PM、RHP zero、resonance peak、Pade approximant 延遲系統 fixture。
 
-2. `feat(phase10): add robust sensitivity UI`
-   - S / T / KS、peak sensitivity、risk summary。
+2. `feat(phase10): add gain-phase uncertainty sweep`
+   - 對 K 或 phase shift 做 ±X% 掃描，產生 worst-case sensitivity table + envelope chart。
 
-3. `feat(phase10): add dynamic decoupler UI`
-   - MIMO Analysis 加 `ωc` 與 residual summary。
+3. `feat(phase10): add MPC constraint UI + QP baseline`
+   - input/state hard constraint 與簡易 active-set QP solver；constrained vs unconstrained 比較。
 
 ## Do Not Start Yet
 
