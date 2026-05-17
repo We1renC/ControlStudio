@@ -32,7 +32,7 @@
 
 - Branch: `codex/control-system-latest`
 - Latest pre-Phase-10 synced commit: `b01f169 docs(control): mark all 9 Scenario 3+4 issues as resolved`
-- Current Phase 10 checkpoint: **All CS-P10 items done** (CS-P10-12/13/14/15/16/17/18). MPC box-constraint QP + UI, gain/phase uncertainty envelope, matrix sign function CARE (n=8 now 100% reliable).
+- Current Phase 10+11 checkpoint: **All CS-P10 + CS-P11 items done**. MPC box-constraint QP + UI, gain/phase uncertainty envelope, matrix sign function CARE (n=8 100% reliable), DARE solver (P∞ terminal cost), MPC setpoint tracking, H∞ norm (grid+golden-section), dynamic RGA Λ(jω), state constraints + soft slack.
 - Scenario 5 browser walkthrough result: Phase 10 math + UI both operational.
 - Scenario 6 browser walkthrough result: SISO / MIMO core workflows are UI-operable.
 - Latest full-theory audit:
@@ -47,6 +47,10 @@
   - `node control-studio/scripts/verify_phase10_care_robustness.mjs`
   - `node control-studio/scripts/verify_phase10_high_order_care.mjs`
   - `node control-studio/scripts/verify_phase10_mpc_constraints.mjs`
+  - `node control-studio/scripts/verify_phase11_dare.mjs`
+  - `node control-studio/scripts/verify_phase11_setpoint_and_state_constraints.mjs`
+  - `node control-studio/scripts/verify_phase11_hinf.mjs`
+  - `node control-studio/scripts/verify_phase11_dynamic_rga.mjs`
   - `node test_control.js`
   - `node control-studio/scripts/verify_control_cases.mjs`
   - `node control-studio/scripts/verify_control_api_contract.mjs`
@@ -232,15 +236,34 @@ Exit criteria: 已達成。
 | CS-P10-07 | P3 | Paused | 報告模板 / 報告自動化 | 使用者要求擱置 | Scenario docs mature | 暫不做 |
 | CS-P10-08 | P3 | Paused | Block Diagram expansion | 使用者已要求先暫置 | SISO advanced stable | 恢復前需重新確認需求 |
 
+### Phase 11: Math Gap Closure (CS-P11)
+
+目標：補足 Phase 9/10 審視出的五大數學缺口，對齊業界工具水準。
+
+| ID | Priority | Status | Item | Rationale | Dependencies | Verification |
+| --- | --- | --- | --- | --- | --- | --- |
+| CS-P11-01 | P0 | Done | DARE 求解器 + MPC terminal cost P∞ | symplectic Cayley + matrix sign function；`solveDAREHamiltonianSign`；`finiteHorizonLqr` 加 `autoTerminalCost: true` 選項使 Qf = P∞，保證有限域成本 ≤ 無限域 | CS-P10-17 matrix sign | `verify_phase11_dare.mjs` 16/16：scalar golden ratio、DARE residual < 1e-15、Riccati limit 比對、MIMO 3×2 |
+| CS-P11-02 | P1 | Done | MPC Setpoint Tracking (r ≠ 0) | error-state formulation e=x−r, v=u−u_ss；`solveSetpointSteadyState` + `simulateMpcTracking`；支援 constant 或 time-varying reference、u constraints；11/11 驗證 | CS-P11-01 | `verify_phase11_setpoint_and_state_constraints.mjs` 18/18：r=[2,0] 收斂到 1e-7、constrained 收斂、step reference 切換 |
+| CS-P11-03 | P1 | Done | H∞ norm 估算 | `hInfNorm(mimoSys)` 粗網格 + golden-section 細化；`hInfNormUpperBound` 快速版；SISO/MIMO 均適用；1/(s+1)→1.0、K/(s+1)→K DC gain 均正確 | CS-P10-04 robust engine | `verify_phase11_hinf.mjs` 8/8 |
+| CS-P11-04 | P2 | Done | 動態 RGA Λ(jω) | `dynamicRGA(mimoSys, omegas)`、`dynamicRGAMagnitude`、`dynamicRGADiagonal`；ω→0 收斂靜態 RGA；欄和 = 1 恆等式；non-square throws | CS-P9-05 static RGA | `verify_phase11_dynamic_rga.mjs` 8/8 |
+| CS-P11-05 | P2 | Done | State constraints + soft slack | condensed QP 加 x_min/x_max 行（free-response active-set + 二次罰函數）；`firstMpcActionStateConstrained` + `simulateStateConstrainedMpc`；violation log 回報 | CS-P10-14 Hildreth QP | `verify_phase11_setpoint_and_state_constraints.mjs` 18/18：soft constraint 抑制速度超限、violation log 正確 |
+
 ## Immediate Next Commits
 
-Phase 10 全部 backlog 項目（CS-P10-12/13/14/15/16/17/18）現已全數完成，包含：
-- **CS-P10-14 Done**: MPC box constraints (Hildreth QP) + Advisor UI comparison  
-- **CS-P10-17 Done (upgraded)**: matrix sign function fallback — n=4/5/6/8 全部 100% pass, residual ≤ 1e-13
+Phase 10 + Phase 11 全部完成：
+- **CS-P10（全數）Done**：CARE/MPC/Robust/MIMO/Constraints 完整
+- **CS-P11-01 Done**：DARE solver (symplectic Cayley + matrix sign) + `autoTerminalCost` — 16/16
+- **CS-P11-02 Done**：MPC Setpoint Tracking (error-state, time-varying ref) — 18/18
+- **CS-P11-03 Done**：H∞ norm grid + golden-section — 8/8
+- **CS-P11-04 Done**：Dynamic RGA Λ(jω) — 8/8
+- **CS-P11-05 Done**：State constraints + soft slack — 18/18
 
-後續可選項目（非主線）：
-1. （視需求）擴大 uncertainty sweep：multiplicative output uncertainty、structured / parametric uncertainty
-2. （視需求）MPC state constraints：x_min ≤ x ≤ x_max 需要更完整 QP（目前只支援 u constraints）
+**Total new tests added this session：50 cases (all passing)**
+
+後續可選項目（非主線，視需求）：
+1. （P3）MPC MIMO setpoint tracking（多輸出追蹤，需 y=Cx 輸出空間 reference）
+2. （P3）H∞ synthesis（需 Riccati-based two-Riccati 路徑，複雜度高）
+3. （P3）擴大 uncertainty sweep：multiplicative output uncertainty、structured / parametric uncertainty
 
 ## Do Not Start Yet
 

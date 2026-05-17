@@ -412,6 +412,70 @@ export function singularValues(G) {
   return eigs.map((e) => Math.sqrt(Math.max(0, e))).sort((x, y) => y - x);
 }
 
+// ============================================================
+// Dynamic RGA  Λ(jω)
+// ============================================================
+
+/**
+ * Compute inverse of a square p×p complex matrix (array of Complex objects).
+ * Uses the existing complexSolve helper: solve G·X = I.
+ * Returns p×p array of Complex.
+ */
+function complexInverseMatrix(G) {
+  const p = G.length;
+  const I = complexIdentity(p);
+  return complexSolve(G, I);
+}
+
+/**
+ * Dynamic RGA: Λ(jω) = G(jω) .* (G(jω)^{-T})
+ *   where Λ_{ij} = G_{ij}(jω) · [G^{-1}(jω)]_{ji}
+ *
+ * @param {MIMOStateSpace} mimoSys  — must be square (p === m)
+ * @param {number[]}       omegas   — array of frequencies [rad/s]
+ * @returns {{ omega: number, lambda: Complex[][] }[]}
+ */
+export function dynamicRGA(mimoSys, omegas) {
+  const { p, m } = mimoSys;
+  if (p !== m) {
+    throw new Error(
+      `dynamicRGA requires a square system (p === m). Got p=${p}, m=${m}.`
+    );
+  }
+  return omegas.map((omega) => {
+    const Gjw = evalAtJw(mimoSys, omega);
+    const Ginv = complexInverseMatrix(Gjw);
+    // Λ_{ij} = G_{ij} * Ginv_{ji}  (note transposed index on inverse)
+    const lambda = Array.from({ length: p }, (_, i) =>
+      Array.from({ length: m }, (_, j) => Gjw[i][j].mul(Ginv[j][i]))
+    );
+    return { omega, lambda };
+  });
+}
+
+/**
+ * Like dynamicRGA but returns magnitudes |Λ_{ij}(jω)| as plain numbers.
+ * @returns {{ omega: number, lambda: number[][] }[]}
+ */
+export function dynamicRGAMagnitude(mimoSys, omegas) {
+  return dynamicRGA(mimoSys, omegas).map(({ omega, lambda }) => ({
+    omega,
+    lambda: lambda.map((row) => row.map((c) => c.magnitude)),
+  }));
+}
+
+/**
+ * Returns only the diagonal RGA magnitudes [|Λ_{11}|, |Λ_{22}|, …] per frequency.
+ * Useful for monitoring coupling as a function of frequency.
+ * @returns {{ omega: number, diagonal: number[] }[]}
+ */
+export function dynamicRGADiagonal(mimoSys, omegas) {
+  return dynamicRGA(mimoSys, omegas).map(({ omega, lambda }) => ({
+    omega,
+    diagonal: lambda.map((row, i) => row[i].magnitude),
+  }));
+}
+
 /** Compute σ_max(ω), σ_min(ω) across frequency grid. */
 export function singularValueBode(mimoSys, omegas) {
   const sigmaMax = [];

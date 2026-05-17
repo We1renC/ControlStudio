@@ -6,6 +6,7 @@
  */
 
 import { Complex } from '../math/complex.js';
+import { evalAtJw, singularValues } from './mimo.js';
 
 function onePlus(value) {
   return new Complex(1, 0).add(value);
@@ -201,4 +202,138 @@ export function uncertaintyEnvelope(loopTf, omegas, options = {}) {
       phaseShiftsDeg: [...phaseShiftsDeg],
     },
   };
+}
+
+// ---------------------------------------------------------------------------
+// H∞ norm estimation (Phase 11)
+// ---------------------------------------------------------------------------
+
+/**
+ * Return the largest singular value of a p×m complex matrix G.
+ * G is represented as an array of p rows, each row an array of m Complex values.
+ * Delegates to mimo.js singularValues which already handles the G^H G eigen-decomp.
+ */
+function maxSingularValue(G) {
+  const svs = singularValues(G);
+  return svs[0]; // singularValues returns largest first
+}
+
+/**
+ * Build a log-spaced frequency grid and evaluate σ_max(G(jω)) at each point.
+ * Returns an array of { omega, sigMax }.
+ */
+function gridSweep(mimoSys, omegaLo, omegaHi, gridPoints) {
+  const logLo = Math.log10(omegaLo);
+  const logHi = Math.log10(omegaHi);
+  const result = [];
+  for (let i = 0; i < gridPoints; i++) {
+    const logOmega = logLo + (i / (gridPoints - 1)) * (logHi - logLo);
+    const omega = Math.pow(10, logOmega);
+    const G = evalAtJw(mimoSys, omega);
+    const sigMax = maxSingularValue(G);
+    result.push({ omega, sigMax });
+  }
+  return result;
+}
+
+/**
+ * Estimate the H∞ norm using a coarse grid search only (no refinement).
+ * Faster but less accurate than hInfNorm.
+ *
+ * @param {MIMOStateSpace} mimoSys
+ * @param {{ omegaLo?, omegaHi?, gridPoints? }} options
+ * @returns {{ norm: number, peakOmega: number, gridValues: {omega, sigMax}[] }}
+ */
+export function hInfNormUpperBound(mimoSys, options = {}) {
+  const omegaLo = options.omegaLo ?? 1e-3;
+  const omegaHi = options.omegaHi ?? 1e4;
+  const gridPoints = options.gridPoints ?? 300;
+
+  const gridValues = gridSweep(mimoSys, omegaLo, omegaHi, gridPoints);
+
+  let norm = -Infinity;
+  let peakOmega = NaN;
+  for (const { omega, sigMax } of gridValues) {
+    if (sigMax > norm) {
+      norm = sigMax;
+      peakOmega = omega;
+    }
+  }
+
+  return { norm, peakOmega, gridValues };
+}
+
+/**
+ * Estimate the H∞ norm: max_ω σ_max(G(jω)).
+ *
+ * Two-pass strategy:
+ *   1. Coarse log-spaced grid (gridPoints points from omegaLo to omegaHi).
+ *   2. Golden-section search over [10^(log10(ω_peak)−2), 10^(log10(ω_peak)+2)]
+ *      for goldenIter iterations to refine the peak to ~0.1% relative accuracy.
+ *
+ * @param {MIMOStateSpace} mimoSys
+ * @param {{ omegaLo?, omegaHi?, gridPoints?, goldenIter? }} options
+ * @returns {{ norm: number, peakOmega: number, gridValues: {omega, sigMax}[] }}
+ */
+export function hInfNorm(mimoSys, options = {}) {
+  const omegaLo = options.omegaLo ?? 1e-3;
+  const omegaHi = options.omegaHi ?? 1e4;
+  const gridPoints = options.gridPoints ?? 300;
+  const goldenIter = options.goldenIter ?? 50;
+
+  // Pass 1: coarse grid
+  const gridValues = gridSweep(mimoSys, omegaLo, omegaHi, gridPoints);
+
+  let coarseNorm = -Infinity;
+  let coarseOmega = NaN;
+  for (const { omega, sigMax } of gridValues) {
+    if (sigMax > coarseNorm) {
+      coarseNorm = sigMax;
+      coarseOmega = omega;
+    }
+  }
+
+  // Pass 2: golden-section search in log-omega space
+  // Search window: ±2 decades around coarse peak, clamped to [omegaLo, omegaHi]
+  const logPeak = Math.log10(coarseOmega);
+  let logA = Math.max(Math.log10(omegaLo), logPeak - 2);
+  let logB = Math.min(Math.log10(omegaHi), logPeak + 2);
+
+  const phi = (1 + Math.sqrt(5)) / 2; // golden ratio
+  const resphi = 2 - phi;             // 1 - 1/phi
+
+  let logC = logA + resphi * (logB - logA);
+  let logD = logB - resphi * (logB - logA);
+
+  const sigAt = (logOmega) => {
+    const omega = Math.pow(10, logOmega);
+    const G = evalAtJw(mimoSys, omega);
+    return maxSingularValue(G);
+  };
+
+  let fC = sigAt(logC);
+  let fD = sigAt(logD);
+
+  for (let iter = 0; iter < goldenIter; iter++) {
+    // We are maximising, so keep the side with the higher function value.
+    if (fC > fD) {
+      logB = logD;
+      logD = logC;
+      fD = fC;
+      logC = logA + resphi * (logB - logA);
+      fC = sigAt(logC);
+    } else {
+      logA = logC;
+      logC = logD;
+      fC = fD;
+      logD = logB - resphi * (logB - logA);
+      fD = sigAt(logD);
+    }
+  }
+
+  const logBest = (logA + logB) / 2;
+  const peakOmega = Math.pow(10, logBest);
+  const norm = sigAt(logBest);
+
+  return { norm, peakOmega, gridValues };
 }

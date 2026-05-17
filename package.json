@@ -5,9 +5,10 @@
   "description": "ControlStudio + NVIDIA model selector support repo. Scripts here are thin wrappers around the math-core verification runners.",
   "scripts": {
     "verify:math": "node control-studio/scripts/verify_math_core.mjs && node control-studio/scripts/verify_phase10_math_core.mjs && node control-studio/scripts/verify_phase9_math_core.mjs && node control-studio/scripts/verify_phase10_cross_method.mjs && node control-studio/scripts/verify_phase9_phase10_edge_cases.mjs && node control-studio/scripts/verify_phase10_care_robustness.mjs && node control-studio/scripts/verify_phase10_high_order_care.mjs",
+    "verify:phase11": "node control-studio/scripts/verify_phase11_dare.mjs && node control-studio/scripts/verify_phase11_setpoint_and_state_constraints.mjs && node control-studio/scripts/verify_phase11_hinf.mjs && node control-studio/scripts/verify_phase11_dynamic_rga.mjs",
     "verify:cases": "node control-studio/scripts/verify_control_cases.mjs",
     "verify:api": "node control-studio/scripts/verify_control_api_contract.mjs",
-    "verify:all": "npm run verify:math && npm run verify:cases && npm run verify:api",
+    "verify:all": "npm run verify:math && npm run verify:phase11 && npm run verify:cases && npm run verify:api",
     "install:hooks": "bash scripts/install-hooks.sh"
   }
 }
