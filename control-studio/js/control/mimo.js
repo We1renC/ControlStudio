@@ -74,6 +74,11 @@ export class MIMOStateSpace {
   }
 }
 
+function conditionNumberFromPair(maxSigma, minSigma) {
+  if (!(Number.isFinite(maxSigma) && Number.isFinite(minSigma)) || minSigma <= 0) return Infinity;
+  return maxSigma / minSigma;
+}
+
 /** Parse MIMO state-space from textarea inputs. */
 export function parseMIMOMatrices(aStr, bStr, cStr, dStr) {
   const parseMatrix = (s, name) => {
@@ -134,6 +139,14 @@ export function rgaSteady(mimoSys) {
   const Ginv = matInverse(G);
   const GinvT = matTranspose(Ginv);
   return G.map((row, i) => row.map((v, j) => v * GinvT[i][j]));
+}
+
+export function rgaInvariants(rga) {
+  const rowSums = rga.map((row) => row.reduce((sum, value) => sum + value, 0));
+  const colSums = rga[0].map((_, j) => rga.reduce((sum, row) => sum + row[j], 0));
+  const rowDeviation = rowSums.reduce((max, sum) => Math.max(max, Math.abs(sum - 1)), 0);
+  const colDeviation = colSums.reduce((max, sum) => Math.max(max, Math.abs(sum - 1)), 0);
+  return { rowSums, colSums, rowDeviation, colDeviation };
 }
 
 /**
@@ -315,16 +328,19 @@ export function singularValues(G) {
 export function singularValueBode(mimoSys, omegas) {
   const sigmaMax = [];
   const sigmaMin = [];
+  const conditionNumber = [];
   for (const w of omegas) {
     try {
       const Gjw = evalAtJw(mimoSys, w);
       const sv = singularValues(Gjw);
       sigmaMax.push(sv[0]);
       sigmaMin.push(sv[sv.length - 1]);
+      conditionNumber.push(conditionNumberFromPair(sv[0], sv[sv.length - 1]));
     } catch (_) {
       sigmaMax.push(NaN);
       sigmaMin.push(NaN);
+      conditionNumber.push(NaN);
     }
   }
-  return { omegas: [...omegas], sigmaMax, sigmaMin };
+  return { omegas: [...omegas], sigmaMax, sigmaMin, conditionNumber };
 }

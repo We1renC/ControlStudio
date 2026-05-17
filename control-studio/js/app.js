@@ -18,7 +18,7 @@ import { polyadd, polyscale, polyroots } from './math/polynomial.js?v=p4';
 import { Complex } from './math/complex.js';
 import { analyzeLyapunov, brysonsRule, closedLoopTransferFromStateFeedback, discretizeZOH, innovationStats, observerPoles, placeObserver, placeStateFeedback, resolveDesignStateSpace, simulateLqg, simulateObserver, solveDiscreteKalman, solveLqe, solveLqr, solveLqrMIMO } from './control/state-feedback.js?v=p8c';
 import { BlockEditor } from './editor/editor.js';
-import { MIMOStateSpace, parseMIMOMatrices, rgaSteady, rgaDiagnosis, singularValueBode, staticDecoupler, applyDecoupler } from './control/mimo.js';
+import { MIMOStateSpace, parseMIMOMatrices, rgaSteady, rgaDiagnosis, rgaInvariants, singularValueBode, staticDecoupler, applyDecoupler } from './control/mimo.js';
 
 // ============================================================
 // STATE
@@ -842,9 +842,11 @@ function computeLqrDesign() {
     setPhase7Output('phase7-lqr-out', [
       `<div style="color:var(--color-accent);font-weight:700;">LQR Gain</div>`,
       `<div>K = [${result.K[0].map((value) => fmtNum(value, 4)).join(', ')}]</div>`,
+      `<div>rank(Wc) = ${result.controllabilityRank}/${n} &nbsp;|&nbsp; Init: ${escapeHtml(result.initialGainStrategy)}</div>`,
       `<div>trace(P) = ${fmtNum(traceP, 6)}</div>`,
       `<div>ΔK residual = ${fmtNum(result.residualNorm, 6)}</div>`,
       `<div>CARE residual = ${fmtNum(result.riccatiResidualNorm, 6)}</div>`,
+      `<div>Closed-loop Lyapunov stable: ${result.closedLoopStable ? 'Yes ✓' : 'No ✗'}</div>`,
       `<div style="margin-top:6px;color:var(--color-stable);">Closed-loop poles</div>`,
       `<div>${formatPoleListHtml(previewTf.poles(), 's')}</div>`,
       `<div style="margin-top:6px;">Step rise = ${fmtTime(preview.info.riseTime)} / settling = ${fmtTime(preview.info.settlingTime)} / OS = ${fmtPercent(preview.info.overshoot)}</div>`,
@@ -903,8 +905,10 @@ function computeKalmanGain() {
     setPhase7Output('phase8-kalman-out', [
       `<div style="color:var(--color-accent);font-weight:700;">Kalman Gain L_kf</div>`,
       `<div>L_kf = [${Lrows}]</div>`,
+      `<div>rank(Wo) = ${result.observabilityRank}/${n} &nbsp;|&nbsp; Init: ${escapeHtml(result.initialGainStrategy)}</div>`,
       `<div>ΔK residual = ${fmtNum(result.residualNorm, 6)}</div>`,
       `<div>CARE residual = ${fmtNum(result.riccatiResidualNorm, 6)}</div>`,
+      `<div>Observer Lyapunov stable: ${result.observerStable ? 'Yes ✓' : 'No ✗'}</div>`,
       `<div style="margin-top:6px;color:var(--color-accent);">Pe (error covariance)</div>`,
       `<div>${Pehtml}</div>`,
       `<div style="margin-top:6px;color:var(--text-muted);font-size:10px;">Kalman gain minimizes estimation error covariance under Gaussian noise.</div>`,
@@ -1094,6 +1098,7 @@ function computeDiscreteKalman() {
       `<div style="color:var(--color-accent);font-weight:700;">Discrete Kalman Gain L_kf[d]  (Ts=${Ts}s, ZOH)</div>`,
       `<div>L_kf = [${lStr}]</div>`,
       `<div>Iterations: ${result.iterations} &nbsp;|&nbsp; Converged: ${result.converged ? 'Yes ✓' : 'No ✗'}</div>`,
+      `<div>rank(Wo) = ${result.observabilityRank}/${Ad.length} &nbsp;|&nbsp; Stable: ${result.observerStable ? 'Yes ✓' : 'No ✗'} &nbsp;|&nbsp; max|z| = ${fmtNum(result.maxPoleMagnitude, 4)}</div>`,
       `<div style="color:var(--text-muted);">Observer poles (z-plane): ${poleStr}</div>`,
       `<div style="font-size:10px;color:var(--text-muted);margin-top:4px;">Stable: all poles must be inside unit circle |z|&lt;1</div>`,
     ].join(''));
@@ -3190,13 +3195,16 @@ function updateMIMOSystem() {
     state.mimoPlant = mimoPlant;
     state.mimoChannel.output = Math.min(state.mimoChannel.output, mimoPlant.p - 1);
     state.mimoChannel.input = Math.min(state.mimoChannel.input, mimoPlant.m - 1);
+    const rankC = matRank(controllabilityMatrix(mimoPlant.A, mimoPlant.B));
+    const rankO = matRank(observabilityMatrix(mimoPlant.A, mimoPlant.C));
 
     const statusEl = document.getElementById('mimo-status-out');
     if (statusEl) {
       statusEl.style.display = 'block';
       statusEl.innerHTML = `<div style="color:var(--color-stable);font-weight:700;">MIMO System OK ✓</div>
         <div>n=${mimoPlant.n} states, m=${mimoPlant.m} inputs, p=${mimoPlant.p} outputs</div>
-        <div>Total channels: ${mimoPlant.p * mimoPlant.m}</div>`;
+        <div>Total channels: ${mimoPlant.p * mimoPlant.m}</div>
+        <div>Controllability rank: ${rankC}/${mimoPlant.n} &nbsp;|&nbsp; Observability rank: ${rankO}/${mimoPlant.n}</div>`;
     }
     renderMIMOChannelBar();
     applyMIMOChannel();
@@ -3352,6 +3360,7 @@ function computeMIMORGA() {
 
     const rga = rgaSteady(state.mimoPlant);
     const diag = rgaDiagnosis(rga);
+    const invariants = rgaInvariants(rga);
 
     const colorFor = (lvl) =>
       lvl === 'good' ? 'var(--color-stable)'
@@ -3375,6 +3384,7 @@ function computeMIMORGA() {
     outEl.style.display = 'block';
     outEl.innerHTML = `<div style="color:var(--color-accent);font-weight:700;">RGA Matrix (steady-state)</div>
       <div style="margin:4px 0;">${matrixRows}</div>
+      <div style="margin-top:4px;">row sum dev = ${fmtNum(invariants.rowDeviation, 6)} &nbsp;|&nbsp; col sum dev = ${fmtNum(invariants.colDeviation, 6)}</div>
       <div style="margin-top:8px;border-top:1px solid var(--border-primary);padding-top:6px;">${diagLines}${sugg}</div>
       <div style="font-size:10px;color:var(--text-muted);margin-top:6px;">λ≈1: 良好；λ≈0.5: 強耦合；λ&lt;0: 不可配對</div>`;
     clearError();
@@ -3409,7 +3419,8 @@ function computeMIMOSVBode() {
     const validIdx = result.sigmaMax.findIndex((v) => Number.isFinite(v) && v > 0);
     const sMaxLow = validIdx >= 0 ? result.sigmaMax[validIdx] : NaN;
     const sMinLow = validIdx >= 0 ? result.sigmaMin[validIdx] : NaN;
-    const condDC = sMinLow > 0 ? sMaxLow / sMinLow : Infinity;
+    const condDC = result.conditionNumber[validIdx] ?? Infinity;
+    const worstCond = result.conditionNumber.filter(Number.isFinite).reduce((max, value) => Math.max(max, value), 0);
 
     const outEl = document.getElementById('mimo-sv-out');
     outEl.style.display = 'block';
@@ -3417,6 +3428,7 @@ function computeMIMOSVBode() {
       <div>σ_max @ ω_min: ${fmtNum(sMaxLow, 4)}</div>
       <div>σ_min @ ω_min: ${fmtNum(sMinLow, 4)}</div>
       <div>Condition κ @ ω_min: ${Number.isFinite(condDC) ? fmtNum(condDC, 3) : '∞'}</div>
+      <div>Worst κ across sweep: ${Number.isFinite(worstCond) ? fmtNum(worstCond, 3) : '∞'}</div>
       <div style="font-size:10px;color:var(--text-muted);margin-top:4px;">κ &lt; 10: 易控；κ &gt; 100: 系統病態</div>`;
 
     if (typeof Plotly !== 'undefined') {
@@ -3513,9 +3525,12 @@ function computeMIMOLqr() {
     outEl.style.display = 'block';
     outEl.innerHTML = `<div style="color:var(--color-accent);font-weight:700;">MIMO LQR Gain K (${m}×${n})</div>
       <div style="margin-top:4px;">K =<br>${Kstr}</div>
+      <div style="margin-top:6px;">Controllability rank: ${result.controllabilityRank}/${n}</div>
+      <div>Initial gain: ${escapeHtml(result.initialGainStrategy)}</div>
       <div style="margin-top:6px;">Iterations: ${result.iterations}</div>
       <div>ΔK residual: ${fmtNum(result.residualNorm, 6)}</div>
       <div>CARE residual: ${fmtNum(result.riccatiResidualNorm, 6)}</div>
+      <div>Closed-loop stable: ${result.closedLoopStable ? 'Yes' : 'No'}</div>
       <div style="font-size:10px;color:var(--text-muted);margin-top:6px;">u = −K·x &nbsp;|&nbsp; 閉迴路 A_cl = A − B·K</div>`;
     clearError();
   } catch (err) {

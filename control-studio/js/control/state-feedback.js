@@ -92,6 +92,65 @@ function scalarFromMatrix(M) {
   return M[0][0];
 }
 
+function characteristicPolynomialCoefficients(M) {
+  const n = M.length;
+  let aux = matCreate(n, n, 0);
+  const charCoeffs = [1];
+  for (let k = 1; k <= n; k++) {
+    aux = matAdd(matMul(M, aux), matScale(matIdentity(n), charCoeffs[k - 1]));
+    const ck = -matTrace(matMul(M, aux)) / k;
+    charCoeffs.push(ck);
+  }
+  return charCoeffs;
+}
+
+function matrixPoles(M) {
+  return polyroots(characteristicPolynomialCoefficients(M));
+}
+
+function rightPseudoInverse(B) {
+  const Bt = matTranspose(B);
+  const BBt = matMul(B, Bt);
+  return matMul(Bt, matInverse(BBt));
+}
+
+function multiInputControllabilityRank(A, B) {
+  return matRank(controllabilityMatrix(A, B));
+}
+
+function stabilizingShiftGain(A, B, alpha) {
+  const n = A.length;
+  const rightInv = rightPseudoInverse(B);
+  return matMul(rightInv, matAdd(A, matScale(matIdentity(n), alpha)));
+}
+
+function findStabilizingInitialGainMIMO(A, B, options = {}) {
+  const n = A.length;
+  const m = B[0].length;
+  const candidates = options.alphaCandidates || [0.5, 1, 2, 4, 8, 16];
+  const bRank = matRank(B);
+
+  if (analyzeLyapunov(A, matIdentity(n)).provenStable) {
+    return { K: matCreate(m, n, 0), strategy: 'zero-gain-stable-A' };
+  }
+
+  if (m >= n && bRank === n) {
+    for (const alpha of candidates) {
+      try {
+        const K = stabilizingShiftGain(A, B, alpha);
+        const Acl = matSub(A, matMul(B, K));
+        if (analyzeLyapunov(Acl, matIdentity(n)).provenStable) {
+          return { K, strategy: `right-pseudoinverse-shift(alpha=${alpha})` };
+        }
+      } catch (_) {
+        // keep searching
+      }
+    }
+  }
+
+  return null;
+}
+
 export function resolveDesignStateSpace({ systemType, plant, matrices }) {
   if (systemType === 'ss') {
     if (!matrices?.A || !matrices?.B || !matrices?.C || !matrices?.D) {
@@ -201,10 +260,24 @@ export function solveLqr(A, B, Q = null, R = [[1]], options = {}) {
   const Rmat = Array.isArray(R[0]) ? R : [[R]];
   const rScalar = scalarFromMatrix(Rmat);
   if (!(rScalar > 0)) throw new Error('R must be positive definite');
+  const controllabilityRank = matRank(controllabilityMatrix(A, B));
+  if (controllabilityRank !== n) {
+    throw new Error(`System not fully controllable: rank(Wc)=${controllabilityRank}, n=${n}`);
+  }
 
+  let initialGainStrategy = 'user-supplied';
   let K = options.initialK
     ? toGainRow(options.initialK)
     : placeStateFeedback(A, B, options.initialPoles || defaultPoleSet(n)).K;
+  if (!options.initialK) {
+    initialGainStrategy = `pole-placement(${(options.initialPoles || defaultPoleSet(n)).map((pole) => typeof pole === 'string' ? pole : `${pole.re ?? pole}${pole.im ? (pole.im > 0 ? '+' : '') + pole.im + 'j' : ''}`).join(', ')})`;
+  }
+
+  const initialAcl = closedLoopA(A, B, K);
+  const initialStable = analyzeLyapunov(initialAcl, matIdentity(n)).provenStable;
+  if (!initialStable) {
+    throw new Error('solveLqr requires a stabilizing initial gain');
+  }
 
   const maxIterations = options.maxIterations || 50;
   const tolerance = options.tolerance || 1e-8;
@@ -227,6 +300,7 @@ export function solveLqr(A, B, Q = null, R = [[1]], options = {}) {
     matAdd(matMul(matTranspose(A), P), matMul(P, A)),
     matSub(Qmat, matScale(matMul(matMul(P, B), matMul(matInverse(Rmat), matMul(matTranspose(B), P))), 1)),
   );
+  const closedLoopLyapunov = analyzeLyapunov(Acl, matIdentity(n));
 
   return {
     K,
@@ -236,6 +310,10 @@ export function solveLqr(A, B, Q = null, R = [[1]], options = {}) {
     Acl,
     residualNorm,
     riccatiResidualNorm: maxAbsMatrix(riccatiResidual),
+    controllabilityRank,
+    initialGainStrategy,
+    closedLoopStable: closedLoopLyapunov.provenStable,
+    closedLoopLyapunov,
   };
 }
 
@@ -267,26 +345,24 @@ export function solveLqrMIMO(A, B, Q = null, R = null, options = {}) {
   }
   const Rinv = matInverse(Rmat);
   const Bt = matTranspose(B);
-
+  const controllabilityRank = multiInputControllabilityRank(A, B);
   let K;
+  let initialGainStrategy = 'user-supplied';
   if (options.initialK) {
     K = options.initialK.map((row) => [...row]);
-  } else if (analyzeLyapunov(A, matIdentity(n)).provenStable) {
-    K = matCreate(m, n, 0);
-  } else if (m === n) {
-    try {
-      const alpha = options.initialShift || 1;
-      K = matMul(matInverse(B), matAdd(A, matScale(matIdentity(n), alpha)));
-    } catch (_) {
-      K = matCreate(m, n, 0);
-    }
   } else {
-    K = matCreate(m, n, 0);
+    const initial = findStabilizingInitialGainMIMO(A, B, options);
+    if (!initial) {
+      throw new Error('solveLqrMIMO requires a stabilizing initial gain; supported paths are stable A or full-row-rank B with pseudoinverse shift');
+    }
+    K = initial.K;
+    initialGainStrategy = initial.strategy;
   }
 
   const initialAcl = matSub(A, matMul(B, K));
-  if (!analyzeLyapunov(initialAcl, matIdentity(n)).provenStable) {
-    throw new Error('solveLqrMIMO requires a stabilizing initial gain; provide options.initialK or use a plant with stable A / invertible B');
+  const initialStable = analyzeLyapunov(initialAcl, matIdentity(n)).provenStable;
+  if (!initialStable) {
+    throw new Error('solveLqrMIMO could not verify a stabilizing initial gain');
   }
 
   const maxIterations = options.maxIterations || 200;
@@ -316,16 +392,22 @@ export function solveLqrMIMO(A, B, Q = null, R = null, options = {}) {
     matAdd(matMul(matTranspose(A), P), matMul(P, A)),
     matSub(Qmat, PBRinvBtP),
   );
+  const Acl = matSub(A, matMul(B, K));
+  const closedLoopLyapunov = analyzeLyapunov(Acl, matIdentity(n));
 
   return {
     K,
     P: matSymmetrize(P),
     Q: Qmat,
     R: Rmat,
-    Acl: matSub(A, matMul(B, K)),
+    Acl,
     iterations: iter,
     residualNorm,
     riccatiResidualNorm: maxAbsMatrix(riccatiResidual),
+    controllabilityRank,
+    initialGainStrategy,
+    closedLoopStable: closedLoopLyapunov.provenStable,
+    closedLoopLyapunov,
   };
 }
 
@@ -344,13 +426,19 @@ export function placeObserver(A, C, desiredPoles) {
   return { L, desiredPoles: result.desiredPoles, observabilityRank, Aobs };
 }
 
-export function solveLqe(A, C, Qn, Rn) {
+export function solveLqe(A, C, Qn, Rn, options = {}) {
+  const n = A.length;
+  const observabilityRank = matRank(observabilityMatrix(A, C));
+  if (observabilityRank !== n) {
+    throw new Error(`System not fully observable: rank(Wo)=${observabilityRank}, n=${n}`);
+  }
   const At = matTranspose(A);
   const Ct = matTranspose(C);
   const RnMat = Array.isArray(Rn[0]) ? Rn : [[Rn]];
-  const result = solveLqr(At, Ct, Qn, RnMat);
+  const result = solveLqr(At, Ct, Qn, RnMat, options);
   const L_kf = matTranspose(result.K);
   const Aobs = matSub(A, matMul(L_kf, C));
+  const observerLyapunov = analyzeLyapunov(Aobs, matIdentity(n));
   return {
     L: L_kf,
     Pe: matSymmetrize(result.P),
@@ -359,6 +447,10 @@ export function solveLqe(A, C, Qn, Rn) {
     Aobs,
     residualNorm: result.residualNorm,
     riccatiResidualNorm: result.riccatiResidualNorm,
+    observabilityRank,
+    initialGainStrategy: result.initialGainStrategy,
+    observerStable: observerLyapunov.provenStable,
+    observerLyapunov,
   };
 }
 
@@ -544,8 +636,17 @@ export function innovationStats(innovation) {
  */
 export function solveDiscreteKalman(Ad, Cd, Qd, Rd) {
   const n = Ad.length;
+  const p = Cd.length;
   const Adt = matTranspose(Ad);
   const Cdt = matTranspose(Cd);
+  const RdSym = matSymmetrize(Rd);
+  if (RdSym.length !== p || RdSym[0].length !== p) {
+    throw new Error(`Rd must be ${p}×${p}`);
+  }
+  if (!matIsPositiveDefinite(RdSym)) {
+    throw new Error('Rd must be positive definite');
+  }
+  const observabilityRank = matRank(observabilityMatrix(Ad, Cd));
 
   let P = matIdentity(n);
   let L = null;
@@ -560,7 +661,7 @@ export function solveDiscreteKalman(Ad, Cd, Qd, Rd) {
     // Kalman gain: K = Ad P Cd' S^{-1}
     const K = matMul(matMul(Ad, matMul(P, Cdt)), Sinv);
     // Riccati update: P_new = Ad P Ad' + Qd - K S K'
-    const Pnew = matAdd(matSub(matMul(matMul(Ad, P), Adt), matMul(matMul(K, S), matTranspose(K))), Qd);
+    const Pnew = matSymmetrize(matAdd(matSub(matMul(matMul(Ad, P), Adt), matMul(matMul(K, S), matTranspose(K))), Qd));
     const diff = Math.max(...Pnew.flatMap((row, i) => row.map((v, j) => Math.abs(v - P[i][j]))));
     P = Pnew;
     L = K;
@@ -569,18 +670,22 @@ export function solveDiscreteKalman(Ad, Cd, Qd, Rd) {
 
   const converged = iter < maxIter;
   const Aobs = matSub(Ad, matMul(L, Cd));
+  const observerPolesD = matrixPoles(Aobs);
+  const maxPoleMagnitude = Math.max(...observerPolesD.map((pole) => Math.hypot(pole.re, pole.im)));
+  const observerStable = observerPolesD.every((pole) => Math.hypot(pole.re, pole.im) < 1 - 1e-9);
+  const finiteCovariance = P.flat().every((value) => Number.isFinite(value));
 
-  // Eigenvalues of discrete observer matrix via Faddeev-LeVerrier + polyroots
-  let M = matCreate(n, n, 0);
-  const charCoeffs = [1];
-  for (let k = 1; k <= n; k++) {
-    M = matAdd(matMul(Aobs, M), matScale(matIdentity(n), charCoeffs[k - 1]));
-    const ck = -matTrace(matMul(Aobs, M)) / k;
-    charCoeffs.push(ck);
+  if (!finiteCovariance) {
+    throw new Error('Discrete Kalman iteration diverged: covariance became non-finite');
   }
-  const observerPolesD = polyroots(charCoeffs);
+  if (!converged) {
+    throw new Error('Discrete Kalman iteration did not converge; system may be undetectable or Qd/Rd are ill-conditioned');
+  }
+  if (!observerStable) {
+    throw new Error('Discrete Kalman filter is not stabilizing; system may be undetectable or noise model invalid');
+  }
 
-  return { L, Pe: P, iterations: iter, converged, Aobs, observerPolesD };
+  return { L, Pe: P, iterations: iter, converged, Aobs, observerPolesD, observabilityRank, observerStable, maxPoleMagnitude };
 }
 
 /**
@@ -667,18 +772,5 @@ export function simulateLqg(model, K_lqr, L_kf, options = {}) {
 export function observerPoles(A, C, L) {
   // Compute eigenvalues of A - L*C (observer closed-loop matrix)
   const Aobs = matSub(A, matMul(L, C));
-  const n = Aobs.length;
-  // Build characteristic polynomial via Faddeev-LeVerrier algorithm
-  // char poly coefficients [1, c_{n-1}, ..., c_0] (high degree first)
-  let M = matCreate(n, n, 0);
-  const charCoeffs = [1];
-  for (let k = 1; k <= n; k++) {
-    // M = Aobs * M_prev + c_{k-1} * I  (where M_prev is M before this step)
-    // Using Faddeev-LeVerrier: M_k = Aobs * M_{k-1} + c_{k-1}*I
-    M = matAdd(matMul(Aobs, M), matScale(matIdentity(n), charCoeffs[k - 1]));
-    // c_k = -trace(Aobs * M_k) / k
-    const ck = -matTrace(matMul(Aobs, M)) / k;
-    charCoeffs.push(ck);
-  }
-  return polyroots(charCoeffs);
+  return matrixPoles(Aobs);
 }

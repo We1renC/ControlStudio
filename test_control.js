@@ -13,7 +13,7 @@ import { zpkToTransferFunction, parseRootsString, parseComplexRoot } from './con
 import { polydiv, polymul } from './control-studio/js/math/polynomial.js';
 import { c2dTustin, c2dZOH } from './control-studio/js/control/c2d.js';
 import { specsToTargetPoles, designLeadForPM, deadbeatGain } from './control-studio/js/control/design.js';
-import { MIMOStateSpace, parseMIMOMatrices, rgaSteady, rgaDiagnosis, singularValueBode, evalAtJw, singularValues, staticDecoupler, applyDecoupler } from './control-studio/js/control/mimo.js';
+import { MIMOStateSpace, parseMIMOMatrices, rgaSteady, rgaDiagnosis, rgaInvariants, singularValueBode, evalAtJw, singularValues, staticDecoupler, applyDecoupler } from './control-studio/js/control/mimo.js';
 import { solveLqrMIMO } from './control-studio/js/control/state-feedback.js';
 import { discreteBodeData } from './control-studio/js/analysis/discrete-frequency-response.js';
 import { matExp, matIdentity, matMul, matSub, matScale } from './control-studio/js/math/matrix.js';
@@ -614,11 +614,20 @@ try {
   const lqr = solveLqr(sfModel.A, sfModel.B, lyQ, [[1]]);
   assertNear('LQR K1', lqr.K[0][0], Math.sqrt(5) - 2, 1e-6);
   assertNear('LQR K2', lqr.K[0][1], Math.sqrt(5) - 2, 1e-6);
+  if (lqr.controllabilityRank !== 2) throw new Error(`LQR controllability rank should be 2, got ${lqr.controllabilityRank}`);
+  if (!lqr.closedLoopStable) throw new Error('LQR closed-loop Lyapunov proof should succeed');
   if (lqr.riccatiResidualNorm > 1e-6) {
     throw new Error(`LQR Riccati residual too large: ${lqr.riccatiResidualNorm}`);
   }
   const lqrTf = closedLoopTransferFromStateFeedback(sfModel, lqr.K);
   if (!lqrTf.isStable()) throw new Error('LQR closed-loop should be stable');
+
+  // Unstable scalar system A=2, B=1, Q=1, R=1 has analytic CARE solution:
+  // 2 a P - P^2 + Q = 0 => 4P - P^2 + 1 = 0 => P = 2 + sqrt(5), K = P
+  const lqrUnstable = solveLqr([[2]], [[1]], [[1]], [[1]]);
+  assertNear('Unstable scalar LQR K', lqrUnstable.K[0][0], 2 + Math.sqrt(5), 1e-6);
+  assertNear('Unstable scalar LQR Acl', lqrUnstable.Acl[0][0], -Math.sqrt(5), 1e-6);
+  if (!lqrUnstable.closedLoopStable) throw new Error('Unstable scalar LQR should stabilize the closed loop');
 
   console.log('Phase 7 (Lyapunov / Pole Placement / LQR) tests passed');
 
@@ -652,7 +661,24 @@ try {
   // Stable: trace < 0 and det > 0 (for 2x2 real system)
   if (traceAobsKf >= 0) throw new Error(`Kalman Aobs trace should be negative (stable), got ${traceAobsKf}`);
   if (detAobsKf <= 0) throw new Error(`Kalman Aobs det should be positive (stable), got ${detAobsKf}`);
+  if (kf.observabilityRank !== 2) throw new Error(`Kalman observability rank should be 2, got ${kf.observabilityRank}`);
+  if (!kf.observerStable) throw new Error('Kalman observer should be Lyapunov stable');
   if (kf.riccatiResidualNorm > 1e-6) throw new Error(`LQE Riccati residual too large: ${kf.riccatiResidualNorm}`);
+
+  // Unstable scalar observable system A=2, C=1, Qn=1, Rn=1 has dual analytic gain
+  // Pe solves 2 a Pe - Pe^2 + Qn = 0 => Pe = 2 + sqrt(5), L = Pe, A-LC = -sqrt(5)
+  const kfUnstable = solveLqe([[2]], [[1]], [[1]], [[1]]);
+  assertNear('Unstable scalar LQE L', kfUnstable.L[0][0], 2 + Math.sqrt(5), 1e-6);
+  assertNear('Unstable scalar LQE Aobs', kfUnstable.Aobs[0][0], -Math.sqrt(5), 1e-6);
+  if (!kfUnstable.observerStable) throw new Error('Unstable scalar LQE should stabilize the observer');
+
+  let threwUnobservable = false;
+  try {
+    solveLqe([[1, 0], [0, -1]], [[0, 1]], [[1, 0], [0, 1]], [[1]]);
+  } catch (err) {
+    threwUnobservable = /not fully observable/i.test(err.message);
+  }
+  if (!threwUnobservable) throw new Error('LQE should reject unobservable systems with an observability-specific error');
 
   // Test 3: simulateObserver convergence
   // Plant starts at x0=[1,0], observer starts at x̂=0 (wrong IC).
@@ -751,11 +777,30 @@ try {
     const Rd = [[1]];
     const dkf = solveDiscreteKalman(Ad, Cc, Qd, Rd);
     if (!dkf.converged) throw new Error('solveDiscreteKalman did not converge');
+    if (!dkf.observerStable) throw new Error('Discrete Kalman observer should be stable');
     for (const pole of dkf.observerPolesD) {
       const mag = Math.hypot(pole.re, pole.im);
       if (mag >= 1.0) throw new Error(`Discrete KF observer pole magnitude ${mag.toFixed(4)} >= 1 (unstable)`);
     }
     console.log(`solveDiscreteKalman: converged in ${dkf.iterations} iter, poles: ${dkf.observerPolesD.map(p => `|z|=${Math.hypot(p.re, p.im).toFixed(4)}`).join(', ')}`);
+  }
+
+  {
+    let threwBadRd = false;
+    try {
+      solveDiscreteKalman([[1, 0], [0, 0.5]], [[1, 0]], [[1, 0], [0, 1]], [[0]]);
+    } catch (err) {
+      threwBadRd = /positive definite/i.test(err.message);
+    }
+    if (!threwBadRd) throw new Error('solveDiscreteKalman should reject non-positive-definite Rd');
+
+    let threwUndetectable = false;
+    try {
+      solveDiscreteKalman([[1.2, 0], [0, 0.8]], [[0, 1]], [[1, 0], [0, 1]], [[1]]);
+    } catch (err) {
+      threwUndetectable = /did not converge|not stabilizing/i.test(err.message);
+    }
+    if (!threwUndetectable) throw new Error('solveDiscreteKalman should reject unstable undetectable systems');
   }
 
   // Test simulateLqg: y_lqg final value close to y_fsf final value within 5%
@@ -847,10 +892,13 @@ try {
     // Test 2: Coupled system → RGA rows sum to 1
     const coupledSys = new MIMOStateSpace([[-1, 0], [0, -1]], [[1, 0.5], [0.5, 1]], [[1, 0], [0, 1]], [[0, 0], [0, 0]]);
     const rga2 = rgaSteady(coupledSys);
+    const inv2 = rgaInvariants(rga2);
     const sumRow0 = rga2[0][0] + rga2[0][1];
     const sumRow1 = rga2[1][0] + rga2[1][1];
     assertNear('Coupled RGA row0 sum', sumRow0, 1, 1e-6);
     assertNear('Coupled RGA row1 sum', sumRow1, 1, 1e-6);
+    assertNear('Coupled RGA row deviation', inv2.rowDeviation, 0, 1e-6);
+    assertNear('Coupled RGA col deviation', inv2.colDeviation, 0, 1e-6);
     assertNear('Coupled RGA (1,1)', rga2[0][0], 4 / 3, 1e-6);
     assertNear('Coupled RGA (1,2)', rga2[0][1], -1 / 3, 1e-6);
     assertNear('Coupled RGA (2,1)', rga2[1][0], -1 / 3, 1e-6);
@@ -861,6 +909,7 @@ try {
     const svResult = singularValueBode(diagSys, omegas);
     assertTrue('σ_max finite', svResult.sigmaMax.every((v) => Number.isFinite(v) && v > 0));
     assertTrue('σ_min finite', svResult.sigmaMin.every((v) => Number.isFinite(v) && v > 0));
+    assertTrue('κ finite', svResult.conditionNumber.every((v) => Number.isFinite(v) && v >= 1));
 
     // Test 4: σ at DC ≈ |G(0)| eigenvalues — diag(1, 0.5)
     const svDC = singularValueBode(diagSys, [0.001]);
@@ -914,6 +963,8 @@ try {
     assertTrue(`LQR converged in ${lqrResult.iterations} iter`, lqrResult.iterations < 200);
     assertTrue(`LQR CARE residual small: ${lqrResult.riccatiResidualNorm}`, lqrResult.riccatiResidualNorm < 1e-6);
     assertTrue('K is 2×2', lqrResult.K.length === 2 && lqrResult.K[0].length === 2);
+    assertTrue('LQR controllability rank full', lqrResult.controllabilityRank === 2);
+    assertTrue('LQR closed-loop stable', lqrResult.closedLoopStable);
     assertNear('LQR diag K11', lqrResult.K[0][0], Math.sqrt(2) - 1, 1e-6);
     assertNear('LQR diag K22', lqrResult.K[1][1], Math.sqrt(5) - 2, 1e-6);
     assertNear('LQR diag K12', lqrResult.K[0][1], 0, 1e-6);
@@ -927,6 +978,7 @@ try {
       [[1, 0], [0, 1]],
     );
     assertTrue(`Coupled-system LQR CARE residual ok: ${lqr2.riccatiResidualNorm}`, lqr2.riccatiResidualNorm < 1e-4);
+    assertTrue('Coupled-system LQR closed-loop stable', lqr2.closedLoopStable);
 
     // Test 5: Unstable A with invertible B should auto-build a stabilizing initial gain
     const lqr3 = solveLqrMIMO(
@@ -940,6 +992,21 @@ try {
     assertNear('Unstable diag K22', lqr3.K[1][1], 2 + Math.sqrt(5), 1e-6);
     assertNear('Unstable diag Acl11', lqr3.Acl[0][0], -Math.sqrt(2), 1e-6);
     assertNear('Unstable diag Acl22', lqr3.Acl[1][1], -Math.sqrt(5), 1e-6);
+    assertTrue('Unstable diagonal initial strategy uses pseudoinverse shift', lqr3.initialGainStrategy.startsWith('right-pseudoinverse-shift'));
+
+    // Test 6: Underactuated unstable system should reject unsupported initial gain construction
+    let threwLqrGuard = false;
+    try {
+      solveLqrMIMO(
+        [[1, 0], [0, 2]],
+        [[1], [0]],
+        [[1, 0], [0, 1]],
+        [[1]],
+      );
+    } catch (err) {
+      threwLqrGuard = /stabilizing initial gain/i.test(err.message);
+    }
+    assertTrue('Underactuated unstable MIMO LQR should guard unsupported case', threwLqrGuard);
 
     console.log('MIMO Batch 4 tests passed');
   }
