@@ -21,7 +21,7 @@ import { matTranspose, matSub, matMul } from './math/matrix.js?v=p5';
 import { BlockEditor } from './editor/editor.js';
 import { MIMOStateSpace, parseMIMOMatrices, rgaSteady, rgaDiagnosis, rgaInvariants, singularValueBode, staticDecoupler, applyDecoupler, dynamicDecouplerAtFrequency } from './control/mimo.js';
 import { simulateUnconstrainedMpc } from './control/mpc.js';
-import { sensitivityBode, robustPeaks } from './control/robust.js';
+import { sensitivityBode, robustPeaks, uncertaintyEnvelope } from './control/robust.js';
 import { tfToControllableCanonical } from './control/state-space.js?v=p5';
 
 // ============================================================
@@ -149,6 +149,7 @@ function initEventListeners() {
   document.getElementById('btn-mimo-dyn-decoupler')?.addEventListener('click', computeMIMODynDecoupler);
   document.getElementById('btn-mpc-simulate')?.addEventListener('click', computeMpcSimulation);
   document.getElementById('btn-robust')?.addEventListener('click', computeRobustSensitivity);
+  document.getElementById('btn-uncertainty')?.addEventListener('click', computeUncertaintyEnvelope);
 
   document.querySelectorAll('.sys-tab').forEach(tab => {
     tab.addEventListener('click', (e) => {
@@ -3981,6 +3982,90 @@ function computeRobustSensitivity() {
     clearError();
   } catch (err) {
     setPhase7Output('robust-out', escapeHtml(err.message), true);
+    showError(err.message);
+  }
+}
+
+function computeUncertaintyEnvelope() {
+  try {
+    clearFieldErrors();
+    if (!state.plant) throw new Error('請先建立 plant');
+    if (state.systemMode === 'mimo') throw new Error('Uncertainty Sweep 目前只支援 SISO 模式');
+
+    const controllerTf = state.controller?.toTransferFunction?.();
+    if (!controllerTf) throw new Error('無法取得 controller transfer function（請先設定 PID/compensator）');
+    const loopTf = controllerTf.series(state.plant);
+
+    const wmin = parseFloat(document.getElementById('robust-wmin').value);
+    const wmax = parseFloat(document.getElementById('robust-wmax').value);
+    if (!(wmin > 0 && wmax > wmin)) throw new Error('ω 範圍無效（請先在 Sensitivity Bode 設定）');
+
+    const gainPct = parseFloat(document.getElementById('unc-gain-pct').value || '0');
+    const phaseDeg = parseFloat(document.getElementById('unc-phase-deg').value || '0');
+    const samples = parseInt(document.getElementById('unc-samples').value || '3', 10);
+    if (!(gainPct >= 0) || !(phaseDeg >= 0)) throw new Error('±gain%/±phase° 必須 ≥ 0');
+    if (!Number.isInteger(samples) || samples < 1) throw new Error('samples / side 必須是 ≥ 1 的整數');
+
+    const gainFactors = [];
+    const phaseShiftsDeg = [];
+    if (gainPct === 0) {
+      gainFactors.push(1);
+    } else {
+      for (let i = -samples; i <= samples; i++) {
+        gainFactors.push(1 + (gainPct / 100) * (i / samples));
+      }
+    }
+    if (phaseDeg === 0) {
+      phaseShiftsDeg.push(0);
+    } else {
+      for (let i = -samples; i <= samples; i++) {
+        phaseShiftsDeg.push((phaseDeg * i) / samples);
+      }
+    }
+
+    const N = 200;
+    const lmin = Math.log10(wmin);
+    const lmax = Math.log10(wmax);
+    const omegas = Array.from({ length: N }, (_, i) => Math.pow(10, lmin + ((lmax - lmin) * i) / (N - 1)));
+
+    const env = uncertaintyEnvelope(loopTf, omegas, { gainFactors, phaseShiftsDeg, controllerTf });
+    state.phase10 = state.phase10 || {};
+    state.phase10.uncertainty = env;
+
+    const peakS = env.peaks.S;
+    const peakT = env.peaks.T;
+    const peakKS = env.peaks.KS;
+    const ratio = peakS.peak / Math.max(env.nominal.S.reduce((m, v) => Math.max(m, v), 0), 1e-12);
+    const riskColor = ratio > 2 ? 'var(--color-unstable)' : ratio > 1.3 ? '#f59e0b' : 'var(--color-stable)';
+
+    setPhase7Output('uncertainty-out', [
+      `<div style="color:${riskColor};font-weight:700;">Worst-Case Peaks (k=[${gainFactors.map((g) => g.toFixed(2)).join(',')}], θ=[${phaseShiftsDeg.map((p) => p.toFixed(0) + '°').join(',')}])</div>`,
+      `<div>worst ‖S‖∞ = ${fmtNum(peakS.peak, 4)} ${Number.isFinite(peakS.peakDB) ? '(' + fmtNum(peakS.peakDB, 2) + ' dB)' : ''} @ ω=${fmtNum(peakS.peakOmega, 3)} rad/s</div>`,
+      `<div>worst ‖T‖∞ = ${fmtNum(peakT.peak, 4)} ${Number.isFinite(peakT.peakDB) ? '(' + fmtNum(peakT.peakDB, 2) + ' dB)' : ''} @ ω=${fmtNum(peakT.peakOmega, 3)} rad/s</div>`,
+      peakKS ? `<div>worst ‖KS‖∞ = ${fmtNum(peakKS.peak, 4)} ${Number.isFinite(peakKS.peakDB) ? '(' + fmtNum(peakKS.peakDB, 2) + ' dB)' : ''} @ ω=${fmtNum(peakKS.peakOmega, 3)} rad/s</div>` : '',
+      `<div style="font-size:10px;color:var(--text-muted);margin-top:4px;">worst/nominal |S| 比 = ${fmtNum(ratio, 3)}。&gt;2 表示 robust margin 嚴重劣化。</div>`,
+    ].join(''));
+
+    const chartEl = document.getElementById('chart-uncertainty');
+    if (chartEl) chartEl.style.display = 'block';
+    if (typeof Plotly !== 'undefined') {
+      const safe = (arr) => arr.map((v) => (Number.isFinite(v) && v > 0 ? v : null));
+      Plotly.newPlot('chart-uncertainty', [
+        { x: omegas, y: safe(env.nominal.S), mode: 'lines', name: 'nominal |S|', line: { color: '#6366f1', width: 1.2, dash: 'dot' } },
+        { x: omegas, y: safe(env.worst.S), mode: 'lines', name: 'worst |S|', line: { color: '#6366f1', width: 2 } },
+        { x: omegas, y: safe(env.nominal.T), mode: 'lines', name: 'nominal |T|', line: { color: '#10b981', width: 1.2, dash: 'dot' } },
+        { x: omegas, y: safe(env.worst.T), mode: 'lines', name: 'worst |T|', line: { color: '#10b981', width: 2 } },
+      ], {
+        ...PLOTLY_LAYOUT_BASE(),
+        margin: { t: 10, r: 20, b: 30, l: 50 },
+        legend: { font: { size: 9 }, orientation: 'h', y: 1.15 },
+        xaxis: { title: 'ω (rad/s)', type: 'log', gridcolor: 'rgba(255,255,255,0.06)' },
+        yaxis: { title: 'magnitude', type: 'log', gridcolor: 'rgba(255,255,255,0.06)' },
+      }, { responsive: true, displayModeBar: false });
+    }
+    clearError();
+  } catch (err) {
+    setPhase7Output('uncertainty-out', escapeHtml(err.message), true);
     showError(err.message);
   }
 }

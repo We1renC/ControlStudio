@@ -220,7 +220,7 @@ Exit criteria: 已達成。
 | CS-P10-10 | P1 | Done | Robust sensitivity UI | Advisor `#robust-panel`：ω 範圍 → \|S\|/\|T\|/\|KS\| Bode + peak + risk badge | CS-P10-04 | f945ced；瀏覽器驗證 peak \|S\|=1.05 for `1/(s²+3s+2)` |
 | CS-P10-11 | P1 | Done | Dynamic Decoupler UI | MIMO Analysis `#mimo-dyn-decoupler-out`：ωc → G(jωc), W=G⁻¹, off-diagonal residual | CS-P10-03 | f945ced；2×2 coupled plant residual=0 |
 | CS-P10-12 | P2 | Done | Robust edge-case fixtures | 補 NMP (RHP zero) / Padé delay / 1+L=0 / 高 \|S\| 等高風險 case | CS-P10-04 | `verify_phase9_phase10_edge_cases.mjs` 15/15 pass，含 NMP peak \|S\|=1.35、Padé delay loop、S+T=1 identity |
-| CS-P10-13 | P2 | Planned | Gain/phase uncertainty sweep | 對 K 或 phase shift ±X% 掃描，計算 worst-case sensitivity | CS-P10-10 | sensitivity sweep result table |
+| CS-P10-13 | P2 | Done | Gain/phase uncertainty sweep | `uncertaintyEnvelope(loop, ω, {gainFactors, phaseShiftsDeg, controllerTf})` 計算最壞情況 \|S\|/\|T\|/\|KS\| envelope；Advisor robust panel 加 `±gain%` / `±phase°` / samples 與 worst-vs-nominal 疊圖 + worst/nominal 比值 | CS-P10-10 | `verify_phase10_math_core.mjs` 4 cases；UI 驗證：plant `1/(s²+3s+2)` ±20%/±15° 7×7 sweep → worst\|S\|=1.114 vs nominal 1.05 |
 | CS-P10-14 | P2 | Planned | MPC constraint UI + QP solver | input/state hard constraint baseline (簡易 active-set QP) | CS-P10-09 | constrained MPC vs unconstrained comparison |
 | CS-P10-15 | P1 | Done | Schur CARE jω-boundary case | Hamiltonian 特徵值靠近虛軸 / 不 stabilizable 時 eigenvector path 會 fail；改為丟出含「stabilizability / boundary」友善訊息（非 NaN）。真正的 real Schur fallback 留待後續 | CS-P10-01 | `verify_phase10_care_robustness.mjs` 3 cases：jω uncontrollable、fully unstabilizable、near-boundary 仍可解 |
 | CS-P10-16 | P1 | Done | Schur vs Bass 對比測試（spacecraft sparse-B） | Spacecraft case 同時測 Schur 通過 (residual 1e-15) 與 Newton-Kleinman/Bass 失敗的友善訊息（已更新訊息明確推薦 Schur path） | CS-P10-01 / CS-P10-15 | `verify_phase10_care_robustness.mjs` 3 cases：Schur 通過 + Lyapunov 證、Kleinman 失敗含 Schur 提示、default path = Schur |
@@ -233,18 +233,15 @@ Exit criteria: 已達成。
 
 ## Immediate Next 3 Commits
 
-Phase 9/10 數學核心 verification（commit 1-3）完成（39/39 cases pass）。剩餘的數學魯棒性盲點與深化工作：
+Phase 10 數學魯棒性主線（CS-P10-12/13/15/16/17/18）全數完成。剩餘工作：
 
-1. `test(phase10): cover CARE jω-boundary + Schur vs Bass` (CS-P10-15 + CS-P10-16)
-   - Hamiltonian 特徵值靠近虛軸時 Schur 精度測試；spacecraft sparse-B 案例 Schur 通過 vs Bass 失敗對比。
+1. `feat(phase10): MPC constraint UI + QP solver` (CS-P10-14)
+   - input/state hard constraint 與簡易 active-set QP；constrained vs unconstrained comparison。
 
-2. `test(phase10): high-order CARE stress + verify:math script` (CS-P10-17 + CS-P10-18)
-   - n=4/5/6/8 random batch，記錄 Schur eigenvector path 可信賴上限；`npm run verify:math` 串接所有 verify_*.mjs 並掛 pre-push hook。
+2. `feat(phase10): real Schur fallback for high-order CARE`
+   - CS-P10-15/17 留下的後續：替換 dependency-free eigenvector path，把 n≥7 reliable 化（目前 n=8 documented failure）。
 
-3. `feat(phase10): add gain-phase uncertainty sweep` (CS-P10-13)
-   - 對 K 或 phase shift 做 ±X% 掃描，產生 worst-case sensitivity table + envelope chart。
-
-MPC constraint UI + QP baseline (CS-P10-14) 排在這 3 個之後。
+3. （視需求）擴大 uncertainty sweep 範圍：multiplicative output uncertainty、structured / parametric uncertainty。
 
 ## Do Not Start Yet
 

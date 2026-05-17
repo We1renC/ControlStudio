@@ -2,7 +2,7 @@
 import { TransferFunction } from '../js/control/transfer-function.js';
 import { MIMOStateSpace, dynamicDecouplerAtFrequency } from '../js/control/mimo.js';
 import { finiteHorizonLqr, firstMpcAction, simulateUnconstrainedMpc } from '../js/control/mpc.js';
-import { robustPeaks, sensitivityAt } from '../js/control/robust.js';
+import { robustPeaks, sensitivityAt, uncertaintyEnvelope } from '../js/control/robust.js';
 import { analyzeLyapunov, solveCareHamiltonianSchur, solveLqr, solveLqrMIMO } from '../js/control/state-feedback.js';
 import { matIdentity, matMul, matSub } from '../js/math/matrix.js';
 
@@ -157,6 +157,65 @@ try {
       threw = /non-empty array/i.test(err.message);
     }
     assertTrue('empty omega guard', threw);
+  });
+
+  record('Uncertainty envelope: nominal-only grid equals plain sensitivity', () => {
+    const loop = new TransferFunction([1], [1, 1]);
+    const env = uncertaintyEnvelope(loop, [0.1, 1, 10], { gainFactors: [1], phaseShiftsDeg: [0] });
+    for (let k = 0; k < env.omegas.length; k++) {
+      const ref = sensitivityAt(loop, env.omegas[k]);
+      assertNear(`|S| nominal[${k}]`, env.nominal.S[k], ref.S.magnitude, 1e-12);
+      assertNear(`|T| nominal[${k}]`, env.nominal.T[k], ref.T.magnitude, 1e-12);
+      assertNear(`|S| worst[${k}]`, env.worst.S[k], ref.S.magnitude, 1e-12);
+    }
+  });
+
+  record('Uncertainty envelope: worst ≥ nominal everywhere; ±20% gain ±15° phase', () => {
+    const loop = new TransferFunction([1], [1, 1]);
+    const env = uncertaintyEnvelope(loop, [0.1, 0.5, 1, 2, 5], {
+      gainFactors: [0.8, 1.0, 1.2],
+      phaseShiftsDeg: [-15, 0, 15],
+    });
+    for (let k = 0; k < env.omegas.length; k++) {
+      assertTrue(`worst |S| ≥ nominal at ω=${env.omegas[k]}`,
+        env.worst.S[k] + 1e-12 >= env.nominal.S[k]);
+      assertTrue(`worst |T| ≥ nominal at ω=${env.omegas[k]}`,
+        env.worst.T[k] + 1e-12 >= env.nominal.T[k]);
+    }
+    // Sanity: perturbed peak strictly larger than nominal peak.
+    const nominal = uncertaintyEnvelope(loop, env.omegas, {
+      gainFactors: [1], phaseShiftsDeg: [0],
+    });
+    assertTrue(`perturbed peak ${env.peaks.S.peak} > nominal ${nominal.peaks.S.peak}`,
+      env.peaks.S.peak > nominal.peaks.S.peak);
+  });
+
+  record('Uncertainty envelope: gain+phase toward −1 drives |S| to infinity', () => {
+    // L(s) = 2/(s+1) has L(0)=2 (real, positive). Perturbation k=0.5 with
+    // θ=180° flips it to −1 exactly at ω=0, so the closed loop becomes
+    // singular: |S(0)| = ∞. This locks the perturbation arithmetic.
+    const loop = new TransferFunction([2], [1, 1]);
+    const env = uncertaintyEnvelope(loop, [0, 0.5, 1, 5], {
+      gainFactors: [0.5, 1, 2],
+      phaseShiftsDeg: [-180, 0, 180],
+    });
+    assertTrue(`worst |S| at ω=0 = ${env.worst.S[0]} should be Infinity`,
+      !Number.isFinite(env.worst.S[0]));
+    assertTrue('peak overall is Infinity', !Number.isFinite(env.peaks.S.peak));
+  });
+
+  record('Uncertainty envelope: empty grid lists rejected', () => {
+    const loop = new TransferFunction([1], [1, 1]);
+    let threw = false;
+    try {
+      uncertaintyEnvelope(loop, [1], { gainFactors: [], phaseShiftsDeg: [0] });
+    } catch (e) { threw = /gainFactors|non-empty/i.test(e.message); }
+    assertTrue('empty gain grid guard', threw);
+    threw = false;
+    try {
+      uncertaintyEnvelope(loop, [1], { gainFactors: [-1], phaseShiftsDeg: [0] });
+    } catch (e) { threw = /positive|gainFactors/i.test(e.message); }
+    assertTrue('non-positive gain guard', threw);
   });
 
   // Additional algebraic sanity: Acl should equal A - BK for a solved CARE.

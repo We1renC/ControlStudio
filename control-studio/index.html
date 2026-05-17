@@ -988,6 +988,29 @@
           <button class="btn btn-sm" id="btn-robust" style="width:100%;justify-content:center;margin-bottom:8px;">Compute Sensitivity Bode</button>
           <div id="robust-out" style="font-size:11px;font-family:monospace;color:var(--text-secondary);background:rgba(15,17,23,.4);padding:8px;border-radius:6px;line-height:1.6;display:none;margin-bottom:8px;"></div>
           <div id="chart-robust" style="height:200px;"></div>
+          <div style="margin-top:14px;padding-top:10px;border-top:1px dashed rgba(255,255,255,0.08);">
+            <div style="font-size:11px;font-weight:600;color:var(--text-secondary);margin-bottom:4px;">Gain / Phase Uncertainty Sweep</div>
+            <p style="font-size:10px;color:var(--text-muted);line-height:1.5;margin-bottom:8px;">
+              對 L(jω) 套 multiplicative 不確定性 k·e^(−jθ)，計算最壞情況 |S|/|T|/|KS| envelope。輸入 gain 範圍 ±% 與 phase 範圍 ±°；samples 為每邊取樣數（含 0）。
+            </p>
+            <div style="display:flex;gap:6px;margin-bottom:6px;">
+              <div class="input-group" style="flex:1;margin-bottom:0;">
+                <label>±gain %</label>
+                <input type="number" id="unc-gain-pct" value="20" step="5" min="0">
+              </div>
+              <div class="input-group" style="flex:1;margin-bottom:0;">
+                <label>±phase °</label>
+                <input type="number" id="unc-phase-deg" value="15" step="5" min="0">
+              </div>
+              <div class="input-group" style="flex:1;margin-bottom:0;">
+                <label>samples / side</label>
+                <input type="number" id="unc-samples" value="3" step="1" min="1" max="10">
+              </div>
+            </div>
+            <button class="btn btn-sm" id="btn-uncertainty" style="width:100%;justify-content:center;margin-bottom:8px;">Compute Worst-Case Envelope</button>
+            <div id="uncertainty-out" style="font-size:11px;font-family:monospace;color:var(--text-secondary);background:rgba(15,17,23,.4);padding:8px;border-radius:6px;line-height:1.6;display:none;margin-bottom:8px;"></div>
+            <div id="chart-uncertainty" style="height:200px;display:none;"></div>
+          </div>
         </section>
 
         <section class="section-panel">
