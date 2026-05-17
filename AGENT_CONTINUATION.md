@@ -54,7 +54,7 @@
     - Done：MPC baseline
     - Done：Dynamic Decoupler prototype
     - Done：Robust sensitivity baseline
-    - Next：Robust edge-case fixtures / gain-phase uncertainty sweep
+    - Next：MPC UI panel / Robust sensitivity UI / Dynamic Decoupler UI
     - Paused：Teaching Mode / Electron / Report Template / Block Diagram expansion
   - Block Diagram expansion：Paused
   - Phase 0 ~ Phase 9 已完成通盤數學理論完善度檢查；所有數學核心也已完成 hardening。後續若修改數值核心，需至少重跑 `node control-studio/scripts/verify_math_core.mjs`、`node test_control.js`、`node control-studio/scripts/verify_control_cases.mjs`、`node control-studio/scripts/verify_control_api_contract.mjs`、`node control-studio/scripts/control_regression_dashboard.mjs`。
@@ -180,13 +180,15 @@ git log --oneline -5
 - `control-studio/js/control/mpc.js` 已新增 Phase 10 MPC baseline：finite-horizon Riccati、first action、unconstrained receding-horizon simulation；`test_control.js` 以 scalar integrator 手推驗證 `K0=0.6`。
 - `control-studio/js/control/mimo.js` 已新增 `dynamicDecouplerAtFrequency(mimoSys, omega)`，可在指定 `ωc` 計算 `W(jωc)=G(jωc)⁻¹` 並回傳 `G(jωc)·W(jωc)` residual；`test_control.js` 已驗證 selected-frequency inverse。
 - `control-studio/js/control/robust.js` 已新增 Robust sensitivity baseline：`S/T/KS`、peak sensitivity、risk classification；`test_control.js` 已驗證 DC identity 與 singular guard。
+- Scenario 5 已用 in-app browser 實際操作 MPC / Robust 情境，結論是 Phase 10 math-core ready 但 UI-not-ready；改善項目已寫入 `CONTROL_SYSTEM_SCENARIOS.md` 與 `CONTROL_SYSTEM_BACKLOG.md`。
 
 ## 後續可做
-1. 控制系統下一步依 `CONTROL_SYSTEM_PHASE10_PLAN.md` 與 `CONTROL_SYSTEM_BACKLOG.md` 做 `test(phase10): add robust edge-case fixtures`。
-2. 再做 `feat(phase10): add gain-phase uncertainty sweep`。
-3. Robust Control 維持分析型工具，不直接做 H∞ / μ synthesis。
-4. Teaching Mode / Electron / Report Template 目前使用者要求擱置，不要開發。
-5. Block Diagram 目前維持 paused；不要新增 block diagram 功能，除非使用者重新明確恢復。
+1. 控制系統下一步依 `CONTROL_SYSTEM_PHASE10_PLAN.md` 與 `CONTROL_SYSTEM_BACKLOG.md` 做 `feat(phase10): add MPC UI panel`。
+2. 再做 `feat(phase10): add robust sensitivity UI`。
+3. 再做 `feat(phase10): add dynamic decoupler UI`。
+4. Robust Control 維持分析型工具，不直接做 H∞ / μ synthesis。
+5. Teaching Mode / Electron / Report Template 目前使用者要求擱置，不要開發。
+6. Block Diagram 目前維持 paused；不要新增 block diagram 功能，除非使用者重新明確恢復。
 6. 加 `agents/openai.yaml` UI metadata。
 7. 增強 evaluator：從 heuristic 檢查升級成 judge model + golden dataset。
 8. 若 NVIDIA Build Models 更新，先更新根目錄資料檔，再同步 `skills/nvidia-model-selector/references/`。

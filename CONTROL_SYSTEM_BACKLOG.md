@@ -33,6 +33,7 @@
 - Branch: `codex/control-system-latest`
 - Latest pre-Phase-10 synced commit: `b01f169 docs(control): mark all 9 Scenario 3+4 issues as resolved`
 - Current Phase 10 checkpoint: Schur / Hamiltonian CARE solver, MPC baseline, Dynamic Decoupler prototype, and Robust sensitivity baseline added.
+- Scenario 5 browser walkthrough result: Phase 10 is math-core ready but UI-not-ready; next priority is UI integration for MPC / Robust / Dynamic Decoupler.
 - Latest full-theory audit:
   - `7a318b3 fix(control): harden phase 7-9 theory diagnostics`
   - `46e20da fix(control): harden phase 0-6 theory checks`
@@ -204,7 +205,10 @@ Exit criteria: 已達成。
 | CS-P10-02 | P1 | Done | MPC baseline | discrete finite-horizon / unconstrained receding-horizon baseline | discrete + state-space mature | scalar integrator hand-derived Riccati fixture |
 | CS-P10-03 | P2 | Done | Dynamic Decoupler | 頻域解耦（非僅 DC），先做 selected-frequency inverse prototype | MIMO mature | `G(jωc)·W(jωc)` 近似 I |
 | CS-P10-04 | P2 | Done | Robust Control sensitivity baseline | `S/T/KS` 與 peak sensitivity，不直接 H∞ synthesis | numerical engine mature | `S/T/KS` DC identity + singular guard |
-| CS-P10-09 | P2 | Next | Robust edge-case fixtures | 補低 PM、RHP zero、high sensitivity cases | CS-P10-04 | fixture-based peak sensitivity checks |
+| CS-P10-09 | P1 | Next | MPC UI panel | 暴露 horizon / Q / R / x0 / steps，讓工程師能用介面完成 MPC baseline | CS-P10-02 | Browser smoke 顯示 `K0=0.6`, `u0=-0.6` |
+| CS-P10-10 | P1 | Next | Robust sensitivity UI | 暴露 `S/T/KS`、`Ms/Mt/MKs`、risk | CS-P10-04 | Browser smoke 顯示 `S(0)=0.5`, `T(0)=0.5` |
+| CS-P10-11 | P1 | Next | Dynamic Decoupler UI | 暴露 `ωc` input、complex W、`G(jωc)W(jωc)` residual | CS-P10-03 | Browser smoke 顯示 off-diagonal residual |
+| CS-P10-12 | P2 | Planned | Robust edge-case fixtures | 補低 PM、RHP zero、high sensitivity cases | CS-P10-04 | fixture-based peak sensitivity checks |
 | CS-P10-05 | P3 | Paused | Electron packaging | 使用者要求擱置 | 主功能凍結 | 暫不做 |
 | CS-P10-06 | P3 | Paused | 教學模式 | 使用者要求擱置 | UI 穩定 | 暫不做 |
 | CS-P10-07 | P3 | Paused | 報告模板 / 報告自動化 | 使用者要求擱置 | Scenario docs mature | 暫不做 |
@@ -214,14 +218,14 @@ Exit criteria: 已達成。
 
 建議後續 agent 依序做：
 
-1. `test(phase10): add robust edge-case fixtures`
-   - 低 PM / RHP zero / high sensitivity cases。
+1. `feat(phase10): add MPC UI panel`
+   - Advisor 或 Sim 面板顯示 horizon / Q / R / x0 / first action / cost。
 
-2. `feat(phase10): add gain-phase uncertainty sweep`
-   - gain / phase perturbation grid。
+2. `feat(phase10): add robust sensitivity UI`
+   - S / T / KS、peak sensitivity、risk summary。
 
-3. `feat(phase10): add robust plot integration`
-   - S / T / KS plot tabs or MIMO-compatible surface。
+3. `feat(phase10): add dynamic decoupler UI`
+   - MIMO Analysis 加 `ωc` 與 residual summary。
 
 ## Do Not Start Yet
 

@@ -181,8 +181,15 @@ Verification:
 
 ## Recommended Next Commits
 
-1. `test(phase10): add robust edge-case fixtures`
-2. `feat(phase10): add gain-phase uncertainty sweep`
-3. `feat(phase10): add robust plot integration`
+Browser walkthrough in Scenario 5 showed Phase 10 is currently **math-core ready, UI-not-ready**. Prioritize UI integration before adding more theory surface.
+
+1. `feat(phase10): add MPC UI panel`
+2. `feat(phase10): add robust sensitivity UI`
+3. `feat(phase10): add dynamic decoupler UI`
+
+Then continue:
+
+4. `test(phase10): add robust edge-case fixtures`
+5. `feat(phase10): add gain-phase uncertainty sweep`
 
 Do not start Teaching Mode, Electron packaging, or Report Template until explicitly resumed.

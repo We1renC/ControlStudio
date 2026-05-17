@@ -370,3 +370,88 @@ Spacecraft 案例 B = `[[0,0],[1,0],[0,0],[0,1]]` 是 sparse rank-2 矩陣，B·
 
 5. **「Singular matrix」這種底層數學錯誤不能直接外漏給使用者**。每個呼叫端必須包裝為「該功能脈絡下的具體解釋」。否則使用者要回頭推測哪個矩陣奇異、為何奇異。
 6. **Newton-Kleinman LQR 對 marginally stable / unstable plant 不通用**。生產級控制工具應該用 Schur method（或 Hamiltonian eigenvector method）作為主求解器，Newton-Kleinman 只是 refinement。Studio 目前對「邊界 plant」（integrator、不穩定）以「明確錯誤 + 工作流引導」為過渡方案；Schur method 排入 Phase 10 backlog。
+
+---
+
+## Scenario 5: Phase 10 MPC / Robust UI Walkthrough
+
+Date: 2026-05-17
+
+### Control Situation
+
+以實際 ControlStudio 介面檢查 Phase 10 的兩個新能力是否能支援工程師完成設計流程：
+
+1. **MPC**：離散狀態空間模型，有限 horizon，無約束 receding-horizon baseline。
+2. **Robust**：SISO loop 的 sensitivity functions：`S=1/(1+L)`、`T=L/(1+L)`、`KS=K/(1+L)` 與 peak sensitivity。
+
+### Browser Walkthrough
+
+入口：
+
+```text
+http://127.0.0.1:8765/
+```
+
+已實際操作：
+
+1. System → SISO：
+   - 可輸入 Transfer Function。
+   - 可 Convert to Discrete。
+   - 可調 PID / Lead / Lag。
+   - 無 MPC / horizon / Q/R / x0 / receding-horizon simulation UI。
+
+2. System → MIMO：
+   - 可輸入 MIMO State-Space。
+   - 可看到 channel selector。
+   - 可使用既有 MIMO workflow。
+   - 可見 Static Decoupler / MIMO LQR 相關入口。
+   - 無 Dynamic Decoupler 的 `ωc` 輸入或 `G(jωc)W(jωc)` residual 顯示。
+
+3. Advisor：
+   - 可見 State Feedback / Lyapunov / LQR。
+   - 可見 Observer & Kalman Filter。
+   - 無 MPC section。
+   - 無 Robust / Sensitivity section。
+
+4. Plot tabs：
+   - Bode / Nyquist / Nichols / Root Locus 可用於傳統頻域分析。
+   - 無 `S/T/KS` plot tab。
+   - 無 peak sensitivity / robust risk summary。
+
+### Observed Result
+
+| 情境 | 底層模組狀態 | UI 可完成度 | 結論 |
+| - | - | - | - |
+| MPC | Done：`finiteHorizonLqr`、`firstMpcAction`、`simulateUnconstrainedMpc` | 不可完成 | 工程師無法透過 Studio UI 設定 horizon / Q / R / x0 或查看 MPC 模擬 |
+| Robust | Done：`sensitivityAt`、`sensitivityBode`、`robustPeaks` | 不可完成 | 工程師無法透過 Studio UI 查看 `S/T/KS`、peak sensitivity 或 robust risk |
+| Dynamic Decoupler | Done：`dynamicDecouplerAtFrequency` | 不可完成 | UI 仍只有 static decoupler，沒有 `ωc` 與 selected-frequency verification |
+
+### UI/UX Findings From Scenario 5
+
+| # | 嚴重度 | 問題 | 影響 |
+| - | - | - | - |
+| S5-1 | Critical | MPC 底層核心已完成，但 UI 沒有任何 MPC 入口 | 工程師無法用 Studio 完成 MPC 設計，只能靠程式模組 |
+| S5-2 | Critical | Robust sensitivity 底層核心已完成，但 UI 沒有 Robust / Sensitivity 入口 | 工程師無法判斷 `S/T/KS` peak、robust risk 或閉迴路敏感度 |
+| S5-3 | High | Dynamic Decoupler 核心已完成，但 UI 仍只提供 Static Decoupler | 使用者無法指定 crossover `ωc` 或看到 `G(jωc)W(jωc)≈I` 驗證 |
+| S5-4 | High | 介面沒有告知「Phase 10 核心目前是 API / module-ready，但 UI 尚未整合」 | 使用者會以為功能不存在，或誤以為 Bode / LQR 已等同 MPC / Robust |
+| S5-5 | Medium | Bode / stability margin 與 Robust sensitivity 的關係沒有被串起來 | 工程師看得到 PM/GM，但看不到 `Ms`、`Mt`，無法形成 robust design decision |
+
+### Improvement Backlog
+
+| # | 建議修復 | 驗證方式 |
+| - | - | - |
+| S5-1 | 新增 Advisor → MPC Baseline section：`horizon`、`Q`、`R`、`x0`、`steps`，顯示 first action、K0、final state norm、cost | 以 scalar integrator fixture 驗證 UI 顯示 `K0=0.6`、`u0=-0.6` |
+| S5-2 | 新增 Advisor 或 Analysis → Robust Sensitivity section：顯示 `Ms`、`Mt`、`MKs`、risk | 以 `L(s)=1/(s+1)` 驗證 `S(0)=0.5`、`T(0)=0.5` |
+| S5-3 | 在 MIMO Analysis 加 Dynamic Decoupler UI：`ωc` input、Compute、顯示 complex `W(jωc)` 與 residual | 驗證 `offDiagonalNorm < 1e-8` |
+| S5-4 | 在 Phase 10 UI 未整合前，顯示「core available / UI pending」狀態，不讓使用者誤判 | Browser smoke 應能看到明確 Phase 10 狀態 |
+| S5-5 | Robust plot integration：新增 `S/T/KS` tab 或 overlay | Browser smoke 檢查 legend 至少包含 `S`, `T`, `KS` |
+
+### Engineering Decision
+
+Phase 10 目前是 **math-core ready, UI-not-ready**。下一步不應再擴更多控制理論功能，而應先補 UI integration：
+
+1. `feat(phase10): add MPC UI panel`
+2. `feat(phase10): add robust sensitivity UI`
+3. `feat(phase10): add dynamic decoupler UI`
+
+教學模式、Electron、報告模板仍維持擱置。
