@@ -32,7 +32,7 @@
 
 - Branch: `codex/control-system-latest`
 - Latest pre-Phase-10 synced commit: `b01f169 docs(control): mark all 9 Scenario 3+4 issues as resolved`
-- Current Phase 10 checkpoint: Schur / Hamiltonian CARE solver, MPC baseline, and Dynamic Decoupler prototype added; next item is Robust Control scope.
+- Current Phase 10 checkpoint: Schur / Hamiltonian CARE solver, MPC baseline, Dynamic Decoupler prototype, and Robust sensitivity baseline added.
 - Latest full-theory audit:
   - `7a318b3 fix(control): harden phase 7-9 theory diagnostics`
   - `46e20da fix(control): harden phase 0-6 theory checks`
@@ -203,7 +203,8 @@ Exit criteria: 已達成。
 | CS-P10-01 | P0 | Done | Schur / Hamiltonian CARE solver | Newton-Kleinman 對 marginally stable / unstable plant 不通用，需穩定 invariant-subspace CARE 路徑 | Phase 7-9 LQR/LQE/MIMO LQR | `test_control.js` analytic CARE + Spacecraft case |
 | CS-P10-02 | P1 | Done | MPC baseline | discrete finite-horizon / unconstrained receding-horizon baseline | discrete + state-space mature | scalar integrator hand-derived Riccati fixture |
 | CS-P10-03 | P2 | Done | Dynamic Decoupler | 頻域解耦（非僅 DC），先做 selected-frequency inverse prototype | MIMO mature | `G(jωc)·W(jωc)` 近似 I |
-| CS-P10-04 | P2 | Next | Robust Control scope | 先做 sensitivity functions / uncertainty sweep，不直接 H∞ synthesis | numerical engine mature | `S/T/KS` peak fixtures |
+| CS-P10-04 | P2 | Done | Robust Control sensitivity baseline | `S/T/KS` 與 peak sensitivity，不直接 H∞ synthesis | numerical engine mature | `S/T/KS` DC identity + singular guard |
+| CS-P10-09 | P2 | Next | Robust edge-case fixtures | 補低 PM、RHP zero、high sensitivity cases | CS-P10-04 | fixture-based peak sensitivity checks |
 | CS-P10-05 | P3 | Paused | Electron packaging | 使用者要求擱置 | 主功能凍結 | 暫不做 |
 | CS-P10-06 | P3 | Paused | 教學模式 | 使用者要求擱置 | UI 穩定 | 暫不做 |
 | CS-P10-07 | P3 | Paused | 報告模板 / 報告自動化 | 使用者要求擱置 | Scenario docs mature | 暫不做 |
@@ -213,14 +214,14 @@ Exit criteria: 已達成。
 
 建議後續 agent 依序做：
 
-1. `docs(phase10): define robust control scope`
-   - Sensitivity functions / uncertainty sweep 的範圍與驗證案例。
-
-2. `feat(phase10): add robust sensitivity baseline`
-   - S / T / KS peak analysis baseline。
-
-3. `test(phase10): add robust edge-case fixtures`
+1. `test(phase10): add robust edge-case fixtures`
    - 低 PM / RHP zero / high sensitivity cases。
+
+2. `feat(phase10): add gain-phase uncertainty sweep`
+   - gain / phase perturbation grid。
+
+3. `feat(phase10): add robust plot integration`
+   - S / T / KS plot tabs or MIMO-compatible surface。
 
 ## Do Not Start Yet
 

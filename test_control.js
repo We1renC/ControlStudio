@@ -15,6 +15,7 @@ import { c2dTustin, c2dZOH } from './control-studio/js/control/c2d.js';
 import { specsToTargetPoles, designLeadForPM, deadbeatGain } from './control-studio/js/control/design.js';
 import { MIMOStateSpace, parseMIMOMatrices, rgaSteady, rgaDiagnosis, rgaInvariants, singularValueBode, evalAtJw, singularValues, staticDecoupler, applyDecoupler, dynamicDecouplerAtFrequency } from './control-studio/js/control/mimo.js';
 import { finiteHorizonLqr, firstMpcAction, simulateUnconstrainedMpc } from './control-studio/js/control/mpc.js';
+import { robustPeaks, sensitivityAt } from './control-studio/js/control/robust.js';
 import { solveLqrMIMO } from './control-studio/js/control/state-feedback.js';
 import { discreteBodeData } from './control-studio/js/analysis/discrete-frequency-response.js';
 import { matExp, matIdentity, matMul, matSub, matScale } from './control-studio/js/math/matrix.js';
@@ -656,6 +657,25 @@ try {
   }
   assertTrue('MPC invalid horizon guard', threwBadHorizon);
   console.log('Phase 10 MPC baseline tests passed');
+
+  // ── Phase 10 Robust baseline: S=1/(1+L), T=L/(1+L), KS=K/(1+L) ────────
+  const robustLoop = new TransferFunction([1], [1, 1]); // L(s)=1/(s+1)
+  const robustController = new TransferFunction([2], [1]);
+  const robustAtDc = sensitivityAt(robustLoop, 0, robustController);
+  assertNear('Robust S(0)', robustAtDc.S.re, 0.5, 1e-12);
+  assertNear('Robust T(0)', robustAtDc.T.re, 0.5, 1e-12);
+  assertNear('Robust KS(0)', robustAtDc.KS.re, 1, 1e-12);
+  const robustPeak = robustPeaks(robustLoop, [0, 0.1, 1, 10], robustController);
+  assertTrue('Robust peak includes Ms', robustPeak.Ms.peak >= 0.5);
+  assertTrue('Robust low-risk loop classified low', robustPeak.risk === 'low');
+  let threwSingularSensitivity = false;
+  try {
+    sensitivityAt(new TransferFunction([-1], [1]), 0);
+  } catch (err) {
+    threwSingularSensitivity = /singular/i.test(err.message);
+  }
+  assertTrue('Robust singular sensitivity guard', threwSingularSensitivity);
+  console.log('Phase 10 Robust sensitivity baseline tests passed');
 
   // ── Phase 7 Lyapunov: A=[0 1; -2 -3], Q=I has analytic P > 0 ─────────────
   // Solve A^T P + P A = -I with P symmetric:

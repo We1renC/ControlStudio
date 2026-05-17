@@ -139,9 +139,9 @@ Verification:
 
 ## Phase 10.4: Robust Control Scope Design
 
-Status: Next
+Status: Done
 
-Minimum viable scope:
+Implemented scope:
 
 - Sensitivity functions:
 
@@ -154,25 +154,35 @@ KS = K / (1 + L)
 - Robustness indicators:
   - peak `|S|`
   - peak `|T|`
-  - disk-margin style warning placeholder
-  - gain/phase uncertainty sweep
+  - peak `|KS|`
+  - low / medium / high risk classification from peak sensitivity
+
+Implementation:
+
+- `control-studio/js/control/robust.js`
+- `sensitivityAt(loopTf, omega, controllerTf)`
+- `sensitivityBode(loopTf, omegas, controllerTf)`
+- `robustPeaks(loopTf, omegas, controllerTf)`
 
 Deferred:
 
 - H∞ synthesis
 - μ-synthesis
 - structured uncertainty model
+- disk-margin style warning
+- gain/phase uncertainty sweep
 
-Required verification:
+Verification:
 
-- Stable low-pass loop with bounded sensitivity.
-- Low phase-margin case with high `|S|` peak.
-- RHP zero case showing unavoidable performance limitation.
+- Stable low-pass loop: `L(s)=1/(s+1)`.
+- DC identities: `S(0)=0.5`, `T(0)=0.5`.
+- `KS(0)` with `K=2` equals `1`.
+- Singular `1+L=0` guard.
 
 ## Recommended Next Commits
 
-1. `docs(phase10): define robust control scope`
-2. `feat(phase10): add robust sensitivity baseline`
-3. `test(phase10): add robust edge-case fixtures`
+1. `test(phase10): add robust edge-case fixtures`
+2. `feat(phase10): add gain-phase uncertainty sweep`
+3. `feat(phase10): add robust plot integration`
 
 Do not start Teaching Mode, Electron packaging, or Report Template until explicitly resumed.

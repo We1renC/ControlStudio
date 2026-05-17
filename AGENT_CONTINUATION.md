@@ -53,7 +53,8 @@
     - Done：Schur / Hamiltonian CARE solver
     - Done：MPC baseline
     - Done：Dynamic Decoupler prototype
-    - Next：Robust Control scope
+    - Done：Robust sensitivity baseline
+    - Next：Robust edge-case fixtures / gain-phase uncertainty sweep
     - Paused：Teaching Mode / Electron / Report Template / Block Diagram expansion
   - Block Diagram expansion：Paused
   - Phase 0 ~ Phase 9 已完成通盤數學理論完善度檢查；所有數學核心也已完成 hardening。後續若修改數值核心，需至少重跑 `node control-studio/scripts/verify_math_core.mjs`、`node test_control.js`、`node control-studio/scripts/verify_control_cases.mjs`、`node control-studio/scripts/verify_control_api_contract.mjs`、`node control-studio/scripts/control_regression_dashboard.mjs`。
@@ -178,11 +179,12 @@ git log --oneline -5
 - `test_control.js` 已新增 Hamiltonian CARE 驗證，涵蓋 SISO / MIMO analytic CARE 與 Spacecraft marginally stable MIMO case。
 - `control-studio/js/control/mpc.js` 已新增 Phase 10 MPC baseline：finite-horizon Riccati、first action、unconstrained receding-horizon simulation；`test_control.js` 以 scalar integrator 手推驗證 `K0=0.6`。
 - `control-studio/js/control/mimo.js` 已新增 `dynamicDecouplerAtFrequency(mimoSys, omega)`，可在指定 `ωc` 計算 `W(jωc)=G(jωc)⁻¹` 並回傳 `G(jωc)·W(jωc)` residual；`test_control.js` 已驗證 selected-frequency inverse。
+- `control-studio/js/control/robust.js` 已新增 Robust sensitivity baseline：`S/T/KS`、peak sensitivity、risk classification；`test_control.js` 已驗證 DC identity 與 singular guard。
 
 ## 後續可做
-1. 控制系統下一步依 `CONTROL_SYSTEM_PHASE10_PLAN.md` 與 `CONTROL_SYSTEM_BACKLOG.md` 做 `docs(phase10): define robust control scope`。
-2. 再做 `feat(phase10): add robust sensitivity baseline`。
-3. Robust Control 先做 sensitivity functions / uncertainty sweep，不直接做 H∞ / μ synthesis。
+1. 控制系統下一步依 `CONTROL_SYSTEM_PHASE10_PLAN.md` 與 `CONTROL_SYSTEM_BACKLOG.md` 做 `test(phase10): add robust edge-case fixtures`。
+2. 再做 `feat(phase10): add gain-phase uncertainty sweep`。
+3. Robust Control 維持分析型工具，不直接做 H∞ / μ synthesis。
 4. Teaching Mode / Electron / Report Template 目前使用者要求擱置，不要開發。
 5. Block Diagram 目前維持 paused；不要新增 block diagram 功能，除非使用者重新明確恢復。
 6. 加 `agents/openai.yaml` UI metadata。
