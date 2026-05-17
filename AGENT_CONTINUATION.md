@@ -88,6 +88,11 @@ git log --oneline -5
 ./scripts/validate_nvidia_model_selector.sh
 ```
 
+## Git 維護提醒
+- 控制系統開發必須持續用 git 維護；每完成一批功能、修正、或驗證補強，就立刻 commit，不要讓 `control-studio/` 與 `test_control.js` 長時間停留在未提交狀態。
+- 控制系統 commit 請帶 phase / scope，例如 `feat(phase9): ...`、`fix(phase9): ...`、`test(phase9): ...`、`docs(control): ...`。
+- 在切換 agent 前，若本輪有控制系統改動，先確認至少有一個可回溯的 git checkpoint。
+
 ## 已驗證
 - `bge-m3` model search works.
 - `Embedding API` service search works.

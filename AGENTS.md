@@ -22,6 +22,8 @@
 ## 控制系統開發規則
 - 若修改 `control-studio/`、`workflows/control_advisor_workflow.py`、`test_control.js`，先讀 `CONTROL_SYSTEM_PLAN.md`。
 - 控制系統功能開發先以 `CONTROL_SYSTEM_PLAN.md` 的 MVP 範圍為主，不要直接跳做高複雜度進階控制功能。
+- 控制系統每次完成功能、修正理論/數值錯誤、或補驗證案例後，都要立即用 git 留下明確 checkpoint；不要累積多輪未提交的控制系統變更。
+- 控制系統相關 commit message 需明確標示 phase / scope，例如 `feat(phase9): ...`、`fix(phase9): ...`、`test(phase9): ...`、`docs(control): ...`。
 
 ## 標準流程
 1. 查狀態：

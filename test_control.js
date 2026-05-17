@@ -17,6 +17,7 @@ import { MIMOStateSpace, parseMIMOMatrices, rgaSteady, rgaDiagnosis, singularVal
 import { solveLqrMIMO } from './control-studio/js/control/state-feedback.js';
 import { discreteBodeData } from './control-studio/js/analysis/discrete-frequency-response.js';
 import { matExp, matIdentity, matMul, matSub, matScale } from './control-studio/js/math/matrix.js';
+import { Complex } from './control-studio/js/math/complex.js';
 import { tfToControllableCanonical } from './control-studio/js/control/state-space.js';
 import { matRank } from './control-studio/js/math/matrix.js';
 import { analyzeLyapunov, closedLoopTransferFromStateFeedback, discretizeZOH, innovationStats, placeObserver, placeStateFeedback, simulateLqg, simulateObserver, solveDiscreteKalman, solveLqe, solveLqr } from './control-studio/js/control/state-feedback.js';
@@ -32,6 +33,9 @@ try {
       throw new Error(`${name}: expected length ${expected.length}, got ${actual.length}`);
     }
     actual.forEach((value, idx) => assertNear(`${name}[${idx}]`, value, expected[idx], tolerance));
+  };
+  const assertTrue = (name, condition) => {
+    if (!condition) throw new Error(name);
   };
 
   // Test 1/(s+1)
@@ -835,63 +839,85 @@ try {
     // Test 1: Diagonal system → RGA should be identity
     const diagSys = new MIMOStateSpace([[-1, 0], [0, -2]], [[1, 0], [0, 1]], [[1, 0], [0, 1]], [[0, 0], [0, 0]]);
     const rga1 = rgaSteady(diagSys);
-    console.assert(Math.abs(rga1[0][0] - 1) < 1e-6 && Math.abs(rga1[1][1] - 1) < 1e-6, `Diagonal RGA should be I, got [[${rga1[0]}],[${rga1[1]}]]`);
-    console.assert(Math.abs(rga1[0][1]) < 1e-6 && Math.abs(rga1[1][0]) < 1e-6, 'Off-diagonal RGA should be 0');
+    assertNear('Diagonal RGA (1,1)', rga1[0][0], 1, 1e-6);
+    assertNear('Diagonal RGA (2,2)', rga1[1][1], 1, 1e-6);
+    assertNear('Diagonal RGA (1,2)', rga1[0][1], 0, 1e-6);
+    assertNear('Diagonal RGA (2,1)', rga1[1][0], 0, 1e-6);
 
     // Test 2: Coupled system → RGA rows sum to 1
     const coupledSys = new MIMOStateSpace([[-1, 0], [0, -1]], [[1, 0.5], [0.5, 1]], [[1, 0], [0, 1]], [[0, 0], [0, 0]]);
     const rga2 = rgaSteady(coupledSys);
     const sumRow0 = rga2[0][0] + rga2[0][1];
-    console.assert(Math.abs(sumRow0 - 1) < 1e-6, `RGA rows sum to 1, got ${sumRow0}`);
+    const sumRow1 = rga2[1][0] + rga2[1][1];
+    assertNear('Coupled RGA row0 sum', sumRow0, 1, 1e-6);
+    assertNear('Coupled RGA row1 sum', sumRow1, 1, 1e-6);
+    assertNear('Coupled RGA (1,1)', rga2[0][0], 4 / 3, 1e-6);
+    assertNear('Coupled RGA (1,2)', rga2[0][1], -1 / 3, 1e-6);
+    assertNear('Coupled RGA (2,1)', rga2[1][0], -1 / 3, 1e-6);
+    assertNear('Coupled RGA (2,2)', rga2[1][1], 4 / 3, 1e-6);
 
     // Test 3: SV Bode finite values
     const omegas = [0.1, 1, 10];
     const svResult = singularValueBode(diagSys, omegas);
-    console.assert(svResult.sigmaMax.every((v) => Number.isFinite(v) && v > 0), 'σ_max finite');
-    console.assert(svResult.sigmaMin.every((v) => Number.isFinite(v) && v > 0), 'σ_min finite');
+    assertTrue('σ_max finite', svResult.sigmaMax.every((v) => Number.isFinite(v) && v > 0));
+    assertTrue('σ_min finite', svResult.sigmaMin.every((v) => Number.isFinite(v) && v > 0));
 
     // Test 4: σ at DC ≈ |G(0)| eigenvalues — diag(1, 0.5)
     const svDC = singularValueBode(diagSys, [0.001]);
-    console.assert(Math.abs(svDC.sigmaMax[0] - 1) < 0.01, `σ_max at DC ≈ 1, got ${svDC.sigmaMax[0]}`);
-    console.assert(Math.abs(svDC.sigmaMin[0] - 0.5) < 0.01, `σ_min at DC ≈ 0.5, got ${svDC.sigmaMin[0]}`);
+    assertNear('σ_max at DC', svDC.sigmaMax[0], 1, 0.01);
+    assertNear('σ_min at DC', svDC.sigmaMin[0], 0.5, 0.01);
+
+    // Test 5: 3x3 complex case exercises m>2 Hermitian fallback correctly
+    const complex3 = [
+      [new Complex(1, 0), new Complex(0, 1), new Complex(0, 0)],
+      [new Complex(0, 0), new Complex(1, 0), new Complex(0, 0)],
+      [new Complex(0, 0), new Complex(0, 0), new Complex(1, 0)],
+    ];
+    const sv3 = singularValues(complex3);
+    assertNear('3x3 σ1', sv3[0], (1 + Math.sqrt(5)) / 2, 1e-6);
+    assertNear('3x3 σ2', sv3[1], 1, 1e-6);
+    assertNear('3x3 σ3', sv3[2], (Math.sqrt(5) - 1) / 2, 1e-6);
 
     console.log('MIMO Batch 2 tests passed');
 
     console.log('\n=== MIMO Batch 3 tests ===');
     const sys3 = new MIMOStateSpace([[-1, 0], [0, -2]], [[1, 0], [0, 1]], [[1, 0], [0, 1]], [[0, 0], [0, 0]]);
     const grid = sys3.allChannels();
-    console.assert(grid.length === 2 && grid[0].length === 2, 'allChannels returns 2x2 grid');
-    console.assert(grid[0][0].poles().length > 0, 'Each cell is a valid TF');
+    assertTrue('allChannels returns 2x2 grid', grid.length === 2 && grid[0].length === 2);
+    assertTrue('Each cell is a valid TF', grid[0][0].poles().length > 0);
     console.log('MIMO Batch 3 tests passed');
 
     console.log('\n=== MIMO Batch 4 tests ===');
     // Test 1: Decoupler makes G(0)·W = I
     const coupledSys4 = new MIMOStateSpace([[-1, 0], [0, -1]], [[1, 0.5], [0.5, 1]], [[1, 0], [0, 1]], [[0, 0], [0, 0]]);
     const { W, verification } = staticDecoupler(coupledSys4);
-    console.assert(Math.abs(verification[0][0] - 1) < 1e-6 && Math.abs(verification[1][1] - 1) < 1e-6,
-      `G0·W diagonal = 1, got [${verification[0][0]}, ${verification[1][1]}]`);
-    console.assert(Math.abs(verification[0][1]) < 1e-6 && Math.abs(verification[1][0]) < 1e-6,
-      `G0·W off-diagonal = 0, got [${verification[0][1]}, ${verification[1][0]}]`);
+    assertNear('G0W (1,1)', verification[0][0], 1, 1e-6);
+    assertNear('G0W (2,2)', verification[1][1], 1, 1e-6);
+    assertNear('G0W (1,2)', verification[0][1], 0, 1e-6);
+    assertNear('G0W (2,1)', verification[1][0], 0, 1e-6);
 
     // Test 2: After decoupler, RGA ≈ I
     const decoupled = applyDecoupler(coupledSys4, W);
     const rgaNew = rgaSteady(decoupled);
-    console.assert(Math.abs(rgaNew[0][0] - 1) < 1e-6 && Math.abs(rgaNew[1][1] - 1) < 1e-6,
-      `Decoupled RGA diag = 1, got [${rgaNew[0][0]}, ${rgaNew[1][1]}]`);
-    console.assert(Math.abs(rgaNew[0][1]) < 1e-6 && Math.abs(rgaNew[1][0]) < 1e-6,
-      `Decoupled RGA off-diag = 0`);
+    assertNear('Decoupled RGA (1,1)', rgaNew[0][0], 1, 1e-6);
+    assertNear('Decoupled RGA (2,2)', rgaNew[1][1], 1, 1e-6);
+    assertNear('Decoupled RGA (1,2)', rgaNew[0][1], 0, 1e-6);
+    assertNear('Decoupled RGA (2,1)', rgaNew[1][0], 0, 1e-6);
 
-    // Test 3: MIMO LQR converges
+    // Test 3: MIMO LQR converges to the analytic diagonal solution
     const lqrResult = solveLqrMIMO(
       [[-1, 0], [0, -2]],
       [[1, 0], [0, 1]],
       [[1, 0], [0, 1]],
       [[1, 0], [0, 1]],
     );
-    console.assert(lqrResult.iterations < 200, `LQR converged in ${lqrResult.iterations} iter`);
-    console.assert(lqrResult.riccatiResidualNorm < 1e-6,
-      `LQR CARE residual small: ${lqrResult.riccatiResidualNorm}`);
-    console.assert(lqrResult.K.length === 2 && lqrResult.K[0].length === 2, 'K is 2×2');
+    assertTrue(`LQR converged in ${lqrResult.iterations} iter`, lqrResult.iterations < 200);
+    assertTrue(`LQR CARE residual small: ${lqrResult.riccatiResidualNorm}`, lqrResult.riccatiResidualNorm < 1e-6);
+    assertTrue('K is 2×2', lqrResult.K.length === 2 && lqrResult.K[0].length === 2);
+    assertNear('LQR diag K11', lqrResult.K[0][0], Math.sqrt(2) - 1, 1e-6);
+    assertNear('LQR diag K22', lqrResult.K[1][1], Math.sqrt(5) - 2, 1e-6);
+    assertNear('LQR diag K12', lqrResult.K[0][1], 0, 1e-6);
+    assertNear('LQR diag K21', lqrResult.K[1][0], 0, 1e-6);
 
     // Test 4: MIMO LQR on a coupled system also produces stable A - BK
     const lqr2 = solveLqrMIMO(
@@ -900,8 +926,20 @@ try {
       [[1, 0], [0, 1]],
       [[1, 0], [0, 1]],
     );
-    console.assert(lqr2.riccatiResidualNorm < 1e-4,
-      `Coupled-system LQR CARE residual ok: ${lqr2.riccatiResidualNorm}`);
+    assertTrue(`Coupled-system LQR CARE residual ok: ${lqr2.riccatiResidualNorm}`, lqr2.riccatiResidualNorm < 1e-4);
+
+    // Test 5: Unstable A with invertible B should auto-build a stabilizing initial gain
+    const lqr3 = solveLqrMIMO(
+      [[1, 0], [0, 2]],
+      [[1, 0], [0, 1]],
+      [[1, 0], [0, 1]],
+      [[1, 0], [0, 1]],
+    );
+    assertTrue('Unstable diagonal MIMO LQR converges', lqr3.riccatiResidualNorm < 1e-6);
+    assertNear('Unstable diag K11', lqr3.K[0][0], 1 + Math.sqrt(2), 1e-6);
+    assertNear('Unstable diag K22', lqr3.K[1][1], 2 + Math.sqrt(5), 1e-6);
+    assertNear('Unstable diag Acl11', lqr3.Acl[0][0], -Math.sqrt(2), 1e-6);
+    assertNear('Unstable diag Acl22', lqr3.Acl[1][1], -Math.sqrt(5), 1e-6);
 
     console.log('MIMO Batch 4 tests passed');
   }

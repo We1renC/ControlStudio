@@ -11,6 +11,32 @@ import { stateSpaceToTransferFunction } from './state-space.js';
 import { matInverse, matMul, matTranspose, matEigenvaluesSymmetric } from '../math/matrix.js';
 import { Complex } from '../math/complex.js';
 
+function hermitianEigenvalues(GhG) {
+  const n = GhG.length;
+  const block = Array.from({ length: 2 * n }, () => new Array(2 * n).fill(0));
+  for (let i = 0; i < n; i++) {
+    for (let j = 0; j < n; j++) {
+      const { re, im } = GhG[i][j];
+      block[i][j] = re;
+      block[i][j + n] = -im;
+      block[i + n][j] = im;
+      block[i + n][j + n] = re;
+    }
+  }
+  const eigs = matEigenvaluesSymmetric(block).sort((a, b) => b - a);
+  const collapsed = [];
+  for (const eig of eigs) {
+    if (!collapsed.length || Math.abs(eig - collapsed[collapsed.length - 1]) > 1e-8) {
+      collapsed.push(eig);
+    }
+    if (collapsed.length === n) break;
+  }
+  while (collapsed.length < n) {
+    collapsed.push(collapsed[collapsed.length - 1] ?? 0);
+  }
+  return collapsed.sort((a, b) => a - b);
+}
+
 export class MIMOStateSpace {
   constructor(A, B, C, D) {
     this.A = A;  // n × n
@@ -278,9 +304,10 @@ export function singularValues(G) {
     const l2 = tr2 - disc;
     return [Math.sqrt(Math.max(0, l1)), Math.sqrt(Math.max(0, l2))].sort((x, y) => y - x);
   }
-  // Fallback for higher m: use real part (GhG is hermitian PSD → diag is real)
-  const realPart = GhG.map((row) => row.map((c) => c.re));
-  const eigs = matEigenvaluesSymmetric(realPart);
+  // For higher-order MIMO, convert Hermitian GhG into an equivalent real
+  // symmetric block matrix [[Re, -Im], [Im, Re]]. Its eigenvalues duplicate
+  // the Hermitian eigenvalues, preserving the true singular values.
+  const eigs = hermitianEigenvalues(GhG);
   return eigs.map((e) => Math.sqrt(Math.max(0, e))).sort((x, y) => y - x);
 }
 

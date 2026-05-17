@@ -268,17 +268,25 @@ export function solveLqrMIMO(A, B, Q = null, R = null, options = {}) {
   const Rinv = matInverse(Rmat);
   const Bt = matTranspose(B);
 
-  // Pick a stabilizing initial K. If A is already stable, K=0 works.
-  // Otherwise, try pole placement on each input column. Fall back to zero.
   let K;
-  try {
-    // Simple attempt: place using first input column when possible
-    const desired = Array.from({ length: n }, (_, i) => ({ re: -(i + 1), im: 0 }));
-    // For MIMO we cannot directly use SISO placeStateFeedback; just try K=0
+  if (options.initialK) {
+    K = options.initialK.map((row) => [...row]);
+  } else if (analyzeLyapunov(A, matIdentity(n)).provenStable) {
     K = matCreate(m, n, 0);
-    void desired;
-  } catch (_) {
+  } else if (m === n) {
+    try {
+      const alpha = options.initialShift || 1;
+      K = matMul(matInverse(B), matAdd(A, matScale(matIdentity(n), alpha)));
+    } catch (_) {
+      K = matCreate(m, n, 0);
+    }
+  } else {
     K = matCreate(m, n, 0);
+  }
+
+  const initialAcl = matSub(A, matMul(B, K));
+  if (!analyzeLyapunov(initialAcl, matIdentity(n)).provenStable) {
+    throw new Error('solveLqrMIMO requires a stabilizing initial gain; provide options.initialK or use a plant with stable A / invertible B');
   }
 
   const maxIterations = options.maxIterations || 200;
