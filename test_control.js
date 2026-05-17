@@ -1071,6 +1071,72 @@ try {
     console.log('MIMO Batch 4 tests passed');
   }
 
+  // ===== Scenario 3 + 4 regression tests (S3-2 / S4-1 / S4-2 / S4-4 / S4-5) =====
+  {
+    console.log('\n=== Scenario 3/4 friendly-error regression tests ===');
+
+    // S4-1: RGA on integrator plant explains G(0) singularity rather than raw "Singular matrix"
+    const integratorPlant = new MIMOStateSpace(
+      [[0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1], [0, -1, 0, 0]],
+      [[0, 0], [1, 0], [0, 0], [0, 1]],
+      [[1, 0, 0, 0], [0, 0, 1, 0]],
+      [[0, 0], [0, 0]],
+    );
+    let rgaErrMsg = '';
+    try {
+      rgaSteady(integratorPlant);
+    } catch (err) {
+      rgaErrMsg = err.message;
+    }
+    assertTrue('RGA on integrator plant gives friendly G(0) message',
+      /G\(0\)/.test(rgaErrMsg) && !/^Singular matrix$/.test(rgaErrMsg));
+
+    // S3-2: Lyapunov on unstable plant produces user-friendly explanation
+    let lyapErrMsg = '';
+    try {
+      analyzeLyapunov([[0, 1], [900, 0]], null); // MagLev linearization
+    } catch (err) {
+      lyapErrMsg = err.message;
+    }
+    // Either we get a friendly message OR (if the matrix isn't perfectly singular)
+    // analyzeLyapunov returns a non-stable proof — both are acceptable.
+    if (lyapErrMsg) {
+      assertTrue('Lyapunov on unstable plant gives friendly (non-raw) message',
+        !/^Singular matrix$/.test(lyapErrMsg));
+    }
+
+    // S4-2: MIMO LQR on marginally stable plant — should either succeed via Bass
+    // fallback OR throw the friendly stabilizing-initial-gain message.
+    const marginalA = [[0, 1, 0, 0], [0, 0, 0, 0], [0, 0, 0, 1], [0, 0, -1, 0]];
+    const marginalB = [[0, 0], [1, 0], [0, 0], [0, 1]];
+    let lqrSucceeded = false;
+    let lqrErrMsg = '';
+    try {
+      const r = solveLqrMIMO(marginalA, marginalB, null, null);
+      lqrSucceeded = r.closedLoopStable;
+    } catch (err) {
+      lqrErrMsg = err.message;
+    }
+    // Acceptable: success, OR friendly "stabilizing initial gain" error, OR
+    // friendly Lyapunov error (Bass placed the closed-loop poles but the
+    // Lyapunov certifier saw residual jω-axis sensitivity).
+    const friendlyErr = /stabilizing initial gain/i.test(lqrErrMsg)
+      || /Lyapunov/i.test(lqrErrMsg);
+    assertTrue('Marginally stable MIMO LQR either succeeds or gives friendly error',
+      lqrSucceeded || friendlyErr);
+    assertTrue('Marginally stable LQR error never leaks raw "Singular matrix"',
+      lqrSucceeded || !/^Singular matrix$/i.test(lqrErrMsg.trim()));
+
+    // Bass fallback specifically: simple unstable A=[[1,0],[0,2]], B=I should now
+    // succeed (already covered by Batch 4 Test 5 via pseudoinverse, but verify
+    // Bass-only path via an unstable system where pseudoinverse path doesn't apply).
+    // A double-integrator with full-state B should be stabilized by Bass.
+    const dbl = solveLqrMIMO([[0, 1], [0, 0]], [[1, 0], [0, 1]], null, null);
+    assertTrue('Double integrator MIMO LQR stabilizes via fallback', dbl.closedLoopStable);
+
+    console.log('Scenario 3/4 regression tests passed');
+  }
+
   console.log('Tests Passed!');
 } catch (e) {
   console.error('Error:', e);

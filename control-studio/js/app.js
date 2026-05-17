@@ -1610,6 +1610,7 @@ function updateSystem() {
       state.plant = new TransferFunction(num, den);
     }
     clearError();
+    autoToggleOpenLoopForUnstablePlant();
     updateController();
   } catch (err) {
     showError(err.message);
@@ -2142,6 +2143,29 @@ function renderBodePlot(sys, targetId = 'chart-active') {
       }
       if (annotations.length) layout.annotations = annotations;
     } catch (_) { /* ignore — fall back to plain bode */ }
+  }
+
+  // S3-4: warn when plant has RHP poles — Bode PM/GM cannot be read with the
+  // naive "PM>0 means stable" rule; Nyquist criterion must account for RHP poles.
+  if (!isDiscrete) {
+    try {
+      const poles = sys.poles ? sys.poles() : [];
+      const hasRhp = poles.some((p) => (p.re ?? p) > 1e-9);
+      if (hasRhp) {
+        const note = {
+          xref: 'paper', yref: 'paper', x: 0.02, y: 0.98,
+          xanchor: 'left', yanchor: 'top',
+          text: '⚠ Plant 不穩定 (RHP 極點)。PM/GM 數字以 Nyquist criterion 解讀需考慮 RHP poles 數，不能直接套用「PM>0 = 穩定」的規則',
+          showarrow: false,
+          bgcolor: 'rgba(239,68,68,0.15)',
+          bordercolor: '#ef4444',
+          borderwidth: 1,
+          borderpad: 4,
+          font: { size: 10, color: '#fca5a5' },
+        };
+        layout.annotations = [...(layout.annotations || []), note];
+      }
+    } catch (_) { /* ignore */ }
   }
 
   Plotly.react(targetId, traces, layout, { responsive: true, displayModeBar: false });
@@ -3300,6 +3324,16 @@ function switchSystemMode(mode) {
     if (mimoPanel) mimoPanel.style.display = 'none';
     if (channelBar) channelBar.style.display = 'none';
     if (mimoAnalysis) mimoAnalysis.style.display = 'none';
+    // S4-3 corollary: when leaving MIMO mode, restore 2×2 default in obs-qn
+    // and friends if they are still oversized from the MIMO sweep.
+    [{ id: 'obs-qn', dim: 2 }, { id: 'dkf-qd', dim: 2 }].forEach(({ id, dim }) => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      const cur = _parseMatrixDims(el.value);
+      if (cur.r > dim || cur.c > dim) {
+        el.value = _identityMatrixText(dim);
+      }
+    });
     state.mimoChannel.all = false;
     const gridCell = document.getElementById('mimo-grid-cell');
     if (gridCell) gridCell.style.display = 'none';
@@ -3346,6 +3380,7 @@ function updateMIMOSystem() {
     }
     renderMIMOChannelBar();
     applyMIMOChannel();
+    autoResizePhase8MatricesForMIMO(mimoPlant);
     clearError();
   } catch (err) {
     const statusEl = document.getElementById('mimo-status-out');
@@ -3690,8 +3725,100 @@ function computeMIMOLqr() {
 // HELPERS
 // ============================================================
 function debounce(fn, ms) { let timeout; return (...args) => { clearTimeout(timeout); timeout = setTimeout(() => fn.apply(this, args), ms); }; }
-function showError(msg) { const el = document.getElementById('error-msg'); if (el) { el.textContent = msg; el.style.display = 'block'; } }
-function clearError() { const el = document.getElementById('error-msg'); if (el) { el.textContent = ''; el.style.display = 'none'; } }
+let _errorAutoDismissTimer = null;
+function showError(msg) {
+  const el = document.getElementById('error-msg');
+  if (el) {
+    el.textContent = msg;
+    el.style.display = 'block';
+  }
+  // S3-3: auto-dismiss so stale errors don't haunt subsequent successful ops.
+  if (_errorAutoDismissTimer) clearTimeout(_errorAutoDismissTimer);
+  _errorAutoDismissTimer = setTimeout(() => clearError(), 6000);
+}
+function clearError() {
+  const el = document.getElementById('error-msg');
+  if (el) { el.textContent = ''; el.style.display = 'none'; }
+  if (_errorAutoDismissTimer) { clearTimeout(_errorAutoDismissTimer); _errorAutoDismissTimer = null; }
+}
+
+// S4-3: when MIMO dimensions change, auto-resize Phase 8 / MIMO-LQR matrix
+// textareas (Q_n, R_n, Q_d, R_d, MIMO LQR Q/R) to n×n / m×m identity defaults,
+// but only when the existing textarea dimensions no longer match — preserving
+// user-customized values for already-correctly-sized matrices.
+function _identityMatrixText(dim) {
+  const lines = [];
+  for (let i = 0; i < dim; i++) {
+    const row = Array(dim).fill(0);
+    row[i] = 1;
+    lines.push(row.join(' '));
+  }
+  return lines.join('\n');
+}
+function _parseMatrixDims(text) {
+  const rows = String(text || '').trim().split('\n').map((r) => r.trim()).filter((r) => r);
+  if (!rows.length) return { r: 0, c: 0 };
+  const cols = rows[0].split(/[\s,]+/).filter((x) => x).length;
+  const allSameWidth = rows.every((r) => r.split(/[\s,]+/).filter((x) => x).length === cols);
+  return { r: rows.length, c: allSameWidth ? cols : -1 };
+}
+function autoResizePhase8MatricesForMIMO(mimoPlant) {
+  if (!mimoPlant) return;
+  const n = mimoPlant.n;
+  const m = mimoPlant.m;
+  const nxn = _identityMatrixText(n);
+  const mxm = _identityMatrixText(m);
+  // Targets: { id, dim } — only overwrite when current dims ≠ target
+  [
+    { id: 'obs-qn', dim: n, value: nxn },
+    { id: 'dkf-qd', dim: n, value: nxn },
+    { id: 'mimo-lqr-q', dim: n, value: nxn },
+    { id: 'lyapunov-q', dim: n, value: nxn },
+    { id: 'lqr-q', dim: n, value: nxn },
+    { id: 'mimo-lqr-r', dim: m, value: mxm },
+  ].forEach(({ id, dim, value }) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const cur = _parseMatrixDims(el.value);
+    if (cur.r !== dim || cur.c !== dim) {
+      el.value = value;
+    }
+  });
+}
+
+// S3-1: when a freshly entered SISO plant has RHP poles, auto-switch the PZ
+// map view to open-loop so the user sees the plant's true poles before any
+// stabilizing controller is designed. Surface a banner explaining the swap.
+function autoToggleOpenLoopForUnstablePlant() {
+  try {
+    if (state.systemMode !== 'siso' || !state.plant || state.domain !== 's') return;
+    const poles = state.plant.poles ? state.plant.poles() : [];
+    const hasRhp = poles.some((p) => (p.re ?? p) > 1e-9);
+    if (hasRhp && state.showClosedLoop) {
+      state.showClosedLoop = false;
+      const clToggle = document.getElementById('cl-toggle');
+      if (clToggle) clToggle.checked = false;
+      showBanner('⚠ Plant 包含 RHP 極點（不穩定），已自動切到 Open-loop view 以利觀察 plant 真實極點。完成穩定化後請手動切回 Closed-loop。');
+    }
+  } catch (_) { /* defensive — don't block updateSystem */ }
+}
+
+// Non-blocking informational banner (toast) — distinct visual from showError
+// (which is red and treated as failure). Auto-dismisses after 6 s.
+let _bannerAutoDismissTimer = null;
+function showBanner(msg) {
+  let el = document.getElementById('info-banner');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'info-banner';
+    el.style.cssText = 'position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:rgba(245,158,11,0.95);color:#0f1117;padding:10px 18px;border-radius:8px;font-size:12px;z-index:1000;box-shadow:0 10px 25px rgba(0,0,0,0.25);max-width:80%;line-height:1.5;';
+    document.body.appendChild(el);
+  }
+  el.textContent = msg;
+  el.style.display = 'block';
+  if (_bannerAutoDismissTimer) clearTimeout(_bannerAutoDismissTimer);
+  _bannerAutoDismissTimer = setTimeout(() => { if (el) el.style.display = 'none'; }, 6000);
+}
 
 function exportChartPNG() {
   const chartEl = document.getElementById('chart-active');

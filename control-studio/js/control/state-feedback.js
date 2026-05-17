@@ -16,6 +16,7 @@ import {
   matSymmetrize,
   matTranspose,
   matTrace,
+  SingularMatrixError,
 } from '../math/matrix.js';
 import { controllabilityMatrix, observabilityMatrix, stateSpaceToTransferFunction, tfToControllableCanonical } from './state-space.js';
 import { parseRootsString } from './zpk.js';
@@ -124,14 +125,54 @@ function stabilizingShiftGain(A, B, alpha) {
   return matMul(rightInv, matAdd(A, matScale(matIdentity(n), alpha)));
 }
 
+function isMatrixStable(A) {
+  try {
+    const poles = matrixPoles(A);
+    return poles.every((p) => p.re < -1e-9);
+  } catch (_) {
+    return false;
+  }
+}
+
+/**
+ * Bass's method: choose K = α·B' such that A − α·B·B' is stable.
+ * Works for the general (n,m) case as long as the pair (A,B) is stabilizable
+ * and B·B' has enough rank in the unstable subspace. Returns null if no
+ * α in the candidate set works.
+ */
+function bassStabilizingGain(A, B, alphaCandidates) {
+  const Bt = matTranspose(B);
+  const BBt = matMul(B, Bt);
+  for (const alpha of alphaCandidates) {
+    const K = matScale(Bt, alpha);
+    const Acl = matSub(A, matMul(B, K));
+    if (isMatrixStable(Acl)) {
+      // Verify via Lyapunov as well (stricter check)
+      try {
+        if (analyzeLyapunov(Acl, matIdentity(A.length)).provenStable) {
+          return { K, alpha };
+        }
+      } catch (_) {
+        // try next alpha
+      }
+    }
+  }
+  return null;
+}
+
 function findStabilizingInitialGainMIMO(A, B, options = {}) {
   const n = A.length;
   const m = B[0].length;
   const candidates = options.alphaCandidates || [0.5, 1, 2, 4, 8, 16];
   const bRank = matRank(B);
 
-  if (analyzeLyapunov(A, matIdentity(n)).provenStable) {
-    return { K: matCreate(m, n, 0), strategy: 'zero-gain-stable-A' };
+  try {
+    if (analyzeLyapunov(A, matIdentity(n)).provenStable) {
+      return { K: matCreate(m, n, 0), strategy: 'zero-gain-stable-A' };
+    }
+  } catch (_) {
+    // Lyapunov of raw A is singular (e.g. A has jω-axis poles) → not stable,
+    // fall through to other strategies.
   }
 
   if (m >= n && bRank === n) {
@@ -139,13 +180,25 @@ function findStabilizingInitialGainMIMO(A, B, options = {}) {
       try {
         const K = stabilizingShiftGain(A, B, alpha);
         const Acl = matSub(A, matMul(B, K));
-        if (analyzeLyapunov(Acl, matIdentity(n)).provenStable) {
+        let stable = false;
+        try { stable = analyzeLyapunov(Acl, matIdentity(n)).provenStable; } catch (_) { stable = false; }
+        if (stable) {
           return { K, strategy: `right-pseudoinverse-shift(alpha=${alpha})` };
         }
       } catch (_) {
         // keep searching
       }
     }
+  }
+
+  // Bass's method fallback — covers the underactuated/marginally-stable case
+  // (e.g. spacecraft attitude with double integrators) where the pseudoinverse
+  // path doesn't apply.
+  const bassCandidates = options.bassAlphaCandidates
+    || [0.5, 1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024];
+  const bass = bassStabilizingGain(A, B, bassCandidates);
+  if (bass) {
+    return { K: bass.K, strategy: `bass-method(alpha=${bass.alpha})` };
   }
 
   return null;
@@ -217,7 +270,17 @@ export function solveContinuousLyapunov(A, Q = null) {
 }
 
 export function analyzeLyapunov(A, Q = null) {
-  const { P, Q: Qmat } = solveContinuousLyapunov(A, Q);
+  let P, Qmat;
+  try {
+    const sol = solveContinuousLyapunov(A, Q);
+    P = sol.P;
+    Qmat = sol.Q;
+  } catch (e) {
+    if (e.name === 'SingularMatrixError' || /singular/i.test(e.message)) {
+      throw new Error('Lyapunov 方程無正定解：A 含有對稱共軛 (λ_i + λ_j = 0) 的特徵值（典型情形：plant 不穩定或 marginally stable，A 有 jω-axis 極點）。請先用 State Feedback / LQR 穩定化後再驗證 Lyapunov 穩定性。');
+    }
+    throw e;
+  }
   const residual = matAdd(matAdd(matMul(matTranspose(A), P), matMul(P, A)), Qmat);
   const eigenvalues = matEigenvaluesSymmetric(P);
   const qEigenvalues = matEigenvaluesSymmetric(matSymmetrize(Qmat));
@@ -353,7 +416,9 @@ export function solveLqrMIMO(A, B, Q = null, R = null, options = {}) {
   } else {
     const initial = findStabilizingInitialGainMIMO(A, B, options);
     if (!initial) {
-      throw new Error('solveLqrMIMO requires a stabilizing initial gain; supported paths are stable A or full-row-rank B with pseudoinverse shift');
+      // Friendly wrapping: covers the marginally-stable / unstable plant case
+      // where Newton-Kleinman from K=0 fails to find any stabilizing K₀.
+      throw new Error('MIMO LQR 求解失敗：plant 為 marginally stable / unstable，Newton-Kleinman 從 K=0 / 偽逆移位 / Bass 法 (K = αB\') 皆無法產生 stabilizing initial gain。建議：(1) 先用 SISO Pole Placement / State Feedback 取得 stabilizing K₀ 後再用 LQR 精修；(2) 或設更大的 Q 增強 penalty。');
     }
     K = initial.K;
     initialGainStrategy = initial.strategy;
@@ -371,18 +436,25 @@ export function solveLqrMIMO(A, B, Q = null, R = null, options = {}) {
   let residualNorm = Infinity;
   let iter = 0;
 
-  for (iter = 0; iter < maxIterations; iter++) {
-    const Acl = matSub(A, matMul(B, K));
-    const Aclt = matTranspose(Acl);
-    // penalty = Q + K' R K
-    const penalty = matAdd(Qmat, matMul(matTranspose(K), matMul(Rmat, K)));
-    // Solve Acl' P + P Acl = -penalty
-    P = lyapunovDirect(Aclt, penalty);
-    // K_new = R^{-1} B' P
-    const nextK = matMul(Rinv, matMul(Bt, P));
-    residualNorm = maxAbsMatrix(matSub(nextK, K));
-    K = nextK;
-    if (residualNorm < tolerance) { iter++; break; }
+  try {
+    for (iter = 0; iter < maxIterations; iter++) {
+      const Acl = matSub(A, matMul(B, K));
+      const Aclt = matTranspose(Acl);
+      // penalty = Q + K' R K
+      const penalty = matAdd(Qmat, matMul(matTranspose(K), matMul(Rmat, K)));
+      // Solve Acl' P + P Acl = -penalty
+      P = lyapunovDirect(Aclt, penalty);
+      // K_new = R^{-1} B' P
+      const nextK = matMul(Rinv, matMul(Bt, P));
+      residualNorm = maxAbsMatrix(matSub(nextK, K));
+      K = nextK;
+      if (residualNorm < tolerance) { iter++; break; }
+    }
+  } catch (e) {
+    if (e.name === 'SingularMatrixError' || /singular/i.test(e.message)) {
+      throw new Error('MIMO LQR Newton-Kleinman 迭代中遇到奇異 Lyapunov 系統：A_cl 含 jω-axis 極點或 plant 不可穩定化。請先用 Pole Placement 取得 stabilizing K₀ 再啟動 LQR refinement。');
+    }
+    throw e;
   }
 
   // CARE residual: A'P + PA + Q - P B R^{-1} B' P
@@ -435,7 +507,15 @@ export function solveLqe(A, C, Qn, Rn, options = {}) {
   const At = matTranspose(A);
   const Ct = matTranspose(C);
   const RnMat = Array.isArray(Rn[0]) ? Rn : [[Rn]];
-  const result = solveLqr(At, Ct, Qn, RnMat, options);
+  let result;
+  try {
+    result = solveLqr(At, Ct, Qn, RnMat, options);
+  } catch (e) {
+    if (e.name === 'SingularMatrixError' || /singular/i.test(e.message) || /stabilizing/i.test(e.message)) {
+      throw new Error('LQE / Kalman 求解失敗：對偶 LQR (A^T, C^T) 從 K=0 對 marginally stable / unstable plant 無法收斂。建議 (1) 先用 Pole Placement Observer 取得 stabilizing L₀；(2) 或對 plant 做 modal decomposition 分離 stable / unstable 部分。');
+    }
+    throw e;
+  }
   const L_kf = matTranspose(result.K);
   const Aobs = matSub(A, matMul(L_kf, C));
   const observerLyapunov = analyzeLyapunov(Aobs, matIdentity(n));
@@ -657,7 +737,15 @@ export function solveDiscreteKalman(Ad, Cd, Qd, Rd) {
   for (iter = 0; iter < maxIter; iter++) {
     // Innovation covariance: S = Cd P Cd' + Rd
     const S = matAdd(matMul(matMul(Cd, P), Cdt), Rd);
-    const Sinv = matInverse(S);
+    let Sinv;
+    try {
+      Sinv = matInverse(S);
+    } catch (e) {
+      if (e.name === 'SingularMatrixError' || /singular/i.test(e.message)) {
+        throw new Error('Discrete Kalman 迭代失敗：innovation covariance S = Cd·P·Cd\' + Rd 為奇異。常見原因為 Rd 過小或 plant 不可觀測。請增大 Rd 或檢查 observability matrix。');
+      }
+      throw e;
+    }
     // Kalman gain: K = Ad P Cd' S^{-1}
     const K = matMul(matMul(Ad, matMul(P, Cdt)), Sinv);
     // Riccati update: P_new = Ad P Ad' + Qd - K S K'

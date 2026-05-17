@@ -8,7 +8,7 @@
  */
 import { TransferFunction } from './transfer-function.js';
 import { stateSpaceToTransferFunction } from './state-space.js';
-import { matInverse, matMul, matTranspose, matEigenvaluesSymmetric } from '../math/matrix.js';
+import { matInverse, matMul, matTranspose, matEigenvaluesSymmetric, SingularMatrixError } from '../math/matrix.js';
 import { Complex } from '../math/complex.js';
 
 function hermitianEigenvalues(GhG) {
@@ -124,7 +124,15 @@ export function parseMIMOMatrices(aStr, bStr, cStr, dStr) {
 export function dcGain(mimoSys) {
   const { A, B, C, D } = mimoSys;
   const negA = A.map((row) => row.map((v) => -v));
-  const Ainv = matInverse(negA); // (-A)^{-1}
+  let Ainv;
+  try {
+    Ainv = matInverse(negA); // (-A)^{-1}
+  } catch (e) {
+    if (e.name === 'SingularMatrixError' || /singular/i.test(e.message)) {
+      throw new Error('G(0) 為奇異矩陣（plant 含 integrator 或 A 為奇異）。Steady-state DC gain 未定義；建議改在某個 ω > 0 計算 G(jω)，或先把 integrator 從 plant 移到 controller。');
+    }
+    throw e;
+  }
   const CA = matMul(C, Ainv);
   const CAB = matMul(CA, B);
   return CAB.map((row, i) => row.map((v, j) => v + D[i][j]));
@@ -136,7 +144,15 @@ export function rgaSteady(mimoSys) {
     throw new Error(`RGA requires square system (m=p). Got m=${mimoSys.m}, p=${mimoSys.p}`);
   }
   const G = dcGain(mimoSys);
-  const Ginv = matInverse(G);
+  let Ginv;
+  try {
+    Ginv = matInverse(G);
+  } catch (e) {
+    if (e.name === 'SingularMatrixError' || /singular/i.test(e.message)) {
+      throw new Error('G(0) 為奇異矩陣（plant 含 integrator 或 DC gain 不存在）。Steady-state RGA 未定義；建議改在某個 ω > 0 計算 RGA(jω)，或先把 integrator 從 plant 移到 controller。');
+    }
+    throw e;
+  }
   const GinvT = matTranspose(Ginv);
   return G.map((row, i) => row.map((v, j) => v * GinvT[i][j]));
 }

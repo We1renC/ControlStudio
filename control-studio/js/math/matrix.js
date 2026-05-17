@@ -2,6 +2,18 @@
  * matrix.js — Lightweight matrix operations for state-space models
  */
 
+/**
+ * Custom error for singular matrices so callers can wrap with
+ * context-specific guidance (e.g. RGA, LQR, Lyapunov) instead of
+ * leaking a raw "Singular matrix" string to the user.
+ */
+export class SingularMatrixError extends Error {
+  constructor(message = 'Matrix is singular and cannot be inverted') {
+    super(message);
+    this.name = 'SingularMatrixError';
+  }
+}
+
 export function matCreate(rows, cols, fill = 0) {
   return Array.from({ length: rows }, () => new Array(cols).fill(fill));
 }
@@ -85,7 +97,7 @@ export function matInverse(A) {
       if (Math.abs(aug[k][i]) > Math.abs(aug[maxRow][i])) maxRow = k;
     [aug[i], aug[maxRow]] = [aug[maxRow], aug[i]];
     const pivot = aug[i][i];
-    if (Math.abs(pivot) < 1e-14) throw new Error('Singular matrix');
+    if (Math.abs(pivot) < 1e-14) throw new SingularMatrixError('Singular matrix');
     for (let j = 0; j < 2 * n; j++) aug[i][j] /= pivot;
     for (let k = 0; k < n; k++) {
       if (k === i) continue;
@@ -110,7 +122,7 @@ export function matSolve(A, B) {
     }
     [aug[i], aug[maxRow]] = [aug[maxRow], aug[i]];
     const pivot = aug[i][i];
-    if (Math.abs(pivot) < 1e-14) throw new Error('Singular matrix');
+    if (Math.abs(pivot) < 1e-14) throw new SingularMatrixError('Singular matrix');
     for (let j = i; j < n + m; j++) aug[i][j] /= pivot;
     for (let k = 0; k < n; k++) {
       if (k === i) continue;
