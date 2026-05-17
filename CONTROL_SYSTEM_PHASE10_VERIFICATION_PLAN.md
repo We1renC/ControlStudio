@@ -152,6 +152,6 @@ control-studio/scripts/
 
 ## E. 建議實作順序（3 commits）
 
-1. **Done** — `test(phase9): add property-based RGA/SVB/decoupler invariants` — B3/B4/B5 的 L2/L3 + C1/C5/C6。Runner：`node control-studio/scripts/verify_phase9_math_core.mjs`。14/14 cases pass，含 200-trial RGA row-sum、Frobenius bound、σ²=eig(GᴴG)、permutation invariance、dynamic→static convergence、SVB log-grid continuity。
-2. `test(phase10): add MPC convergence + Schur/Newton cross-check` — B7-L3 + B8-L2/L3 + C2/C3/C4。
-3. `test(phase9-10): add edge-case fixtures` — B*-L4 集中（marginal/NMP/delay/uncontrollable）。
+1. **Done** (commit `8f86133`) — `test(phase9): add property-based RGA/SVB/decoupler invariants` — B3/B4/B5 的 L2/L3 + C1/C5/C6。Runner：`node control-studio/scripts/verify_phase9_math_core.mjs`。14/14 cases pass，含 200-trial RGA row-sum、Frobenius bound、σ²=eig(GᴴG)、permutation invariance、dynamic→static convergence、SVB log-grid continuity。
+2. **Done** (commit `b9fc380`) — `test(phase10): add MPC convergence + Schur/Newton cross-check` — B7-L3 + B8-L2/L3 + C2/C3/C4/C7。Runner：`node control-studio/scripts/verify_phase10_cross_method.mjs`。10/10 pass，含 Schur vs Newton-Kleinman 在 SISO/MIMO random batch K 一致（max Δ=2.6e-14）、CARE 殘差 + P 對稱 + PD + Acl 穩定、LQE/LQR 對偶 P 一致、MPC Riccati horizon=300 fixed point、DARE 殘差 7.9e-16、closed-loop in 單位圓、Cauchy K_0(N)。
+3. **Done** (commit `<pending>`) — `test(phase9-10): add edge-case fixtures` — B*-L4 集中。Runner：`node control-studio/scripts/verify_phase9_phase10_edge_cases.mjs`。15/15 pass，含 integrator plant friendly error、rank-deficient SVB σ_min=0、singular G(jω) decoupler 錯誤、uncontrollable LQR/MIMO LQR 友善訊息、CARE R=0 guard、MPC R=0/horizon guard、unstable + 短 horizon MPC 仍收斂、1+L=0 sensitivity 錯誤、NMP plant peak |S|>1、Padé-delay plant 完成、S+T=1 identity。
