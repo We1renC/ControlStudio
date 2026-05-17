@@ -122,3 +122,101 @@ The design improves rise time by roughly 47% compared with the conservative P-on
 6. Surface Root Locus “gain safety ratio to Ku” in the UI.
 7. Add resonance markers to Bode / Singular Value plots.
 8. Promote this servo-stage case into automated validation after the scenario fixture schema exists.
+
+---
+
+## Scenario 2: 2x2 Mixing Tank（MIMO 耦合系統設計）
+
+Date: 2026-05-17
+
+### Control Situation
+
+加熱混合槽（heated mixing tank）案例：兩個輸入閥（u₁=熱水流量、u₂=冷水流量）同時影響兩個量測輸出（y₁=溫度、y₂=液位）。
+這是典型強耦合 MIMO 系統 — 開熱水會同時升溫且升位，必須先解耦或用 multivariable 控制器處理。
+
+模型（State-Space 2×2）：
+
+```text
+A = [[-0.5,  0  ], [ 0  , -0.3]]   兩個獨立慢動態
+B = [[ 1.0,  0.8], [ 0.6, 1.0 ]]   強耦合輸入矩陣
+C = [[ 1,   0   ], [ 0  , 1   ]]   狀態直接量測
+D = [[ 0,   0   ], [ 0  , 0   ]]
+```
+
+### Design Target
+
+```text
+Decoupled steady-state behavior (RGA ≈ I)
+Closed-loop stable
+Condition number κ(jω) keep below 10 across operating band
+Both outputs settle to setpoint without cross-channel interference
+```
+
+### ControlStudio Workflow
+
+1. System tab → SYSTEM TYPE → 切到 **MIMO**
+2. 輸入 ABCD 四矩陣 → Update MIMO System
+3. 點 **⊞ All** 確認 4 通道步階響應（看出耦合）
+4. Advisor tab → MIMO Analysis：
+   - **Compute RGA** → 配對診斷
+   - **Plot σ_max / σ_min** → 條件數 κ
+   - **Compute & Apply Decoupler** → 自動套用 W = G(0)⁻¹
+   - 再次 **Compute RGA** 驗證 RGA = I
+5. **Compute MIMO LQR Gain K** → 對解耦後系統求 LQR
+
+### Observed Results
+
+| Step | Metric | Before Decoupler | After Decoupler | Pass? |
+| --- | --- | ---: | ---: | :---: |
+| RGA λ₁₁ | Pairing quality | 1.923 (moderate) | 1.000 (perfect) | ✓ |
+| RGA λ₁₂ | Off-diagonal | −0.923 | 0.000 | ✓ |
+| κ @ ω_min | Condition number | 6.086 | (depends on Q/R) | ✓ |
+| K_lqr | Diagonal? | n/a | diag(0.4142) | ✓ |
+| CL stable | Re(eig(A−BK)) < 0 | n/a | Yes | ✓ |
+
+### Engineering Decision
+
+對於溫度+液位耦合的混合槽，先套用 Static Decoupler 把 DC 增益對角化，再用 MIMO LQR 設計 state feedback。解耦後每個通道可獨立調 Q/R 比例。
+
+### UI/UX Findings From Live Studio Walkthrough（2026-05-17）
+
+以下問題在實際操作 SISO/MIMO 流程時發現，依嚴重度排序：
+
+#### Severity: High（破壞功能或誤導使用者）
+
+| # | 問題 | 位置 | 影響 |
+| - | - | - | - |
+| H1 | Phase 7/8 在 MIMO 模式下不知道使用者切過模式 | `currentPhase7DesignModel()` (app.js:729) 永遠用 `state.plant`（在 MIMO 模式下這是當前 channel 的 SISO TF），導致 Kalman/LQR 算出來是 single-channel realization，可觀矩陣 rank 不足 | 使用者以為在分析 MIMO 系統，實際上分析的是某一 channel；錯誤的 K_lqr / L_kf |
+| H2 | Step-response overshoot 兩處顯示不同數字 | Stability Snapshot vs Compare Snapshot 對同一參數可顯示 10.5% vs 5.8% | 使用者不知道哪個值是「真實」overshoot |
+| H3 | Compare snapshots 不會隨 SISO↔MIMO 模式重置 | Compare panel 留著 SISO 快照仍然疊在 MIMO 主圖下方 | 跨模式比較毫無意義且誤導 |
+
+#### Severity: Medium（功能存在但流程不直覺）
+
+| # | 問題 | 位置 | 影響 |
+| - | - | - | - |
+| M1 | Bode 圖未直接標示 PM/GM cross-marker | Bode chart | PM/GM 是 Bode 最重要結果，要捲到 sidebar 才看到 |
+| M2 | PID 沒有 derivative filter N 參數的 UI | Controller Tuning | 無法重現 scenario 規定的 N=100，與外部設計工具結果有落差 |
+| M3 | Stability Snapshot 在 Sim 面板最底部 | Sim panel | 必須捲很多才看到重要指標，建議移到固定 footer 或置頂 |
+| M4 | Design Pole-Out 排版混亂 | `#design-pole-out` | 「ζ = 0.6266σ = 2.0000」數值/標籤緊貼，可讀性差 |
+| M5 | MIMO 模式下 Phase 7/8 區塊仍可點按 | Advisor panel | 應該整合（直接吃 mimoPlant）或在 MIMO 模式下禁用並提示 |
+
+#### Severity: Low（細節/可改善）
+
+| # | 問題 | 位置 | 影響 |
+| - | - | - | - |
+| L1 | 主圖標題 "Step Response" 顯示位置/格式不一致 | Plot header | 與 plot type label 重複 |
+| L2 | ⊞ All view 不標示是 open-loop 還是 closed-loop | MIMO grid | 使用者不確定看到的是哪個 |
+| L3 | 切換到 MIMO 後切回 SISO，sidebar 滾動位置不會回頂部 | switchSystemMode | 使用者迷失上下文 |
+
+### Improvement Backlog
+
+依優先級：
+
+1. **修 H1**：`currentPhase7DesignModel()` 加 `if (state.systemMode === 'mimo' && state.mimoPlant) return state.mimoPlant`，讓 Phase 7/8 直接用完整 MIMO ABCD。配對的 Phase 8 SISO-only 子功能（如 Kalman 一輸出簡化）需加 fallback 或 disable。
+2. **修 H2**：對齊 Stability Snapshot 和 Compare Snapshot 的 overshoot 算法 — 都用「closed-loop step response 從 peak 推算」公式統一。
+3. **修 H3**：`switchSystemMode` 加 `clearSnapshots()`，或在 Compare panel 標註 snapshot 屬於哪個 mode。
+4. **解 M1**：Bode 圖加 PM/GM marker（垂直線 + 標籤）。
+5. **解 M2**：PID 加 N 欄位或暴露 `pid.N` 滑桿。
+6. **解 M3**：把 Stability Snapshot 變成 floating panel 或永遠頂部固定。
+7. **解 M4**：在 `setPhase7Output` 或對應 setter 改 HTML 結構，每個 metric 用 `<div>` 包獨立行。
+8. **解 M5**：在 Phase 7/8 區塊頂部加 `if (mimo) showHint('此功能對 MIMO 系統的支援為 Channel-by-channel ...')`。
