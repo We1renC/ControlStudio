@@ -57,7 +57,7 @@ function buildController(controller) {
 }
 
 function runCli(payload) {
-  const raw = execFileSync('node', ['control-studio/scripts/control_analysis_cli.mjs', JSON.stringify(payload)], {
+  const raw = execFileSync(process.execPath, ['control-studio/scripts/control_analysis_cli.mjs', JSON.stringify(payload)], {
     cwd: ROOT_DIR,
     encoding: 'utf8',
   });
