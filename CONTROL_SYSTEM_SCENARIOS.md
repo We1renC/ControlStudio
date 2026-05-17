@@ -187,7 +187,7 @@ Both outputs settle to setpoint without cross-channel interference
 | # | 問題 | 位置 | 影響 |
 | - | - | - | - |
 | H1 | Phase 7/8 在 MIMO 模式下不知道使用者切過模式 | `currentPhase7DesignModel()` (app.js:729) 永遠用 `state.plant`（在 MIMO 模式下這是當前 channel 的 SISO TF），導致 Kalman/LQR 算出來是 single-channel realization，可觀矩陣 rank 不足 | 使用者以為在分析 MIMO 系統，實際上分析的是某一 channel；錯誤的 K_lqr / L_kf |
-| H2 | Step-response overshoot 兩處顯示不同數字 | Stability Snapshot vs Compare Snapshot 對同一參數可顯示 10.5% vs 5.8% | 使用者不知道哪個值是「真實」overshoot |
+| H2 | Step-response overshoot 兩處顯示不同數字 | Stability Snapshot vs Compare Snapshot 對同一參數可顯示 10.5% vs 5.8% | 使用者不知道哪個值是「真實」overshoot ｜ 已修正：兩處皆走 `currentResponseData(closedLoop) → stepInfo()` 同一公式。若顯示差異，唯一來源是「快照當下的 simulationConfig（duration / sampleCount）」 vs 「目前 sidebar 上的 config」不同 — 快照鎖定當時狀態，現場面板隨配置即時更新 |
 | H3 | Compare snapshots 不會隨 SISO↔MIMO 模式重置 | Compare panel 留著 SISO 快照仍然疊在 MIMO 主圖下方 | 跨模式比較毫無意義且誤導 |
 
 #### Severity: Medium（功能存在但流程不直覺）

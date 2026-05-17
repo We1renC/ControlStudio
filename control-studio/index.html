@@ -385,9 +385,14 @@
             <div class="slider-header"><span>Integral (Ki)</span><span id="pid-Ki-val">0.50</span></div>
             <input type="range" id="pid-Ki" min="0" max="10" step="0.01" value="0.5">
           </div>
-          <div class="slider-group" style="margin-bottom:0;">
+          <div class="slider-group">
             <div class="slider-header"><span>Derivative (Kd)</span><span id="pid-Kd-val">0.10</span></div>
             <input type="range" id="pid-Kd" min="0" max="5" step="0.01" value="0.1">
+          </div>
+          <div class="input-group" style="margin-bottom:0;">
+            <label style="display:flex;justify-content:space-between;font-size:11px;">D-Filter N <span id="pid-N-val">100</span></label>
+            <input type="number" id="pid-N" min="1" max="100000" step="1" value="100">
+            <p style="font-size:10px;color:var(--text-muted);margin:4px 0 0;">N 越大越接近理想 PID；N 越小濾波越強（建議 10–1000）。</p>
           </div>
           <div class="input-group" style="margin-top:var(--space-4);">
             <label>PID Preset</label>
@@ -484,6 +489,47 @@
       </div>
 
       <div class="sidebar-panel" id="panel-simulate">
+        <section class="section-panel" id="stability-snapshot-panel">
+          <div class="section-title">Stability Snapshot</div>
+          <div class="metric-grid">
+            <div>Gain Margin<strong id="gm-value">∞</strong></div>
+            <div>Phase Margin<strong id="pm-value">—</strong></div>
+            <div>Rise Time<strong id="rise-time">0s</strong></div>
+            <div>Settling<strong id="settling-time">0s</strong></div>
+            <div>Overshoot<strong id="overshoot">0%</strong></div>
+            <div>SS Error<strong id="ess-value">0</strong></div>
+          </div>
+          <div style="margin-top:var(--space-4); display:flex; justify-content:space-between; align-items:center;">
+            <span style="font-size:12px; color:var(--text-secondary);">Current Status</span>
+            <div id="stability-indicator" class="status-pill stable"><span class="status-dot"></span> STABLE</div>
+          </div>
+          <div class="stability-analysis" id="stability-analysis">
+            <div class="stability-summary">
+              <div style="display:flex;justify-content:space-between;gap:8px;align-items:center;margin-bottom:6px;">
+                <strong>Stability Analysis</strong>
+                <span id="stability-risk" class="stability-risk low">LOW</span>
+              </div>
+              <div id="stability-summary-text">—</div>
+            </div>
+            <div class="stability-pole-grid">
+              <div>Dominant Pole<strong id="dominant-pole">—</strong></div>
+              <div>Stability Margin<strong id="pole-margin">—</strong></div>
+              <div>Damping Ratio<strong id="damping-ratio">—</strong></div>
+              <div>Natural Frequency<strong id="natural-frequency">—</strong></div>
+            </div>
+            <ul class="stability-list" id="stability-recommendations">
+              <li>—</li>
+            </ul>
+          </div>
+          <details style="margin-top:var(--space-4);">
+            <summary style="font-size:11px; color:var(--text-muted); cursor:pointer;">Routh-Hurwitz Table</summary>
+            <table class="routh-table">
+              <tbody id="routh-table-body"><tr><td colspan="4">—</td></tr></tbody>
+            </table>
+          </details>
+          <p style="font-size:10px;color:var(--text-muted);margin-top:6px;">數值來自閉迴路 step response 模擬，與 Compare 快照採用同一公式。</p>
+        </section>
+
         <section class="section-panel">
           <div class="section-title">Simulation</div>
           <div class="input-group">
@@ -561,46 +607,6 @@
           </div>
           <input type="file" id="project-file-input" accept=".json,application/json" style="display:none;">
         </section>
-
-        <section class="section-panel">
-          <div class="section-title">Stability Snapshot</div>
-          <div class="metric-grid">
-            <div>Gain Margin<strong id="gm-value">∞</strong></div>
-            <div>Phase Margin<strong id="pm-value">—</strong></div>
-            <div>Rise Time<strong id="rise-time">0s</strong></div>
-            <div>Settling<strong id="settling-time">0s</strong></div>
-            <div>Overshoot<strong id="overshoot">0%</strong></div>
-            <div>SS Error<strong id="ess-value">0</strong></div>
-          </div>
-          <div style="margin-top:var(--space-4); display:flex; justify-content:space-between; align-items:center;">
-            <span style="font-size:12px; color:var(--text-secondary);">Current Status</span>
-            <div id="stability-indicator" class="status-pill stable"><span class="status-dot"></span> STABLE</div>
-          </div>
-          <div class="stability-analysis" id="stability-analysis">
-            <div class="stability-summary">
-              <div style="display:flex;justify-content:space-between;gap:8px;align-items:center;margin-bottom:6px;">
-                <strong>Stability Analysis</strong>
-                <span id="stability-risk" class="stability-risk low">LOW</span>
-              </div>
-              <div id="stability-summary-text">—</div>
-            </div>
-            <div class="stability-pole-grid">
-              <div>Dominant Pole<strong id="dominant-pole">—</strong></div>
-              <div>Stability Margin<strong id="pole-margin">—</strong></div>
-              <div>Damping Ratio<strong id="damping-ratio">—</strong></div>
-              <div>Natural Frequency<strong id="natural-frequency">—</strong></div>
-            </div>
-            <ul class="stability-list" id="stability-recommendations">
-              <li>—</li>
-            </ul>
-          </div>
-          <details style="margin-top:var(--space-4);">
-            <summary style="font-size:11px; color:var(--text-muted); cursor:pointer;">Routh-Hurwitz Table</summary>
-            <table class="routh-table">
-              <tbody id="routh-table-body"><tr><td colspan="4">—</td></tr></tbody>
-            </table>
-          </details>
-        </section>
       </div>
 
       <div class="sidebar-panel" id="panel-advisor">
@@ -659,6 +665,9 @@
               <span class="p7-chevron" style="color:var(--text-muted);font-size:12px;transition:transform 0.2s;">▾</span>
             </button>
             <div id="p7-body" style="display:none;">
+              <div id="p7-mimo-banner" style="display:none;font-size:11px;background:rgba(245,158,11,.10);border:1px solid rgba(245,158,11,.35);color:#f59e0b;padding:8px 10px;border-radius:6px;margin-bottom:8px;line-height:1.5;">
+                ⚠ MIMO 模式：SISO Pole Placement / SISO LQR 不適用，請改用下方 MIMO Analysis → Compute MIMO LQR Gain K。
+              </div>
               <p style="font-size:11px;color:var(--text-muted);line-height:1.6;margin-bottom:8px;">
                 限 continuous-time、低階 SISO；TF 自動轉 controllable canonical form。
               </p>
@@ -708,6 +717,9 @@
               <span class="p8-chevron" style="color:var(--text-muted);font-size:12px;transition:transform 0.2s;">▾</span>
             </button>
             <div id="p8-body" style="display:none;">
+              <div id="p8-mimo-banner" style="display:none;font-size:11px;background:rgba(34,197,94,.10);border:1px solid rgba(34,197,94,.35);color:#22c55e;padding:8px 10px;border-radius:6px;margin-bottom:8px;line-height:1.5;">
+                ✓ MIMO 模式：Observer Placement 不支援 MIMO，但 Kalman Gain L_kf 已支援多輸出系統（透過 MIMO LQR 對偶求解）。
+              </div>
               <p style="font-size:11px;color:var(--text-muted);line-height:1.6;margin-bottom:8px;">
                 Luenberger observer &amp; steady-state Kalman filter via duality with state feedback / LQR.
               </p>

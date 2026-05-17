@@ -17,6 +17,7 @@ import { specsToTargetPoles, designLeadForPM, deadbeatGain } from './control/des
 import { polyadd, polyscale, polyroots } from './math/polynomial.js?v=p4';
 import { Complex } from './math/complex.js';
 import { analyzeLyapunov, brysonsRule, closedLoopTransferFromStateFeedback, discretizeZOH, innovationStats, observerPoles, placeObserver, placeStateFeedback, resolveDesignStateSpace, simulateLqg, simulateObserver, solveDiscreteKalman, solveLqe, solveLqr, solveLqrMIMO } from './control/state-feedback.js?v=p8c';
+import { matTranspose, matSub, matMul } from './math/matrix.js?v=p5';
 import { BlockEditor } from './editor/editor.js';
 import { MIMOStateSpace, parseMIMOMatrices, rgaSteady, rgaDiagnosis, rgaInvariants, singularValueBode, staticDecoupler, applyDecoupler } from './control/mimo.js';
 
@@ -207,6 +208,22 @@ function initEventListeners() {
       });
     }
   });
+
+  // M2: derivative filter coefficient N
+  const nInput = document.getElementById('pid-N');
+  if (nInput) {
+    const onN = debounce(() => {
+      const v = parseFloat(nInput.value);
+      if (!Number.isFinite(v) || v <= 0) return;
+      state.pidParams.N = v;
+      state.controllerDesign = { ...state.controllerDesign, source: 'manual', preset: null };
+      const valDisplay = document.getElementById('pid-N-val');
+      if (valDisplay) valDisplay.textContent = String(v);
+      updateController();
+    }, 150);
+    nInput.addEventListener('input', onN);
+    nInput.addEventListener('change', onN);
+  }
 
   ['comp-mode', 'comp-gain', 'comp-tau', 'comp-alpha'].forEach((id) => {
     const handler = debounce(() => {
@@ -584,12 +601,14 @@ function computeDesignTargetPoles() {
 
     out.style.display = 'block';
     out.style.color = '';
+    // M4: explicit `display:block` so each metric stays on its own line even
+    // when an ancestor accidentally sets inline/flex layout.
     out.innerHTML = [
-      `<div style="color:var(--color-accent);font-weight:700;">ζ = ${result.zeta.toFixed(4)}</div>`,
-      `<div>σ = ${result.sigma.toFixed(4)}  (real part)</div>`,
-      `<div>ωn = ${result.omegaN.toFixed(4)}  rad/s</div>`,
-      `<div>ωd = ${result.omegaD.toFixed(4)}  rad/s</div>`,
-      `<div style="margin-top:6px;color:var(--color-stable);">Target poles: s = ${(-result.sigma).toFixed(4)} ± j${result.omegaD.toFixed(4)}</div>`,
+      `<div style="display:block;color:var(--color-accent);font-weight:700;">ζ = ${result.zeta.toFixed(4)}</div>`,
+      `<div style="display:block;">σ = ${result.sigma.toFixed(4)} &nbsp;(real part)</div>`,
+      `<div style="display:block;">ωn = ${result.omegaN.toFixed(4)} &nbsp;rad/s</div>`,
+      `<div style="display:block;">ωd = ${result.omegaD.toFixed(4)} &nbsp;rad/s</div>`,
+      `<div style="display:block;margin-top:6px;color:var(--color-stable);">Target poles: s = ${(-result.sigma).toFixed(4)} ± j${result.omegaD.toFixed(4)}</div>`,
       gainHtml,
     ].join('');
     clearError();
@@ -730,6 +749,19 @@ function currentPhase7DesignModel() {
   if (state.domain === 'z' || state.systemType === 'dtf') {
     throw new Error('Phase 7 目前只支援 continuous-time model');
   }
+
+  // H1: In MIMO mode, use the full MIMO ABCD instead of the per-channel SISO TF
+  // (state.plant in MIMO mode is the currently displayed channel's SISO TF and
+  // would produce rank-deficient observability/controllability matrices).
+  if (state.systemMode === 'mimo' && state.mimoPlant) {
+    return {
+      A: state.mimoPlant.A.map((r) => [...r]),
+      B: state.mimoPlant.B.map((r) => [...r]),
+      C: state.mimoPlant.C.map((r) => [...r]),
+      D: state.mimoPlant.D.map((r) => [...r]),
+    };
+  }
+
   if (!state.plant) throw new Error('請先建立 plant');
 
   if (state.systemType === 'ss') {
@@ -763,6 +795,13 @@ function readPhase7SquareMatrix(id, n, fallbackIdentity = false) {
   return matrix;
 }
 
+/** Returns true if the resolved Phase 7/8 design model is genuinely MIMO. */
+function isMIMODesignModel(model) {
+  const m = model?.B?.[0]?.length ?? 1;
+  const p = model?.C?.length ?? 1;
+  return m > 1 || p > 1;
+}
+
 function setPhase7Output(id, html, isError = false) {
   const out = document.getElementById(id);
   if (!out) return;
@@ -775,6 +814,9 @@ function computeStateFeedbackPlacement() {
   try {
     clearFieldErrors();
     const model = currentPhase7DesignModel();
+    if (isMIMODesignModel(model)) {
+      throw new Error('SISO Pole Placement 不支援 MIMO 系統，請使用 MIMO Analysis → MIMO LQR');
+    }
     const desiredPoles = document.getElementById('sf-desired-poles')?.value || '';
     const result = placeStateFeedback(model.A, model.B, desiredPoles);
     const previewTf = closedLoopTransferFromStateFeedback(model, result.K);
@@ -832,6 +874,9 @@ function computeLqrDesign() {
     const model = currentPhase7DesignModel();
     const n = model.A.length;
     const Q = readPhase7SquareMatrix('lqr-q', n, true);
+    if (isMIMODesignModel(model)) {
+      throw new Error('SISO LQR R 為純量，不支援 MIMO 系統，請使用 MIMO Analysis → Compute MIMO LQR Gain K');
+    }
     const R = readRequiredPositiveNumber('lqr-r', 'LQR R');
     const result = solveLqr(model.A, model.B, Q, [[R]]);
     const previewTf = closedLoopTransferFromStateFeedback(model, result.K);
@@ -865,6 +910,9 @@ function computeObserverPlacement() {
   try {
     clearFieldErrors();
     const model = currentPhase7DesignModel();
+    if (isMIMODesignModel(model)) {
+      throw new Error('SISO Observer Placement (Ackermann via duality) 不支援 MIMO 系統，請改用下方 Kalman Gain L_kf');
+    }
     const desiredPoles = document.getElementById('obs-desired-poles')?.value || '-4, -6';
     const result = placeObserver(model.A, model.C, desiredPoles);
     state.phase8.observer = result;
@@ -897,7 +945,30 @@ function computeKalmanGain() {
     const n = model.A.length;
     const Qn = readPhase7SquareMatrix('obs-qn', n, true);
     const Rn = readRequiredPositiveNumber('obs-rn', 'Measurement Noise Rn');
-    const result = solveLqe(model.A, model.C, Qn, [[Rn]]);
+    let result;
+    if (isMIMODesignModel(model)) {
+      // MIMO Kalman via duality: solve LQR on (A^T, C^T) with R = Rn·I_p, then L = K^T.
+      const p = model.C.length;
+      const Rmat = identityMatrix(p).map((row) => row.map((v) => v * Rn));
+      const lqr = solveLqrMIMO(matTranspose(model.A), matTranspose(model.C), Qn, Rmat);
+      const L_kf = matTranspose(lqr.K);
+      const Aobs = matSub(model.A, matMul(L_kf, model.C));
+      const observerLyapunov = analyzeLyapunov(Aobs, identityMatrix(n));
+      result = {
+        L: L_kf,
+        Pe: lqr.P,
+        Qn,
+        Rn: Rmat,
+        Aobs,
+        residualNorm: lqr.residualNorm,
+        riccatiResidualNorm: lqr.riccatiResidualNorm,
+        observabilityRank: n,
+        initialGainStrategy: lqr.initialGainStrategy,
+        observerStable: observerLyapunov.provenStable,
+      };
+    } else {
+      result = solveLqe(model.A, model.C, Qn, [[Rn]]);
+    }
     state.phase8.kalman = result;
 
     const Lrows = result.L.map((row) => `[${row.map((v) => fmtNum(v, 4)).join(', ')}]`).join(', ');
@@ -1985,14 +2056,6 @@ function compactLegend() {
 
 function renderTimeResponse(sys, targetId = 'chart-active') {
   const resp = currentResponseData(sys);
-  const responseTitles = {
-    step: 'Step Response',
-    impulse: 'Impulse Response',
-    ramp: 'Ramp Response',
-    sine: 'Sine Response',
-    square: 'Square Response',
-    pulse: 'Pulse Response',
-  };
   const trace = {
     x: resp.t,
     y: resp.y,
@@ -2003,8 +2066,8 @@ function renderTimeResponse(sys, targetId = 'chart-active') {
     fill: 'tozeroy',
     fillcolor: 'rgba(99, 102, 241, 0.05)',
   };
+  // L1: title is shown in the chart-header (#active-plot-title); avoid duplicating it inside the plot.
   const layout = PLOTLY_LAYOUT_BASE();
-  layout.title = { text: responseTitles[state.responseType], font: { size: 13, color: getCSS('--text-secondary') } };
   layout.showlegend = true;
   layout.legend = compactLegend();
   Plotly.react(targetId, [trace], layout, { responsive: true, displayModeBar: false });
@@ -2032,6 +2095,55 @@ function renderBodePlot(sys, targetId = 'chart-active') {
   layout.yaxis2 = { overlaying: 'y', side: 'right', gridcolor: 'transparent' };
   layout.showlegend = true;
   layout.legend = compactLegend();
+
+  // M1: PM / GM vertical markers + annotations (continuous-time only)
+  if (!isDiscrete) {
+    try {
+      const margins = stabilityMargins(sys);
+      const magMin = Math.min(...data.magDB);
+      const magMax = Math.max(...data.magDB);
+      const phaseMin = Math.min(...data.phaseDeg);
+      const phaseMax = Math.max(...data.phaseDeg);
+      const annotations = [];
+
+      // Gain crossover (where |G|=0 dB) → mark PM
+      if (Number.isFinite(margins.gainCrossover) && margins.gainCrossover > 0) {
+        const wgc = margins.gainCrossover;
+        traces.push({
+          x: [wgc, wgc], y: [magMin, magMax],
+          type: 'scatter', mode: 'lines',
+          line: { color: getCSS('--color-stable'), width: 1, dash: 'dash' },
+          name: `ω_gc=${fmtNum(wgc, 3)}`, hoverinfo: 'name',
+        });
+        if (Number.isFinite(margins.phaseMargin)) {
+          annotations.push({
+            x: Math.log10(wgc), y: 0, xref: 'x', yref: 'y',
+            text: `PM=${fmtDeg(margins.phaseMargin)}`, showarrow: true, arrowhead: 0,
+            ax: 30, ay: -20, font: { size: 10, color: getCSS('--color-stable') },
+          });
+        }
+      }
+      // Phase crossover (where ∠G=-180°) → mark GM
+      if (Number.isFinite(margins.phaseCrossover) && margins.phaseCrossover > 0) {
+        const wpc = margins.phaseCrossover;
+        traces.push({
+          x: [wpc, wpc], y: [phaseMin, phaseMax],
+          type: 'scatter', mode: 'lines', yaxis: 'y2',
+          line: { color: getCSS('--color-unstable'), width: 1, dash: 'dash' },
+          name: `ω_pc=${fmtNum(wpc, 3)}`, hoverinfo: 'name',
+        });
+        if (Number.isFinite(margins.gainMarginDB)) {
+          annotations.push({
+            x: Math.log10(wpc), y: -180, xref: 'x', yref: 'y2',
+            text: `GM=${fmtDB(margins.gainMarginDB)}`, showarrow: true, arrowhead: 0,
+            ax: 30, ay: 20, font: { size: 10, color: getCSS('--color-unstable') },
+          });
+        }
+      }
+      if (annotations.length) layout.annotations = annotations;
+    } catch (_) { /* ignore — fall back to plain bode */ }
+  }
+
   Plotly.react(targetId, traces, layout, { responsive: true, displayModeBar: false });
 }
 
@@ -2738,6 +2850,11 @@ function captureStateSpaceInputs() {
 
 function saveComparisonSnapshot() {
   if (!state.plant) return;
+  // H2: use the EXACT same source as Stability Snapshot — closed-loop step
+  // response of the current sys, passed through stepInfo (single formula).
+  // Both panels now read from the same code path; any residual discrepancy
+  // can only come from the snapshot being taken with a different
+  // simulationConfig (duration / sampleCount) than the current live one.
   const sys = state.showClosedLoop ? (state.closedLoop || state.plant) : state.plant;
   const response = currentResponseData(sys);
   const info = stepInfo(response.t, response.y);
@@ -3147,10 +3264,31 @@ function downloadFile(name, type, content) {
 // MIMO (Phase 9 foundation)
 // ============================================================
 function switchSystemMode(mode) {
+  if (mode === state.systemMode) return;
+
+  // H3: Cross-mode comparison snapshots are meaningless — confirm + clear.
+  if (state.comparisonSnapshots && state.comparisonSnapshots.length > 0) {
+    const ok = confirm(`切換到 ${mode.toUpperCase()} 模式會清除 ${state.comparisonSnapshots.length} 個比較快照（屬於上一個模式），是否繼續？`);
+    if (!ok) return;
+    state.comparisonSnapshots = [];
+    if (typeof renderSnapshotList === 'function') renderSnapshotList();
+    if (typeof renderComparisonChart === 'function') renderComparisonChart();
+  }
+
   state.systemMode = mode;
   document.querySelectorAll('.system-mode-btn').forEach((b) => {
     b.classList.toggle('active', b.dataset.mode === mode);
   });
+
+  // M5: show/hide Phase 7/8 MIMO compatibility banners
+  const p7Banner = document.getElementById('p7-mimo-banner');
+  const p8Banner = document.getElementById('p8-mimo-banner');
+  if (p7Banner) p7Banner.style.display = mode === 'mimo' ? 'block' : 'none';
+  if (p8Banner) p8Banner.style.display = mode === 'mimo' ? 'block' : 'none';
+
+  // L3: reset sidebar scroll position so newly-revealed panels are visible
+  const aside = document.querySelector('aside');
+  if (aside) aside.scrollTop = 0;
 
   const sisoPanel = document.getElementById('siso-input-panel');
   const mimoPanel = document.getElementById('mimo-input-panel');
@@ -3297,6 +3435,11 @@ function renderMIMOGrid() {
   const p = state.mimoPlant.p;
   const m = state.mimoPlant.m;
 
+  // L2: surface whether grid cells are open-loop (plant TF) or closed-loop.
+  // Per-channel MIMO step responses below are open-loop plant channel TFs.
+  const titleEl = document.getElementById('mimo-grid-title');
+  if (titleEl) titleEl.textContent = 'All Channels (Open-loop Step Response)';
+
   gridContainer.style.gridTemplateColumns = `repeat(${m}, minmax(0, 1fr))`;
   gridContainer.style.gridTemplateRows = `repeat(${p}, minmax(0, 1fr))`;
 
@@ -3308,7 +3451,7 @@ function renderMIMOGrid() {
       div.style.cssText = 'border:1px solid var(--border-primary);border-radius:8px;padding:6px;background:rgba(15,17,23,0.3);display:flex;flex-direction:column;min-height:0;';
       const label = document.createElement('div');
       label.style.cssText = 'font-size:10px;color:var(--text-muted);font-weight:600;padding:2px 4px;';
-      label.textContent = `u${j + 1} → y${i + 1}`;
+      label.textContent = `u${j + 1} → y${i + 1} (open)`;
       const plotDiv = document.createElement('div');
       plotDiv.id = `mimo-grid-${i}-${j}`;
       plotDiv.style.cssText = 'flex:1;min-height:0;';

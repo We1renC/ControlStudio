@@ -301,6 +301,24 @@ try {
   assertNear('Cohen-Coon Kd', cohenCoon.Kd, 3.09160815615128, 1e-12);
   console.log('PID preset tests passed');
 
+  // PID derivative filter coefficient N (M2):
+  //   With N=100 (default): den = [1, 100, 0]; num combines Kp/Ki/Kd terms.
+  const pidLargeN = new PIDController(2, 1, 0.5, 100);
+  const tfN100 = pidLargeN.toTransferFunction();
+  assertPolyNear('PID N=100 denominator', tfN100.den, [1, 100, 0]);
+  // num = [Kp+Kd·N, Kp·N+Ki, Ki·N] = [52, 201, 100]
+  assertPolyNear('PID N=100 numerator', tfN100.num, [52, 201, 100]);
+  // With small N filtering is heavier; den structure unchanged but coefficients scale.
+  const pidSmallN = new PIDController(2, 1, 0.5, 10);
+  const tfN10 = pidSmallN.toTransferFunction();
+  assertPolyNear('PID N=10 denominator', tfN10.den, [1, 10, 0]);
+  assertPolyNear('PID N=10 numerator', tfN10.num, [7, 21, 10]);
+  // Backward compat: Ki=0 path collapses denominator to first order.
+  const pidNoI = new PIDController(2, 0, 0.5, 100);
+  const tfNoI = pidNoI.toTransferFunction();
+  assertPolyNear('PID Ki=0 denominator (first-order)', tfNoI.den, [1, 100]);
+  console.log('PID derivative filter N tests passed');
+
   // Lead compensator math equivalence:
   // Cc(s) = 2(0.5s+1)/(0.1s+1) = (s+2)/(0.1s+1), zero=-2, pole=-10.
   const leadComp = leadLagTransferFunction({ mode: 'lead', gain: 2, tau: 0.5, alpha: 0.2 });
