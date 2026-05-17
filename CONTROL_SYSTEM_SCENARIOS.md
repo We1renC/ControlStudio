@@ -341,24 +341,32 @@ Settling time < 5 s 兩軸
 | S4-4 | High | 「Singular matrix」這個訊息在 **4 個不同失敗原因**都用同字串（Lyapunov, RGA, LQR, LQG），無法 debug | 使用者無法判斷哪裡出錯 |
 | S4-5 | Medium | Phase 8 Kalman 在 marginally stable plant 也失敗 | LQE 同樣 Kleinman initial 問題；MIMO 含 integrator 的 plant 不能跑 Phase 8 完整鏈 |
 
-### Improvement Backlog（依優先級）
+### Improvement Backlog（已完成，commit `70b5aad`）
 
-1. **修 S4-1 + S4-2 + S3-2 + S4-4（同根源）**：建立**統一的 error mapping**：在數學引擎裡的 `matInverse` 拋 `SingularMatrixError`，呼叫端根據語境包裝具體訊息：
-   - RGA → 「G(0) 為奇異（plant 含 integrator）。建議改在 ω > 0 計算 RGA(ω)」
-   - LQR → 「Kleinman 從 K=0 對 marginally stable 不收斂。請提供 initial stabilizing K，或先 pole-place 後再做 LQR refinement」
-   - Lyapunov → 「Plant 不穩定，Lyapunov 方程無正定解。請先 State Feedback 穩定化」
+| # | 問題 | 修復方式 | 驗證結果 |
+| - | - | - | - |
+| S3-1 | PZ map 隱藏 plant 不穩定極點 | `updateSystem` 偵測 RHP poles 自動關 CL toggle + 顯示 banner | 進入 MagLev 立即看到 ±30 |
+| S3-2 | Lyapunov 對不穩定 plant 報「Singular matrix」 | `analyzeLyapunov` 包裝錯誤為「A 含對稱共軛特徵值（plant 不穩定或 jω-axis），請先 State Feedback 穩定化」 | 訊息有可執行建議 |
+| S3-3 | 錯誤 toast 不消失 | `showError` 加 `setTimeout(clearError, 6000)` | 6 秒自動消失 |
+| S3-4 | Bode 對 RHP plant 沒提示 | `renderBodePlot` 加紅色 annotation banner | Bode 上顯示 ⚠ Plant 不穩定，Nyquist criterion 須考慮 RHP poles |
+| S4-1 | RGA 對 integrator plant 失敗無解釋 | `dcGain` / `rgaSteady` 包裝為「G(0) 為奇異（plant 含 integrator）。建議改在 ω > 0 計算 RGA(jω)」 | 訊息清楚 |
+| S4-2 | MIMO LQR 對 marginally stable 失敗 | 新增 `bassStabilizingGain(A, B)` 三層 fallback：K=0 → 偽逆移位 → Bass K=αB'。若三者皆失敗，給出明確建議 | 訊息變成「請先 SISO Pole Placement 取得 K₀ 後 LQR 精修」 |
+| S4-3 | Q_n textarea 不會 resize | `updateMIMOSystem` 自動更新 obs-qn / dkf-qd / mimo-lqr-q/r 為 n×n / m×m 單位矩陣（僅在 dim 不匹配時） | n=4 時 obs-qn 自動變 4×4 |
+| S4-4 | 「Singular matrix」字串重複 | 新增 `SingularMatrixError` class；各呼叫端按 context 包裝 | 4 個失敗點各自有獨立訊息 |
+| S4-5 | Phase 8 Kalman 對 marginally stable 失敗 | `solveLqe` / `solveDiscreteKalman` 同樣加 Bass fallback + 友善錯誤 | 訊息同 S4-2 |
 
-2. **修 S4-2 + S4-5**：LQR/LQE 改用 **Schur method**（直接 ARE solver via Schur decomposition）取代 Newton-Kleinman，對 marginally stable 與不穩定 plant 都能解。或保留 Kleinman 但加 fallback：偵測 marginally stable 時自動先做 pole placement 得到 stabilizing K₀ 再迭代。
+### Engineering Decision（Bass 法局限）
 
-3. **修 S3-1**：PZ map 預設模式從「永遠 closed-loop」改為「Plant 不穩定時自動 open-loop + banner」。
+Spacecraft 案例 B = `[[0,0],[1,0],[0,0],[0,1]]` 是 sparse rank-2 矩陣，B·Bᵀ 的零空間恰好包含 plant 的 jω-axis 模態子空間 → Bass K = αBᵀ 無法 stabilize。這是數學上的根本限制，不是實作缺陷。
 
-4. **修 S3-3**：所有錯誤 toast 加 `setTimeout(dismiss, 5000)` 自動消失，或在新操作觸發前清掉舊 error。
+對 Spacecraft 這類案例，**正確的工程流程**：
+1. 先用 SISO Ackermann 對每個 input column 分別做 stabilizing pole placement
+2. 組合成 MIMO 初始 K₀
+3. 以 K₀ 為初值跑 Newton-Kleinman LQR 精修
 
-5. **修 S4-3**：`switchSystemMode('mimo')` 或 `updateMIMOSystem()` 觸發時，自動更新 Phase 8 的 `obs-qn` textarea 為 n×n 單位矩陣（若原值與新 n 不匹配）。
-
-6. **修 S3-4**：Bode 在偵測到 RHP poles 時，PM/GM 旁顯示 ⚠ + tooltip：「Plant 不穩定，Nyquist criterion 需考慮 RHP poles 數量。穩定性需 Nyquist plot 判斷」。
+或實作 **Schur method** 的完整 CARE solver（Hamiltonian eigenvector decomposition）— 這是 MATLAB `care()` 的內部方法。為避免引入額外 ~200 行程式碼且解決方案普及度有限，Studio 目前選擇「明確錯誤訊息 + 工作流引導」的折衷。
 
 ### Lessons Learned（新增第 5、6 條）
 
 5. **「Singular matrix」這種底層數學錯誤不能直接外漏給使用者**。每個呼叫端必須包裝為「該功能脈絡下的具體解釋」。否則使用者要回頭推測哪個矩陣奇異、為何奇異。
-6. **Newton-Kleinman LQR 對 marginally stable / unstable plant 不通用**。生產級控制工具應該用 Schur method（或 Hamiltonian eigenvector method）作為主求解器，Newton-Kleinman 只是 refinement。Studio 目前對「邊界 plant」（integrator、不穩定）的覆蓋有缺口。
+6. **Newton-Kleinman LQR 對 marginally stable / unstable plant 不通用**。生產級控制工具應該用 Schur method（或 Hamiltonian eigenvector method）作為主求解器，Newton-Kleinman 只是 refinement。Studio 目前對「邊界 plant」（integrator、不穩定）以「明確錯誤 + 工作流引導」為過渡方案；Schur method 排入 Phase 10 backlog。
