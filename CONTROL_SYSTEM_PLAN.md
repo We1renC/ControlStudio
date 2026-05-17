@@ -208,6 +208,7 @@
 - Done：補瀏覽器級回歸驗證
 - Done：補統一 API 啟動與依賴說明
 - Done：補 smoke test 到更多實際使用流程
+- Done：補 math core verification runner，獨立驗證 Complex / Polynomial / Matrix / ODE / TF / DTF / State-Space / C2D
 
 ### P1
 - Done：Controller design presets、Lead/Lag helper、comparison table
@@ -334,6 +335,7 @@
 - Done：Observer / Kalman / LQG
 - Done：MIMO 基礎 + RGA / SV Bode + Decoupler + MIMO LQR
 - Done：Phase 0~9 通盤數學理論完善度檢查與 hardening
+- Done：所有數學核心通盤檢查與 hardening：修正 high-order polynomial roots、RK45 Dormand-Prince 權重、TF/DTF zero-denominator guard
 - Deferred：MPC / Robust Control
 - Status: Done
 

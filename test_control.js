@@ -10,7 +10,7 @@ import { PIDController } from './control-studio/js/control/pid.js';
 import { designLagCompensator, designLeadCompensator, leadLagTransferFunction } from './control-studio/js/control/compensator.js';
 import { parsePolyString } from './control-studio/js/utils/format.js';
 import { zpkToTransferFunction, parseRootsString, parseComplexRoot } from './control-studio/js/control/zpk.js';
-import { polydiv, polymul } from './control-studio/js/math/polynomial.js';
+import { polydiv, polymul, polyroots, rootsToRealPoly } from './control-studio/js/math/polynomial.js';
 import { c2dTustin, c2dZOH } from './control-studio/js/control/c2d.js';
 import { specsToTargetPoles, designLeadForPM, deadbeatGain } from './control-studio/js/control/design.js';
 import { MIMOStateSpace, parseMIMOMatrices, rgaSteady, rgaDiagnosis, rgaInvariants, singularValueBode, evalAtJw, singularValues, staticDecoupler, applyDecoupler } from './control-studio/js/control/mimo.js';
@@ -143,6 +143,29 @@ try {
     throw new Error('polydiv remainder should be 0');
   }
   console.log('Polydiv test passed');
+
+  // Polynomial root solver: high-order roots must not collapse to zeros.
+  const cubicRoots = polyroots([1, 0, 0, 1]); // s^3 + 1
+  const hasRoot = (roots, re, im = 0, tol = 1e-6) =>
+    roots.some((root) => Math.abs(root.re - re) < tol && Math.abs(root.im - im) < tol);
+  if (!hasRoot(cubicRoots, -1, 0) || !hasRoot(cubicRoots, 0.5, Math.sqrt(3) / 2) || !hasRoot(cubicRoots, 0.5, -Math.sqrt(3) / 2)) {
+    throw new Error(`polyroots failed for s^3+1: ${cubicRoots.map((root) => root.toString()).join(', ')}`);
+  }
+  const quarticRoots = polyroots([1, 0, 0, 0, 1]); // s^4 + 1
+  const invSqrt2 = Math.SQRT1_2;
+  for (const [re, im] of [[invSqrt2, invSqrt2], [-invSqrt2, invSqrt2], [-invSqrt2, -invSqrt2], [invSqrt2, -invSqrt2]]) {
+    if (!hasRoot(quarticRoots, re, im, 1e-6)) {
+      throw new Error(`polyroots failed for s^4+1 root ${re}+j${im}: ${quarticRoots.map((root) => root.toString()).join(', ')}`);
+    }
+  }
+  let threwUnpairedComplexRoot = false;
+  try {
+    rootsToRealPoly([{ re: 1, im: 2 }]);
+  } catch (err) {
+    threwUnpairedComplexRoot = /conjugate pairs/i.test(err.message);
+  }
+  if (!threwUnpairedComplexRoot) throw new Error('rootsToRealPoly should reject unpaired complex roots');
+  console.log('Polynomial root solver tests passed');
 
   // Routh-Hurwitz table
   const routh1 = routhTable([1, 3, 3, 1]);

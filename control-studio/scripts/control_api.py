@@ -166,6 +166,8 @@ def legacy_advisor(request: AdvisorRequest) -> Dict[str, Any]:
 
 
 if __name__ == "__main__":
+    import os
     import uvicorn
 
-    uvicorn.run(app, host="127.0.0.1", port=8770)
+    port = int(os.environ.get("CONTROL_STUDIO_API_PORT", "8770"))
+    uvicorn.run(app, host="127.0.0.1", port=port)

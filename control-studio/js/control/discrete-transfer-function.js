@@ -12,6 +12,12 @@ export class DiscreteTransferFunction {
     this.num = num.map(Number);
     this.den = trimPoly(den.map(Number));
     this.sampleTime = Number(sampleTime);
+    if (!this.num.every(Number.isFinite) || !this.den.every(Number.isFinite)) {
+      throw new Error('Discrete transfer function coefficients must be finite numbers');
+    }
+    if (this.den.length === 1 && Math.abs(this.den[0]) < 1e-15) {
+      throw new Error('Discrete denominator must not be the zero polynomial');
+    }
     if (!Number.isFinite(this.sampleTime) || this.sampleTime <= 0) {
       throw new Error('Sample time must be greater than 0');
     }

@@ -16,6 +16,11 @@ const checks = [
     expect: ['Tests Passed!', 'Stability analysis summary tests passed'],
   },
   {
+    name: 'Math core verification',
+    command: ['node', 'control-studio/scripts/verify_math_core.mjs'],
+    expect: ['Math core verification passed: 8/8'],
+  },
+  {
     name: 'Verification fixtures',
     command: ['node', 'control-studio/scripts/verify_control_cases.mjs'],
     expect: ['Verification fixtures passed: 5/5'],
@@ -23,6 +28,7 @@ const checks = [
   {
     name: 'API contract fixtures',
     command: ['node', 'control-studio/scripts/verify_control_api_contract.mjs'],
+    env: { CONTROL_STUDIO_API_URL: 'http://127.0.0.1:18770' },
     expect: ['API contract fixtures passed: 5/5'],
   },
   {
@@ -67,6 +73,7 @@ function runCommand(check) {
   const startedAt = Date.now();
   const result = spawnSync(check.command[0], check.command.slice(1), {
     cwd: rootDir,
+    env: { ...process.env, ...(check.env || {}) },
     encoding: 'utf8',
   });
   const output = `${result.stdout || ''}${result.stderr || ''}`;

@@ -54,6 +54,13 @@ export function polyderiv(coeffs) {
   return result;
 }
 
+function rootParts(root) {
+  if (root instanceof Complex) return { re: root.re, im: root.im };
+  if (typeof root === 'number') return { re: root, im: 0 };
+  if (root && typeof root === 'object') return { re: Number(root.re ?? 0), im: Number(root.im ?? 0) };
+  return { re: Number(root), im: 0 };
+}
+
 /** Convert roots to real polynomial coefficients */
 export function rootsToRealPoly(roots) {
   if (!roots.length) return [1];
@@ -61,22 +68,23 @@ export function rootsToRealPoly(roots) {
   const used = new Array(roots.length).fill(false);
   for (let i = 0; i < roots.length; i++) {
     if (used[i]) continue;
-    const r = roots[i];
-    const re = r instanceof Complex ? r.re : r;
-    const im = r instanceof Complex ? r.im : 0;
+    const { re, im } = rootParts(roots[i]);
     if (Math.abs(im) < 1e-12) {
       poly = polymul(poly, [1, -re]);
     } else {
       // Find conjugate pair
+      let foundConjugate = false;
       for (let j = i + 1; j < roots.length; j++) {
         if (used[j]) continue;
-        const rj = roots[j];
-        const rej = rj instanceof Complex ? rj.re : rj;
-        const imj = rj instanceof Complex ? rj.im : 0;
+        const { re: rej, im: imj } = rootParts(roots[j]);
         if (Math.abs(re - rej) < 1e-10 && Math.abs(im + imj) < 1e-10) {
           used[j] = true;
+          foundConjugate = true;
           break;
         }
+      }
+      if (!foundConjugate) {
+        throw new Error('Complex roots must appear in conjugate pairs to form a real polynomial');
       }
       poly = polymul(poly, [1, -2 * re, re * re + im * im]);
     }
@@ -107,100 +115,66 @@ export function polyroots(poly) {
     const sq = Math.sqrt(-disc);
     return [new Complex(-b / (2 * a), sq / (2 * a)), new Complex(-b / (2 * a), -sq / (2 * a))];
   }
-  return qrEigenvalues(buildCompanion(p));
+  const trailingZeros = countTrailingZeros(p);
+  if (trailingZeros > 0) {
+    const reduced = p.slice(0, p.length - trailingZeros);
+    return [
+      ...polyroots(reduced),
+      ...Array.from({ length: trailingZeros }, () => new Complex(0, 0)),
+    ];
+  }
+  return durandKernerRoots(p);
 }
 
-function buildCompanion(poly) {
-  const n = poly.length - 1, lead = poly[0];
-  const m = Array.from({ length: n }, () => new Array(n).fill(0));
-  for (let i = 0; i < n; i++) m[i][n - 1] = -poly[n - i] / lead;
-  for (let i = 1; i < n; i++) m[i][i - 1] = 1;
-  return m;
+function countTrailingZeros(poly) {
+  let count = 0;
+  for (let i = poly.length - 1; i > 0; i--) {
+    if (Math.abs(poly[i]) > 1e-14) break;
+    count++;
+  }
+  return count;
 }
 
-function toHessenberg(mat) {
-  const n = mat.length, H = mat.map(r => [...r]);
-  for (let k = 0; k < n - 2; k++) {
-    let norm = 0;
-    for (let i = k + 1; i < n; i++) norm += H[i][k] ** 2;
-    norm = Math.sqrt(norm);
-    if (norm < 1e-30) continue;
-    if (H[k + 1][k] > 0) norm = -norm;
-    const v = new Array(n).fill(0);
-    for (let i = k + 1; i < n; i++) v[i] = H[i][k];
-    v[k + 1] -= norm;
-    let vnorm = 0;
-    for (let i = k + 1; i < n; i++) vnorm += v[i] ** 2;
-    if (vnorm < 1e-30) continue;
-    const sc = 2.0 / vnorm;
-    for (let j = 0; j < n; j++) {
-      let d = 0; for (let i = k + 1; i < n; i++) d += v[i] * H[i][j];
-      for (let i = k + 1; i < n; i++) H[i][j] -= sc * v[i] * d;
-    }
+function evalComplexPoly(coeffs, z) {
+  let out = new Complex(0, 0);
+  for (const coeff of coeffs) out = out.mul(z).add(coeff);
+  return out;
+}
+
+function durandKernerRoots(poly) {
+  const n = poly.length - 1;
+  const lead = poly[0];
+  const coeffs = poly.map((value) => value / lead);
+  const maxCoeff = coeffs.slice(1).reduce((max, value) => Math.max(max, Math.abs(value)), 0);
+  const radius = Math.max(1, 1 + maxCoeff);
+  const roots = Array.from({ length: n }, (_, i) => {
+    const angle = (2 * Math.PI * i) / n + Math.PI / (2 * n);
+    return Complex.fromPolar(radius, angle);
+  });
+
+  for (let iter = 0; iter < 2000; iter++) {
+    let maxDelta = 0;
     for (let i = 0; i < n; i++) {
-      let d = 0; for (let j = k + 1; j < n; j++) d += H[i][j] * v[j];
-      for (let j = k + 1; j < n; j++) H[i][j] -= sc * d * v[j];
+      let denom = new Complex(1, 0);
+      for (let j = 0; j < n; j++) {
+        if (i === j) continue;
+        let diff = roots[i].sub(roots[j]);
+        if (diff.magnitude < 1e-14) {
+          diff = diff.add(new Complex(1e-12 * (i + 1), -1e-12 * (j + 1)));
+        }
+        denom = denom.mul(diff);
+      }
+      const delta = evalComplexPoly(coeffs, roots[i]).div(denom);
+      roots[i] = roots[i].sub(delta);
+      maxDelta = Math.max(maxDelta, delta.magnitude);
     }
+    if (maxDelta < 1e-12) break;
   }
-  return H;
-}
 
-function qrEigenvalues(mat) {
-  const n = mat.length;
-  if (!n) return [];
-  let H = toHessenberg(mat.map(r => [...r]));
-  const eigs = [];
-  let sz = n;
-  while (sz > 0) {
-    if (sz === 1) { eigs.push(new Complex(H[0][0], 0)); break; }
-    let done = false;
-    for (let iter = 0; iter < 500; iter++) {
-      if (Math.abs(H[sz-1][sz-2]) < 1e-12*(Math.abs(H[sz-2][sz-2])+Math.abs(H[sz-1][sz-1])+1e-30)) {
-        eigs.push(new Complex(H[sz-1][sz-1], 0));
-        sz--; H = H.slice(0, sz).map(r => r.slice(0, sz)); done = true; break;
-      }
-      if (sz === 2) {
-        const [a,b,c,d] = [H[0][0],H[0][1],H[1][0],H[1][1]];
-        const tr = a+d, det = a*d-b*c, disc = tr*tr-4*det;
-        if (disc >= 0) {
-          const sq = Math.sqrt(disc);
-          eigs.push(new Complex((tr+sq)/2,0), new Complex((tr-sq)/2,0));
-        } else {
-          const sq = Math.sqrt(-disc);
-          eigs.push(new Complex(tr/2,sq/2), new Complex(tr/2,-sq/2));
-        }
-        sz = 0; done = true; break;
-      }
-      // Wilkinson shift
-      const a=H[sz-2][sz-2],b=H[sz-2][sz-1],c=H[sz-1][sz-2],d=H[sz-1][sz-1];
-      const tr=a+d, det=a*d-b*c, disc=tr*tr-4*det;
-      let shift;
-      if (disc >= 0) {
-        const s1=(tr+Math.sqrt(disc))/2, s2=(tr-Math.sqrt(disc))/2;
-        shift = Math.abs(s1-d)<Math.abs(s2-d)?s1:s2;
-      } else { shift = d; }
-      for (let i=0;i<sz;i++) H[i][i]-=shift;
-      const cs=[],sn=[];
-      for (let i=0;i<sz-1;i++) {
-        const r=Math.sqrt(H[i][i]**2+H[i+1][i]**2);
-        if(r<1e-30){cs.push(1);sn.push(0);continue;}
-        cs.push(H[i][i]/r); sn.push(H[i+1][i]/r);
-        for(let j=0;j<sz;j++){
-          const h1=H[i][j],h2=H[i+1][j];
-          H[i][j]=cs[i]*h1+sn[i]*h2;
-          H[i+1][j]=-sn[i]*h1+cs[i]*h2;
-        }
-      }
-      for(let i=0;i<sz-1;i++) for(let j=0;j<sz;j++){
-        const h1=H[j][i],h2=H[j][i+1];
-        H[j][i]=cs[i]*h1+sn[i]*h2;
-        H[j][i+1]=-sn[i]*h1+cs[i]*h2;
-      }
-      for(let i=0;i<sz;i++) H[i][i]+=shift;
-    }
-    if(!done){for(let i=0;i<sz;i++)eigs.push(new Complex(H[i][i],0));break;}
-  }
-  return eigs;
+  return roots.map((root) => new Complex(
+    Math.abs(root.re) < 1e-10 ? 0 : root.re,
+    Math.abs(root.im) < 1e-10 ? 0 : root.im,
+  ));
 }
 
 /**

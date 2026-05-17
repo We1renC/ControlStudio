@@ -8,6 +8,7 @@ const SCRIPT_DIR = dirname(fileURLToPath(import.meta.url));
 const ROOT_DIR = resolve(SCRIPT_DIR, '..', '..');
 const API_BASE_URL = process.env.CONTROL_STUDIO_API_URL ?? 'http://127.0.0.1:8770';
 const HEALTH_URL = `${API_BASE_URL}/health`;
+const API_PORT = new URL(API_BASE_URL).port || '8770';
 const PYTHON_BIN = existsSync(resolve(ROOT_DIR, '.venv/bin/python'))
   ? resolve(ROOT_DIR, '.venv/bin/python')
   : 'python3';
@@ -57,6 +58,7 @@ async function ensureApiServer() {
 
   apiProcess = spawn(PYTHON_BIN, ['control-studio/scripts/control_api.py'], {
     cwd: ROOT_DIR,
+    env: { ...process.env, CONTROL_STUDIO_API_PORT: API_PORT },
     stdio: ['ignore', 'pipe', 'pipe'],
   });
 
@@ -71,7 +73,7 @@ async function ensureApiServer() {
     await sleep(250);
   }
 
-  throw new Error('API server did not become healthy on 127.0.0.1:8770');
+  throw new Error(`API server did not become healthy on ${API_BASE_URL}`);
 }
 
 function stopSpawnedApi() {

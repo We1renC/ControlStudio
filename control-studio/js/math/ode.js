@@ -60,7 +60,7 @@ export function rk45(f, y0, t0, tEnd, opts = {}) {
     [44/45, -56/15, 32/9],
     [19372/6561, -25360/2187, 64448/6561, -212/729],
     [9017/3168, -355/33, 46732/5247, 49/176, -5103/18656],
-    [35/384, 0, 500/1113, 125/192, -2187/6784, 11/84]
+    [35/384, 0, 500/1113, 125/192, -2187/6784, 11/84, 0]
   ];
   const e = [71/57600, 0, -71/16695, 71/1920, -17253/339200, 22/525, -1/40];
 
@@ -69,8 +69,14 @@ export function rk45(f, y0, t0, tEnd, opts = {}) {
   let t = t0, y = y0.slice();
   let h = Math.min(maxStep, (tEnd - t0) / 100);
   const n = y0.length;
+  let guard = 0;
+  const maxAcceptedOrRejectedSteps = opts.maxSteps || 100000;
 
   while (t < tEnd - 1e-14) {
+    guard++;
+    if (guard > maxAcceptedOrRejectedSteps) {
+      throw new Error('rk45 exceeded maximum step count');
+    }
     h = Math.min(h, tEnd - t);
     const k = [f(t, y)];
 
@@ -94,6 +100,9 @@ export function rk45(f, y0, t0, tEnd, opts = {}) {
       for (let j = 0; j < 7; j++) errI += h * e[j] * k[j][i];
       const scale = atol + rtol * Math.max(Math.abs(y[i]), Math.abs(yNew[i]));
       errMax = Math.max(errMax, Math.abs(errI) / scale);
+    }
+    if (!Number.isFinite(errMax) || yNew.some((value) => !Number.isFinite(value))) {
+      throw new Error('rk45 produced non-finite integration state');
     }
 
     if (errMax <= 1) {

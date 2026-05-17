@@ -14,6 +14,12 @@ export class TransferFunction {
     if (!den || !Array.isArray(den)) den = [1];
     this.num = trimPoly(num.slice());
     this.den = trimPoly(den.slice());
+    if (this.den.length === 1 && Math.abs(this.den[0]) < 1e-15) {
+      throw new Error('TransferFunction denominator must not be the zero polynomial');
+    }
+    if (!this.num.every(Number.isFinite) || !this.den.every(Number.isFinite)) {
+      throw new Error('TransferFunction coefficients must be finite numbers');
+    }
     // Normalize so leading den coeff = 1
     const lead = this.den[0];
     if (lead !== 0 && lead !== 1) {

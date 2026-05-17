@@ -35,6 +35,7 @@
   - `7a318b3 fix(control): harden phase 7-9 theory diagnostics`
   - `46e20da fix(control): harden phase 0-6 theory checks`
 - Validation baseline:
+  - `node control-studio/scripts/verify_math_core.mjs`
   - `node test_control.js`
   - `node control-studio/scripts/verify_control_cases.mjs`
   - `node control-studio/scripts/verify_control_api_contract.mjs`
@@ -53,6 +54,7 @@
 | CS-P0-02 | P0 | Done | API contract tests | 防止 FastAPI 與 JS CLI schema / formula drift | `control_analysis_cli.mjs`, `control_api.py` | `node control-studio/scripts/verify_control_api_contract.mjs` |
 | CS-P0-03 | P0 | Done | Browser regression smoke | 固定核心 UI 流程：輸入 plant、調 controller、看 plot、匯出 | 前端服務 `8765`, API `8770` | `window.ControlStudioSmoke.run()` |
 | CS-P0-04 | P0 | Done | Input validation hardening | 統一 TF/SS/ZPK/Lead/Lag 錯誤提示與邊界條件 | 現有 field error helper | `test_control.js` 與 browser smoke |
+| CS-P0-05 | P0 | Done | Math core verification runner | 獨立鎖住 Complex / Polynomial / Matrix / ODE / TF / DTF / State-Space / C2D 基礎不變量 | math/control core modules | `node control-studio/scripts/verify_math_core.mjs` |
 
 Exit criteria: 已達成。
 
