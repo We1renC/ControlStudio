@@ -9,7 +9,7 @@
 - 已建立獨立 git repo，避免被 `/Users/w.rc` 外層 git 混入。
 - 控制系統目前同步基線：
   - Branch: `codex/control-system-latest`
-  - Latest commit: `46e20da fix(control): harden phase 0-6 theory checks`
+  - Latest active line: Phase 10 math core plus Scenario 5/6 browser walkthrough documentation（以 `git log --oneline -5` 為準）
   - Full phase audit checkpoints:
     - `7a318b3 fix(control): harden phase 7-9 theory diagnostics`
     - `46e20da fix(control): harden phase 0-6 theory checks`
@@ -54,6 +54,8 @@
     - Done：MPC baseline
     - Done：Dynamic Decoupler prototype
     - Done：Robust sensitivity baseline
+    - Done：Scenario 5 MPC / Robust UI walkthrough（結論：math-core ready, UI-not-ready）
+    - Done：Scenario 6 SISO / MIMO UI walkthrough（結論：核心 UI 流程可用，但 MIMO mode 會殘留 Phase 7 SISO-only 舊輸出）
     - Next：MPC UI panel / Robust sensitivity UI / Dynamic Decoupler UI
     - Paused：Teaching Mode / Electron / Report Template / Block Diagram expansion
   - Block Diagram expansion：Paused
@@ -181,23 +183,25 @@ git log --oneline -5
 - `control-studio/js/control/mimo.js` 已新增 `dynamicDecouplerAtFrequency(mimoSys, omega)`，可在指定 `ωc` 計算 `W(jωc)=G(jωc)⁻¹` 並回傳 `G(jωc)·W(jωc)` residual；`test_control.js` 已驗證 selected-frequency inverse。
 - `control-studio/js/control/robust.js` 已新增 Robust sensitivity baseline：`S/T/KS`、peak sensitivity、risk classification；`test_control.js` 已驗證 DC identity 與 singular guard。
 - Scenario 5 已用 in-app browser 實際操作 MPC / Robust 情境，結論是 Phase 10 math-core ready 但 UI-not-ready；改善項目已寫入 `CONTROL_SYSTEM_SCENARIOS.md` 與 `CONTROL_SYSTEM_BACKLOG.md`。
+- Scenario 6 已用 in-app browser 實際操作 SISO / MIMO 情境；SISO plant/PID/Lead/Stability/LQR 與 MIMO RGA/SV/Static Decoupler/MIMO LQR 均可透過 UI 完成。已記錄高風險改善項：切入 MIMO 後 Phase 7 SISO-only 舊 LQR 結果仍顯示，後續應優先修正。
 - `control-studio/scripts/verify_phase10_math_core.mjs` 已新增 Phase 10 專用數學核心驗證，覆蓋 Hamiltonian CARE analytic cases、Spacecraft marginal MIMO、MPC Riccati、Dynamic Decoupler、Robust `S/T/KS`；已納入 regression dashboard 與 `scripts/validate_nvidia_model_selector.sh`。
 
 ## 後續可做
-1. 控制系統下一步依 `CONTROL_SYSTEM_PHASE10_PLAN.md` 與 `CONTROL_SYSTEM_BACKLOG.md` 做 `feat(phase10): add MPC UI panel`。
-2. 再做 `feat(phase10): add robust sensitivity UI`。
-3. 再做 `feat(phase10): add dynamic decoupler UI`。
-4. Robust Control 維持分析型工具，不直接做 H∞ / μ synthesis。
-5. Teaching Mode / Electron / Report Template 目前使用者要求擱置，不要開發。
-6. Block Diagram 目前維持 paused；不要新增 block diagram 功能，除非使用者重新明確恢復。
-6. 加 `agents/openai.yaml` UI metadata。
-7. 增強 evaluator：從 heuristic 檢查升級成 judge model + golden dataset。
-8. 若 NVIDIA Build Models 更新，先更新根目錄資料檔，再同步 `skills/nvidia-model-selector/references/`。
-9. 視需求把 `search_models.py` 加上 `--top-category-summary` 或 fuzzy ranking。
-10. 若要更實用，補上本地文件切 chunk / PDF 轉圖 / OCR 結果快取。
-11. 加 parallel runner 與 leaderboard，追蹤同任務多模型輸出品質。
-12. 將 OCR/RAG 的 endpoint source 也改成完整 registry-driven，而不只傳入 model id。
-13. Electron packaging 與教學模式已依使用者要求擱置，勿自行恢復。
+1. 先修 `fix(phase9): clear stale siso advisor output in mimo mode`，避免 MIMO 使用者誤讀 Phase 7 SISO-only 舊結果。
+2. 控制系統下一步依 `CONTROL_SYSTEM_PHASE10_PLAN.md` 與 `CONTROL_SYSTEM_BACKLOG.md` 做 `feat(phase10): add MPC UI panel`。
+3. 再做 `feat(phase10): add robust sensitivity UI`。
+4. 再做 `feat(phase10): add dynamic decoupler UI`。
+5. Robust Control 維持分析型工具，不直接做 H∞ / μ synthesis。
+6. Teaching Mode / Electron / Report Template 目前使用者要求擱置，不要開發。
+7. Block Diagram 目前維持 paused；不要新增 block diagram 功能，除非使用者重新明確恢復。
+8. 加 `agents/openai.yaml` UI metadata。
+9. 增強 evaluator：從 heuristic 檢查升級成 judge model + golden dataset。
+10. 若 NVIDIA Build Models 更新，先更新根目錄資料檔，再同步 `skills/nvidia-model-selector/references/`。
+11. 視需求把 `search_models.py` 加上 `--top-category-summary` 或 fuzzy ranking。
+12. 若要更實用，補上本地文件切 chunk / PDF 轉圖 / OCR 結果快取。
+13. 加 parallel runner 與 leaderboard，追蹤同任務多模型輸出品質。
+14. 將 OCR/RAG 的 endpoint source 也改成完整 registry-driven，而不只傳入 model id。
+15. Electron packaging 與教學模式已依使用者要求擱置，勿自行恢復。
 
 ## 注意事項
 - 這個專案不需要 `.agent-handoff.md`。
