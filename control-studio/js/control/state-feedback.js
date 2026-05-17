@@ -273,7 +273,11 @@ export function solveCareHamiltonianSchur(A, B, Q = null, R = null, options = {}
     .slice(0, n);
 
   if (stable.length !== n) {
-    throw new Error(`Hamiltonian CARE solver requires exactly ${n} stable eigenvalues, got ${stable.length}`);
+    throw new Error(
+      `Hamiltonian CARE solver: 期望 ${n} 個 stable eigenvalues，實際 ${stable.length}。` +
+      ` 通常代表 (A,B) 不 stabilizable，或 Hamiltonian 含 jω-axis eigenvalues（boundary case）。` +
+      ` 建議：(1) 檢查 (A,B) 是否含 uncontrollable + 不穩定 mode；(2) 對 marginally stable plant 改用較大 Q penalty。`,
+    );
   }
 
   const Hc = complexMatrixFromReal(H);
@@ -286,7 +290,21 @@ export function solveCareHamiltonianSchur(A, B, Q = null, R = null, options = {}
 
   const X = complexColumnsFromVectors(vectors, 0, n);
   const Y = complexColumnsFromVectors(vectors, n, n);
-  const Pc = complexMatMul(Y, complexMatInverse(X, options.inverseTolerance || 1e-8));
+  let Xinv;
+  try {
+    Xinv = complexMatInverse(X, options.inverseTolerance || 1e-8);
+  } catch (e) {
+    if (e instanceof SingularMatrixError) {
+      throw new Error(
+        `Hamiltonian CARE solver: stable invariant subspace X 為 singular — ` +
+        `通常代表 (A,B) 不 stabilizable，或 stable eigenvectors 線性相依（boundary case）。` +
+        ` 建議：(1) 檢查 (A,B) PBH 條件；(2) 對 marginally stable plant 改用較大 Q penalty；` +
+        `(3) 若 plant 含 jω-axis uncontrollable mode，當前 eigenvector path 無法處理，需 real Schur fallback。`,
+      );
+    }
+    throw e;
+  }
+  const Pc = complexMatMul(Y, Xinv);
   const imaginaryNorm = maxImagMatrix(Pc);
   if (imaginaryNorm > (options.imaginaryTolerance || 1e-6)) {
     throw new Error(`Hamiltonian CARE solver produced a non-real P matrix: max imaginary=${imaginaryNorm}`);
@@ -683,7 +701,7 @@ export function solveLqrMIMO(A, B, Q = null, R = null, options = {}) {
     if (!initial) {
       // Friendly wrapping: covers the marginally-stable / unstable plant case
       // where Newton-Kleinman from K=0 fails to find any stabilizing K₀.
-      throw new Error('MIMO LQR 求解失敗：plant 為 marginally stable / unstable，Newton-Kleinman 從 K=0 / 偽逆移位 / Bass 法 (K = αB\') 皆無法產生 stabilizing initial gain。建議：(1) 先用 SISO Pole Placement / State Feedback 取得 stabilizing K₀ 後再用 LQR 精修；(2) 或設更大的 Q 增強 penalty。');
+      throw new Error('MIMO LQR 求解失敗：plant 為 marginally stable / unstable，Newton-Kleinman 從 K=0 / 偽逆移位 / Bass 法 (K = αB\') 皆無法產生 stabilizing initial gain。建議：(1) 改用 Hamiltonian/Schur path（移除 `method: \'kleinman\'`，預設即會優先嘗試 Schur）；(2) 先用 SISO Pole Placement / State Feedback 取得 stabilizing K₀ 後再用 LQR 精修；(3) 或設更大的 Q 增強 penalty。');
     }
     K = initial.K;
     initialGainStrategy = initial.strategy;
