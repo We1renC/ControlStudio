@@ -405,6 +405,117 @@ export function solveCareHamiltonianSchur(A, B, Q = null, R = null, options = {}
   };
 }
 
+// ---------------------------------------------------------------------------
+// CS-P11-01: DARE solver via symplectic matrix + Cayley transform + matrix sign
+// ---------------------------------------------------------------------------
+
+/**
+ * Build the 2n×2n symplectic matrix for the DARE:
+ *   P = Ad' P Ad − Ad' P Bd (R + Bd' P Bd)⁻¹ Bd' P Ad + Q
+ *
+ * M_d = K⁻¹ L  where the symplectic pencil (L, K) is:
+ *   L = [[Ad, 0], [−Q, I]],  K = [[I, Bd R⁻¹ Bd'], [0, Ad']]
+ *
+ * Requires Ad to be invertible.
+ */
+function symplecticMatrix(Ad, Bd, Qmat, Rmat, n) {
+  const Rinv = matInverse(Rmat);
+  const BRBt = matMul(matMul(Bd, Rinv), matTranspose(Bd));
+  const AdT = matTranspose(Ad);
+  let AdTinv;
+  try {
+    AdTinv = matInverse(AdT);
+  } catch (_) {
+    throw new Error('DARE: Ad は可逆でなければなりません（singular Ad）');
+  }
+  const M11 = matAdd(Ad, matMul(BRBt, matMul(AdTinv, Qmat)));
+  const M12 = matScale(matMul(BRBt, AdTinv), -1);
+  const M21 = matScale(matMul(AdTinv, Qmat), -1);
+  const M22 = AdTinv;
+  const N = 2 * n;
+  return Array.from({ length: N }, (_, i) => {
+    const row = new Array(N).fill(0);
+    if (i < n) {
+      for (let j = 0; j < n; j++) { row[j] = M11[i][j]; row[n + j] = M12[i][j]; }
+    } else {
+      for (let j = 0; j < n; j++) { row[j] = M21[i - n][j]; row[n + j] = M22[i - n][j]; }
+    }
+    return row;
+  });
+}
+
+/**
+ * Solve the Discrete Algebraic Riccati Equation (DARE) via:
+ *   1. Build the symplectic matrix M_d (2n×2n)
+ *   2. Cayley transform: C = (M_d − I)(M_d + I)⁻¹ maps |λ|<1 → Re<0
+ *   3. Matrix sign function (Newton iteration) on C to isolate stable subspace
+ *   4. Extract P = Y X⁻¹ from the stable invariant subspace [X; Y]
+ *
+ * Returns { P, K, closedLoopStable, dareResidualNorm, method }.
+ */
+export function solveDAREHamiltonianSign(Ad, Bd, Q = null, R = null, options = {}) {
+  const n = Ad.length;
+  const m = Bd[0].length;
+  const Qmat = Q ? matSymmetrize(Q.map((r) => [...r])) : matIdentity(n);
+  const Rmat = R ? matSymmetrize(R.map((r) => [...r])) : matIdentity(m);
+  if (!matIsPositiveDefinite(Rmat)) throw new Error('DARE: R は正定値でなければなりません');
+
+  const Md = symplecticMatrix(Ad, Bd, Qmat, Rmat, n);
+  const N = 2 * n;
+  const I2n = matIdentity(N);
+  const MmI = matSub(Md, I2n);
+  const MpI = matAdd(Md, I2n);
+  let MpIinv;
+  try {
+    MpIinv = matInverse(MpI);
+  } catch (_) {
+    throw new Error('DARE: (M + I) が singular — 単位円上の特徴値が存在する可能性があります（not stabilizable）');
+  }
+  const C = matMul(MmI, MpIinv);
+
+  const { X, Y, stableCount } = hamiltonianStableSubspace(C, n, options);
+  if (stableCount < n) {
+    throw new Error(
+      `DARE: stable モード ${stableCount} 個（必要: ${n}）。(Ad,Bd) が stabilizable でないか、symplectic が単位円上の特徴値を持ちます。`,
+    );
+  }
+
+  let Xinv;
+  try {
+    Xinv = matInverse(X);
+  } catch (_) {
+    throw new Error('DARE: stable invariant subspace X が singular — (Ad,Bd) が stabilizable でない可能性があります');
+  }
+  const P = matSymmetrize(matMul(Y, Xinv));
+
+  const BdT = matTranspose(Bd);
+  const S = matAdd(Rmat, matMul(matMul(BdT, P), Bd));
+  const K = matMul(matMul(matInverse(S), BdT), matMul(P, Ad));
+
+  // DARE residual: ‖Ad' P Ad − P − Ad' P Bd K + Q‖∞
+  const AdTP = matMul(matTranspose(Ad), P);
+  const residualMat = matSub(
+    matAdd(matMul(AdTP, Ad), Qmat),
+    matAdd(P, matMul(matMul(AdTP, Bd), K)),
+  );
+  const dareResidualNorm = maxAbsMatrix(residualMat);
+
+  // Closed-loop stability: eigenvalues of (Ad − Bd K) should have |λ| < 1
+  const Acl = matSub(Ad, matMul(Bd, K));
+  let closedLoopStable = false;
+  try {
+    const clEigs = matrixPoles(Acl);
+    closedLoopStable = clEigs.every((e) => Math.sqrt(e.re ** 2 + e.im ** 2) < 1 - 1e-8);
+  } catch (_) {
+    // Fallback: Lyapunov criterion P > Acl' P Acl
+    try {
+      closedLoopStable = matIsPositiveDefinite(matSub(P, matMul(matMul(matTranspose(Acl), P), Acl)));
+    } catch (__) { /* leave false */ }
+  }
+
+  return { P, K, closedLoopStable, dareResidualNorm, method: 'dare-hamiltonian-sign', Acl };
+}
+
 function characteristicPolynomialCoefficients(M) {
   const n = M.length;
   let aux = matCreate(n, n, 0);
