@@ -202,10 +202,25 @@ function initEventListeners() {
         const val = parseFloat(slider.value);
         state.pidParams[param] = val;
         state.controllerDesign = { ...state.controllerDesign, source: 'manual', preset: null };
-        const valDisplay = document.getElementById(`pid-${param}-val`);
-        if (valDisplay) valDisplay.textContent = val.toFixed(2);
+        syncPIDSliders();
         updateController();
       });
+    }
+    const numberInput = document.getElementById(`pid-${param}-num`);
+    if (numberInput) {
+      const onNumberInput = debounce(() => {
+        const val = parseFloat(numberInput.value);
+        if (!Number.isFinite(val) || val < 0) {
+          setFieldError(`pid-${param}-num`, `${param} 必須為非負數`);
+          return;
+        }
+        state.pidParams[param] = val;
+        state.controllerDesign = { ...state.controllerDesign, source: 'manual', preset: null };
+        syncPIDSliders();
+        updateController();
+      }, 120);
+      numberInput.addEventListener('input', onNumberInput);
+      numberInput.addEventListener('change', onNumberInput);
     }
   });
 
@@ -482,13 +497,53 @@ function renderStateSpaceEquationBlock(matrices) {
 function syncPIDSliders() {
   ['Kp', 'Ki', 'Kd'].forEach((param) => {
     const input = document.getElementById(`pid-${param}`);
+    const numberInput = document.getElementById(`pid-${param}-num`);
     const value = document.getElementById(`pid-${param}-val`);
     if (input) {
       const currentMax = Number(input.max);
       if (Number.isFinite(currentMax) && state.pidParams[param] > currentMax) input.max = state.pidParams[param] * 1.25;
       input.value = state.pidParams[param];
     }
+    if (numberInput) {
+      const currentMax = Number(numberInput.max);
+      if (Number.isFinite(currentMax) && state.pidParams[param] > currentMax) numberInput.max = state.pidParams[param] * 1.25;
+      numberInput.value = state.pidParams[param];
+    }
     if (value) value.textContent = state.pidParams[param].toFixed(2);
+  });
+}
+
+function clearOutputPanel(id) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.innerHTML = '';
+  el.style.display = 'none';
+}
+
+function clearSISOAdvisorOutputsForMIMO() {
+  state.phase7 = { placement: null, lyapunov: null, lqr: null };
+  state.phase8 = {
+    observer: null,
+    kalman: null,
+    simulation: null,
+    discreteKalman: null,
+    lqg: null,
+  };
+  [
+    'phase7-place-out',
+    'phase7-lyapunov-out',
+    'phase7-lqr-out',
+    'phase8-observer-out',
+    'phase8-kalman-out',
+    'phase8-sim-out',
+    'dkf-out',
+    'lqg-out',
+    'qr-sensitivity-out',
+    'innov-stats-out',
+  ].forEach(clearOutputPanel);
+  ['chart-obs-sim', 'chart-obs-innov', 'chart-lqg-y', 'chart-lqg-u'].forEach((id) => {
+    const el = document.getElementById(id);
+    if (el) el.innerHTML = '';
   });
 }
 
@@ -735,6 +790,38 @@ function formatMatrixHtml(matrix, digits = 4) {
     .join('<br>');
 }
 
+function lqrSolverLabel(result) {
+  if (result?.method === 'hamiltonian-schur' || result?.initialGainStrategy === 'hamiltonian-schur') {
+    return 'Hamiltonian Schur CARE';
+  }
+  if (String(result?.initialGainStrategy || '').startsWith('zero-gain-stable-A')) {
+    return 'Newton-Kleinman CARE (stable A, K0=0)';
+  }
+  if (String(result?.initialGainStrategy || '').includes('bass-method')) {
+    return 'Newton-Kleinman CARE (Bass stabilizing K0)';
+  }
+  if (String(result?.initialGainStrategy || '').includes('right-pseudoinverse')) {
+    return 'Newton-Kleinman CARE (pseudoinverse-shift K0)';
+  }
+  if (String(result?.initialGainStrategy || '').includes('pole-placement')) {
+    return 'Newton-Kleinman CARE (pole-placement K0)';
+  }
+  return 'Newton-Kleinman CARE';
+}
+
+function renderLabeledMatrixTable(matrix, { rowPrefix = 'y', colPrefix = 'u', digits = 3 } = {}) {
+  if (!Array.isArray(matrix) || matrix.length === 0) return '';
+  const cols = matrix[0]?.length || 0;
+  const header = Array.from({ length: cols }, (_, j) => `<th>${escapeHtml(colPrefix)}${j + 1}</th>`).join('');
+  const rows = matrix.map((row, i) => `
+    <tr>
+      <th>${escapeHtml(rowPrefix)}${i + 1}</th>
+      ${row.map((value) => `<td>${escapeHtml(fmtNum(value, digits))}</td>`).join('')}
+    </tr>
+  `).join('');
+  return `<table class="mimo-matrix-table"><thead><tr><th></th>${header}</tr></thead><tbody>${rows}</tbody></table>`;
+}
+
 function formatPoleListHtml(poles, domain = 's') {
   return poles.map((pole) => formatPoleForUI(pole, domain)).join('<br>');
 }
@@ -887,6 +974,7 @@ function computeLqrDesign() {
     setPhase7Output('phase7-lqr-out', [
       `<div style="color:var(--color-accent);font-weight:700;">LQR Gain</div>`,
       `<div>K = [${result.K[0].map((value) => fmtNum(value, 4)).join(', ')}]</div>`,
+      `<div>Solver: ${escapeHtml(lqrSolverLabel(result))}</div>`,
       `<div>rank(Wc) = ${result.controllabilityRank}/${n} &nbsp;|&nbsp; Init: ${escapeHtml(result.initialGainStrategy)}</div>`,
       `<div>trace(P) = ${fmtNum(traceP, 6)}</div>`,
       `<div>ΔK residual = ${fmtNum(result.residualNorm, 6)}</div>`,
@@ -1634,7 +1722,7 @@ function setFieldError(id, msg) {
 
 function clearFieldErrors() {
   document.querySelectorAll('.field-hint').forEach(h => h.remove());
-  ['tf-num', 'tf-den', 'zpk-zeros', 'zpk-poles', 'zpk-gain', 'ss-a', 'ss-b', 'ss-c', 'ss-d', 'comp-gain', 'comp-tau', 'comp-alpha', 'preset-ku', 'preset-tu', 'preset-plant-k', 'preset-fopdt', 'lead-target-phase', 'lead-target-wc', 'lag-improvement', 'lag-target-wc'].forEach(id => {
+  ['tf-num', 'tf-den', 'zpk-zeros', 'zpk-poles', 'zpk-gain', 'ss-a', 'ss-b', 'ss-c', 'ss-d', 'comp-gain', 'comp-tau', 'comp-alpha', 'preset-ku', 'preset-tu', 'preset-plant-k', 'preset-fopdt', 'lead-target-phase', 'lead-target-wc', 'lag-improvement', 'lag-target-wc', 'pid-Kp-num', 'pid-Ki-num', 'pid-Kd-num'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.style.borderColor = '';
   });
@@ -2989,9 +3077,8 @@ function applySnapshot(snapshotId) {
   if (responseSelect) responseSelect.value = snapshot.responseType;
   ['Kp', 'Ki', 'Kd'].forEach((param) => {
     state.pidParams[param] = snapshot.controller[param];
-    document.getElementById(`pid-${param}`).value = snapshot.controller[param];
-    document.getElementById(`pid-${param}-val`).textContent = snapshot.controller[param].toFixed(2);
   });
+  syncPIDSliders();
   if (snapshot.compensator) {
     state.compensator = normalizeCompensatorConfig(snapshot.compensator);
     syncCompensatorInputs();
@@ -3111,10 +3198,16 @@ function applyProjectPayload(data) {
   ['Kp', 'Ki', 'Kd'].forEach((param) => {
     if (typeof controller[param] === 'number') {
       state.pidParams[param] = controller[param];
-      document.getElementById(`pid-${param}`).value = controller[param];
-      document.getElementById(`pid-${param}-val`).textContent = controller[param].toFixed(2);
     }
   });
+  if (typeof controller.N === 'number') {
+    state.pidParams.N = controller.N;
+    const nInput = document.getElementById('pid-N');
+    const nDisplay = document.getElementById('pid-N-val');
+    if (nInput) nInput.value = controller.N;
+    if (nDisplay) nDisplay.textContent = String(controller.N);
+  }
+  syncPIDSliders();
   state.compensator = normalizeCompensatorConfig(compensator);
   state.controllerDesign = {
     source: controllerDesign.source || 'manual',
@@ -3323,7 +3416,10 @@ function switchSystemMode(mode) {
     if (sisoPanel) sisoPanel.style.display = '';
     if (mimoPanel) mimoPanel.style.display = 'none';
     if (channelBar) channelBar.style.display = 'none';
-    if (mimoAnalysis) mimoAnalysis.style.display = 'none';
+    if (mimoAnalysis) {
+      mimoAnalysis.style.display = 'none';
+      mimoAnalysis.style.order = '';
+    }
     // S4-3 corollary: when leaving MIMO mode, restore 2×2 default in obs-qn
     // and friends if they are still oversized from the MIMO sweep.
     [{ id: 'obs-qn', dim: 2 }, { id: 'dkf-qd', dim: 2 }].forEach(({ id, dim }) => {
@@ -3346,7 +3442,11 @@ function switchSystemMode(mode) {
   } else {
     if (sisoPanel) sisoPanel.style.display = 'none';
     if (mimoPanel) mimoPanel.style.display = '';
-    if (mimoAnalysis) mimoAnalysis.style.display = '';
+    clearSISOAdvisorOutputsForMIMO();
+    if (mimoAnalysis) {
+      mimoAnalysis.style.display = '';
+      mimoAnalysis.style.order = '-1';
+    }
     if (!state.mimoPlant) {
       updateMIMOSystem();
     } else {
@@ -3546,9 +3646,7 @@ function computeMIMORGA() {
       : lvl === 'warn' ? 'var(--color-secondary)'
       : 'var(--color-accent)';
 
-    const matrixRows = rga
-      .map((row) => row.map((v) => `<span style="display:inline-block;width:60px;text-align:right;">${fmtNum(v, 3)}</span>`).join(' '))
-      .join('<br>');
+    const matrixRows = renderLabeledMatrixTable(rga, { rowPrefix: 'y', colPrefix: 'u', digits: 3 });
 
     const diagLines = diag.diagnoses
       .map((d) => `<div style="color:${colorFor(d.level)};">${d.pair}: λ=${fmtNum(d.lambda, 3)} — ${d.note}</div>`)
@@ -3619,8 +3717,9 @@ function computeMIMOSVBode() {
         ],
         {
           ...PLOTLY_LAYOUT_BASE(),
-          margin: { t: 10, r: 20, b: 30, l: 50 },
-          legend: { font: { size: 9 }, orientation: 'h', y: 1.15 },
+          margin: { t: 36, r: 20, b: 42, l: 54 },
+          showlegend: true,
+          legend: { font: { size: 10 }, orientation: 'h', x: 0, y: 1.18 },
           xaxis: { title: 'ω (rad/s)', type: 'log', gridcolor: 'rgba(255,255,255,0.06)' },
           yaxis: { title: 'σ (gain)', type: 'log', gridcolor: 'rgba(255,255,255,0.06)' },
         },
@@ -3647,16 +3746,15 @@ function computeMIMODecoupler() {
     applyMIMOChannel();
     if (state.mimoChannel.all) renderMIMOGrid();
 
-    const fmtMat = (M) => M.map((r) => r.map((v) => fmtNum(v, 3).padStart(8)).join(' ')).join('<br>');
     const outEl = document.getElementById('mimo-decoupler-out');
     outEl.style.display = 'block';
     outEl.innerHTML = `<div style="color:var(--color-accent);font-weight:700;">Decoupler Applied ✓</div>
       <div style="margin-top:4px;">G(0) was:</div>
-      <div>${fmtMat(G0)}</div>
+      <div>${renderLabeledMatrixTable(G0, { rowPrefix: 'y', colPrefix: 'u', digits: 3 })}</div>
       <div style="margin-top:4px;">W = G(0)⁻¹:</div>
-      <div>${fmtMat(W)}</div>
+      <div>${renderLabeledMatrixTable(W, { rowPrefix: 'u', colPrefix: 'v', digits: 3 })}</div>
       <div style="margin-top:4px;color:var(--color-stable);">G(0)·W (應為單位矩陣):</div>
-      <div>${fmtMat(verification)}</div>
+      <div>${renderLabeledMatrixTable(verification, { rowPrefix: 'y', colPrefix: 'v', digits: 3 })}</div>
       <div style="font-size:10px;color:var(--text-muted);margin-top:6px;">系統 B 已替換為 B·W。再次計算 RGA 應趨近 I。</div>`;
     clearError();
   } catch (err) {
@@ -3703,6 +3801,7 @@ function computeMIMOLqr() {
     outEl.style.display = 'block';
     outEl.innerHTML = `<div style="color:var(--color-accent);font-weight:700;">MIMO LQR Gain K (${m}×${n})</div>
       <div style="margin-top:4px;">K =<br>${Kstr}</div>
+      <div style="margin-top:6px;">Solver: ${escapeHtml(lqrSolverLabel(result))}</div>
       <div style="margin-top:6px;">Controllability rank: ${result.controllabilityRank}/${n}</div>
       <div>Initial gain: ${escapeHtml(result.initialGainStrategy)}</div>
       <div style="margin-top:6px;">Iterations: ${result.iterations}</div>

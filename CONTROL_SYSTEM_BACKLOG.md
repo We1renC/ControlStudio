@@ -34,7 +34,7 @@
 - Latest pre-Phase-10 synced commit: `b01f169 docs(control): mark all 9 Scenario 3+4 issues as resolved`
 - Current Phase 10 checkpoint: Schur / Hamiltonian CARE solver, MPC baseline, Dynamic Decoupler prototype, and Robust sensitivity baseline added.
 - Scenario 5 browser walkthrough result: Phase 10 is math-core ready but UI-not-ready; next priority is UI integration for MPC / Robust / Dynamic Decoupler.
-- Scenario 6 browser walkthrough result: SISO / MIMO core workflows are UI-operable; highest-risk UI issue is stale Phase 7 SISO-only output remaining visible after switching into MIMO mode.
+- Scenario 6 browser walkthrough result: SISO / MIMO core workflows are UI-operable; S6 UI issues have been resolved in the current Phase 9 UI cleanup line.
 - Latest full-theory audit:
   - `7a318b3 fix(control): harden phase 7-9 theory diagnostics`
   - `46e20da fix(control): harden phase 0-6 theory checks`
@@ -195,9 +195,9 @@ Exit criteria: 已達成。
 | CS-P9-06 | P2 | Done | Singular Value Bode | σ_max / σ_min vs 頻率，log-log 軸 + 條件數 κ |
 | CS-P9-07 | P2 | Done | Static Decoupler | W=G(0)⁻¹，套用後 RGA = I |
 | CS-P9-08 | P2 | Done | MIMO LQR (R matrix) | Newton-Kleinman 迭代 CARE，K=m×n 矩陣，對解耦後對角系統 K=(√2−1)·I |
-| CS-P9-09 | P1 | Next | MIMO mode UI cleanup | 清空/摺疊 Phase 7 SISO-only 舊結果，並讓 MIMO Analysis 更容易發現 | Scenario 6 browser walkthrough：切 SISO 算 LQR → 切 MIMO → 不再顯示舊 SISO K |
-| CS-P9-10 | P2 | Planned | MIMO matrix output readability | RGA / decoupler / G(0)W 改為 row/column-labeled matrix table | Browser smoke：矩陣 label 明確顯示 `y_i/u_j` |
-| CS-P9-11 | P2 | Planned | Singular Value chart readability | 提高 `#chart-mimo-sv` 高度或提供全寬圖表模式，legend 明確 | Browser smoke：legend 包含 `σ_max` / `σ_min` 且 chart height >= 260px |
+| CS-P9-09 | P1 | Done | MIMO mode UI cleanup | 清空/摺疊 Phase 7 SISO-only 舊結果，並讓 MIMO Analysis 更容易發現 | Browser walkthrough：切 SISO 算 LQR → 切 MIMO → `phase7-lqr-out` 隱藏且無舊 K；MIMO Analysis order = -1 |
+| CS-P9-10 | P2 | Done | MIMO matrix output readability | RGA / decoupler / G(0)W 改為 row/column-labeled matrix table | Browser smoke：RGA 1 table；Decoupler 3 tables，含 `y_i/u_j`、`u_i/v_j`、`y_i/v_j` |
+| CS-P9-11 | P2 | Done | Singular Value chart readability | 提高 `#chart-mimo-sv` 高度並顯示 `σ_max` / `σ_min` legend | Browser smoke：chart height = 280px；DOM legend text = `σ_max`, `σ_min` |
 
 ### Phase 10: Deferred High-Complexity / Productization
 
@@ -221,10 +221,7 @@ Exit criteria: 已達成。
 
 ## Immediate Next 3 Commits
 
-建議後續 agent 依序做；若先做 UI 風險收斂，`CS-P9-09` 可插在第一個 commit 前：
-
-0. `fix(phase9): clear stale siso advisor output in mimo mode`
-   - MIMO mode 下清空或摺疊 Phase 7 SISO-only 舊結果，避免誤讀。
+建議後續 agent 依序做：
 
 1. `feat(phase10): add MPC UI panel`
    - Advisor 或 Sim 面板顯示 horizon / Q / R / x0 / first action / cost。
