@@ -16,9 +16,9 @@ import { c2dTustin, c2dZOH } from './control/c2d.js?v=p5';
 import { specsToTargetPoles, designLeadForPM, deadbeatGain } from './control/design.js?v=p5';
 import { polyadd, polyscale, polyroots } from './math/polynomial.js?v=p4';
 import { Complex } from './math/complex.js';
-import { analyzeLyapunov, brysonsRule, closedLoopTransferFromStateFeedback, discretizeZOH, innovationStats, observerPoles, placeObserver, placeStateFeedback, resolveDesignStateSpace, simulateLqg, simulateObserver, solveDiscreteKalman, solveLqe, solveLqr } from './control/state-feedback.js?v=p8c';
+import { analyzeLyapunov, brysonsRule, closedLoopTransferFromStateFeedback, discretizeZOH, innovationStats, observerPoles, placeObserver, placeStateFeedback, resolveDesignStateSpace, simulateLqg, simulateObserver, solveDiscreteKalman, solveLqe, solveLqr, solveLqrMIMO } from './control/state-feedback.js?v=p8c';
 import { BlockEditor } from './editor/editor.js';
-import { MIMOStateSpace, parseMIMOMatrices, rgaSteady, rgaDiagnosis, singularValueBode } from './control/mimo.js';
+import { MIMOStateSpace, parseMIMOMatrices, rgaSteady, rgaDiagnosis, singularValueBode, staticDecoupler, applyDecoupler } from './control/mimo.js';
 
 // ============================================================
 // STATE
@@ -28,6 +28,7 @@ const state = {
   systemMode: 'siso',           // 'siso' | 'mimo'
   mimoPlant: null,              // MIMOStateSpace instance
   mimoChannel: { output: 0, input: 0, all: false },  // displayed u_j → y_i; all=true → grid view
+  mimoLqr: null,                // last MIMO LQR result { K, P, ... }
   controller: null,
   closedLoop: null,
   openLoop: null,
@@ -139,6 +140,8 @@ function initEventListeners() {
   document.getElementById('btn-mimo-update')?.addEventListener('click', updateMIMOSystem);
   document.getElementById('btn-mimo-rga')?.addEventListener('click', computeMIMORGA);
   document.getElementById('btn-mimo-sv')?.addEventListener('click', computeMIMOSVBode);
+  document.getElementById('btn-mimo-decoupler')?.addEventListener('click', computeMIMODecoupler);
+  document.getElementById('btn-mimo-lqr')?.addEventListener('click', computeMIMOLqr);
 
   document.querySelectorAll('.sys-tab').forEach(tab => {
     tab.addEventListener('click', (e) => {
@@ -3436,6 +3439,91 @@ function computeMIMOSVBode() {
     }
     clearError();
   } catch (err) {
+    showError(err.message);
+  }
+}
+
+function computeMIMODecoupler() {
+  try {
+    clearFieldErrors();
+    if (!state.mimoPlant) throw new Error('請先設定 MIMO 系統');
+    if (state.mimoPlant.m !== state.mimoPlant.p) {
+      throw new Error(`Decoupler 需要方陣 (m=p)，目前 ${state.mimoPlant.m}×${state.mimoPlant.p}`);
+    }
+
+    const { W, G0, verification } = staticDecoupler(state.mimoPlant);
+    const newPlant = applyDecoupler(state.mimoPlant, W);
+    state.mimoPlant = newPlant;
+    applyMIMOChannel();
+    if (state.mimoChannel.all) renderMIMOGrid();
+
+    const fmtMat = (M) => M.map((r) => r.map((v) => fmtNum(v, 3).padStart(8)).join(' ')).join('<br>');
+    const outEl = document.getElementById('mimo-decoupler-out');
+    outEl.style.display = 'block';
+    outEl.innerHTML = `<div style="color:var(--color-accent);font-weight:700;">Decoupler Applied ✓</div>
+      <div style="margin-top:4px;">G(0) was:</div>
+      <div>${fmtMat(G0)}</div>
+      <div style="margin-top:4px;">W = G(0)⁻¹:</div>
+      <div>${fmtMat(W)}</div>
+      <div style="margin-top:4px;color:var(--color-stable);">G(0)·W (應為單位矩陣):</div>
+      <div>${fmtMat(verification)}</div>
+      <div style="font-size:10px;color:var(--text-muted);margin-top:6px;">系統 B 已替換為 B·W。再次計算 RGA 應趨近 I。</div>`;
+    clearError();
+  } catch (err) {
+    const outEl = document.getElementById('mimo-decoupler-out');
+    if (outEl) {
+      outEl.style.display = 'block';
+      outEl.innerHTML = `<div style="color:var(--color-unstable);">${escapeHtml(err.message)}</div>`;
+    }
+    showError(err.message);
+  }
+}
+
+function computeMIMOLqr() {
+  try {
+    clearFieldErrors();
+    if (!state.mimoPlant) throw new Error('請先設定 MIMO 系統');
+    const n = state.mimoPlant.n;
+    const m = state.mimoPlant.m;
+
+    const parseMat = (str, expRows, expCols, name) => {
+      const M = str
+        .trim()
+        .split('\n')
+        .map((r) => r.trim().split(/[\s,]+/).filter((x) => x).map(Number));
+      if (M.length !== expRows || M.some((r) => r.length !== expCols)) {
+        throw new Error(`${name} 應為 ${expRows}×${expCols}，實際 ${M.length}×${M[0]?.length}`);
+      }
+      if (M.some((r) => r.some((v) => !Number.isFinite(v)))) {
+        throw new Error(`${name} 含有非數值`);
+      }
+      return M;
+    };
+    const Q = parseMat(document.getElementById('mimo-lqr-q').value, n, n, 'Q');
+    const R = parseMat(document.getElementById('mimo-lqr-r').value, m, m, 'R');
+
+    const result = solveLqrMIMO(state.mimoPlant.A, state.mimoPlant.B, Q, R);
+    state.mimoLqr = result;
+
+    const Kstr = result.K
+      .map((r) => `[${r.map((v) => fmtNum(v, 4)).join(', ')}]`)
+      .join(',<br>');
+
+    const outEl = document.getElementById('mimo-lqr-out');
+    outEl.style.display = 'block';
+    outEl.innerHTML = `<div style="color:var(--color-accent);font-weight:700;">MIMO LQR Gain K (${m}×${n})</div>
+      <div style="margin-top:4px;">K =<br>${Kstr}</div>
+      <div style="margin-top:6px;">Iterations: ${result.iterations}</div>
+      <div>ΔK residual: ${fmtNum(result.residualNorm, 6)}</div>
+      <div>CARE residual: ${fmtNum(result.riccatiResidualNorm, 6)}</div>
+      <div style="font-size:10px;color:var(--text-muted);margin-top:6px;">u = −K·x &nbsp;|&nbsp; 閉迴路 A_cl = A − B·K</div>`;
+    clearError();
+  } catch (err) {
+    const outEl = document.getElementById('mimo-lqr-out');
+    if (outEl) {
+      outEl.style.display = 'block';
+      outEl.innerHTML = `<div style="color:var(--color-unstable);">${escapeHtml(err.message)}</div>`;
+    }
     showError(err.message);
   }
 }

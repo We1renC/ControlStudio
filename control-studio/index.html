@@ -861,6 +861,32 @@
             <div id="mimo-sv-out" style="font-size:11px;font-family:monospace;color:var(--text-secondary);background:rgba(15,17,23,.4);padding:8px;border-radius:6px;line-height:1.6;display:none;"></div>
             <div id="chart-mimo-sv" style="height:180px;margin-top:8px;"></div>
           </div>
+
+          <!-- Static Decoupler -->
+          <div style="margin-top:14px;border-top:1px solid var(--border-primary);padding-top:12px;">
+            <div style="font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase;margin-bottom:6px;">Static Decoupler</div>
+            <p style="font-size:10px;color:var(--text-muted);margin-bottom:8px;">計算 W = G(0)⁻¹ 使 DC 增益變對角。套用後 channel grid 應呈對角化，重算 RGA 應趨近單位矩陣。</p>
+            <button class="btn btn-sm" id="btn-mimo-decoupler" style="width:100%;justify-content:center;margin-bottom:8px;">Compute &amp; Apply Decoupler</button>
+            <div id="mimo-decoupler-out" style="font-size:11px;font-family:monospace;color:var(--text-secondary);background:rgba(15,17,23,.4);padding:8px;border-radius:6px;line-height:1.6;display:none;"></div>
+          </div>
+
+          <!-- MIMO LQR -->
+          <div style="margin-top:14px;border-top:1px solid var(--border-primary);padding-top:12px;">
+            <div style="font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase;margin-bottom:6px;">MIMO LQR</div>
+            <p style="font-size:10px;color:var(--text-muted);margin-bottom:8px;">求解 CARE 得到 m×n 增益矩陣 K。Q 大→狀態收斂快；R 大→控制力小。</p>
+            <div class="input-group" style="margin-bottom:8px;">
+              <label>Q matrix (n × n)</label>
+              <textarea id="mimo-lqr-q" rows="2" style="font-family:monospace;">1 0
+0 1</textarea>
+            </div>
+            <div class="input-group" style="margin-bottom:8px;">
+              <label>R matrix (m × m)</label>
+              <textarea id="mimo-lqr-r" rows="2" style="font-family:monospace;">1 0
+0 1</textarea>
+            </div>
+            <button class="btn btn-sm" id="btn-mimo-lqr" style="width:100%;justify-content:center;margin-bottom:8px;">Compute MIMO LQR Gain K</button>
+            <div id="mimo-lqr-out" style="font-size:11px;font-family:monospace;color:var(--text-secondary);background:rgba(15,17,23,.4);padding:8px;border-radius:6px;line-height:1.6;display:none;"></div>
+          </div>
         </section>
 
         <section class="section-panel">

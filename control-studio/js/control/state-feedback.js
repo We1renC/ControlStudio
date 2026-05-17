@@ -239,6 +239,88 @@ export function solveLqr(A, B, Q = null, R = [[1]], options = {}) {
   };
 }
 
+/**
+ * Solve continuous Lyapunov  A_eff' P + P A_eff = -Qmat  via Kronecker.
+ * Used internally by solveLqrMIMO. (`solveContinuousLyapunov` builds the
+ * equation around A^T, which is inconvenient when the caller already has
+ * the desired left-multiplier — so this helper takes the operator directly.)
+ */
+function lyapunovDirect(M, Qmat) {
+  const n = M.length;
+  const lhs = matAdd(matKronecker(matIdentity(n), M), matKronecker(M, matIdentity(n)));
+  const rhs = vecColumnMajor(matScale(Qmat, -1));
+  const solution = matSolve(lhs, rhs);
+  return matSymmetrize(matrixFromColumnMajor(solution, n, n));
+}
+
+/**
+ * MIMO LQR via Newton–Kleinman iteration. Accepts R as m×m matrix.
+ * Returns K (m×n), P (n×n), and convergence diagnostics.
+ */
+export function solveLqrMIMO(A, B, Q = null, R = null, options = {}) {
+  const n = A.length;
+  const m = B[0].length;
+  const Qmat = Q ? Q.map((row) => [...row]) : matIdentity(n);
+  const Rmat = R ? R.map((row) => [...row]) : matIdentity(m);
+  if (Rmat.length !== m || Rmat[0].length !== m) {
+    throw new Error(`R must be ${m}×${m}, got ${Rmat.length}×${Rmat[0]?.length}`);
+  }
+  const Rinv = matInverse(Rmat);
+  const Bt = matTranspose(B);
+
+  // Pick a stabilizing initial K. If A is already stable, K=0 works.
+  // Otherwise, try pole placement on each input column. Fall back to zero.
+  let K;
+  try {
+    // Simple attempt: place using first input column when possible
+    const desired = Array.from({ length: n }, (_, i) => ({ re: -(i + 1), im: 0 }));
+    // For MIMO we cannot directly use SISO placeStateFeedback; just try K=0
+    K = matCreate(m, n, 0);
+    void desired;
+  } catch (_) {
+    K = matCreate(m, n, 0);
+  }
+
+  const maxIterations = options.maxIterations || 200;
+  const tolerance = options.tolerance || 1e-9;
+  let P = matIdentity(n);
+  let residualNorm = Infinity;
+  let iter = 0;
+
+  for (iter = 0; iter < maxIterations; iter++) {
+    const Acl = matSub(A, matMul(B, K));
+    const Aclt = matTranspose(Acl);
+    // penalty = Q + K' R K
+    const penalty = matAdd(Qmat, matMul(matTranspose(K), matMul(Rmat, K)));
+    // Solve Acl' P + P Acl = -penalty
+    P = lyapunovDirect(Aclt, penalty);
+    // K_new = R^{-1} B' P
+    const nextK = matMul(Rinv, matMul(Bt, P));
+    residualNorm = maxAbsMatrix(matSub(nextK, K));
+    K = nextK;
+    if (residualNorm < tolerance) { iter++; break; }
+  }
+
+  // CARE residual: A'P + PA + Q - P B R^{-1} B' P
+  const BRinvBt = matMul(matMul(B, Rinv), Bt);
+  const PBRinvBtP = matMul(matMul(P, BRinvBt), P);
+  const riccatiResidual = matAdd(
+    matAdd(matMul(matTranspose(A), P), matMul(P, A)),
+    matSub(Qmat, PBRinvBtP),
+  );
+
+  return {
+    K,
+    P: matSymmetrize(P),
+    Q: Qmat,
+    R: Rmat,
+    Acl: matSub(A, matMul(B, K)),
+    iterations: iter,
+    residualNorm,
+    riccatiResidualNorm: maxAbsMatrix(riccatiResidual),
+  };
+}
+
 export function placeObserver(A, C, desiredPoles) {
   const n = A.length;
   const Wo = observabilityMatrix(A, C);

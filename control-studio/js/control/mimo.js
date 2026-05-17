@@ -110,6 +110,30 @@ export function rgaSteady(mimoSys) {
   return G.map((row, i) => row.map((v, j) => v * GinvT[i][j]));
 }
 
+/**
+ * Static decoupler: W = G(0)^{-1} (yields G(0)·W = I).
+ * Returns m×m static matrix W. Caller can apply via applyDecoupler.
+ */
+export function staticDecoupler(mimoSys) {
+  if (mimoSys.m !== mimoSys.p) {
+    throw new Error(`Decoupler needs square system (m=p). Got m=${mimoSys.m}, p=${mimoSys.p}`);
+  }
+  const G0 = dcGain(mimoSys);
+  const W = matInverse(G0);
+  const verification = matMul(G0, W);
+  return { W, G0, verification };
+}
+
+/**
+ * Apply a static decoupler W (m×m) to a MIMO plant: B' = B·W, D' = D·W.
+ * Returns a new MIMOStateSpace with decoupled inputs.
+ */
+export function applyDecoupler(mimoSys, W) {
+  const Bnew = matMul(mimoSys.B, W);
+  const Dnew = matMul(mimoSys.D, W);
+  return new MIMOStateSpace(mimoSys.A, Bnew, mimoSys.C, Dnew);
+}
+
 /** Diagnose pairing quality from RGA diagonal. */
 export function rgaDiagnosis(rga) {
   const n = rga.length;

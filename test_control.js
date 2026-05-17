@@ -13,7 +13,8 @@ import { zpkToTransferFunction, parseRootsString, parseComplexRoot } from './con
 import { polydiv, polymul } from './control-studio/js/math/polynomial.js';
 import { c2dTustin, c2dZOH } from './control-studio/js/control/c2d.js';
 import { specsToTargetPoles, designLeadForPM, deadbeatGain } from './control-studio/js/control/design.js';
-import { MIMOStateSpace, parseMIMOMatrices, rgaSteady, rgaDiagnosis, singularValueBode, evalAtJw, singularValues } from './control-studio/js/control/mimo.js';
+import { MIMOStateSpace, parseMIMOMatrices, rgaSteady, rgaDiagnosis, singularValueBode, evalAtJw, singularValues, staticDecoupler, applyDecoupler } from './control-studio/js/control/mimo.js';
+import { solveLqrMIMO } from './control-studio/js/control/state-feedback.js';
 import { discreteBodeData } from './control-studio/js/analysis/discrete-frequency-response.js';
 import { matExp, matIdentity, matMul, matSub, matScale } from './control-studio/js/math/matrix.js';
 import { tfToControllableCanonical } from './control-studio/js/control/state-space.js';
@@ -862,6 +863,47 @@ try {
     console.assert(grid.length === 2 && grid[0].length === 2, 'allChannels returns 2x2 grid');
     console.assert(grid[0][0].poles().length > 0, 'Each cell is a valid TF');
     console.log('MIMO Batch 3 tests passed');
+
+    console.log('\n=== MIMO Batch 4 tests ===');
+    // Test 1: Decoupler makes G(0)·W = I
+    const coupledSys4 = new MIMOStateSpace([[-1, 0], [0, -1]], [[1, 0.5], [0.5, 1]], [[1, 0], [0, 1]], [[0, 0], [0, 0]]);
+    const { W, verification } = staticDecoupler(coupledSys4);
+    console.assert(Math.abs(verification[0][0] - 1) < 1e-6 && Math.abs(verification[1][1] - 1) < 1e-6,
+      `G0·W diagonal = 1, got [${verification[0][0]}, ${verification[1][1]}]`);
+    console.assert(Math.abs(verification[0][1]) < 1e-6 && Math.abs(verification[1][0]) < 1e-6,
+      `G0·W off-diagonal = 0, got [${verification[0][1]}, ${verification[1][0]}]`);
+
+    // Test 2: After decoupler, RGA ≈ I
+    const decoupled = applyDecoupler(coupledSys4, W);
+    const rgaNew = rgaSteady(decoupled);
+    console.assert(Math.abs(rgaNew[0][0] - 1) < 1e-6 && Math.abs(rgaNew[1][1] - 1) < 1e-6,
+      `Decoupled RGA diag = 1, got [${rgaNew[0][0]}, ${rgaNew[1][1]}]`);
+    console.assert(Math.abs(rgaNew[0][1]) < 1e-6 && Math.abs(rgaNew[1][0]) < 1e-6,
+      `Decoupled RGA off-diag = 0`);
+
+    // Test 3: MIMO LQR converges
+    const lqrResult = solveLqrMIMO(
+      [[-1, 0], [0, -2]],
+      [[1, 0], [0, 1]],
+      [[1, 0], [0, 1]],
+      [[1, 0], [0, 1]],
+    );
+    console.assert(lqrResult.iterations < 200, `LQR converged in ${lqrResult.iterations} iter`);
+    console.assert(lqrResult.riccatiResidualNorm < 1e-6,
+      `LQR CARE residual small: ${lqrResult.riccatiResidualNorm}`);
+    console.assert(lqrResult.K.length === 2 && lqrResult.K[0].length === 2, 'K is 2×2');
+
+    // Test 4: MIMO LQR on a coupled system also produces stable A - BK
+    const lqr2 = solveLqrMIMO(
+      [[0, 1], [-1, -1]],
+      [[0, 0], [1, 0.5]],
+      [[1, 0], [0, 1]],
+      [[1, 0], [0, 1]],
+    );
+    console.assert(lqr2.riccatiResidualNorm < 1e-4,
+      `Coupled-system LQR CARE residual ok: ${lqr2.riccatiResidualNorm}`);
+
+    console.log('MIMO Batch 4 tests passed');
   }
 
   console.log('Tests Passed!');
