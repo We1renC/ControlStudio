@@ -14,6 +14,7 @@ import { polydiv, polymul, polyroots, rootsToRealPoly } from './control-studio/j
 import { c2dTustin, c2dZOH } from './control-studio/js/control/c2d.js';
 import { specsToTargetPoles, designLeadForPM, deadbeatGain } from './control-studio/js/control/design.js';
 import { MIMOStateSpace, parseMIMOMatrices, rgaSteady, rgaDiagnosis, rgaInvariants, singularValueBode, evalAtJw, singularValues, staticDecoupler, applyDecoupler } from './control-studio/js/control/mimo.js';
+import { finiteHorizonLqr, firstMpcAction, simulateUnconstrainedMpc } from './control-studio/js/control/mpc.js';
 import { solveLqrMIMO } from './control-studio/js/control/state-feedback.js';
 import { discreteBodeData } from './control-studio/js/analysis/discrete-frequency-response.js';
 import { matExp, matIdentity, matMul, matSub, matScale } from './control-studio/js/math/matrix.js';
@@ -633,6 +634,28 @@ try {
     }
   }
   console.log('Phase 5 Deadbeat test passed');
+
+  // ── Phase 10 MPC baseline: scalar integrator finite-horizon Riccati ───────
+  // x[k+1] = x[k] + u[k], Q=R=Qf=1, horizon=2:
+  // P2=1, K1=1/(1+1)=0.5, P1=1+1-0.5=1.5,
+  // K0=P1/(1+P1)=1.5/2.5=0.6.
+  const mpcScalar = finiteHorizonLqr([[1]], [[1]], [[1]], [[1]], 2, [[1]]);
+  assertNear('MPC scalar K0', mpcScalar.firstGain[0][0], 0.6, 1e-12);
+  assertNear('MPC scalar P0', mpcScalar.P[0][0][0], 1.6, 1e-10);
+  const mpcAction = firstMpcAction([[1]], [[1]], [[1]], [[1]], 2, [[1]], [[1]]);
+  assertNear('MPC scalar first action', mpcAction.u[0][0], -0.6, 1e-12);
+  const mpcSim = simulateUnconstrainedMpc([[1]], [[1]], [[1]], [[1]], 4, [[1]], { steps: 12 });
+  if (mpcSim.finalStateNormInf > 1e-3) {
+    throw new Error(`MPC scalar closed loop should converge, final=${mpcSim.finalStateNormInf}`);
+  }
+  let threwBadHorizon = false;
+  try {
+    finiteHorizonLqr([[1]], [[1]], [[1]], [[1]], 0);
+  } catch (err) {
+    threwBadHorizon = /horizon/i.test(err.message);
+  }
+  assertTrue('MPC invalid horizon guard', threwBadHorizon);
+  console.log('Phase 10 MPC baseline tests passed');
 
   // ── Phase 7 Lyapunov: A=[0 1; -2 -3], Q=I has analytic P > 0 ─────────────
   // Solve A^T P + P A = -I with P symmetric:

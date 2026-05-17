@@ -376,11 +376,11 @@
 - Done：Schur / Hamiltonian CARE solver：`solveCareHamiltonianSchur(A,B,Q,R)`，以 Hamiltonian stable invariant subspace 求解 CARE。
 - Done：`solveLqr()` / `solveLqrMIMO()` 優先使用 Hamiltonian CARE，失敗時才 fallback 到 Newton-Kleinman。
 - Done：Spacecraft marginally stable MIMO case 可由 Hamiltonian CARE 直接得到 stabilizing LQR，補上 Bass 法無法處理 sparse rank-2 actuation 的缺口。
-- Next：MPC baseline（discrete finite-horizon / unconstrained receding-horizon）。
-- Planned：Dynamic Decoupler prototype。
+- Done：MPC baseline（discrete finite-horizon / unconstrained receding-horizon），包含 first action 與 closed-loop simulation helper。
+- Next：Dynamic Decoupler prototype。
 - Planned：Robust Control scope（先做 sensitivity functions / uncertainty sweep，不直接做 H∞ / μ synthesis）。
 - Paused：教學模式 / Electron / 報告模板 / Block Diagram expansion。
-- Verification：`test_control.js` 覆蓋 Hamiltonian CARE analytic cases、MIMO diagonal analytic case、Spacecraft marginally stable case、CARE residual 與 closed-loop Lyapunov proof。
+- Verification：`test_control.js` 覆蓋 Hamiltonian CARE analytic cases、MIMO diagonal analytic case、Spacecraft marginally stable case、MPC scalar Riccati hand derivation、CARE residual 與 closed-loop Lyapunov proof。
 
 ### Stage 4: Productization
 - Paused：Electron desktop packaging

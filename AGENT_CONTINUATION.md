@@ -51,8 +51,9 @@
   - Phase 10：In Progress
     - Done：Phase 10 design baseline
     - Done：Schur / Hamiltonian CARE solver
-    - Next：MPC baseline
-    - Planned：Dynamic Decoupler prototype / Robust Control scope
+    - Done：MPC baseline
+    - Next：Dynamic Decoupler prototype
+    - Planned：Robust Control scope
     - Paused：Teaching Mode / Electron / Report Template / Block Diagram expansion
   - Block Diagram expansion：Paused
   - Phase 0 ~ Phase 9 已完成通盤數學理論完善度檢查；所有數學核心也已完成 hardening。後續若修改數值核心，需至少重跑 `node control-studio/scripts/verify_math_core.mjs`、`node test_control.js`、`node control-studio/scripts/verify_control_cases.mjs`、`node control-studio/scripts/verify_control_api_contract.mjs`、`node control-studio/scripts/control_regression_dashboard.mjs`。
@@ -175,10 +176,11 @@ git log --oneline -5
 - `CONTROL_SYSTEM_PHASE10_PLAN.md` 已新增 Phase 10 規劃，明確擱置 Teaching Mode / Electron / Report Template。
 - `control-studio/js/control/state-feedback.js` 已新增 `solveCareHamiltonianSchur(A,B,Q,R)`，以 Hamiltonian stable invariant subspace 求解 CARE；`solveLqr()` / `solveLqrMIMO()` 現在優先使用此路徑，失敗才 fallback Newton-Kleinman。
 - `test_control.js` 已新增 Hamiltonian CARE 驗證，涵蓋 SISO / MIMO analytic CARE 與 Spacecraft marginally stable MIMO case。
+- `control-studio/js/control/mpc.js` 已新增 Phase 10 MPC baseline：finite-horizon Riccati、first action、unconstrained receding-horizon simulation；`test_control.js` 以 scalar integrator 手推驗證 `K0=0.6`。
 
 ## 後續可做
-1. 控制系統下一步依 `CONTROL_SYSTEM_PHASE10_PLAN.md` 與 `CONTROL_SYSTEM_BACKLOG.md` 做 `feat(phase10): add mpc baseline`。
-2. 再做 `feat(phase10): add dynamic decoupler prototype`。
+1. 控制系統下一步依 `CONTROL_SYSTEM_PHASE10_PLAN.md` 與 `CONTROL_SYSTEM_BACKLOG.md` 做 `feat(phase10): add dynamic decoupler prototype`。
+2. 再做 `docs(phase10): define robust control scope` 或 `feat(phase10): add robust sensitivity baseline`。
 3. Robust Control 先做 scope / sensitivity functions / uncertainty sweep，不直接做 H∞ / μ synthesis。
 4. Teaching Mode / Electron / Report Template 目前使用者要求擱置，不要開發。
 5. Block Diagram 目前維持 paused；不要新增 block diagram 功能，除非使用者重新明確恢復。

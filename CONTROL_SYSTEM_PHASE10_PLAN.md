@@ -66,9 +66,9 @@ Known limits:
 
 ## Phase 10.2: MPC Baseline
 
-Status: Next
+Status: Done
 
-Minimum viable scope:
+Implemented scope:
 
 - Discrete state-space model only.
 - Finite prediction horizon.
@@ -78,19 +78,32 @@ Minimum viable scope:
 J = Σ x_k'Qx_k + u_k'Ru_k
 ```
 
-- First baseline may be unconstrained finite-horizon LQR / receding-horizon control.
-- Constraint UI and QP solver can follow after the baseline is validated.
+- Unconstrained finite-horizon Riccati recursion.
+- Receding-horizon first-action calculation.
+- Closed-loop simulation helper.
+- Constraint UI and QP solver remain deferred.
 
-Required verification:
+Implementation:
 
-- Double integrator discrete model.
-- Compare unconstrained MPC first action with finite-horizon Riccati recursion.
-- Verify closed-loop convergence under receding horizon.
-- Guard invalid horizon, non-positive R, and dimension mismatch.
+- `control-studio/js/control/mpc.js`
+- `finiteHorizonLqr(Ad, Bd, Q, R, horizon, Qf)`
+- `firstMpcAction(Ad, Bd, Q, R, horizon, x, Qf)`
+- `simulateUnconstrainedMpc(Ad, Bd, Q, R, horizon, x0, options)`
+
+Verification:
+
+- Scalar integrator hand-derived horizon-2 Riccati recursion:
+  - `P2=1`
+  - `K1=0.5`
+  - `P1=1.5`
+  - `K0=0.6`
+- First action for `x0=1` equals `u0=-0.6`.
+- Receding-horizon scalar simulation converges.
+- Invalid horizon guard.
 
 ## Phase 10.3: Dynamic Decoupler Prototype
 
-Status: Planned
+Status: Next
 
 Minimum viable scope:
 
@@ -153,8 +166,8 @@ Required verification:
 
 ## Recommended Next Commits
 
-1. `feat(phase10): add mpc baseline`
-2. `feat(phase10): add dynamic decoupler prototype`
-3. `docs(phase10): define robust control scope`
+1. `feat(phase10): add dynamic decoupler prototype`
+2. `docs(phase10): define robust control scope`
+3. `feat(phase10): add robust sensitivity baseline`
 
 Do not start Teaching Mode, Electron packaging, or Report Template until explicitly resumed.

@@ -32,7 +32,7 @@
 
 - Branch: `codex/control-system-latest`
 - Latest pre-Phase-10 synced commit: `b01f169 docs(control): mark all 9 Scenario 3+4 issues as resolved`
-- Current Phase 10 checkpoint: Schur / Hamiltonian CARE solver added; next item is MPC baseline.
+- Current Phase 10 checkpoint: Schur / Hamiltonian CARE solver and MPC baseline added; next item is Dynamic Decoupler prototype.
 - Latest full-theory audit:
   - `7a318b3 fix(control): harden phase 7-9 theory diagnostics`
   - `46e20da fix(control): harden phase 0-6 theory checks`
@@ -201,8 +201,8 @@ Exit criteria: 已達成。
 | --- | --- | --- | --- | --- | --- | --- |
 | CS-P10-00 | P0 | Done | Phase 10 design baseline | 明確排除暫緩項，收斂高階控制開發順序 | Phase 0-9 complete | `CONTROL_SYSTEM_PHASE10_PLAN.md` |
 | CS-P10-01 | P0 | Done | Schur / Hamiltonian CARE solver | Newton-Kleinman 對 marginally stable / unstable plant 不通用，需穩定 invariant-subspace CARE 路徑 | Phase 7-9 LQR/LQE/MIMO LQR | `test_control.js` analytic CARE + Spacecraft case |
-| CS-P10-02 | P1 | Next | MPC baseline | 先做 discrete finite-horizon / unconstrained receding-horizon baseline | discrete + state-space mature | 需 double integrator fixture |
-| CS-P10-03 | P2 | Planned | Dynamic Decoupler | 頻域解耦（非僅 DC），先做 selected-frequency inverse prototype | MIMO mature | 對 `G(jωc)·W(jωc)` 近似對角化 |
+| CS-P10-02 | P1 | Done | MPC baseline | discrete finite-horizon / unconstrained receding-horizon baseline | discrete + state-space mature | scalar integrator hand-derived Riccati fixture |
+| CS-P10-03 | P2 | Next | Dynamic Decoupler | 頻域解耦（非僅 DC），先做 selected-frequency inverse prototype | MIMO mature | 對 `G(jωc)·W(jωc)` 近似對角化 |
 | CS-P10-04 | P2 | Planned | Robust Control scope | 先做 sensitivity functions / uncertainty sweep，不直接 H∞ synthesis | numerical engine mature | `S/T/KS` peak fixtures |
 | CS-P10-05 | P3 | Paused | Electron packaging | 使用者要求擱置 | 主功能凍結 | 暫不做 |
 | CS-P10-06 | P3 | Paused | 教學模式 | 使用者要求擱置 | UI 穩定 | 暫不做 |
@@ -213,14 +213,14 @@ Exit criteria: 已達成。
 
 建議後續 agent 依序做：
 
-1. `feat(phase10): add mpc baseline`
-   - Discrete finite-horizon / unconstrained receding-horizon baseline。
-
-2. `feat(phase10): add dynamic decoupler prototype`
+1. `feat(phase10): add dynamic decoupler prototype`
    - Selected-frequency `W(jωc)=G(jωc)^-1` prototype。
 
-3. `docs(phase10): define robust control scope`
+2. `docs(phase10): define robust control scope`
    - Sensitivity functions / uncertainty sweep 的範圍與驗證案例。
+
+3. `feat(phase10): add robust sensitivity baseline`
+   - S / T / KS peak analysis baseline。
 
 ## Do Not Start Yet
 
