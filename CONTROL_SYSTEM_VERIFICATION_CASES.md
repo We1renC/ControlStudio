@@ -254,10 +254,10 @@ DC final value for unit step:
 T(0) = 10 / 2 = 5
 ```
 
-目前數值核心對此案例的 phase margin 基準值：
+目前數值核心對此案例的 phase margin 基準值（允許 0.1 deg 數值公差）：
 
 ```text
-PM ~= 15.0006302775 deg
+PM ~= 15.0 deg
 ```
 
 ### Expected Assertions

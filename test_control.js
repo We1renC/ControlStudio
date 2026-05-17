@@ -150,6 +150,10 @@ try {
   if (routh1.signChanges !== 0) throw new Error('Routh signChanges should be 0');
   const routh2 = routhTable([1, -1, 1]);
   if (routh2.stable) throw new Error('Routh should be unstable for s^2-s+1');
+  const routhMarginal = routhTable([1, 0, 2, 0, 1]); // (s^2 + 1)^2
+  if (routhMarginal.signChanges !== 0) throw new Error(`Marginal Routh case should have 0 sign changes, got ${routhMarginal.signChanges}`);
+  if (!routhMarginal.marginal) throw new Error('Routh should flag auxiliary-polynomial zero-row case as marginal');
+  if (routhMarginal.stable) throw new Error('Marginal Routh case should not be reported as stable');
   console.log('Routh-Hurwitz test passed');
 
   // Stability analysis summary
@@ -238,7 +242,22 @@ try {
   const complexResponse = stepResponse(complexClosedLoop, { duration: 12, sampleCount: 1200, amplitude: 1 });
   const complexInfo = stepInfo(complexResponse.t, complexResponse.y);
   if (!complexClosedLoop.isStable()) throw new Error('Complex closed-loop should be stable after Kp=10');
-  assertNear('Complex phase margin', complexMargins.phaseMargin, 15.000630277515455, 1e-6);
+
+  // Exact margin checks
+  // G(s)=1/(s(s+1)) => ω_gc = sqrt((sqrt(5)-1)/2), PM = 90 - atan(ω_gc)
+  const marginSys1 = new TransferFunction([1], [1, 1, 0]);
+  const marginRes1 = stabilityMargins(marginSys1);
+  const exactWgc = Math.sqrt((Math.sqrt(5) - 1) / 2);
+  const exactPm = 90 - Math.atan(exactWgc) * 180 / Math.PI;
+  assertNear('Margin exact ωgc for 1/(s(s+1))', marginRes1.gainCrossover, exactWgc, 5e-4);
+  assertNear('Margin exact PM for 1/(s(s+1))', marginRes1.phaseMargin, exactPm, 5e-3);
+
+  // G(s)=1/(s(s+1)(s+2)) => phase crossover at ω=sqrt(2), GM=6
+  const marginSys2 = new TransferFunction([1], [1, 3, 2, 0]);
+  const marginRes2 = stabilityMargins(marginSys2);
+  assertNear('Margin exact ωpc for 1/(s(s+1)(s+2))', marginRes2.phaseCrossover, Math.sqrt(2), 5e-4);
+  assertNear('Margin exact GM for 1/(s(s+1)(s+2))', marginRes2.gainMargin, 6, 5e-3);
+  assertNear('Complex phase margin', complexMargins.phaseMargin, 15, 0.1);
   assertNear('Complex closed-loop final value', complexResponse.y[complexResponse.y.length - 1], 5, 1e-4);
   if (!Number.isFinite(complexInfo.settlingTime)) throw new Error('Complex settling time should be finite');
   console.log('Complex unstable/pole-zero/low-PM equivalence test passed');

@@ -58,7 +58,7 @@ export const CONTROL_VERIFICATION_CASES = [
         stable: true,
       },
       response: { finalValue: 5, tolerance: 0.001 },
-      margins: { phaseMargin: 15.000630277515455, tolerance: 1e-6 },
+      margins: { phaseMargin: 15, tolerance: 0.1 },
       cli: {
         plantFormula: '(s +1) / (s^3 +3s^2 -6s -8)',
         closedLoopFormula: '(10s^2 +1010s +1000) / (s^4 +103s^3 +304s^2 +402s +200)',
@@ -116,4 +116,3 @@ export const CONTROL_VERIFICATION_CASES = [
     },
   },
 ];
-

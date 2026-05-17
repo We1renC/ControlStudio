@@ -3,6 +3,22 @@
  */
 import { Complex } from '../math/complex.js';
 
+function interpolateLogFrequency(w0, w1, y0, y1, target) {
+  if (!Number.isFinite(w0) || !Number.isFinite(w1) || w0 <= 0 || w1 <= 0) return w1;
+  if (Math.abs(y1 - y0) < 1e-15) return Math.sqrt(w0 * w1);
+  const t = (target - y0) / (y1 - y0);
+  const clamped = Math.min(1, Math.max(0, t));
+  return Math.pow(10, Math.log10(w0) + (Math.log10(w1) - Math.log10(w0)) * clamped);
+}
+
+function evaluateMarginPoint(sys, w) {
+  const g = sys.evalAt(new Complex(0, w));
+  return {
+    mag: g.magnitude,
+    phase: g.angleDeg,
+  };
+}
+
 /**
  * Compute gain margin and phase margin from a transfer function.
  */
@@ -38,10 +54,18 @@ export function stabilityMargins(sys) {
     }
 
     if (prevMag !== null && ((prevMag >= 1 && mag <= 1) || (prevMag <= 1 && mag >= 1))) {
-      if (isNaN(pmFreq)) { pmFreq = w; phaseMargin = 180 + phase; }
+      if (isNaN(pmFreq)) {
+        pmFreq = interpolateLogFrequency(prevW, w, prevMag, mag, 1);
+        const marginPoint = evaluateMarginPoint(sys, pmFreq);
+        phaseMargin = 180 + marginPoint.phase;
+      }
     }
     if (prevPhase !== null && ((prevPhase > -180 && phase <= -180) || (prevPhase < -180 && phase >= -180))) {
-      if (isNaN(gmFreq)) { gmFreq = w; gainMargin = 1 / mag; }
+      if (isNaN(gmFreq)) {
+        gmFreq = interpolateLogFrequency(prevW, w, prevPhase, phase, -180);
+        const marginPoint = evaluateMarginPoint(sys, gmFreq);
+        gainMargin = 1 / marginPoint.mag;
+      }
     }
     prevPhase = phase; prevMag = mag; prevW = w;
   }
@@ -92,6 +116,7 @@ export function routhTable(den) {
   const n = den.length;
   const cols = Math.ceil(n / 2);
   const table = [];
+  let hasZeroRow = false;
 
   // First two rows from coefficients
   const row0 = new Array(cols).fill(0);
@@ -106,8 +131,18 @@ export function routhTable(den) {
   // Subsequent rows
   for (let i = 2; i < n; i++) {
     const prev2 = table[i - 2];
-    const prev1 = table[i - 1];
+    let prev1 = table[i - 1];
     const row = new Array(cols).fill(0);
+    if (prev1.every((value) => Math.abs(value) < 1e-12)) {
+      hasZeroRow = true;
+      const order = n - i + 1;
+      for (let j = 0; j < cols; j++) {
+        const power = order - 2 * j;
+        row[j] = power > 0 ? power * prev2[j] : 0;
+      }
+      table[i - 1] = row.slice();
+      prev1 = table[i - 1];
+    }
     const pivot = prev1[0];
 
     if (Math.abs(pivot) < 1e-15) {
@@ -131,7 +166,7 @@ export function routhTable(den) {
     if (table[i][0] * table[i - 1][0] < 0) signChanges++;
   }
 
-  return { table, stable: signChanges === 0, signChanges };
+  return { table, stable: signChanges === 0 && !hasZeroRow, marginal: hasZeroRow, signChanges };
 }
 
 /**
