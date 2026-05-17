@@ -1206,6 +1206,29 @@ try {
     console.log('Scenario 3/4 regression tests passed');
   }
 
+  // ===== Phase 10 UI integration smoke =====
+  console.log('\n=== Phase 10 UI integration smoke ===');
+  {
+    // MPC: scalar integrator x[k+1] = x[k] + u[k], horizon=2
+    const Ad = [[1]], Bd = [[1]], Q = [[1]], R = [[1]];
+    const sim = simulateUnconstrainedMpc(Ad, Bd, Q, R, 2, [[1]], { steps: 5 });
+    assertTrue('MPC sim has 5 steps + initial', sim.x.length === 6);
+    assertTrue(`MPC converges, final ${sim.finalStateNormInf}`, sim.finalStateNormInf < 0.5);
+
+    // Robust: stable 1/(s+1)
+    const Lrob = new TransferFunction([1], [1, 1]);
+    const omegas = [0.01, 0.1, 1, 10, 100];
+    const peaks = robustPeaks(Lrob, omegas);
+    assertTrue(`peak S near 1, got ${peaks.Ms.peak}`, peaks.Ms.peak > 0.99 && peaks.Ms.peak < 1.01);
+    assertTrue(`risk should be low, got ${peaks.risk}`, peaks.risk === 'low');
+
+    // Dynamic Decoupler: diagonal MIMO should give W ≈ G⁻¹
+    const mimo = new MIMOStateSpace([[-1, 0], [0, -2]], [[1, 0], [0, 1]], [[1, 0], [0, 1]], [[0, 0], [0, 0]]);
+    const dyn = dynamicDecouplerAtFrequency(mimo, 1.0);
+    assertTrue(`Diagonal MIMO dynamic decoupler off-diag ${dyn.offDiagonalNorm}`, dyn.offDiagonalNorm < 1e-6);
+  }
+  console.log('Phase 10 UI integration smoke passed');
+
   console.log('Tests Passed!');
 } catch (e) {
   console.error('Error:', e);

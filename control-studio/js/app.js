@@ -19,7 +19,10 @@ import { Complex } from './math/complex.js';
 import { analyzeLyapunov, brysonsRule, closedLoopTransferFromStateFeedback, discretizeZOH, innovationStats, observerPoles, placeObserver, placeStateFeedback, resolveDesignStateSpace, simulateLqg, simulateObserver, solveDiscreteKalman, solveLqe, solveLqr, solveLqrMIMO } from './control/state-feedback.js?v=p8c';
 import { matTranspose, matSub, matMul } from './math/matrix.js?v=p5';
 import { BlockEditor } from './editor/editor.js';
-import { MIMOStateSpace, parseMIMOMatrices, rgaSteady, rgaDiagnosis, rgaInvariants, singularValueBode, staticDecoupler, applyDecoupler } from './control/mimo.js';
+import { MIMOStateSpace, parseMIMOMatrices, rgaSteady, rgaDiagnosis, rgaInvariants, singularValueBode, staticDecoupler, applyDecoupler, dynamicDecouplerAtFrequency } from './control/mimo.js';
+import { simulateUnconstrainedMpc } from './control/mpc.js';
+import { sensitivityBode, robustPeaks } from './control/robust.js';
+import { tfToControllableCanonical } from './control/state-space.js?v=p5';
 
 // ============================================================
 // STATE
@@ -143,6 +146,9 @@ function initEventListeners() {
   document.getElementById('btn-mimo-sv')?.addEventListener('click', computeMIMOSVBode);
   document.getElementById('btn-mimo-decoupler')?.addEventListener('click', computeMIMODecoupler);
   document.getElementById('btn-mimo-lqr')?.addEventListener('click', computeMIMOLqr);
+  document.getElementById('btn-mimo-dyn-decoupler')?.addEventListener('click', computeMIMODynDecoupler);
+  document.getElementById('btn-mpc-simulate')?.addEventListener('click', computeMpcSimulation);
+  document.getElementById('btn-robust')?.addEventListener('click', computeRobustSensitivity);
 
   document.querySelectorAll('.sys-tab').forEach(tab => {
     tab.addEventListener('click', (e) => {
@@ -3821,6 +3827,203 @@ function computeMIMOLqr() {
 }
 
 // ============================================================
+// Phase 10 UI: MPC / Robust / Dynamic Decoupler
+// ============================================================
+function _parseMatrixText(str, expRows, expCols, name) {
+  const M = str
+    .trim()
+    .split('\n')
+    .map((r) => r.trim().split(/[\s,]+/).filter(Boolean).map(Number));
+  if (M.length !== expRows || M.some((r) => r.length !== expCols)) {
+    throw new Error(`${name} 應為 ${expRows}×${expCols}，實際 ${M.length}×${M[0]?.length}`);
+  }
+  if (M.some((r) => r.some((v) => !Number.isFinite(v)))) {
+    throw new Error(`${name} 含有非數值`);
+  }
+  return M;
+}
+
+function computeMpcSimulation() {
+  try {
+    clearFieldErrors();
+    const Ts = parseFloat(document.getElementById('mpc-ts').value || '0.1');
+    const horizon = parseInt(document.getElementById('mpc-horizon').value || '10', 10);
+    const steps = parseInt(document.getElementById('mpc-steps').value || '30', 10);
+    if (!(Ts > 0)) throw new Error('Ts 必須 > 0');
+    if (!(horizon >= 2)) throw new Error('horizon 必須 ≥ 2');
+    if (!(steps >= 1)) throw new Error('sim steps 必須 ≥ 1');
+
+    let A, B, C, D;
+    if (state.systemMode === 'mimo' && state.mimoPlant) {
+      ({ A, B, C, D } = state.mimoPlant);
+    } else if (state.plant) {
+      const ss = tfToControllableCanonical(state.plant.num, state.plant.den);
+      A = ss.A; B = ss.B; C = ss.C; D = ss.D;
+    } else {
+      throw new Error('請先建立 plant');
+    }
+
+    const n = A.length;
+    const m = B[0].length;
+    const { Ad, Bd } = discretizeZOH(A, B, Ts);
+
+    const Q = _parseMatrixText(document.getElementById('mpc-q').value, n, n, 'Q');
+    const R = _parseMatrixText(document.getElementById('mpc-r').value, m, m, 'R');
+
+    const x0Vals = document.getElementById('mpc-x0').value
+      .split(/[\s,]+/).filter(Boolean).map(Number);
+    if (x0Vals.length !== n) throw new Error(`x₀ 應有 ${n} 個元素，實際 ${x0Vals.length}`);
+    if (x0Vals.some((v) => !Number.isFinite(v))) throw new Error('x₀ 含有非數值');
+    const x0 = x0Vals.map((v) => [v]);
+
+    const sim = simulateUnconstrainedMpc(Ad, Bd, Q, R, horizon, x0, { steps });
+    state.phase10 = state.phase10 || {};
+    state.phase10.mpc = { sim, Ts };
+
+    setPhase7Output('mpc-out', [
+      `<div style="color:var(--color-accent);font-weight:700;">MPC Result (horizon=${horizon}, Ts=${Ts}s, steps=${steps})</div>`,
+      `<div>Total cost J = ${fmtNum(sim.totalCost, 4)}</div>`,
+      `<div>Final ‖x‖∞ = ${fmtNum(sim.finalStateNormInf, 6)}</div>`,
+      `<div>First control u₀ = [${sim.u[0].map((r) => fmtNum(r[0], 4)).join(', ')}]</div>`,
+    ].join(''));
+
+    if (typeof Plotly !== 'undefined') {
+      const tArr = sim.x.map((_, k) => k * Ts);
+      const xTraces = [];
+      for (let i = 0; i < n; i++) {
+        xTraces.push({
+          x: tArr,
+          y: sim.x.map((xk) => xk[i][0]),
+          mode: 'lines', name: `x${i + 1}`,
+          line: { width: 1.5 },
+        });
+      }
+      Plotly.newPlot('chart-mpc-x', xTraces, {
+        ...PLOTLY_LAYOUT_BASE(),
+        margin: { t: 10, r: 20, b: 30, l: 40 },
+        legend: { font: { size: 9 }, orientation: 'h', y: 1.15 },
+        xaxis: { title: 't (s)', gridcolor: 'rgba(255,255,255,0.06)' },
+        yaxis: { title: 'state x', gridcolor: 'rgba(255,255,255,0.06)' },
+      }, { responsive: true, displayModeBar: false });
+
+      const tArrU = sim.u.map((_, k) => k * Ts);
+      const uTraces = [];
+      for (let j = 0; j < m; j++) {
+        uTraces.push({
+          x: tArrU,
+          y: sim.u.map((uk) => uk[j][0]),
+          mode: 'lines', name: `u${j + 1}`,
+          line: { width: 1, dash: 'dot' },
+        });
+      }
+      Plotly.newPlot('chart-mpc-u', uTraces, {
+        ...PLOTLY_LAYOUT_BASE(),
+        margin: { t: 10, r: 20, b: 30, l: 40 },
+        legend: { font: { size: 9 }, orientation: 'h', y: 1.15 },
+        xaxis: { title: 't (s)', gridcolor: 'rgba(255,255,255,0.06)' },
+        yaxis: { title: 'control u', gridcolor: 'rgba(255,255,255,0.06)' },
+      }, { responsive: true, displayModeBar: false });
+    }
+    clearError();
+  } catch (err) {
+    setPhase7Output('mpc-out', escapeHtml(err.message), true);
+    showError(err.message);
+  }
+}
+
+function computeRobustSensitivity() {
+  try {
+    clearFieldErrors();
+    if (!state.plant) throw new Error('請先建立 plant');
+    if (state.systemMode === 'mimo') throw new Error('Robust Sensitivity 目前只支援 SISO 模式');
+
+    const controllerTf = state.controller?.toTransferFunction?.();
+    if (!controllerTf) throw new Error('無法取得 controller transfer function（請先設定 PID/compensator）');
+    const loopTf = controllerTf.series(state.plant);
+
+    const wmin = parseFloat(document.getElementById('robust-wmin').value);
+    const wmax = parseFloat(document.getElementById('robust-wmax').value);
+    if (!(wmin > 0 && wmax > wmin)) throw new Error('ω 範圍無效：須滿足 0 < wmin < wmax');
+
+    const N = 200;
+    const lmin = Math.log10(wmin);
+    const lmax = Math.log10(wmax);
+    const omegas = Array.from({ length: N }, (_, i) => Math.pow(10, lmin + ((lmax - lmin) * i) / (N - 1)));
+
+    const sb = sensitivityBode(loopTf, omegas, controllerTf);
+    const peaks = robustPeaks(loopTf, omegas, controllerTf);
+    state.phase10 = state.phase10 || {};
+    state.phase10.robust = { sb, peaks };
+
+    const riskColor = peaks.risk === 'low' ? 'var(--color-stable)' : peaks.risk === 'medium' ? '#f59e0b' : 'var(--color-unstable)';
+    setPhase7Output('robust-out', [
+      `<div style="color:${riskColor};font-weight:700;">Robust Peaks (Risk: ${peaks.risk.toUpperCase()})</div>`,
+      `<div>‖S‖∞ = ${fmtNum(peaks.Ms.peak, 4)} (${fmtNum(peaks.Ms.peakDB, 2)} dB) @ ω=${fmtNum(peaks.Ms.peakOmega, 3)} rad/s</div>`,
+      `<div>‖T‖∞ = ${fmtNum(peaks.Mt.peak, 4)} (${fmtNum(peaks.Mt.peakDB, 2)} dB) @ ω=${fmtNum(peaks.Mt.peakOmega, 3)} rad/s</div>`,
+      peaks.MKs ? `<div>‖KS‖∞ = ${fmtNum(peaks.MKs.peak, 4)} (${fmtNum(peaks.MKs.peakDB, 2)} dB) @ ω=${fmtNum(peaks.MKs.peakOmega, 3)} rad/s</div>` : '',
+      `<div style="font-size:10px;color:var(--text-muted);margin-top:4px;">peak &lt;1.8: low risk；1.8-2.5: medium；&gt;2.5: high</div>`,
+    ].join(''));
+
+    if (typeof Plotly !== 'undefined') {
+      const safe = (arr) => arr.map((c) => (c && Number.isFinite(c.magnitude) && c.magnitude > 0 ? c.magnitude : null));
+      Plotly.newPlot('chart-robust', [
+        { x: omegas, y: safe(sb.S), mode: 'lines', name: '|S|', line: { color: '#6366f1', width: 1.5 } },
+        { x: omegas, y: safe(sb.T), mode: 'lines', name: '|T|', line: { color: '#10b981', width: 1.5 } },
+        { x: omegas, y: safe(sb.KS), mode: 'lines', name: '|KS|', line: { color: '#ec4899', width: 1.5, dash: 'dot' } },
+      ], {
+        ...PLOTLY_LAYOUT_BASE(),
+        margin: { t: 10, r: 20, b: 30, l: 50 },
+        legend: { font: { size: 9 }, orientation: 'h', y: 1.15 },
+        xaxis: { title: 'ω (rad/s)', type: 'log', gridcolor: 'rgba(255,255,255,0.06)' },
+        yaxis: { title: 'magnitude', type: 'log', gridcolor: 'rgba(255,255,255,0.06)' },
+      }, { responsive: true, displayModeBar: false });
+    }
+    clearError();
+  } catch (err) {
+    setPhase7Output('robust-out', escapeHtml(err.message), true);
+    showError(err.message);
+  }
+}
+
+function computeMIMODynDecoupler() {
+  try {
+    clearFieldErrors();
+    if (!state.mimoPlant) throw new Error('請先設定 MIMO 系統');
+    const omega = parseFloat(document.getElementById('mimo-dyn-omega').value || '1');
+    if (!(omega > 0)) throw new Error('ωc 必須 > 0');
+
+    const result = dynamicDecouplerAtFrequency(state.mimoPlant, omega);
+    state.phase10 = state.phase10 || {};
+    state.phase10.dynDecoupler = result;
+
+    const fmtCplx = (c) => `${fmtNum(c.re, 3)}${c.im >= 0 ? '+' : ''}${fmtNum(c.im, 3)}j`;
+    const fmtMat = (M) => M.map((r) => r.map(fmtCplx).join('  ')).join('<br>');
+    const colorRes = result.offDiagonalNorm < 0.1
+      ? 'var(--color-stable)'
+      : result.offDiagonalNorm < 0.5
+        ? '#f59e0b'
+        : 'var(--color-unstable)';
+
+    const outEl = document.getElementById('mimo-dyn-decoupler-out');
+    outEl.style.display = 'block';
+    outEl.innerHTML = `<div style="color:var(--color-accent);font-weight:700;">Dynamic Decoupler @ ω=${fmtNum(omega, 4)} rad/s</div>
+      <div style="margin-top:4px;">G(jω) =<br>${fmtMat(result.G)}</div>
+      <div style="margin-top:6px;">W(jω) = G(jω)⁻¹:<br>${fmtMat(result.W)}</div>
+      <div style="margin-top:6px;color:${colorRes};">Off-diagonal residual: ${fmtNum(result.offDiagonalNorm, 4)}</div>
+      <div>Diagonal deviation: ${fmtNum(result.diagonalDeviation, 4)}</div>
+      <div style="font-size:10px;color:var(--text-muted);margin-top:6px;">注意：這是 selected-frequency inverse，不是完整 polynomial decoupler。實際部署需 W(s) 為 proper 且 stable。</div>`;
+    clearError();
+  } catch (err) {
+    const outEl = document.getElementById('mimo-dyn-decoupler-out');
+    if (outEl) {
+      outEl.style.display = 'block';
+      outEl.innerHTML = `<div style="color:var(--color-unstable);">${escapeHtml(err.message)}</div>`;
+    }
+    showError(err.message);
+  }
+}
+
+// ============================================================
 // HELPERS
 // ============================================================
 function debounce(fn, ms) { let timeout; return (...args) => { clearTimeout(timeout); timeout = setTimeout(() => fn.apply(this, args), ms); }; }
@@ -3875,6 +4078,8 @@ function autoResizePhase8MatricesForMIMO(mimoPlant) {
     { id: 'lyapunov-q', dim: n, value: nxn },
     { id: 'lqr-q', dim: n, value: nxn },
     { id: 'mimo-lqr-r', dim: m, value: mxm },
+    { id: 'mpc-q', dim: n, value: nxn },
+    { id: 'mpc-r', dim: m, value: mxm },
   ].forEach(({ id, dim, value }) => {
     const el = document.getElementById(id);
     if (!el) return;
@@ -3883,6 +4088,14 @@ function autoResizePhase8MatricesForMIMO(mimoPlant) {
       el.value = value;
     }
   });
+  // mpc-x0 is a row of n comma-separated values
+  const x0el = document.getElementById('mpc-x0');
+  if (x0el) {
+    const curVals = String(x0el.value || '').split(/[\s,]+/).filter(Boolean);
+    if (curVals.length !== n) {
+      x0el.value = Array(n).fill(0).map((_, i) => (i === 0 ? '1' : '0')).join(', ');
+    }
+  }
 }
 
 // S3-1: when a freshly entered SISO plant has RHP poles, auto-switch the PZ

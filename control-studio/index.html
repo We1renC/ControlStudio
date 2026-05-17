@@ -895,6 +895,20 @@
             <p style="font-size:10px;color:var(--text-muted);margin-bottom:8px;">計算 W = G(0)⁻¹ 使 DC 增益變對角。套用後 channel grid 應呈對角化，重算 RGA 應趨近單位矩陣。</p>
             <button class="btn btn-sm" id="btn-mimo-decoupler" style="width:100%;justify-content:center;margin-bottom:8px;">Compute &amp; Apply Decoupler</button>
             <div id="mimo-decoupler-out" style="font-size:11px;font-family:monospace;color:var(--text-secondary);background:rgba(15,17,23,.4);padding:8px;border-radius:6px;line-height:1.6;display:none;"></div>
+
+            <!-- Dynamic Decoupler @ ω -->
+            <div style="margin-top:14px;border-top:1px solid var(--border-primary);padding-top:12px;">
+              <div style="font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase;margin-bottom:6px;">Dynamic Decoupler @ ω</div>
+              <p style="font-size:10px;color:var(--text-muted);margin-bottom:8px;">
+                在指定 crossover 頻率 ωc 計算 W(jωc) = G(jωc)⁻¹。檢查 off-diagonal residual 是否夠小作為 dynamic decoupling 的可行性指標。
+              </p>
+              <div class="input-group" style="margin-bottom:8px;">
+                <label>ωc (rad/s)</label>
+                <input type="number" id="mimo-dyn-omega" value="1" min="0.001" step="0.1">
+              </div>
+              <button class="btn btn-sm" id="btn-mimo-dyn-decoupler" style="width:100%;justify-content:center;margin-bottom:8px;">Compute Dynamic Decoupler</button>
+              <div id="mimo-dyn-decoupler-out" style="font-size:11px;font-family:monospace;color:var(--text-secondary);background:rgba(15,17,23,.4);padding:8px;border-radius:6px;line-height:1.6;display:none;"></div>
+            </div>
           </div>
 
           <!-- MIMO LQR -->
@@ -914,6 +928,66 @@
             <button class="btn btn-sm" id="btn-mimo-lqr" style="width:100%;justify-content:center;margin-bottom:8px;">Compute MIMO LQR Gain K</button>
             <div id="mimo-lqr-out" style="font-size:11px;font-family:monospace;color:var(--text-secondary);background:rgba(15,17,23,.4);padding:8px;border-radius:6px;line-height:1.6;display:none;"></div>
           </div>
+        </section>
+
+        <section class="section-panel" id="mpc-panel">
+          <div class="section-title">MPC (Unconstrained, Discrete)</div>
+          <p style="font-size:11px;color:var(--text-muted);line-height:1.5;margin-bottom:10px;">
+            有限預測 horizon 的 LQR-MPC baseline。先把 continuous plant 用 ZOH 離散化，再用 receding-horizon 計算 u₀。<br>
+            SISO 模式自動用 plant 轉 controllable canonical SS；MIMO 模式直接用 mimoPlant ABCD。
+          </p>
+          <div style="display:flex;gap:8px;margin-bottom:8px;">
+            <div class="input-group" style="flex:1;margin-bottom:0;">
+              <label>Sample Time Ts (s)</label>
+              <input type="number" id="mpc-ts" value="0.1" min="0.001" step="0.01">
+            </div>
+            <div class="input-group" style="flex:1;margin-bottom:0;">
+              <label>Horizon (N)</label>
+              <input type="number" id="mpc-horizon" value="10" min="2" max="100" step="1">
+            </div>
+            <div class="input-group" style="flex:1;margin-bottom:0;">
+              <label>Sim Steps</label>
+              <input type="number" id="mpc-steps" value="30" min="5" max="200" step="1">
+            </div>
+          </div>
+          <div class="input-group" style="margin-bottom:8px;">
+            <label>Q matrix (n × n)</label>
+            <textarea id="mpc-q" rows="2" style="font-family:monospace;">1 0
+0 1</textarea>
+          </div>
+          <div class="input-group" style="margin-bottom:8px;">
+            <label>R matrix (m × m)</label>
+            <textarea id="mpc-r" rows="2" style="font-family:monospace;">1</textarea>
+          </div>
+          <div class="input-group" style="margin-bottom:8px;">
+            <label>Initial state x₀ (n×1, comma separated)</label>
+            <input type="text" id="mpc-x0" value="1, 0" placeholder="1, 0">
+          </div>
+          <button class="btn btn-sm" id="btn-mpc-simulate" style="width:100%;justify-content:center;margin-bottom:8px;">Simulate MPC Receding-Horizon</button>
+          <div id="mpc-out" style="font-size:11px;font-family:monospace;color:var(--text-secondary);background:rgba(15,17,23,.4);padding:8px;border-radius:6px;line-height:1.6;display:none;margin-bottom:8px;"></div>
+          <div id="chart-mpc-x" style="height:150px;"></div>
+          <div id="chart-mpc-u" style="height:120px;margin-top:4px;"></div>
+        </section>
+
+        <section class="section-panel" id="robust-panel">
+          <div class="section-title">Robust Sensitivity (S / T / KS)</div>
+          <p style="font-size:11px;color:var(--text-muted);line-height:1.5;margin-bottom:10px;">
+            計算 |S(jω)|, |T(jω)|, |KS(jω)| 三條 sensitivity Bode。Peak |S|, |T| 對應 robust margin：peak &lt; 1.8 = low risk，1.8-2.5 = medium，&gt; 2.5 = high。<br>
+            Loop transfer L = C·G（current PID + plant）。SISO only。
+          </p>
+          <div style="display:flex;gap:8px;margin-bottom:8px;">
+            <div class="input-group" style="flex:1;margin-bottom:0;">
+              <label>ω min (rad/s)</label>
+              <input type="number" id="robust-wmin" value="0.01" step="0.01">
+            </div>
+            <div class="input-group" style="flex:1;margin-bottom:0;">
+              <label>ω max (rad/s)</label>
+              <input type="number" id="robust-wmax" value="100" step="1">
+            </div>
+          </div>
+          <button class="btn btn-sm" id="btn-robust" style="width:100%;justify-content:center;margin-bottom:8px;">Compute Sensitivity Bode</button>
+          <div id="robust-out" style="font-size:11px;font-family:monospace;color:var(--text-secondary);background:rgba(15,17,23,.4);padding:8px;border-radius:6px;line-height:1.6;display:none;margin-bottom:8px;"></div>
+          <div id="chart-robust" style="height:200px;"></div>
         </section>
 
         <section class="section-panel">
