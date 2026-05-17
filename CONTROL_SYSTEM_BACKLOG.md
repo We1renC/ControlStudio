@@ -38,14 +38,20 @@
 - Latest full-theory audit:
   - `7a318b3 fix(control): harden phase 7-9 theory diagnostics`
   - `46e20da fix(control): harden phase 0-6 theory checks`
-- Validation baseline:
+- Validation baseline (aggregated via `npm run verify:math` / `npm run verify:all`)：
   - `node control-studio/scripts/verify_math_core.mjs`
   - `node control-studio/scripts/verify_phase10_math_core.mjs`
+  - `node control-studio/scripts/verify_phase9_math_core.mjs`
+  - `node control-studio/scripts/verify_phase10_cross_method.mjs`
+  - `node control-studio/scripts/verify_phase9_phase10_edge_cases.mjs`
+  - `node control-studio/scripts/verify_phase10_care_robustness.mjs`
+  - `node control-studio/scripts/verify_phase10_high_order_care.mjs`
   - `node test_control.js`
   - `node control-studio/scripts/verify_control_cases.mjs`
   - `node control-studio/scripts/verify_control_api_contract.mjs`
   - `node control-studio/scripts/control_regression_dashboard.mjs`
   - `./scripts/validate_nvidia_model_selector.sh`
+- Pre-push hook：`bash scripts/install-hooks.sh` 啟用後，每次 `git push` 會跑 `verify:math`；失敗阻擋 push（用 `git push --no-verify` 可跳過）。
 
 ## Development Sequence
 
@@ -218,8 +224,8 @@ Exit criteria: 已達成。
 | CS-P10-14 | P2 | Planned | MPC constraint UI + QP solver | input/state hard constraint baseline (簡易 active-set QP) | CS-P10-09 | constrained MPC vs unconstrained comparison |
 | CS-P10-15 | P1 | Done | Schur CARE jω-boundary case | Hamiltonian 特徵值靠近虛軸 / 不 stabilizable 時 eigenvector path 會 fail；改為丟出含「stabilizability / boundary」友善訊息（非 NaN）。真正的 real Schur fallback 留待後續 | CS-P10-01 | `verify_phase10_care_robustness.mjs` 3 cases：jω uncontrollable、fully unstabilizable、near-boundary 仍可解 |
 | CS-P10-16 | P1 | Done | Schur vs Bass 對比測試（spacecraft sparse-B） | Spacecraft case 同時測 Schur 通過 (residual 1e-15) 與 Newton-Kleinman/Bass 失敗的友善訊息（已更新訊息明確推薦 Schur path） | CS-P10-01 / CS-P10-15 | `verify_phase10_care_robustness.mjs` 3 cases：Schur 通過 + Lyapunov 證、Kleinman 失敗含 Schur 提示、default path = Schur |
-| CS-P10-17 | P2 | Planned | 高階 CARE 壓測 (n ≥ 4) | 目前 Schur vs Newton 交叉驗證上限 n=3；dependency-free eigenvector path 在 n ≥ 6 會崩，需系統性壓測找出實際可用上限並文件化 | CS-P10-01 | random batch n=4/5/6/8 stable plant，記錄通過率與精度，產出可信賴 n 上限 |
-| CS-P10-18 | P2 | Planned | CI / pre-push verification hook | `package.json` 加 `verify:math` script 串接 4 個 runner；pre-push hook 失敗 block push | CS-P10-12 / Phase 9-10 runners | 任一 verify_*.mjs failure 阻擋 push；`npm run verify:math` 跑全部 ≥ 50 cases |
+| CS-P10-17 | P2 | Done | 高階 CARE 壓測 (n ≥ 4) | dependency-free eigenvector path 實測可信賴上限：n≤4 ≥95% pass，n=5 ≥85%，n=6 ≥80%，n=8 collapses (0% pass)。Real Schur fallback 仍是後續工作 | CS-P10-01 | `verify_phase10_high_order_care.mjs` 6×{n,m} 配置 + 4 assertions（含 n=8 documented-failure 上限鎖定） |
+| CS-P10-18 | P2 | Done | CI / pre-push verification hook | `package.json` 加 `verify:math` (串接 7 個 runner) + `verify:all`；`scripts/git-hooks/pre-push` + `bash scripts/install-hooks.sh` 設 core.hooksPath；失敗 block push（可用 `--no-verify` 跳過） | CS-P10-12 / Phase 9-10 runners | `npm run verify:math` 跑 ~70+ cases；pre-push 失敗阻擋 push |
 | CS-P10-05 | P3 | Paused | Electron packaging | 使用者要求擱置 | 主功能凍結 | 暫不做 |
 | CS-P10-06 | P3 | Paused | 教學模式 | 使用者要求擱置 | UI 穩定 | 暫不做 |
 | CS-P10-07 | P3 | Paused | 報告模板 / 報告自動化 | 使用者要求擱置 | Scenario docs mature | 暫不做 |

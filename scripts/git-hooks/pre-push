@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+# Pre-push hook: run ControlStudio math-core verification before pushing.
+# Install via: bash scripts/install-hooks.sh
+#
+# Skip with:    git push --no-verify
+# Disable hook: git config --unset core.hooksPath
+
+set -e
+
+repo_root="$(cd "$(dirname "$0")/../.." && pwd)"
+cd "$repo_root"
+
+echo "[pre-push] running verify:math (7 runners)..."
+if npm run --silent verify:math; then
+  echo "[pre-push] verify:math passed — push allowed"
+  exit 0
+else
+  echo ""
+  echo "[pre-push] verify:math FAILED — push blocked."
+  echo "[pre-push] Fix the failing assertion, or override with: git push --no-verify"
+  exit 1
+fi
