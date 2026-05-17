@@ -13,7 +13,7 @@ import { zpkToTransferFunction, parseRootsString, parseComplexRoot } from './con
 import { polydiv, polymul } from './control-studio/js/math/polynomial.js';
 import { c2dTustin, c2dZOH } from './control-studio/js/control/c2d.js';
 import { specsToTargetPoles, designLeadForPM, deadbeatGain } from './control-studio/js/control/design.js';
-import { MIMOStateSpace, parseMIMOMatrices } from './control-studio/js/control/mimo.js';
+import { MIMOStateSpace, parseMIMOMatrices, rgaSteady, rgaDiagnosis, singularValueBode, evalAtJw, singularValues } from './control-studio/js/control/mimo.js';
 import { discreteBodeData } from './control-studio/js/analysis/discrete-frequency-response.js';
 import { matExp, matIdentity, matMul, matSub, matScale } from './control-studio/js/math/matrix.js';
 import { tfToControllableCanonical } from './control-studio/js/control/state-space.js';
@@ -826,6 +826,35 @@ try {
     if (!threw) throw new Error('mismatched dimensions should throw');
 
     console.log('MIMO Foundation tests passed');
+  }
+
+  {
+    console.log('\n=== MIMO Batch 2 tests ===');
+
+    // Test 1: Diagonal system → RGA should be identity
+    const diagSys = new MIMOStateSpace([[-1, 0], [0, -2]], [[1, 0], [0, 1]], [[1, 0], [0, 1]], [[0, 0], [0, 0]]);
+    const rga1 = rgaSteady(diagSys);
+    console.assert(Math.abs(rga1[0][0] - 1) < 1e-6 && Math.abs(rga1[1][1] - 1) < 1e-6, `Diagonal RGA should be I, got [[${rga1[0]}],[${rga1[1]}]]`);
+    console.assert(Math.abs(rga1[0][1]) < 1e-6 && Math.abs(rga1[1][0]) < 1e-6, 'Off-diagonal RGA should be 0');
+
+    // Test 2: Coupled system → RGA rows sum to 1
+    const coupledSys = new MIMOStateSpace([[-1, 0], [0, -1]], [[1, 0.5], [0.5, 1]], [[1, 0], [0, 1]], [[0, 0], [0, 0]]);
+    const rga2 = rgaSteady(coupledSys);
+    const sumRow0 = rga2[0][0] + rga2[0][1];
+    console.assert(Math.abs(sumRow0 - 1) < 1e-6, `RGA rows sum to 1, got ${sumRow0}`);
+
+    // Test 3: SV Bode finite values
+    const omegas = [0.1, 1, 10];
+    const svResult = singularValueBode(diagSys, omegas);
+    console.assert(svResult.sigmaMax.every((v) => Number.isFinite(v) && v > 0), 'σ_max finite');
+    console.assert(svResult.sigmaMin.every((v) => Number.isFinite(v) && v > 0), 'σ_min finite');
+
+    // Test 4: σ at DC ≈ |G(0)| eigenvalues — diag(1, 0.5)
+    const svDC = singularValueBode(diagSys, [0.001]);
+    console.assert(Math.abs(svDC.sigmaMax[0] - 1) < 0.01, `σ_max at DC ≈ 1, got ${svDC.sigmaMax[0]}`);
+    console.assert(Math.abs(svDC.sigmaMin[0] - 0.5) < 0.01, `σ_min at DC ≈ 0.5, got ${svDC.sigmaMin[0]}`);
+
+    console.log('MIMO Batch 2 tests passed');
   }
 
   console.log('Tests Passed!');

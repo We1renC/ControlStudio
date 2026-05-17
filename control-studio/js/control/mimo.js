@@ -8,6 +8,8 @@
  */
 import { TransferFunction } from './transfer-function.js';
 import { stateSpaceToTransferFunction } from './state-space.js';
+import { matInverse, matMul, matTranspose, matEigenvaluesSymmetric } from '../math/matrix.js';
+import { Complex } from '../math/complex.js';
 
 export class MIMOStateSpace {
   constructor(A, B, C, D) {
@@ -81,4 +83,197 @@ export function parseMIMOMatrices(aStr, bStr, cStr, dStr) {
   if (D.length !== C.length) throw new Error('D rows must match C rows');
   if (D[0].length !== B[0].length) throw new Error('D cols must match B cols');
   return new MIMOStateSpace(A, B, C, D);
+}
+
+// ============================================================
+// RGA (Relative Gain Array)
+// ============================================================
+
+/** Compute DC gain matrix G(0) = -C·A^{-1}·B + D */
+export function dcGain(mimoSys) {
+  const { A, B, C, D } = mimoSys;
+  const negA = A.map((row) => row.map((v) => -v));
+  const Ainv = matInverse(negA); // (-A)^{-1}
+  const CA = matMul(C, Ainv);
+  const CAB = matMul(CA, B);
+  return CAB.map((row, i) => row.map((v, j) => v + D[i][j]));
+}
+
+/** Compute RGA = G ⊗ (G^{-T}) for square m×m system at steady state. */
+export function rgaSteady(mimoSys) {
+  if (mimoSys.m !== mimoSys.p) {
+    throw new Error(`RGA requires square system (m=p). Got m=${mimoSys.m}, p=${mimoSys.p}`);
+  }
+  const G = dcGain(mimoSys);
+  const Ginv = matInverse(G);
+  const GinvT = matTranspose(Ginv);
+  return G.map((row, i) => row.map((v, j) => v * GinvT[i][j]));
+}
+
+/** Diagnose pairing quality from RGA diagonal. */
+export function rgaDiagnosis(rga) {
+  const n = rga.length;
+  const diagnoses = [];
+  for (let i = 0; i < n; i++) {
+    const lam = rga[i][i];
+    if (lam < 0)
+      diagnoses.push({ pair: `y${i + 1}↔u${i + 1}`, lambda: lam, level: 'bad', note: 'Sign reversal — avoid' });
+    else if (lam < 0.5)
+      diagnoses.push({ pair: `y${i + 1}↔u${i + 1}`, lambda: lam, level: 'warn', note: 'Severe interaction' });
+    else if (lam > 5)
+      diagnoses.push({ pair: `y${i + 1}↔u${i + 1}`, lambda: lam, level: 'warn', note: 'Strong interaction (gain reduction)' });
+    else if (lam < 0.8 || lam > 1.5)
+      diagnoses.push({ pair: `y${i + 1}↔u${i + 1}`, lambda: lam, level: 'caution', note: 'Moderate interaction' });
+    else diagnoses.push({ pair: `y${i + 1}↔u${i + 1}`, lambda: lam, level: 'good', note: 'Good pairing' });
+  }
+  let suggestion = null;
+  const allGood = diagnoses.every((d) => d.level === 'good');
+  if (!allGood && n === 2) {
+    const diagSum = rga[0][0] + rga[1][1];
+    const swapSum = rga[0][1] + rga[1][0];
+    if (Math.abs(swapSum - 2) < Math.abs(diagSum - 2)) {
+      suggestion = 'Consider swap: y1↔u2 and y2↔u1';
+    }
+  }
+  return { diagnoses, suggestion };
+}
+
+// ============================================================
+// Singular Value Bode
+// ============================================================
+
+/**
+ * Evaluate complex matrix G(jω) = C·(jωI - A)^{-1}·B + D.
+ * Returns p×m grid of Complex numbers.
+ */
+export function evalAtJw(mimoSys, omega) {
+  const { A, B, C, D, n, m, p } = mimoSys;
+  // Build (jωI - A) as complex matrix
+  const M = Array.from({ length: n }, (_, i) =>
+    Array.from({ length: n }, (_, j) => new Complex(-A[i][j], i === j ? omega : 0)),
+  );
+  const Bc = B.map((row) => row.map((v) => new Complex(v, 0)));
+  const X = complexSolve(M, Bc);
+  const CX = Array.from({ length: p }, (_, i) =>
+    Array.from({ length: m }, (_, j) => {
+      let sum = new Complex(0, 0);
+      for (let k = 0; k < n; k++) {
+        sum = sum.add(new Complex(C[i][k], 0).mul(X[k][j]));
+      }
+      return sum;
+    }),
+  );
+  return CX.map((row, i) => row.map((v, j) => v.add(new Complex(D[i][j], 0))));
+}
+
+/** Complex Gauss elimination M·X = B (M is n×n, B is n×cols of Complex). */
+function complexSolve(M, B) {
+  const n = M.length;
+  const cols = B[0].length;
+  const aug = M.map((row, i) => [
+    ...row.map((c) => ({ re: c.re, im: c.im })),
+    ...B[i].map((c) => ({ re: c.re, im: c.im })),
+  ]);
+  for (let k = 0; k < n; k++) {
+    let maxMag = 0;
+    let pivot = k;
+    for (let i = k; i < n; i++) {
+      const mag = Math.hypot(aug[i][k].re, aug[i][k].im);
+      if (mag > maxMag) {
+        maxMag = mag;
+        pivot = i;
+      }
+    }
+    if (maxMag < 1e-12) throw new Error('Singular matrix in complexSolve');
+    if (pivot !== k) [aug[k], aug[pivot]] = [aug[pivot], aug[k]];
+    const pv = aug[k][k];
+    const pvMag2 = pv.re * pv.re + pv.im * pv.im;
+    for (let i = k + 1; i < n; i++) {
+      const a = aug[i][k];
+      const fRe = (a.re * pv.re + a.im * pv.im) / pvMag2;
+      const fIm = (a.im * pv.re - a.re * pv.im) / pvMag2;
+      for (let j = k; j < n + cols; j++) {
+        const t = aug[k][j];
+        aug[i][j] = {
+          re: aug[i][j].re - (fRe * t.re - fIm * t.im),
+          im: aug[i][j].im - (fRe * t.im + fIm * t.re),
+        };
+      }
+    }
+  }
+  const X = Array.from({ length: n }, () => Array.from({ length: cols }, () => new Complex(0, 0)));
+  for (let i = n - 1; i >= 0; i--) {
+    for (let j = 0; j < cols; j++) {
+      const s = { re: aug[i][n + j].re, im: aug[i][n + j].im };
+      for (let k = i + 1; k < n; k++) {
+        const t = aug[i][k];
+        const x = X[k][j];
+        s.re -= t.re * x.re - t.im * x.im;
+        s.im -= t.re * x.im + t.im * x.re;
+      }
+      const pv = aug[i][i];
+      const pvMag2 = pv.re * pv.re + pv.im * pv.im;
+      X[i][j] = new Complex(
+        (s.re * pv.re + s.im * pv.im) / pvMag2,
+        (s.im * pv.re - s.re * pv.im) / pvMag2,
+      );
+    }
+  }
+  return X;
+}
+
+/** Singular values of complex matrix G via eigenvalues of G^H · G. */
+export function singularValues(G) {
+  const p = G.length;
+  const m = G[0].length;
+  const GhG = Array.from({ length: m }, (_, i) =>
+    Array.from({ length: m }, (_, j) => {
+      let re = 0;
+      let im = 0;
+      for (let k = 0; k < p; k++) {
+        const gki = G[k][i];
+        const gkj = G[k][j];
+        // conj(gki) * gkj
+        re += gki.re * gkj.re + gki.im * gkj.im;
+        im += gki.re * gkj.im - gki.im * gkj.re;
+      }
+      return { re, im };
+    }),
+  );
+  if (m === 1) {
+    return [Math.sqrt(Math.max(0, GhG[0][0].re))];
+  }
+  if (m === 2) {
+    const a = GhG[0][0].re;
+    const d = GhG[1][1].re;
+    const b = GhG[0][1];
+    const bMag2 = b.re * b.re + b.im * b.im;
+    const tr2 = (a + d) / 2;
+    const disc = Math.sqrt(((a - d) / 2) ** 2 + bMag2);
+    const l1 = tr2 + disc;
+    const l2 = tr2 - disc;
+    return [Math.sqrt(Math.max(0, l1)), Math.sqrt(Math.max(0, l2))].sort((x, y) => y - x);
+  }
+  // Fallback for higher m: use real part (GhG is hermitian PSD → diag is real)
+  const realPart = GhG.map((row) => row.map((c) => c.re));
+  const eigs = matEigenvaluesSymmetric(realPart);
+  return eigs.map((e) => Math.sqrt(Math.max(0, e))).sort((x, y) => y - x);
+}
+
+/** Compute σ_max(ω), σ_min(ω) across frequency grid. */
+export function singularValueBode(mimoSys, omegas) {
+  const sigmaMax = [];
+  const sigmaMin = [];
+  for (const w of omegas) {
+    try {
+      const Gjw = evalAtJw(mimoSys, w);
+      const sv = singularValues(Gjw);
+      sigmaMax.push(sv[0]);
+      sigmaMin.push(sv[sv.length - 1]);
+    } catch (_) {
+      sigmaMax.push(NaN);
+      sigmaMin.push(NaN);
+    }
+  }
+  return { omegas: [...omegas], sigmaMax, sigmaMin };
 }

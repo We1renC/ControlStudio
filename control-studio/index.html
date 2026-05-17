@@ -831,6 +831,36 @@
           </div>
         </section>
 
+        <section class="section-panel" id="mimo-analysis-panel" style="display:none;">
+          <div class="section-title">MIMO Analysis</div>
+          <p style="font-size:11px;color:var(--text-muted);line-height:1.5;margin-bottom:10px;">
+            RGA 與 Singular Value 分析。需在 MIMO 模式下使用。
+          </p>
+
+          <div style="margin-bottom:14px;">
+            <div style="font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase;margin-bottom:6px;">Relative Gain Array</div>
+            <button class="btn btn-sm" id="btn-mimo-rga" style="width:100%;justify-content:center;margin-bottom:8px;">Compute RGA (DC)</button>
+            <div id="mimo-rga-out" style="font-size:11px;font-family:monospace;color:var(--text-secondary);background:rgba(15,17,23,.4);padding:8px;border-radius:6px;line-height:1.6;display:none;"></div>
+          </div>
+
+          <div>
+            <div style="font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase;margin-bottom:6px;">Singular Value Bode</div>
+            <div style="display:flex;gap:8px;margin-bottom:8px;">
+              <div class="input-group" style="flex:1;margin-bottom:0;">
+                <label>ω min (rad/s)</label>
+                <input type="number" id="mimo-sv-wmin" value="0.01" step="0.01">
+              </div>
+              <div class="input-group" style="flex:1;margin-bottom:0;">
+                <label>ω max (rad/s)</label>
+                <input type="number" id="mimo-sv-wmax" value="100" step="1">
+              </div>
+            </div>
+            <button class="btn btn-sm" id="btn-mimo-sv" style="width:100%;justify-content:center;margin-bottom:8px;">Plot σ_max / σ_min</button>
+            <div id="mimo-sv-out" style="font-size:11px;font-family:monospace;color:var(--text-secondary);background:rgba(15,17,23,.4);padding:8px;border-radius:6px;line-height:1.6;display:none;"></div>
+            <div id="chart-mimo-sv" style="height:180px;margin-top:8px;"></div>
+          </div>
+        </section>
+
         <section class="section-panel">
           <div class="section-title">AI Advisor</div>
           <p style="font-size:12px; color:var(--text-muted); line-height:1.6; margin-bottom:var(--space-4);">

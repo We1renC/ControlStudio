@@ -18,7 +18,7 @@ import { polyadd, polyscale, polyroots } from './math/polynomial.js?v=p4';
 import { Complex } from './math/complex.js';
 import { analyzeLyapunov, brysonsRule, closedLoopTransferFromStateFeedback, discretizeZOH, innovationStats, observerPoles, placeObserver, placeStateFeedback, resolveDesignStateSpace, simulateLqg, simulateObserver, solveDiscreteKalman, solveLqe, solveLqr } from './control/state-feedback.js?v=p8c';
 import { BlockEditor } from './editor/editor.js';
-import { MIMOStateSpace, parseMIMOMatrices } from './control/mimo.js';
+import { MIMOStateSpace, parseMIMOMatrices, rgaSteady, rgaDiagnosis, singularValueBode } from './control/mimo.js';
 
 // ============================================================
 // STATE
@@ -137,6 +137,8 @@ function initEventListeners() {
     btn.addEventListener('click', () => switchSystemMode(btn.dataset.mode));
   });
   document.getElementById('btn-mimo-update')?.addEventListener('click', updateMIMOSystem);
+  document.getElementById('btn-mimo-rga')?.addEventListener('click', computeMIMORGA);
+  document.getElementById('btn-mimo-sv')?.addEventListener('click', computeMIMOSVBode);
 
   document.querySelectorAll('.sys-tab').forEach(tab => {
     tab.addEventListener('click', (e) => {
@@ -3138,15 +3140,18 @@ function switchSystemMode(mode) {
   const sisoPanel = document.getElementById('siso-input-panel');
   const mimoPanel = document.getElementById('mimo-input-panel');
   const channelBar = document.getElementById('mimo-channel-bar');
+  const mimoAnalysis = document.getElementById('mimo-analysis-panel');
 
   if (mode === 'siso') {
     if (sisoPanel) sisoPanel.style.display = '';
     if (mimoPanel) mimoPanel.style.display = 'none';
     if (channelBar) channelBar.style.display = 'none';
+    if (mimoAnalysis) mimoAnalysis.style.display = 'none';
     if (state.plant) refreshAllCharts();
   } else {
     if (sisoPanel) sisoPanel.style.display = 'none';
     if (mimoPanel) mimoPanel.style.display = '';
+    if (mimoAnalysis) mimoAnalysis.style.display = '';
     if (!state.mimoPlant) {
       updateMIMOSystem();
     } else {
@@ -3221,6 +3226,107 @@ function applyMIMOChannel() {
   const tf = state.mimoPlant.channelTF(state.mimoChannel.output, state.mimoChannel.input);
   state.plant = tf;
   refreshAllCharts();
+}
+
+function computeMIMORGA() {
+  try {
+    clearFieldErrors();
+    if (!state.mimoPlant) throw new Error('請先設定 MIMO 系統');
+    if (state.mimoPlant.m !== state.mimoPlant.p) {
+      throw new Error(`RGA 需要方陣系統 (m=p)，目前 m=${state.mimoPlant.m}, p=${state.mimoPlant.p}`);
+    }
+
+    const rga = rgaSteady(state.mimoPlant);
+    const diag = rgaDiagnosis(rga);
+
+    const colorFor = (lvl) =>
+      lvl === 'good' ? 'var(--color-stable)'
+      : lvl === 'bad' ? 'var(--color-unstable)'
+      : lvl === 'warn' ? 'var(--color-secondary)'
+      : 'var(--color-accent)';
+
+    const matrixRows = rga
+      .map((row) => row.map((v) => `<span style="display:inline-block;width:60px;text-align:right;">${fmtNum(v, 3)}</span>`).join(' '))
+      .join('<br>');
+
+    const diagLines = diag.diagnoses
+      .map((d) => `<div style="color:${colorFor(d.level)};">${d.pair}: λ=${fmtNum(d.lambda, 3)} — ${d.note}</div>`)
+      .join('');
+
+    const sugg = diag.suggestion
+      ? `<div style="color:var(--color-accent);margin-top:6px;">💡 ${diag.suggestion}</div>`
+      : '';
+
+    const outEl = document.getElementById('mimo-rga-out');
+    outEl.style.display = 'block';
+    outEl.innerHTML = `<div style="color:var(--color-accent);font-weight:700;">RGA Matrix (steady-state)</div>
+      <div style="margin:4px 0;">${matrixRows}</div>
+      <div style="margin-top:8px;border-top:1px solid var(--border-primary);padding-top:6px;">${diagLines}${sugg}</div>
+      <div style="font-size:10px;color:var(--text-muted);margin-top:6px;">λ≈1: 良好；λ≈0.5: 強耦合；λ&lt;0: 不可配對</div>`;
+    clearError();
+  } catch (err) {
+    const outEl = document.getElementById('mimo-rga-out');
+    if (outEl) {
+      outEl.style.display = 'block';
+      outEl.innerHTML = `<div style="color:var(--color-unstable);">${escapeHtml(err.message)}</div>`;
+    }
+    showError(err.message);
+  }
+}
+
+function computeMIMOSVBode() {
+  try {
+    clearFieldErrors();
+    if (!state.mimoPlant) throw new Error('請先設定 MIMO 系統');
+
+    const wmin = parseFloat(document.getElementById('mimo-sv-wmin').value);
+    const wmax = parseFloat(document.getElementById('mimo-sv-wmax').value);
+    if (!(wmin > 0 && wmax > wmin)) throw new Error('ω 範圍無效：須滿足 0 < wmin < wmax');
+
+    const N = 200;
+    const logMin = Math.log10(wmin);
+    const logMax = Math.log10(wmax);
+    const omegas = Array.from({ length: N }, (_, i) =>
+      Math.pow(10, logMin + ((logMax - logMin) * i) / (N - 1)),
+    );
+
+    const result = singularValueBode(state.mimoPlant, omegas);
+
+    const validIdx = result.sigmaMax.findIndex((v) => Number.isFinite(v) && v > 0);
+    const sMaxLow = validIdx >= 0 ? result.sigmaMax[validIdx] : NaN;
+    const sMinLow = validIdx >= 0 ? result.sigmaMin[validIdx] : NaN;
+    const condDC = sMinLow > 0 ? sMaxLow / sMinLow : Infinity;
+
+    const outEl = document.getElementById('mimo-sv-out');
+    outEl.style.display = 'block';
+    outEl.innerHTML = `<div style="color:var(--color-accent);font-weight:700;">Singular Value Bode</div>
+      <div>σ_max @ ω_min: ${fmtNum(sMaxLow, 4)}</div>
+      <div>σ_min @ ω_min: ${fmtNum(sMinLow, 4)}</div>
+      <div>Condition κ @ ω_min: ${Number.isFinite(condDC) ? fmtNum(condDC, 3) : '∞'}</div>
+      <div style="font-size:10px;color:var(--text-muted);margin-top:4px;">κ &lt; 10: 易控；κ &gt; 100: 系統病態</div>`;
+
+    if (typeof Plotly !== 'undefined') {
+      const safe = (arr) => arr.map((v) => (v > 0 ? v : null));
+      Plotly.newPlot(
+        'chart-mimo-sv',
+        [
+          { x: result.omegas, y: safe(result.sigmaMax), mode: 'lines', name: 'σ_max', line: { color: '#76b900', width: 1.5 } },
+          { x: result.omegas, y: safe(result.sigmaMin), mode: 'lines', name: 'σ_min', line: { color: '#22c55e', width: 1.5 } },
+        ],
+        {
+          ...PLOTLY_LAYOUT_BASE(),
+          margin: { t: 10, r: 20, b: 30, l: 50 },
+          legend: { font: { size: 9 }, orientation: 'h', y: 1.15 },
+          xaxis: { title: 'ω (rad/s)', type: 'log', gridcolor: 'rgba(255,255,255,0.06)' },
+          yaxis: { title: 'σ (gain)', type: 'log', gridcolor: 'rgba(255,255,255,0.06)' },
+        },
+        { responsive: true, displayModeBar: false },
+      );
+    }
+    clearError();
+  } catch (err) {
+    showError(err.message);
+  }
 }
 
 // ============================================================
