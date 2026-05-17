@@ -44,6 +44,7 @@
   - `CONTROL_SYSTEM_PLAN.md`
   - `CONTROL_SYSTEM_VERIFICATION_CASES.md`
   - `CONTROL_SYSTEM_BACKLOG.md`
+  - `CONTROL_SYSTEM_SCENARIOS.md`
 - 控制系統目前 phase 狀態：
   - Phase 0 ~ Phase 9：Done
   - Phase 10（MPC / Robust Control / Dynamic Decoupler / 產品化）：Planned
@@ -163,6 +164,8 @@ git log --oneline -5
 - `control-studio/scripts/verify_math_core.mjs` 已新增為獨立數學核心驗證：覆蓋 Complex、Polynomial roots、Matrix solve/inverse/exp、RK4/RK45、TF/DTF guard、State-Space roundtrip、C2D DC gain。
 - `control-studio/js/math/polynomial.js` 已改用 Durand-Kerner 處理三階以上根；舊 QR path 對 `s^3+1` 會錯誤收斂為 0，勿恢復。
 - `control-studio/js/math/ode.js` 已修正 RK45 Dormand-Prince 5th-order 權重缺第 7 項 `0` 造成 NaN / infinite loop 的問題。
+- `CONTROL_SYSTEM_SCENARIOS.md` 已新增 precision servo stage position control 情境，使用 ControlStudio 核心完成 PID + Lead 設計，並記錄後續改善思考。
+- `control-studio/scripts/run_servo_stage_case.mjs` 可重跑 servo-stage 情境並輸出 `outputs/controlstudio/precision-servo-stage-case.json`；`control_regression_dashboard.mjs` 已納入此情境檢查。
 
 ## 後續可做
 1. 控制系統下一步依 `CONTROL_SYSTEM_BACKLOG.md` 進入 Phase 10：先做 `feat(control): add MPC baseline`，但需先補獨立設計文件。

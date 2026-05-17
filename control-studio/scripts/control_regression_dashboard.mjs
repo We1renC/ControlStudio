@@ -44,6 +44,11 @@ const checks = [
     ],
     expect: ['"response"', '"metrics"', '"system"'],
   },
+  {
+    name: 'Servo stage scenario',
+    command: ['node', 'control-studio/scripts/run_servo_stage_case.mjs'],
+    expect: ['precision-servo-stage-position-control', 'pid-lead-selected'],
+  },
 ];
 
 const staticChecks = [
