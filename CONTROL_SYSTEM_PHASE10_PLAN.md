@@ -58,6 +58,7 @@ Verification:
 - MIMO diagonal analytic LQR solution.
 - Spacecraft-style marginally stable MIMO plant with sparse actuation.
 - CARE residual and closed-loop Lyapunov proof.
+- Dedicated runner: `node control-studio/scripts/verify_phase10_math_core.mjs`.
 
 Known limits:
 
@@ -100,6 +101,7 @@ Verification:
 - First action for `x0=1` equals `u0=-0.6`.
 - Receding-horizon scalar simulation converges.
 - Invalid horizon guard.
+- Dedicated runner: `node control-studio/scripts/verify_phase10_math_core.mjs`.
 
 ## Phase 10.3: Dynamic Decoupler Prototype
 
@@ -136,6 +138,7 @@ Verification:
 - Static-coupled tank case should match static decoupler near DC.
 - Frequency-coupled case should reduce off-diagonal magnitude at selected `ωc`.
 - Singular or ill-conditioned `G(jωc)` must produce contextual error.
+- Dedicated runner: `node control-studio/scripts/verify_phase10_math_core.mjs`.
 
 ## Phase 10.4: Robust Control Scope Design
 
@@ -178,6 +181,7 @@ Verification:
 - DC identities: `S(0)=0.5`, `T(0)=0.5`.
 - `KS(0)` with `K=2` equals `1`.
 - Singular `1+L=0` guard.
+- Dedicated runner: `node control-studio/scripts/verify_phase10_math_core.mjs`.
 
 ## Recommended Next Commits
 

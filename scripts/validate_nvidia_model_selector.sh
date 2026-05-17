@@ -30,6 +30,7 @@ test -f "$ROOT_DIR/control-studio/index.html"
 test -f "$ROOT_DIR/control-studio/scripts/control_api.py"
 test -f "$ROOT_DIR/control-studio/scripts/control_analysis_cli.mjs"
 test -f "$ROOT_DIR/control-studio/scripts/verify_math_core.mjs"
+test -f "$ROOT_DIR/control-studio/scripts/verify_phase10_math_core.mjs"
 test -f "$ROOT_DIR/control-studio/scripts/verify_control_cases.mjs"
 test -f "$ROOT_DIR/control-studio/scripts/verify_control_api_contract.mjs"
 test -f "$ROOT_DIR/control-studio/scripts/control_regression_dashboard.mjs"
@@ -79,6 +80,7 @@ python3 "$ROOT_DIR/workflows/ocr_rag_workflow.py" >/tmp/nvidia-ocr-rag.txt
 python3 "$ROOT_DIR/workflows/control_advisor_workflow.py" --help >/tmp/nvidia-control-advisor-help.txt
 node "$ROOT_DIR/test_control.js" >/tmp/nvidia-control-test.txt
 node "$ROOT_DIR/control-studio/scripts/verify_math_core.mjs" >/tmp/nvidia-control-math-core.txt
+node "$ROOT_DIR/control-studio/scripts/verify_phase10_math_core.mjs" >/tmp/nvidia-control-phase10-math-core.txt
 node "$ROOT_DIR/control-studio/scripts/verify_control_cases.mjs" >/tmp/nvidia-control-verification-cases.txt
 node "$ROOT_DIR/control-studio/scripts/verify_control_api_contract.mjs" >/tmp/nvidia-control-api-contract.txt
 node "$ROOT_DIR/control-studio/scripts/control_regression_dashboard.mjs" >/tmp/nvidia-control-regression-dashboard.txt
@@ -112,6 +114,7 @@ grep -q "Lead/Lag compensator tests passed" /tmp/nvidia-control-test.txt
 grep -q "Discrete transfer function tests passed" /tmp/nvidia-control-test.txt
 grep -q "Nichols data points" /tmp/nvidia-control-test.txt
 grep -q "Math core verification passed: 8/8" /tmp/nvidia-control-math-core.txt
+grep -q "Phase 10 math core verification passed: 12/12" /tmp/nvidia-control-phase10-math-core.txt
 grep -q "Verification fixtures passed: 5/5" /tmp/nvidia-control-verification-cases.txt
 grep -q "API contract fixtures passed: 5/5" /tmp/nvidia-control-api-contract.txt
 grep -q "ControlStudio regression dashboard: PASS" /tmp/nvidia-control-regression-dashboard.txt

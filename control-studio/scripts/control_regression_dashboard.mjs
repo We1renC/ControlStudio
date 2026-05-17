@@ -21,6 +21,11 @@ const checks = [
     expect: ['Math core verification passed: 8/8'],
   },
   {
+    name: 'Phase 10 math core verification',
+    command: ['node', 'control-studio/scripts/verify_phase10_math_core.mjs'],
+    expect: ['Phase 10 math core verification passed: 12/12'],
+  },
+  {
     name: 'Verification fixtures',
     command: ['node', 'control-studio/scripts/verify_control_cases.mjs'],
     expect: ['Verification fixtures passed: 5/5'],

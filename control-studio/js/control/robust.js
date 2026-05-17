@@ -52,6 +52,9 @@ export function sensitivityBode(loopTf, omegas, controllerTf = null) {
 }
 
 export function robustPeaks(loopTf, omegas, controllerTf = null) {
+  if (!Array.isArray(omegas) || !omegas.length) {
+    throw new Error('omegas must be a non-empty array');
+  }
   const points = omegas.map((omega) => sensitivityAt(loopTf, omega, controllerTf));
   const sValues = points.map((point) => ({ omega: point.omega, magnitude: point.S.magnitude }));
   const tValues = points.map((point) => ({ omega: point.omega, magnitude: point.T.magnitude }));

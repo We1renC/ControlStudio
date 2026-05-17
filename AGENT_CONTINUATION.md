@@ -57,7 +57,7 @@
     - Next：MPC UI panel / Robust sensitivity UI / Dynamic Decoupler UI
     - Paused：Teaching Mode / Electron / Report Template / Block Diagram expansion
   - Block Diagram expansion：Paused
-  - Phase 0 ~ Phase 9 已完成通盤數學理論完善度檢查；所有數學核心也已完成 hardening。後續若修改數值核心，需至少重跑 `node control-studio/scripts/verify_math_core.mjs`、`node test_control.js`、`node control-studio/scripts/verify_control_cases.mjs`、`node control-studio/scripts/verify_control_api_contract.mjs`、`node control-studio/scripts/control_regression_dashboard.mjs`。
+  - Phase 0 ~ Phase 9 已完成通盤數學理論完善度檢查；所有數學核心也已完成 hardening。後續若修改數值核心，需至少重跑 `node control-studio/scripts/verify_math_core.mjs`、`node control-studio/scripts/verify_phase10_math_core.mjs`、`node test_control.js`、`node control-studio/scripts/verify_control_cases.mjs`、`node control-studio/scripts/verify_control_api_contract.mjs`、`node control-studio/scripts/control_regression_dashboard.mjs`。
 - 已建立 symlink：
   - `/Users/w.rc/.config/agents/skills/nvidia-model-selector`
   - 指向 `/Users/w.rc/nvdiaOSsupport/skills/nvidia-model-selector`
@@ -181,6 +181,7 @@ git log --oneline -5
 - `control-studio/js/control/mimo.js` 已新增 `dynamicDecouplerAtFrequency(mimoSys, omega)`，可在指定 `ωc` 計算 `W(jωc)=G(jωc)⁻¹` 並回傳 `G(jωc)·W(jωc)` residual；`test_control.js` 已驗證 selected-frequency inverse。
 - `control-studio/js/control/robust.js` 已新增 Robust sensitivity baseline：`S/T/KS`、peak sensitivity、risk classification；`test_control.js` 已驗證 DC identity 與 singular guard。
 - Scenario 5 已用 in-app browser 實際操作 MPC / Robust 情境，結論是 Phase 10 math-core ready 但 UI-not-ready；改善項目已寫入 `CONTROL_SYSTEM_SCENARIOS.md` 與 `CONTROL_SYSTEM_BACKLOG.md`。
+- `control-studio/scripts/verify_phase10_math_core.mjs` 已新增 Phase 10 專用數學核心驗證，覆蓋 Hamiltonian CARE analytic cases、Spacecraft marginal MIMO、MPC Riccati、Dynamic Decoupler、Robust `S/T/KS`；已納入 regression dashboard 與 `scripts/validate_nvidia_model_selector.sh`。
 
 ## 後續可做
 1. 控制系統下一步依 `CONTROL_SYSTEM_PHASE10_PLAN.md` 與 `CONTROL_SYSTEM_BACKLOG.md` 做 `feat(phase10): add MPC UI panel`。

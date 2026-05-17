@@ -39,6 +39,7 @@
   - `46e20da fix(control): harden phase 0-6 theory checks`
 - Validation baseline:
   - `node control-studio/scripts/verify_math_core.mjs`
+  - `node control-studio/scripts/verify_phase10_math_core.mjs`
   - `node test_control.js`
   - `node control-studio/scripts/verify_control_cases.mjs`
   - `node control-studio/scripts/verify_control_api_contract.mjs`
@@ -201,10 +202,10 @@ Exit criteria: 已達成。
 | ID | Priority | Status | Item | Rationale | Dependencies | Verification |
 | --- | --- | --- | --- | --- | --- | --- |
 | CS-P10-00 | P0 | Done | Phase 10 design baseline | 明確排除暫緩項，收斂高階控制開發順序 | Phase 0-9 complete | `CONTROL_SYSTEM_PHASE10_PLAN.md` |
-| CS-P10-01 | P0 | Done | Schur / Hamiltonian CARE solver | Newton-Kleinman 對 marginally stable / unstable plant 不通用，需穩定 invariant-subspace CARE 路徑 | Phase 7-9 LQR/LQE/MIMO LQR | `test_control.js` analytic CARE + Spacecraft case |
-| CS-P10-02 | P1 | Done | MPC baseline | discrete finite-horizon / unconstrained receding-horizon baseline | discrete + state-space mature | scalar integrator hand-derived Riccati fixture |
-| CS-P10-03 | P2 | Done | Dynamic Decoupler | 頻域解耦（非僅 DC），先做 selected-frequency inverse prototype | MIMO mature | `G(jωc)·W(jωc)` 近似 I |
-| CS-P10-04 | P2 | Done | Robust Control sensitivity baseline | `S/T/KS` 與 peak sensitivity，不直接 H∞ synthesis | numerical engine mature | `S/T/KS` DC identity + singular guard |
+| CS-P10-01 | P0 | Done | Schur / Hamiltonian CARE solver | Newton-Kleinman 對 marginally stable / unstable plant 不通用，需穩定 invariant-subspace CARE 路徑 | Phase 7-9 LQR/LQE/MIMO LQR | `verify_phase10_math_core.mjs` analytic CARE + Spacecraft case |
+| CS-P10-02 | P1 | Done | MPC baseline | discrete finite-horizon / unconstrained receding-horizon baseline | discrete + state-space mature | `verify_phase10_math_core.mjs` scalar Riccati + convergence |
+| CS-P10-03 | P2 | Done | Dynamic Decoupler | 頻域解耦（非僅 DC），先做 selected-frequency inverse prototype | MIMO mature | `verify_phase10_math_core.mjs` checks `G(jωc)·W(jωc)≈I` |
+| CS-P10-04 | P2 | Done | Robust Control sensitivity baseline | `S/T/KS` 與 peak sensitivity，不直接 H∞ synthesis | numerical engine mature | `verify_phase10_math_core.mjs` checks `S/T/KS` identity + singular guard |
 | CS-P10-09 | P1 | Next | MPC UI panel | 暴露 horizon / Q / R / x0 / steps，讓工程師能用介面完成 MPC baseline | CS-P10-02 | Browser smoke 顯示 `K0=0.6`, `u0=-0.6` |
 | CS-P10-10 | P1 | Next | Robust sensitivity UI | 暴露 `S/T/KS`、`Ms/Mt/MKs`、risk | CS-P10-04 | Browser smoke 顯示 `S(0)=0.5`, `T(0)=0.5` |
 | CS-P10-11 | P1 | Next | Dynamic Decoupler UI | 暴露 `ωc` input、complex W、`G(jωc)W(jωc)` residual | CS-P10-03 | Browser smoke 顯示 off-diagonal residual |
