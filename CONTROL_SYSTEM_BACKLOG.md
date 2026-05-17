@@ -9,9 +9,10 @@
 目前策略：
 - Block Diagram 暫時擱置，不在近期主線投入新功能。
 - Phase 0-9 全部完成：SISO 全鏈、State Feedback / Lyapunov / LQR、Observer / Kalman / LQG、MIMO 基礎與設計（RGA / SV Bode / Decoupler / MIMO LQR）。
-- 下一階段為 MPC / Robust Control / 產品化（Electron / 報告生成）；尚未排程，待實際使用回饋。
+- 下一階段依 `CONTROL_SYSTEM_PHASE10_PLAN.md`：先完成 Schur / Hamiltonian CARE，再做 MPC baseline、Dynamic Decoupler、Robust Control scope。
+- 使用者已要求擱置：教學模式、Electron packaging、報告模板 / 報告自動化。
 - 每個功能必須有數學推導或 fixture 驗證，不只看 UI 是否可操作。
-- 控制理論主線已飽和；新功能優先考慮使用者體驗、教學模式、報告自動化。
+- 控制理論新增功能需先有數學與驗證基線，避免直接擴大 UI 面。
 
 ## Priority Legend
 
@@ -30,7 +31,8 @@
 ## Current Baseline
 
 - Branch: `codex/control-system-latest`
-- Latest synced commit: `46e20da fix(control): harden phase 0-6 theory checks`
+- Latest pre-Phase-10 synced commit: `b01f169 docs(control): mark all 9 Scenario 3+4 issues as resolved`
+- Current Phase 10 checkpoint: Schur / Hamiltonian CARE solver added; next item is MPC baseline.
 - Latest full-theory audit:
   - `7a318b3 fix(control): harden phase 7-9 theory diagnostics`
   - `46e20da fix(control): harden phase 0-6 theory checks`
@@ -193,36 +195,39 @@ Exit criteria: 已達成。
 
 ### Phase 10: Deferred High-Complexity / Productization
 
-目標：明確標記暫緩，避免後續 agent 提早開太大的面。
+目標：依實際情境暴露出的缺口完善高階控制數學核心；產品化項目先暫緩。
 
 | ID | Priority | Status | Item | Rationale | Dependencies | Verification |
 | --- | --- | --- | --- | --- | --- | --- |
-| CS-P10-01 | P3 | Planned | MPC | 需要 optimization、constraints、horizon UI | discrete + state-space mature | 需獨立設計文件 |
-| CS-P10-02 | P3 | Planned | Robust Control (H∞ / μ) | 需要 uncertainty model 與 sensitivity analysis | numerical engine mature | 需獨立設計文件 |
-| CS-P10-03 | P3 | Planned | Dynamic Decoupler | 頻域解耦（非僅 DC），需 polynomial matrix 運算 | MIMO mature | 對 G(s)·W(s) 對角化 |
-| CS-P10-04 | P3 | Planned | Electron packaging | 桌面打包 | 主功能凍結 | 跨平台啟動 |
-| CS-P10-05 | P3 | Planned | 教學模式 / 報告自動化 | 需要使用者回饋驅動 | UI 穩定 | 模板 + 互動 walkthrough |
-| CS-P10-06 | P3 | Paused | Block Diagram expansion | 使用者已要求先暫置 | SISO advanced stable | 恢復前需重新確認需求 |
+| CS-P10-00 | P0 | Done | Phase 10 design baseline | 明確排除暫緩項，收斂高階控制開發順序 | Phase 0-9 complete | `CONTROL_SYSTEM_PHASE10_PLAN.md` |
+| CS-P10-01 | P0 | Done | Schur / Hamiltonian CARE solver | Newton-Kleinman 對 marginally stable / unstable plant 不通用，需穩定 invariant-subspace CARE 路徑 | Phase 7-9 LQR/LQE/MIMO LQR | `test_control.js` analytic CARE + Spacecraft case |
+| CS-P10-02 | P1 | Next | MPC baseline | 先做 discrete finite-horizon / unconstrained receding-horizon baseline | discrete + state-space mature | 需 double integrator fixture |
+| CS-P10-03 | P2 | Planned | Dynamic Decoupler | 頻域解耦（非僅 DC），先做 selected-frequency inverse prototype | MIMO mature | 對 `G(jωc)·W(jωc)` 近似對角化 |
+| CS-P10-04 | P2 | Planned | Robust Control scope | 先做 sensitivity functions / uncertainty sweep，不直接 H∞ synthesis | numerical engine mature | `S/T/KS` peak fixtures |
+| CS-P10-05 | P3 | Paused | Electron packaging | 使用者要求擱置 | 主功能凍結 | 暫不做 |
+| CS-P10-06 | P3 | Paused | 教學模式 | 使用者要求擱置 | UI 穩定 | 暫不做 |
+| CS-P10-07 | P3 | Paused | 報告模板 / 報告自動化 | 使用者要求擱置 | Scenario docs mature | 暫不做 |
+| CS-P10-08 | P3 | Paused | Block Diagram expansion | 使用者已要求先暫置 | SISO advanced stable | 恢復前需重新確認需求 |
 
 ## Immediate Next 3 Commits
 
-建議後續 agent 依序做（待 Phase 10 啟動時）：
+建議後續 agent 依序做：
 
-1. `feat(control): add MPC baseline`
-   - Discrete prediction horizon + QP solver minimum baseline。
+1. `feat(phase10): add mpc baseline`
+   - Discrete finite-horizon / unconstrained receding-horizon baseline。
 
-2. `feat(control): add report template`
-   - Markdown 報告自動填入 model / controller / metrics / Phase 7-9 結果。
+2. `feat(phase10): add dynamic decoupler prototype`
+   - Selected-frequency `W(jωc)=G(jωc)^-1` prototype。
 
-3. `feat(control): add teaching mode walkthrough`
-   - 引導式 tour，依 Phase 順序展示每個功能。
+3. `docs(phase10): define robust control scope`
+   - Sensitivity functions / uncertainty sweep 的範圍與驗證案例。
 
 ## Do Not Start Yet
 
 以下項目先不要直接開發：
-- MPC（需獨立設計文件先收斂）
-- Robust Control（需 uncertainty model 設計）
-- 完整 Electron packaging
+- 教學模式
+- Electron packaging
+- 報告模板 / 報告自動化
 - Block Diagram 新功能
 
-原因：等實際使用者回饋再決定優先順序，避免猜需求。
+原因：使用者已明確要求擱置，後續 agent 不應自行恢復。

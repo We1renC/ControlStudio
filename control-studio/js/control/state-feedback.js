@@ -93,6 +93,236 @@ function scalarFromMatrix(M) {
   return M[0][0];
 }
 
+function c(value, im = 0) {
+  return value instanceof Complex ? value : new Complex(value, im);
+}
+
+function complexMatrixFromReal(A) {
+  return A.map((row) => row.map((value) => c(value)));
+}
+
+function complexIdentity(n) {
+  const out = Array.from({ length: n }, () => Array.from({ length: n }, () => c(0)));
+  for (let i = 0; i < n; i++) out[i][i] = c(1);
+  return out;
+}
+
+function complexMatMul(A, B) {
+  const rows = A.length;
+  const cols = B[0].length;
+  const inner = B.length;
+  const out = Array.from({ length: rows }, () => Array.from({ length: cols }, () => c(0)));
+  for (let i = 0; i < rows; i++) {
+    for (let j = 0; j < cols; j++) {
+      let sum = c(0);
+      for (let k = 0; k < inner; k++) sum = sum.add(A[i][k].mul(B[k][j]));
+      out[i][j] = sum;
+    }
+  }
+  return out;
+}
+
+function complexMatInverse(A, tolerance = 1e-10) {
+  const n = A.length;
+  const aug = A.map((row, i) => [...row.map((value) => c(value.re, value.im)), ...complexIdentity(n)[i]]);
+
+  for (let col = 0; col < n; col++) {
+    let pivot = col;
+    for (let row = col + 1; row < n; row++) {
+      if (aug[row][col].magnitude > aug[pivot][col].magnitude) pivot = row;
+    }
+    if (aug[pivot][col].magnitude < tolerance) {
+      throw new SingularMatrixError('Hamiltonian stable-subspace X matrix is singular');
+    }
+    [aug[col], aug[pivot]] = [aug[pivot], aug[col]];
+    const pivotValue = aug[col][col];
+    for (let j = 0; j < 2 * n; j++) aug[col][j] = aug[col][j].div(pivotValue);
+    for (let row = 0; row < n; row++) {
+      if (row === col) continue;
+      const factor = aug[row][col];
+      for (let j = 0; j < 2 * n; j++) {
+        aug[row][j] = aug[row][j].sub(factor.mul(aug[col][j]));
+      }
+    }
+  }
+
+  return aug.map((row) => row.slice(n));
+}
+
+function complexNullVector(A, tolerance = 1e-8) {
+  const rows = A.length;
+  const cols = A[0].length;
+  const M = A.map((row) => row.map((value) => c(value.re, value.im)));
+  const pivots = [];
+  let r = 0;
+
+  for (let col = 0; col < cols && r < rows; col++) {
+    let pivot = r;
+    for (let row = r + 1; row < rows; row++) {
+      if (M[row][col].magnitude > M[pivot][col].magnitude) pivot = row;
+    }
+    if (M[pivot][col].magnitude < tolerance) continue;
+
+    [M[r], M[pivot]] = [M[pivot], M[r]];
+    const pivotValue = M[r][col];
+    for (let j = col; j < cols; j++) M[r][j] = M[r][j].div(pivotValue);
+    for (let row = 0; row < rows; row++) {
+      if (row === r) continue;
+      const factor = M[row][col];
+      for (let j = col; j < cols; j++) {
+        M[row][j] = M[row][j].sub(factor.mul(M[r][j]));
+      }
+    }
+    pivots.push(col);
+    r++;
+  }
+
+  const pivotSet = new Set(pivots);
+  const freeCols = [];
+  for (let col = 0; col < cols; col++) {
+    if (!pivotSet.has(col)) freeCols.push(col);
+  }
+  if (!freeCols.length) {
+    throw new SingularMatrixError('Hamiltonian eigenvector null space is empty');
+  }
+
+  const vector = Array.from({ length: cols }, () => c(0));
+  const freeCol = freeCols[freeCols.length - 1];
+  vector[freeCol] = c(1);
+  for (let row = pivots.length - 1; row >= 0; row--) {
+    const pivotCol = pivots[row];
+    let sum = c(0);
+    for (const col of freeCols) sum = sum.add(M[row][col].mul(vector[col]));
+    vector[pivotCol] = sum.neg();
+  }
+  return vector;
+}
+
+function hamiltonianMatrix(A, B, Q, R) {
+  const n = A.length;
+  const Rinv = matInverse(R);
+  const BRinvBt = matMul(matMul(B, Rinv), matTranspose(B));
+  const At = matTranspose(A);
+  const H = matCreate(2 * n, 2 * n, 0);
+  for (let i = 0; i < n; i++) {
+    for (let j = 0; j < n; j++) {
+      H[i][j] = A[i][j];
+      H[i][j + n] = -BRinvBt[i][j];
+      H[i + n][j] = -Q[i][j];
+      H[i + n][j + n] = -At[i][j];
+    }
+  }
+  return H;
+}
+
+function careResidual(A, B, Q, R, P) {
+  const Rinv = matInverse(R);
+  const BRinvBt = matMul(matMul(B, Rinv), matTranspose(B));
+  const PBRinvBtP = matMul(matMul(P, BRinvBt), P);
+  return matAdd(
+    matAdd(matMul(matTranspose(A), P), matMul(P, A)),
+    matSub(Q, PBRinvBtP),
+  );
+}
+
+function maxImagMatrix(A) {
+  let max = 0;
+  for (const row of A) {
+    for (const value of row) max = Math.max(max, Math.abs(value.im));
+  }
+  return max;
+}
+
+function complexColumnsFromVectors(vectors, startRow, rowCount) {
+  return Array.from({ length: rowCount }, (_, row) =>
+    vectors.map((vector) => vector[startRow + row])
+  );
+}
+
+/**
+ * Continuous CARE by Hamiltonian stable invariant subspace.
+ *
+ * This is the same mathematical route normally implemented with a real Schur
+ * decomposition in production libraries: build the Hamiltonian matrix, isolate
+ * its stable invariant subspace [X;Y], then recover P = Y X^{-1}. ControlStudio
+ * uses a lightweight eigenvector version so it stays dependency-free; it is
+ * intended for the low-order systems supported by the current workbench.
+ */
+export function solveCareHamiltonianSchur(A, B, Q = null, R = null, options = {}) {
+  const n = A.length;
+  const m = B[0].length;
+  const Qmat = Q ? matSymmetrize(Q.map((row) => [...row])) : matIdentity(n);
+  const Rmat = R ? matSymmetrize(R.map((row) => [...row])) : matIdentity(m);
+  const tolerance = options.tolerance || 1e-7;
+
+  if (Qmat.length !== n || Qmat[0].length !== n) {
+    throw new Error(`Q must be ${n}×${n}`);
+  }
+  if (Rmat.length !== m || Rmat[0].length !== m) {
+    throw new Error(`R must be ${m}×${m}`);
+  }
+  if (!matIsPositiveDefinite(Rmat)) {
+    throw new Error('R must be positive definite');
+  }
+
+  const H = hamiltonianMatrix(A, B, Qmat, Rmat);
+  const eigenvalues = polyroots(characteristicPolynomialCoefficients(H));
+  const stable = eigenvalues
+    .filter((root) => root.re < -tolerance)
+    .sort((a, b) => a.re - b.re || a.im - b.im)
+    .slice(0, n);
+
+  if (stable.length !== n) {
+    throw new Error(`Hamiltonian CARE solver requires exactly ${n} stable eigenvalues, got ${stable.length}`);
+  }
+
+  const Hc = complexMatrixFromReal(H);
+  const vectors = stable.map((lambda) => {
+    const shifted = Hc.map((row, i) => row.map((value, j) => (
+      i === j ? value.sub(lambda) : value
+    )));
+    return complexNullVector(shifted, options.nullTolerance || 1e-7);
+  });
+
+  const X = complexColumnsFromVectors(vectors, 0, n);
+  const Y = complexColumnsFromVectors(vectors, n, n);
+  const Pc = complexMatMul(Y, complexMatInverse(X, options.inverseTolerance || 1e-8));
+  const imaginaryNorm = maxImagMatrix(Pc);
+  if (imaginaryNorm > (options.imaginaryTolerance || 1e-6)) {
+    throw new Error(`Hamiltonian CARE solver produced a non-real P matrix: max imaginary=${imaginaryNorm}`);
+  }
+  const P = matSymmetrize(Pc.map((row) => row.map((value) => (
+    Math.abs(value.re) < 1e-12 ? 0 : value.re
+  ))));
+  const K = matMul(matInverse(Rmat), matMul(matTranspose(B), P));
+  const Acl = matSub(A, matMul(B, K));
+  const residual = careResidual(A, B, Qmat, Rmat, P);
+  const riccatiResidualNorm = maxAbsMatrix(residual);
+  const closedLoopLyapunov = analyzeLyapunov(Acl, matIdentity(n));
+
+  if (!closedLoopLyapunov.provenStable || riccatiResidualNorm > (options.residualTolerance || 1e-5)) {
+    throw new Error(`Hamiltonian CARE solver failed validation: residual=${riccatiResidualNorm}`);
+  }
+
+  return {
+    K,
+    P,
+    Q: Qmat,
+    R: Rmat,
+    Acl,
+    residual,
+    riccatiResidualNorm,
+    residualNorm: riccatiResidualNorm,
+    closedLoopStable: closedLoopLyapunov.provenStable,
+    closedLoopLyapunov,
+    eigenvalues,
+    stableEigenvalues: stable,
+    imaginaryNorm,
+    method: 'hamiltonian-schur',
+    initialGainStrategy: 'hamiltonian-schur',
+  };
+}
+
 function characteristicPolynomialCoefficients(M) {
   const n = M.length;
   let aux = matCreate(n, n, 0);
@@ -328,6 +558,23 @@ export function solveLqr(A, B, Q = null, R = [[1]], options = {}) {
     throw new Error(`System not fully controllable: rank(Wc)=${controllabilityRank}, n=${n}`);
   }
 
+  if (options.method !== 'kleinman') {
+    try {
+      const schur = solveCareHamiltonianSchur(A, B, Qmat, Rmat, options.schur || {});
+      return {
+        ...schur,
+        controllabilityRank,
+        iterations: 0,
+        initialGainStrategy: 'hamiltonian-schur',
+      };
+    } catch (e) {
+      if (options.method === 'schur') throw e;
+      // Fall back to the legacy Newton-Kleinman path. This keeps existing
+      // low-order cases working even if the dependency-free Hamiltonian
+      // eigenvector path is numerically weak for a particular polynomial.
+    }
+  }
+
   let initialGainStrategy = 'user-supplied';
   let K = options.initialK
     ? toGainRow(options.initialK)
@@ -409,6 +656,24 @@ export function solveLqrMIMO(A, B, Q = null, R = null, options = {}) {
   const Rinv = matInverse(Rmat);
   const Bt = matTranspose(B);
   const controllabilityRank = multiInputControllabilityRank(A, B);
+
+  if (options.method !== 'kleinman') {
+    try {
+      const schur = solveCareHamiltonianSchur(A, B, Qmat, Rmat, options.schur || {});
+      return {
+        ...schur,
+        iterations: 0,
+        controllabilityRank,
+        initialGainStrategy: 'hamiltonian-schur',
+      };
+    } catch (e) {
+      if (options.method === 'schur') {
+        throw new Error(`MIMO LQR Hamiltonian/Schur CARE 求解失敗：${e.message}`);
+      }
+      // Continue to Newton-Kleinman fallback for legacy and edge cases.
+    }
+  }
+
   let K;
   let initialGainStrategy = 'user-supplied';
   if (options.initialK) {

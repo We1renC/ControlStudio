@@ -1,0 +1,160 @@
+# ControlStudio Phase 10 Plan
+
+Phase 10 focuses on advanced-control reliability before adding broad product features. Current instruction: keep Teaching Mode, Electron packaging, and Report Template paused.
+
+## Scope
+
+### Active Track
+
+1. Schur / Hamiltonian CARE solver
+2. MPC baseline
+3. Dynamic Decoupler prototype
+4. Robust Control scope design
+
+### Paused Track
+
+1. Teaching Mode
+2. Electron packaging
+3. Report Template / report automation
+4. Block Diagram expansion
+
+## Phase 10.1: Schur / Hamiltonian CARE Solver
+
+Status: Done
+
+Purpose:
+
+- Replace Newton-Kleinman as the only practical LQR/LQE path.
+- Support marginally stable and unstable plants when the Hamiltonian stable invariant subspace is well-conditioned.
+- Resolve the Spacecraft scenario limitation where Bass method cannot stabilize sparse rank-2 actuation.
+
+Mathematical basis:
+
+```text
+A'P + PA - PBR^-1B'P + Q = 0
+
+H = [ A       -BR^-1B' ]
+    [ -Q      -A'      ]
+
+stable invariant subspace of H:
+H [X] = [X] Λs,  Re(Λs) < 0
+  [Y]   [Y]
+
+P = Y X^-1
+K = R^-1 B'P
+Acl = A - BK
+```
+
+Implementation:
+
+- `solveCareHamiltonianSchur(A, B, Q, R)` added in `control-studio/js/control/state-feedback.js`.
+- `solveLqr()` and `solveLqrMIMO()` now try Hamiltonian CARE first, then fall back to Newton-Kleinman unless `method: 'schur'` is requested.
+- The implementation uses Hamiltonian eigenvector invariant subspace instead of a full real Schur decomposition to keep ControlStudio dependency-free.
+
+Verification:
+
+- Scalar unstable CARE analytic solution.
+- SISO second-order analytic LQR solution.
+- MIMO diagonal analytic LQR solution.
+- Spacecraft-style marginally stable MIMO plant with sparse actuation.
+- CARE residual and closed-loop Lyapunov proof.
+
+Known limits:
+
+- Dependency-free eigenvector extraction is intended for low-order ControlStudio models.
+- A production-grade implementation should eventually use a real Schur decomposition or delegate to SciPy / Python Control through the API backend.
+
+## Phase 10.2: MPC Baseline
+
+Status: Next
+
+Minimum viable scope:
+
+- Discrete state-space model only.
+- Finite prediction horizon.
+- Quadratic stage cost:
+
+```text
+J = Σ x_k'Qx_k + u_k'Ru_k
+```
+
+- First baseline may be unconstrained finite-horizon LQR / receding-horizon control.
+- Constraint UI and QP solver can follow after the baseline is validated.
+
+Required verification:
+
+- Double integrator discrete model.
+- Compare unconstrained MPC first action with finite-horizon Riccati recursion.
+- Verify closed-loop convergence under receding horizon.
+- Guard invalid horizon, non-positive R, and dimension mismatch.
+
+## Phase 10.3: Dynamic Decoupler Prototype
+
+Status: Planned
+
+Minimum viable scope:
+
+- Start with 2x2 stable proper MIMO transfer-function channels.
+- Compute frequency-specific decoupler at selected crossover frequency:
+
+```text
+W(jωc) = G(jωc)^-1
+```
+
+- Display residual coupling magnitude:
+
+```text
+G(jωc)W(jωc) ≈ I
+```
+
+Deferred:
+
+- Full polynomial-matrix dynamic inversion.
+- Non-minimum phase / unstable inverse handling.
+- Robust dynamic decoupling.
+
+Required verification:
+
+- Static-coupled tank case should match static decoupler near DC.
+- Frequency-coupled case should reduce off-diagonal magnitude at selected `ωc`.
+- Singular or ill-conditioned `G(jωc)` must produce contextual error.
+
+## Phase 10.4: Robust Control Scope Design
+
+Status: Planned
+
+Minimum viable scope:
+
+- Sensitivity functions:
+
+```text
+S = 1 / (1 + L)
+T = L / (1 + L)
+KS = K / (1 + L)
+```
+
+- Robustness indicators:
+  - peak `|S|`
+  - peak `|T|`
+  - disk-margin style warning placeholder
+  - gain/phase uncertainty sweep
+
+Deferred:
+
+- H∞ synthesis
+- μ-synthesis
+- structured uncertainty model
+
+Required verification:
+
+- Stable low-pass loop with bounded sensitivity.
+- Low phase-margin case with high `|S|` peak.
+- RHP zero case showing unavoidable performance limitation.
+
+## Recommended Next Commits
+
+1. `feat(phase10): add mpc baseline`
+2. `feat(phase10): add dynamic decoupler prototype`
+3. `docs(phase10): define robust control scope`
+
+Do not start Teaching Mode, Electron packaging, or Report Template until explicitly resumed.

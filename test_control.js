@@ -20,7 +20,7 @@ import { matExp, matIdentity, matMul, matSub, matScale } from './control-studio/
 import { Complex } from './control-studio/js/math/complex.js';
 import { tfToControllableCanonical } from './control-studio/js/control/state-space.js';
 import { matRank } from './control-studio/js/math/matrix.js';
-import { analyzeLyapunov, closedLoopTransferFromStateFeedback, discretizeZOH, innovationStats, placeObserver, placeStateFeedback, simulateLqg, simulateObserver, solveDiscreteKalman, solveLqe, solveLqr } from './control-studio/js/control/state-feedback.js';
+import { analyzeLyapunov, closedLoopTransferFromStateFeedback, discretizeZOH, innovationStats, placeObserver, placeStateFeedback, simulateLqg, simulateObserver, solveCareHamiltonianSchur, solveDiscreteKalman, solveLqe, solveLqr } from './control-studio/js/control/state-feedback.js';
 
 try {
   const assertNear = (name, actual, expected, tolerance = 1e-6) => {
@@ -688,6 +688,9 @@ try {
   assertNear('Unstable scalar LQR K', lqrUnstable.K[0][0], 2 + Math.sqrt(5), 1e-6);
   assertNear('Unstable scalar LQR Acl', lqrUnstable.Acl[0][0], -Math.sqrt(5), 1e-6);
   if (!lqrUnstable.closedLoopStable) throw new Error('Unstable scalar LQR should stabilize the closed loop');
+  if (lqrUnstable.initialGainStrategy !== 'hamiltonian-schur') {
+    throw new Error(`Expected Hamiltonian/Schur LQR path, got ${lqrUnstable.initialGainStrategy}`);
+  }
 
   console.log('Phase 7 (Lyapunov / Pole Placement / LQR) tests passed');
 
@@ -1052,7 +1055,18 @@ try {
     assertNear('Unstable diag K22', lqr3.K[1][1], 2 + Math.sqrt(5), 1e-6);
     assertNear('Unstable diag Acl11', lqr3.Acl[0][0], -Math.sqrt(2), 1e-6);
     assertNear('Unstable diag Acl22', lqr3.Acl[1][1], -Math.sqrt(5), 1e-6);
-    assertTrue('Unstable diagonal initial strategy uses pseudoinverse shift', lqr3.initialGainStrategy.startsWith('right-pseudoinverse-shift'));
+    assertTrue('Unstable diagonal initial strategy uses Hamiltonian/Schur CARE', lqr3.initialGainStrategy === 'hamiltonian-schur');
+
+    // Test 5b: Hamiltonian invariant-subspace CARE directly solves marginally stable
+    // spacecraft-style MIMO plant, which Newton-Kleinman/Bass cannot generally do.
+    const spacecraftCare = solveCareHamiltonianSchur(
+      [[0, 1, 0, 0], [0, 0, 0, 0], [0, 0, 0, 1], [0, 0, -1, 0]],
+      [[0, 0], [1, 0], [0, 0], [0, 1]],
+      [[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]],
+      [[1, 0], [0, 1]],
+    );
+    assertTrue('Spacecraft Hamiltonian/Schur CARE stabilizes closed loop', spacecraftCare.closedLoopStable);
+    assertTrue(`Spacecraft Hamiltonian/Schur residual ok: ${spacecraftCare.riccatiResidualNorm}`, spacecraftCare.riccatiResidualNorm < 1e-5);
 
     // Test 6: Underactuated unstable system should reject unsupported initial gain construction
     let threwLqrGuard = false;

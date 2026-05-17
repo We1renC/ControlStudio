@@ -371,11 +371,22 @@
 - Done：MIMO LQR（R 為 m×m 矩陣的 CARE 求解，Newton-Kleinman 迭代）。
 - Verification：`test_control.js` 覆蓋 MIMO 維度驗證、RGA invariants、3x3 complex singular values、decoupler 後 RGA = I、MIMO LQR stable/unstable analytic cases、underactuated unstable guard。
 
+### Phase 10 Advanced Control Reliability Track
+- Done：Phase 10 設計文件：`CONTROL_SYSTEM_PHASE10_PLAN.md`，明確排除教學模式 / Electron / 報告模板。
+- Done：Schur / Hamiltonian CARE solver：`solveCareHamiltonianSchur(A,B,Q,R)`，以 Hamiltonian stable invariant subspace 求解 CARE。
+- Done：`solveLqr()` / `solveLqrMIMO()` 優先使用 Hamiltonian CARE，失敗時才 fallback 到 Newton-Kleinman。
+- Done：Spacecraft marginally stable MIMO case 可由 Hamiltonian CARE 直接得到 stabilizing LQR，補上 Bass 法無法處理 sparse rank-2 actuation 的缺口。
+- Next：MPC baseline（discrete finite-horizon / unconstrained receding-horizon）。
+- Planned：Dynamic Decoupler prototype。
+- Planned：Robust Control scope（先做 sensitivity functions / uncertainty sweep，不直接做 H∞ / μ synthesis）。
+- Paused：教學模式 / Electron / 報告模板 / Block Diagram expansion。
+- Verification：`test_control.js` 覆蓋 Hamiltonian CARE analytic cases、MIMO diagonal analytic case、Spacecraft marginally stable case、CARE residual 與 closed-loop Lyapunov proof。
+
 ### Stage 4: Productization
-- Electron desktop packaging
-- Cloud deployment option
-- Teaching mode
-- Report generation
+- Paused：Electron desktop packaging
+- Planned：Cloud deployment option（待核心功能凍結後再評估）
+- Paused：Teaching mode
+- Paused：Report generation / report template
 
 ## 12. Technical Risks
 

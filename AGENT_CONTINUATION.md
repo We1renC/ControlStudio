@@ -45,9 +45,15 @@
   - `CONTROL_SYSTEM_VERIFICATION_CASES.md`
   - `CONTROL_SYSTEM_BACKLOG.md`
   - `CONTROL_SYSTEM_SCENARIOS.md`
+  - `CONTROL_SYSTEM_PHASE10_PLAN.md`
 - 控制系統目前 phase 狀態：
   - Phase 0 ~ Phase 9：Done
-  - Phase 10（MPC / Robust Control / Dynamic Decoupler / 產品化）：Planned
+  - Phase 10：In Progress
+    - Done：Phase 10 design baseline
+    - Done：Schur / Hamiltonian CARE solver
+    - Next：MPC baseline
+    - Planned：Dynamic Decoupler prototype / Robust Control scope
+    - Paused：Teaching Mode / Electron / Report Template / Block Diagram expansion
   - Block Diagram expansion：Paused
   - Phase 0 ~ Phase 9 已完成通盤數學理論完善度檢查；所有數學核心也已完成 hardening。後續若修改數值核心，需至少重跑 `node control-studio/scripts/verify_math_core.mjs`、`node test_control.js`、`node control-studio/scripts/verify_control_cases.mjs`、`node control-studio/scripts/verify_control_api_contract.mjs`、`node control-studio/scripts/control_regression_dashboard.mjs`。
 - 已建立 symlink：
@@ -166,12 +172,16 @@ git log --oneline -5
 - `control-studio/js/math/ode.js` 已修正 RK45 Dormand-Prince 5th-order 權重缺第 7 項 `0` 造成 NaN / infinite loop 的問題。
 - `CONTROL_SYSTEM_SCENARIOS.md` 已新增 precision servo stage position control 情境，使用 ControlStudio 核心完成 PID + Lead 設計，並記錄後續改善思考。
 - `control-studio/scripts/run_servo_stage_case.mjs` 可重跑 servo-stage 情境並輸出 `outputs/controlstudio/precision-servo-stage-case.json`；`control_regression_dashboard.mjs` 已納入此情境檢查。
+- `CONTROL_SYSTEM_PHASE10_PLAN.md` 已新增 Phase 10 規劃，明確擱置 Teaching Mode / Electron / Report Template。
+- `control-studio/js/control/state-feedback.js` 已新增 `solveCareHamiltonianSchur(A,B,Q,R)`，以 Hamiltonian stable invariant subspace 求解 CARE；`solveLqr()` / `solveLqrMIMO()` 現在優先使用此路徑，失敗才 fallback Newton-Kleinman。
+- `test_control.js` 已新增 Hamiltonian CARE 驗證，涵蓋 SISO / MIMO analytic CARE 與 Spacecraft marginally stable MIMO case。
 
 ## 後續可做
-1. 控制系統下一步依 `CONTROL_SYSTEM_BACKLOG.md` 進入 Phase 10：先做 `feat(control): add MPC baseline`，但需先補獨立設計文件。
-2. 再做 `feat(control): add robust control scope note` 或 `feat(control): add dynamic decoupler baseline`，避免直接跳進高維頻域設計而無驗證基線。
-3. 產品化主線可優先做報告模板 / PDF/HTML export / 教學模式，而不是再擴控制理論面。
-4. Block Diagram 目前維持 paused；不要新增 block diagram 功能，除非使用者重新明確恢復。
+1. 控制系統下一步依 `CONTROL_SYSTEM_PHASE10_PLAN.md` 與 `CONTROL_SYSTEM_BACKLOG.md` 做 `feat(phase10): add mpc baseline`。
+2. 再做 `feat(phase10): add dynamic decoupler prototype`。
+3. Robust Control 先做 scope / sensitivity functions / uncertainty sweep，不直接做 H∞ / μ synthesis。
+4. Teaching Mode / Electron / Report Template 目前使用者要求擱置，不要開發。
+5. Block Diagram 目前維持 paused；不要新增 block diagram 功能，除非使用者重新明確恢復。
 6. 加 `agents/openai.yaml` UI metadata。
 7. 增強 evaluator：從 heuristic 檢查升級成 judge model + golden dataset。
 8. 若 NVIDIA Build Models 更新，先更新根目錄資料檔，再同步 `skills/nvidia-model-selector/references/`。
@@ -179,7 +189,7 @@ git log --oneline -5
 10. 若要更實用，補上本地文件切 chunk / PDF 轉圖 / OCR 結果快取。
 11. 加 parallel runner 與 leaderboard，追蹤同任務多模型輸出品質。
 12. 將 OCR/RAG 的 endpoint source 也改成完整 registry-driven，而不只傳入 model id。
-13. 補 Electron packaging 與教學模式。
+13. Electron packaging 與教學模式已依使用者要求擱置，勿自行恢復。
 
 ## 注意事項
 - 這個專案不需要 `.agent-handoff.md`。
