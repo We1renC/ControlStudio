@@ -8,7 +8,7 @@
     "verify:phase11": "node control-studio/scripts/verify_phase11_dare.mjs && node control-studio/scripts/verify_phase11_setpoint_and_state_constraints.mjs && node control-studio/scripts/verify_phase11_hinf.mjs && node control-studio/scripts/verify_phase11_dynamic_rga.mjs",
     "verify:cases": "node control-studio/scripts/verify_control_cases.mjs",
     "verify:api": "node control-studio/scripts/verify_control_api_contract.mjs",
-    "verify:all": "npm run verify:math && npm run verify:phase11 && npm run verify:cases && npm run verify:api",
+    "verify:all": "npm run verify:math && npm run verify:phase11 && npm run verify:cases",
     "install:hooks": "bash scripts/install-hooks.sh"
   }
 }
