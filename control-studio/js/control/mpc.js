@@ -18,6 +18,7 @@ import {
   matSymmetrize,
   matTranspose,
 } from '../math/matrix.js';
+import { solveDAREHamiltonianSign } from './state-feedback.js';
 
 function assertMatrixShape(name, M, rows, cols) {
   if (!Array.isArray(M) || M.length !== rows || M.some((row) => !Array.isArray(row) || row.length !== cols)) {
@@ -68,17 +69,26 @@ export function validateMpcModel(Ad, Bd, Q, R, horizon) {
 /**
  * Finite-horizon discrete LQR recursion for unconstrained MPC:
  *
- * P_N = Qf
+ * P_N = Qf  (or P∞ from DARE when options.autoTerminalCost = true)
  * K_k = (R + B'P_{k+1}B)^-1 B'P_{k+1}A
  * P_k = Q + A'P_{k+1}A - A'P_{k+1}B K_k
  */
-export function finiteHorizonLqr(Ad, Bd, Q = null, R = null, horizon = 10, Qf = null) {
+export function finiteHorizonLqr(Ad, Bd, Q = null, R = null, horizon = 10, Qf = null, options = {}) {
   const n = Ad.length;
   const m = Bd[0].length;
   const Qmat = Q ? matSymmetrize(cloneMatrix(Q)) : matIdentity(n);
   const Rmat = R ? matSymmetrize(cloneMatrix(R)) : matIdentity(m);
-  const Qfmat = Qf ? matSymmetrize(cloneMatrix(Qf)) : cloneMatrix(Qmat);
   validateMpcModel(Ad, Bd, Qmat, Rmat, horizon);
+
+  let Qfmat;
+  if (Qf) {
+    Qfmat = matSymmetrize(cloneMatrix(Qf));
+  } else if (options.autoTerminalCost) {
+    const dare = solveDAREHamiltonianSign(Ad, Bd, Qmat, Rmat);
+    Qfmat = dare.P;
+  } else {
+    Qfmat = cloneMatrix(Qmat);
+  }
   assertMatrixShape('Qf', Qfmat, n, n);
 
   const At = matTranspose(Ad);
@@ -107,10 +117,10 @@ export function finiteHorizonLqr(Ad, Bd, Q = null, R = null, horizon = 10, Qf = 
   };
 }
 
-export function firstMpcAction(Ad, Bd, Q, R, horizon, x, Qf = null) {
+export function firstMpcAction(Ad, Bd, Q, R, horizon, x, Qf = null, options = {}) {
   const n = Ad.length;
   assertMatrixShape('x', x, n, 1);
-  const result = finiteHorizonLqr(Ad, Bd, Q, R, horizon, Qf);
+  const result = finiteHorizonLqr(Ad, Bd, Q, R, horizon, Qf, options);
   const u = matScale(matMul(result.firstGain, x), -1);
   return { u, gain: result.firstGain, riccati: result };
 }
@@ -133,7 +143,7 @@ export function simulateUnconstrainedMpc(Ad, Bd, Q, R, horizon, x0, options = {}
   let totalCost = 0;
 
   for (let k = 0; k < steps; k++) {
-    const action = firstMpcAction(Ad, Bd, Qmat, Rmat, horizon, x[k], options.Qf || null);
+    const action = firstMpcAction(Ad, Bd, Qmat, Rmat, horizon, x[k], options.Qf || null, { autoTerminalCost: options.autoTerminalCost });
     const uk = action.u;
     const xNext = addColumn(matMul(Ad, x[k]), matMul(Bd, uk));
     const cost = quadraticForm(x[k], Qmat) + quadraticForm(uk, Rmat);
@@ -149,6 +159,130 @@ export function simulateUnconstrainedMpc(Ad, Bd, Q, R, horizon, x0, options = {}
     stageCost,
     totalCost,
     finalStateNormInf: maxAbsMatrix(x[x.length - 1]),
+    steps,
+    horizon,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// CS-P11-02: MPC Setpoint Tracking
+// ---------------------------------------------------------------------------
+
+/**
+ * Compute pseudo-inverse of an n×m matrix A using the normal equations.
+ * For m ≤ n (more rows than cols): pinv(A) = (A'A)⁻¹A'  (left pseudo-inverse)
+ * For m > n (more cols than rows): pinv(A) = A'(AA')⁻¹  (right pseudo-inverse)
+ */
+function pseudoInverse(A) {
+  const n = A.length;
+  const m = A[0].length;
+  const At = matTranspose(A);
+  if (m <= n) {
+    return matMul(matInverse(matMul(At, A)), At);
+  }
+  return matMul(At, matInverse(matMul(A, At)));
+}
+
+/**
+ * Compute the steady-state input u_ss required for the state x_ss = r.
+ *
+ * Steady-state condition: r = Ad·r + Bd·u_ss  →  (I−Ad)·r = Bd·u_ss
+ * Solution: u_ss = pinv(Bd) · (I−Ad) · r   (minimum-norm if underdetermined)
+ *
+ * Also returns the residual ‖Bd·u_ss − (I−Ad)·r‖∞ (= 0 when r is exactly reachable).
+ */
+export function solveSetpointSteadyState(Ad, Bd, r) {
+  const n = Ad.length;
+  const m = Bd[0].length;
+  assertMatrixShape('r', r, n, 1);
+  const ImAd = matSub(matIdentity(n), Ad);
+  const rhs = matMul(ImAd, r);
+  const pinvBd = pseudoInverse(Bd);
+  const u_ss = matMul(pinvBd, rhs);
+  const achievedRhs = matMul(Bd, u_ss);
+  let residual = 0;
+  for (let i = 0; i < n; i++) residual = Math.max(residual, Math.abs(achievedRhs[i][0] - rhs[i][0]));
+  return { u_ss, r, steadyStateResidual: residual };
+}
+
+/**
+ * One step of receding-horizon setpoint-tracking MPC.
+ *
+ * The state error e_k = x_k − r and the input increment v_k = u_k − u_ss satisfy
+ * the SAME dynamics as (Ad, Bd), so standard MPC is run on e_0 and v returned.
+ * The actual control is u = v + u_ss.
+ *
+ * constraints: same shape as firstMpcActionConstrained ({ uMin, uMax } for v)
+ * uConstraints on the increment v are automatically offset from u constraints:
+ *   v_min = uMin − u_ss,  v_max = uMax − u_ss
+ */
+export function firstMpcActionTracking(Ad, Bd, Q, R, horizon, x, reference, constraints = {}, Qf = null) {
+  const n = Ad.length;
+  const m = Bd[0].length;
+  assertMatrixShape('x', x, n, 1);
+  assertMatrixShape('reference', reference, n, 1);
+  const { u_ss } = solveSetpointSteadyState(Ad, Bd, reference);
+
+  const e0 = matSub(x, reference);
+
+  // Shift u bounds to v bounds
+  const rawMin = constraints.uMin ?? -Infinity;
+  const rawMax = constraints.uMax ?? Infinity;
+  const uMinAbs = Array.isArray(rawMin) ? rawMin : Array(m).fill(rawMin);
+  const uMaxAbs = Array.isArray(rawMax) ? rawMax : Array(m).fill(rawMax);
+  const vMin = uMinAbs.map((b, j) => Number.isFinite(b) ? b - u_ss[j][0] : b);
+  const vMax = uMaxAbs.map((b, j) => Number.isFinite(b) ? b - u_ss[j][0] : b);
+
+  const vResult = firstMpcActionConstrained(Ad, Bd, Q, R, horizon, e0, { uMin: vMin, uMax: vMax }, Qf);
+  const u = vResult.u.map((row, j) => [row[0] + u_ss[j][0]]);
+  return { u, v: vResult.u, u_ss, trackingError: e0, anyActive: vResult.anyActive, riccati: vResult };
+}
+
+/**
+ * Simulate setpoint-tracking MPC in receding-horizon fashion.
+ *
+ * reference: n×1 constant state target, or { r: n×1, steps: callable } for time-varying.
+ */
+export function simulateMpcTracking(Ad, Bd, Q, R, horizon, x0, reference, constraints = {}, options = {}) {
+  const n = Ad.length;
+  const m = Bd[0].length;
+  assertMatrixShape('x0', x0, n, 1);
+  const steps = options.steps ?? 30;
+  const Qmat = Q ? matSymmetrize(cloneMatrix(Q)) : matIdentity(n);
+  const Rmat = R ? matSymmetrize(cloneMatrix(R)) : matIdentity(m);
+  validateMpcModel(Ad, Bd, Qmat, Rmat, horizon);
+  if (!Number.isInteger(steps) || steps <= 0) throw new Error('steps must be a positive integer');
+
+  // reference can be a fixed n×1 matrix or a function (k) → n×1
+  const getRef = (typeof reference === 'function') ? reference : () => reference;
+  assertMatrixShape('reference(0)', getRef(0), n, 1);
+
+  const x = [cloneMatrix(x0)];
+  const u = [];
+  const trackingErrors = [];
+  let totalCost = 0;
+
+  for (let k = 0; k < steps; k++) {
+    const ref = getRef(k);
+    const action = firstMpcActionTracking(Ad, Bd, Qmat, Rmat, horizon, x[k], ref, constraints, options.Qf || null);
+    const uk = action.u;
+    const ek = action.trackingError;
+    const xNext = addColumn(matMul(Ad, x[k]), matMul(Bd, uk));
+    const cost = quadraticForm(ek, Qmat) + quadraticForm(action.v, Rmat);
+    u.push(uk);
+    x.push(xNext);
+    trackingErrors.push(ek);
+    totalCost += cost;
+  }
+
+  const finalRef = getRef(steps - 1);
+  const finalError = matSub(x[x.length - 1], finalRef);
+  return {
+    x,
+    u,
+    trackingErrors,
+    totalCost,
+    finalTrackingErrorNormInf: maxAbsMatrix(finalError),
     steps,
     horizon,
   };
@@ -358,6 +492,215 @@ export function simulateConstrainedMpc(Ad, Bd, Q, R, horizon, x0, constraints = 
     horizon,
     activeConstraintsLog,
     anyConstraintActive: activeConstraintsLog.some(Boolean),
+  };
+}
+
+// ---------------------------------------------------------------------------
+// CS-P11-05: State constraints + soft slack via condensed QP augmentation
+// ---------------------------------------------------------------------------
+
+/**
+ * Add soft state constraint penalty to condensed MPC QP.
+ *
+ * For state x_k = Phi_k·x0 + Gamma_k·U, a soft upper/lower bound violation is:
+ *   upper: x_k[i] > xMax[i]  →  slack = x_k[i] − xMax[i] > 0
+ *   lower: x_k[i] < xMin[i]  →  slack = xMin[i] − x_k[i] > 0
+ *
+ * Strategy: predict the free-response X_free = Phi·x0 (at U=0). For each
+ * state (k,i) that is PREDICTED to violate its bound, augment H and f with
+ * the quadratic soft penalty:
+ *   J_soft += ρ · (c + g'U)²  where c = X_free[k,i] ∓ bound[i],  g = ±Gamma_row
+ *
+ * This is a one-shot active-set approximation. Large ρ drives violations to zero.
+ * Returns { H_aug, f_aug, activatedUpper, activatedLower } (activated = count of
+ * state components where a penalty was added).
+ */
+function augmentQPWithStateConstraints(condensed, x0, xMin, xMax, penalty) {
+  const { Phi, Gamma, H, n, m, N } = condensed;
+  const Nm = N * m;
+  const x0flat = x0.map((r) => r[0]);
+
+  // Free response X_free = Phi · x0  (Nn-vector)
+  const X_free = Phi.map((row) => row.reduce((s, v, i) => s + v * x0flat[i], 0));
+
+  // Clone H and f
+  const H_aug = H.map((row) => [...row]);
+  const f_aug = new Array(Nm).fill(0);
+
+  let activatedUpper = 0;
+  let activatedLower = 0;
+
+  for (let k = 0; k < N; k++) {
+    for (let i = 0; i < n; i++) {
+      const row = k * n + i;
+      const xFree_ki = X_free[row];
+      const gamma_row = Gamma[row]; // length Nm
+
+      if (xMax !== null && xFree_ki > xMax[i]) {
+        // Predicted upper violation: slack = xFree_ki − xMax[i] + gamma_row' U
+        const c = xFree_ki - xMax[i];
+        for (let r = 0; r < Nm; r++) {
+          f_aug[r] += penalty * gamma_row[r] * c;
+          for (let s = 0; s < Nm; s++) H_aug[r][s] += penalty * gamma_row[r] * gamma_row[s];
+        }
+        activatedUpper++;
+      }
+
+      if (xMin !== null && xFree_ki < xMin[i]) {
+        // Predicted lower violation: slack = xMin[i] − xFree_ki − gamma_row' U
+        const c = xMin[i] - xFree_ki;
+        for (let r = 0; r < Nm; r++) {
+          f_aug[r] -= penalty * gamma_row[r] * c;
+          for (let s = 0; s < Nm; s++) H_aug[r][s] += penalty * gamma_row[r] * gamma_row[s];
+        }
+        activatedLower++;
+      }
+    }
+  }
+
+  return { H_aug, f_aug, activatedUpper, activatedLower };
+}
+
+/**
+ * Compute actual state constraint violations for a predicted trajectory.
+ * X_pred: Nn-vector of predicted states.
+ * Returns { upperViolations, lowerViolations, slackNormInf }.
+ */
+function computeStateViolations(X_pred, xMin, xMax, n, N) {
+  const upper = [];
+  const lower = [];
+  for (let k = 0; k < N; k++) {
+    for (let i = 0; i < n; i++) {
+      const v = X_pred[k * n + i];
+      if (xMax !== null && v > xMax[i] + 1e-9) upper.push({ k, i, violation: v - xMax[i] });
+      if (xMin !== null && v < xMin[i] - 1e-9) lower.push({ k, i, violation: xMin[i] - v });
+    }
+  }
+  const allViol = [...upper.map((e) => e.violation), ...lower.map((e) => e.violation)];
+  return {
+    upperViolations: upper,
+    lowerViolations: lower,
+    slackNormInf: allViol.length ? Math.max(...allViol) : 0,
+    feasible: allViol.length === 0,
+  };
+}
+
+/**
+ * One step of MPC with both input box constraints and soft state constraints.
+ *
+ * uConstraints: { uMin, uMax }  (same as firstMpcActionConstrained)
+ * xConstraints: { xMin: number[], xMax: number[], penalty: number }
+ *   xMin/xMax are n-vectors of per-state bounds (use ±Infinity to skip a state).
+ *   penalty (ρ) defaults to 1e4.
+ */
+export function firstMpcActionStateConstrained(
+  Ad, Bd, Q, R, horizon, x, uConstraints = {}, xConstraints = {}, Qf = null,
+) {
+  const { n, m } = validateMpcModel(Ad, Bd, Q, R, horizon);
+  assertMatrixShape('x', x, n, 1);
+  const Qmat = matSymmetrize(cloneMatrix(Q));
+  const Rmat = matSymmetrize(cloneMatrix(R));
+  const Qfmat = Qf ? matSymmetrize(cloneMatrix(Qf)) : cloneMatrix(Qmat);
+
+  const condensed = buildCondensedMpc(Ad, Bd, Qmat, Rmat, horizon, Qfmat);
+  const f_base = condensedGradient(condensed, x);
+  const Nm = horizon * m;
+
+  const rawMin = uConstraints.uMin ?? -Infinity;
+  const rawMax = uConstraints.uMax ?? Infinity;
+  const uMin = new Array(Nm);
+  const uMax = new Array(Nm);
+  for (let k = 0; k < horizon; k++) {
+    for (let j = 0; j < m; j++) {
+      uMin[k * m + j] = Array.isArray(rawMin) ? rawMin[j] : rawMin;
+      uMax[k * m + j] = Array.isArray(rawMax) ? rawMax[j] : rawMax;
+    }
+  }
+
+  const penalty = xConstraints.penalty ?? 1e4;
+  const xMin = xConstraints.xMin
+    ? Array.from({ length: n }, (_, i) => xConstraints.xMin[i] ?? -Infinity)
+    : null;
+  const xMax = xConstraints.xMax
+    ? Array.from({ length: n }, (_, i) => xConstraints.xMax[i] ?? Infinity)
+    : null;
+
+  const { H_aug, f_aug, activatedUpper, activatedLower } = augmentQPWithStateConstraints(
+    condensed, x, xMin, xMax, penalty,
+  );
+
+  // Merge base gradient into augmented gradient
+  const f_total = f_aug.map((v, i) => v + f_base[i]);
+
+  const U = boxQPHildreth(H_aug, f_total, uMin, uMax);
+  const u = Array.from({ length: m }, (_, j) => [U[j]]);
+
+  // Compute predicted trajectory to report violations
+  const { Phi, Gamma } = condensed;
+  const x0flat = x.map((r) => r[0]);
+  const X_pred = Phi.map((row, ri) =>
+    row.reduce((s, v, i) => s + v * x0flat[i], 0) + Gamma[ri].reduce((s, g, j) => s + g * U[j], 0),
+  );
+  const violations = computeStateViolations(X_pred, xMin, xMax, n, horizon);
+
+  return {
+    u,
+    U,
+    anyActive: U.some((val, i) =>
+      (Math.abs(val - uMin[i]) < 1e-7 && Number.isFinite(uMin[i])) ||
+      (Math.abs(val - uMax[i]) < 1e-7 && Number.isFinite(uMax[i])),
+    ),
+    activatedUpper,
+    activatedLower,
+    ...violations,
+    condensed,
+  };
+}
+
+/**
+ * Simulate MPC with input and soft state constraints in receding-horizon fashion.
+ */
+export function simulateStateConstrainedMpc(
+  Ad, Bd, Q, R, horizon, x0, uConstraints = {}, xConstraints = {}, options = {},
+) {
+  const { n, m } = validateMpcModel(Ad, Bd, Q, R, horizon);
+  assertMatrixShape('x0', x0, n, 1);
+  const steps = options.steps ?? 30;
+  const Qmat = Q ? matSymmetrize(cloneMatrix(Q)) : matIdentity(n);
+  const Rmat = R ? matSymmetrize(cloneMatrix(R)) : matIdentity(m);
+  const Qfmat = options.Qf ? matSymmetrize(cloneMatrix(options.Qf)) : cloneMatrix(Qmat);
+  if (!Number.isInteger(steps) || steps <= 0) throw new Error('steps must be a positive integer');
+
+  const x = [cloneMatrix(x0)];
+  const u = [];
+  const stageCost = [];
+  const violationsLog = [];
+  let totalCost = 0;
+
+  for (let k = 0; k < steps; k++) {
+    const action = firstMpcActionStateConstrained(
+      Ad, Bd, Qmat, Rmat, horizon, x[k], uConstraints, xConstraints, Qfmat,
+    );
+    const uk = action.u;
+    const xNext = addColumn(matMul(Ad, x[k]), matMul(Bd, uk));
+    const cost = quadraticForm(x[k], Qmat) + quadraticForm(uk, Rmat);
+    u.push(uk);
+    x.push(xNext);
+    stageCost.push(cost);
+    totalCost += cost;
+    violationsLog.push({ slackNormInf: action.slackNormInf, feasible: action.feasible });
+  }
+
+  return {
+    x,
+    u,
+    stageCost,
+    totalCost,
+    finalStateNormInf: maxAbsMatrix(x[x.length - 1]),
+    steps,
+    horizon,
+    violationsLog,
+    anyViolation: violationsLog.some((v) => !v.feasible),
   };
 }
 
