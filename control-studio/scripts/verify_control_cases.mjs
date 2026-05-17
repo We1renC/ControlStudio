@@ -1,5 +1,9 @@
 import { execFileSync } from 'node:child_process';
+import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { TransferFunction } from '../js/control/transfer-function.js';
+
+const ROOT_DIR = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..');
 import { PIDController } from '../js/control/pid.js';
 import { leadLagTransferFunction } from '../js/control/compensator.js';
 import { stateSpaceToTransferFunction, controllabilityMatrix, observabilityMatrix } from '../js/control/state-space.js';
@@ -54,7 +58,7 @@ function buildController(controller) {
 
 function runCli(payload) {
   const raw = execFileSync('node', ['control-studio/scripts/control_analysis_cli.mjs', JSON.stringify(payload)], {
-    cwd: '/Users/w.rc/nvdiaOSsupport',
+    cwd: ROOT_DIR,
     encoding: 'utf8',
   });
   return JSON.parse(raw);
