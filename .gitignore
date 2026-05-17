@@ -6,3 +6,6 @@ __pycache__/
 !.env.example
 .venv/
 outputs/
+
+# Claude Code internal files (may contain API keys / session data)
+.claude/
