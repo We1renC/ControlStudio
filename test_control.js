@@ -855,6 +855,13 @@ try {
     console.assert(Math.abs(svDC.sigmaMin[0] - 0.5) < 0.01, `σ_min at DC ≈ 0.5, got ${svDC.sigmaMin[0]}`);
 
     console.log('MIMO Batch 2 tests passed');
+
+    console.log('\n=== MIMO Batch 3 tests ===');
+    const sys3 = new MIMOStateSpace([[-1, 0], [0, -2]], [[1, 0], [0, 1]], [[1, 0], [0, 1]], [[0, 0], [0, 0]]);
+    const grid = sys3.allChannels();
+    console.assert(grid.length === 2 && grid[0].length === 2, 'allChannels returns 2x2 grid');
+    console.assert(grid[0][0].poles().length > 0, 'Each cell is a valid TF');
+    console.log('MIMO Batch 3 tests passed');
   }
 
   console.log('Tests Passed!');

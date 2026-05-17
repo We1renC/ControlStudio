@@ -27,7 +27,7 @@ const state = {
   plant: null,
   systemMode: 'siso',           // 'siso' | 'mimo'
   mimoPlant: null,              // MIMOStateSpace instance
-  mimoChannel: { output: 0, input: 0 },  // displayed u_j → y_i
+  mimoChannel: { output: 0, input: 0, all: false },  // displayed u_j → y_i; all=true → grid view
   controller: null,
   closedLoop: null,
   openLoop: null,
@@ -338,6 +338,13 @@ function switchPlot(plotName) {
   document.querySelectorAll('.plot-tab').forEach((tab) => {
     tab.classList.toggle('active', tab.dataset.plot === plotName);
   });
+  // Switching plot tabs exits MIMO All-view (grid only meaningful for step response)
+  if (state.mimoChannel && state.mimoChannel.all) {
+    state.mimoChannel.all = false;
+    hideMIMOGrid();
+    renderMIMOChannelBar();
+    applyMIMOChannel();
+  }
   if (!state.plant) return;
   const sys = state.showClosedLoop ? (state.closedLoop || state.plant) : state.plant;
   renderActivePlot(sys);
@@ -3147,6 +3154,14 @@ function switchSystemMode(mode) {
     if (mimoPanel) mimoPanel.style.display = 'none';
     if (channelBar) channelBar.style.display = 'none';
     if (mimoAnalysis) mimoAnalysis.style.display = 'none';
+    state.mimoChannel.all = false;
+    const gridCell = document.getElementById('mimo-grid-cell');
+    if (gridCell) gridCell.style.display = 'none';
+    const activeChart = document.getElementById('chart-active');
+    if (activeChart) {
+      const cell = activeChart.closest('.chart-cell');
+      if (cell && cell.id !== 'mimo-grid-cell') cell.style.display = '';
+    }
     if (state.plant) refreshAllCharts();
   } else {
     if (sisoPanel) sisoPanel.style.display = 'none';
@@ -3203,7 +3218,9 @@ function renderMIMOChannelBar() {
     for (let j = 0; j < state.mimoPlant.m; j++) {
       const b = document.createElement('button');
       b.className = 'btn btn-sm mimo-channel-btn';
-      const isActive = state.mimoChannel.output === i && state.mimoChannel.input === j;
+      const isActive = !state.mimoChannel.all
+        && state.mimoChannel.output === i
+        && state.mimoChannel.input === j;
       if (isActive) b.classList.add('active');
       b.textContent = `u${j + 1} → y${i + 1}`;
       b.style.padding = '4px 10px';
@@ -3213,12 +3230,106 @@ function renderMIMOChannelBar() {
       b.addEventListener('click', () => {
         state.mimoChannel.output = parseInt(b.dataset.output, 10);
         state.mimoChannel.input = parseInt(b.dataset.input, 10);
+        state.mimoChannel.all = false;
         renderMIMOChannelBar();
+        hideMIMOGrid();
         applyMIMOChannel();
       });
       btns.appendChild(b);
     }
   }
+
+  // All-view toggle (last button)
+  const allBtn = document.createElement('button');
+  allBtn.className = 'btn btn-sm mimo-channel-btn mimo-all-btn';
+  allBtn.textContent = '⊞ All';
+  allBtn.style.padding = '4px 10px';
+  allBtn.style.fontSize = '11px';
+  if (state.mimoChannel.all) allBtn.classList.add('active');
+  allBtn.addEventListener('click', () => {
+    state.mimoChannel.all = !state.mimoChannel.all;
+    renderMIMOChannelBar();
+    if (state.mimoChannel.all) {
+      renderMIMOGrid();
+    } else {
+      hideMIMOGrid();
+      applyMIMOChannel();
+    }
+  });
+  btns.appendChild(allBtn);
+}
+
+function hideMIMOGrid() {
+  const gridCell = document.getElementById('mimo-grid-cell');
+  const activeChart = document.getElementById('chart-active');
+  if (gridCell) gridCell.style.display = 'none';
+  if (activeChart) {
+    const cell = activeChart.closest('.chart-cell');
+    if (cell && cell.id !== 'mimo-grid-cell') cell.style.display = '';
+  }
+}
+
+function renderMIMOGrid() {
+  if (!state.mimoPlant) return;
+  const gridCell = document.getElementById('mimo-grid-cell');
+  const gridContainer = document.getElementById('chart-mimo-grid');
+  const activeChart = document.getElementById('chart-active');
+  if (!gridCell || !gridContainer) return;
+
+  // Hide the normal single chart
+  if (activeChart) {
+    const cell = activeChart.closest('.chart-cell');
+    if (cell && cell.id !== 'mimo-grid-cell') cell.style.display = 'none';
+  }
+  gridCell.style.display = '';
+
+  const p = state.mimoPlant.p;
+  const m = state.mimoPlant.m;
+
+  gridContainer.style.gridTemplateColumns = `repeat(${m}, minmax(0, 1fr))`;
+  gridContainer.style.gridTemplateRows = `repeat(${p}, minmax(0, 1fr))`;
+
+  gridContainer.innerHTML = '';
+  const subCharts = [];
+  for (let i = 0; i < p; i++) {
+    for (let j = 0; j < m; j++) {
+      const div = document.createElement('div');
+      div.style.cssText = 'border:1px solid var(--border-primary);border-radius:8px;padding:6px;background:rgba(15,17,23,0.3);display:flex;flex-direction:column;min-height:0;';
+      const label = document.createElement('div');
+      label.style.cssText = 'font-size:10px;color:var(--text-muted);font-weight:600;padding:2px 4px;';
+      label.textContent = `u${j + 1} → y${i + 1}`;
+      const plotDiv = document.createElement('div');
+      plotDiv.id = `mimo-grid-${i}-${j}`;
+      plotDiv.style.cssText = 'flex:1;min-height:0;';
+      div.appendChild(label);
+      div.appendChild(plotDiv);
+      gridContainer.appendChild(div);
+      subCharts.push({ i, j, id: plotDiv.id });
+    }
+  }
+
+  requestAnimationFrame(() => {
+    subCharts.forEach(({ i, j, id }) => {
+      try {
+        const tf = state.mimoPlant.channelTF(i, j);
+        const { t, y } = stepResponse(tf, { duration: 30, sampleCount: 200 });
+        Plotly.newPlot(id, [{
+          x: t, y: y, mode: 'lines',
+          line: { color: '#6366f1', width: 1.5 },
+        }], {
+          paper_bgcolor: 'transparent', plot_bgcolor: 'transparent',
+          margin: { t: 4, r: 4, b: 22, l: 30 },
+          font: { size: 9, color: '#94a3b8' },
+          showlegend: false,
+          xaxis: { gridcolor: 'rgba(255,255,255,0.06)', zerolinecolor: 'rgba(255,255,255,0.1)' },
+          yaxis: { gridcolor: 'rgba(255,255,255,0.06)', zerolinecolor: 'rgba(255,255,255,0.1)' },
+        }, { responsive: true, displayModeBar: false, staticPlot: false });
+      } catch (err) {
+        const el = document.getElementById(id);
+        if (el) el.innerHTML = `<div style="font-size:10px;color:var(--color-unstable);padding:8px;">${escapeHtml(err.message)}</div>`;
+      }
+    });
+  });
 }
 
 function applyMIMOChannel() {

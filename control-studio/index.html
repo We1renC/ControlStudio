@@ -61,6 +61,8 @@
     .system-mode-btn.active { background: var(--color-accent); border-color: var(--color-accent); color: white; }
     .mimo-channel-btn { border:1px solid var(--border-primary); background: var(--bg-tertiary); color: var(--text-secondary); border-radius: var(--radius-sm); cursor:pointer; }
     .mimo-channel-btn.active { background: var(--color-accent); border-color: var(--color-accent); color: white; }
+    .mimo-all-btn { background: rgba(139,92,246,0.15) !important; border-color: rgba(139,92,246,0.3) !important; }
+    .mimo-all-btn.active { background: var(--color-accent) !important; color: white !important; }
     .plot-stage { display:grid; grid-template-columns: minmax(0, 1fr) 220px; gap:var(--space-4); align-items:stretch; min-width: 0; }
     .plot-main { min-width: 0; min-height: clamp(340px, 58vh, 560px); }
     .plot-main .chart-body { min-height: clamp(280px, 48vh, 480px); }
@@ -1004,6 +1006,14 @@
                 </div>
               </div>
             </div>
+          </div>
+
+          <div class="chart-cell plot-main" id="mimo-grid-cell" style="display:none;grid-column:1 / 2;">
+            <div class="chart-header">
+              <span id="mimo-grid-title">All Channels (Step Response)</span>
+              <span style="font-size:11px;color:var(--text-muted);">u<sub>j</sub> → y<sub>i</sub></span>
+            </div>
+            <div id="chart-mimo-grid" style="flex:1;display:grid;gap:8px;padding:8px 0;min-height:clamp(280px, 48vh, 480px);"></div>
           </div>
 
           <div class="plot-side">
