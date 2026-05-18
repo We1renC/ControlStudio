@@ -102,6 +102,9 @@ document.addEventListener('DOMContentLoaded', () => {
     updateSystemSetupCopy();
     updateSystem();
   }
+
+  // P13: UI/UX layer — collapsibles, modals, shortcuts, presets, tooltips
+  if (typeof csUI !== 'undefined') csUI.init();
 });
 
 function initTheme() {
@@ -369,7 +372,9 @@ function switchView(viewName) {
 
 function switchSidebarPanel(panelName) {
   document.querySelectorAll('.sidebar-tab').forEach((tab) => {
-    tab.classList.toggle('active', tab.dataset.sidebar === panelName);
+    const isActive = tab.dataset.sidebar === panelName;
+    tab.classList.toggle('active', isActive);
+    tab.setAttribute('aria-selected', isActive ? 'true' : 'false');
   });
   document.querySelectorAll('.sidebar-panel').forEach((panel) => {
     panel.classList.toggle('active', panel.id === `panel-${panelName}`);
@@ -1719,21 +1724,26 @@ function setFieldError(id, msg) {
   const el = document.getElementById(id);
   if (!el) return;
   el.style.borderColor = 'var(--color-unstable)';
+  el.classList.add('field-error');
+  el.setAttribute('aria-invalid', 'true');
   let hint = el.parentElement?.querySelector('.field-hint');
   if (!hint) {
     hint = document.createElement('div');
     hint.className = 'field-hint';
+    hint.setAttribute('role', 'alert');
     hint.style.cssText = 'font-size:11px; color:var(--color-unstable); margin-top:2px;';
     el.parentElement?.appendChild(hint);
   }
   hint.textContent = msg;
+  // P13: scroll the offending field into view so the user can see what went wrong
+  try { el.scrollIntoView({ block: 'center', behavior: 'smooth' }); } catch (_) { /* no-op */ }
 }
 
 function clearFieldErrors() {
   document.querySelectorAll('.field-hint').forEach(h => h.remove());
   ['tf-num', 'tf-den', 'zpk-zeros', 'zpk-poles', 'zpk-gain', 'ss-a', 'ss-b', 'ss-c', 'ss-d', 'comp-gain', 'comp-tau', 'comp-alpha', 'preset-ku', 'preset-tu', 'preset-plant-k', 'preset-fopdt', 'lead-target-phase', 'lead-target-wc', 'lag-improvement', 'lag-target-wc', 'pid-Kp-num', 'pid-Ki-num', 'pid-Kd-num'].forEach(id => {
     const el = document.getElementById(id);
-    if (el) el.style.borderColor = '';
+    if (el) { el.style.borderColor = ''; el.classList.remove('field-error'); el.removeAttribute('aria-invalid'); }
   });
 }
 
@@ -4275,9 +4285,8 @@ function showError(msg) {
     el.textContent = msg;
     el.style.display = 'block';
   }
-  // S3-3: auto-dismiss so stale errors don't haunt subsequent successful ops.
   if (_errorAutoDismissTimer) clearTimeout(_errorAutoDismissTimer);
-  _errorAutoDismissTimer = setTimeout(() => clearError(), 6000);
+  _errorAutoDismissTimer = setTimeout(() => clearError(), 10000);
 }
 function clearError() {
   const el = document.getElementById('error-msg');
@@ -4473,7 +4482,364 @@ function scheduleSmokeDiagnostics() {
   window.setTimeout(writeSmokeDiagnostics, 0);
 }
 
+// ============================================================
+// P13 — UI/UX usability layer
+// Collapsible sections, modals, keyboard shortcuts, presets,
+// tooltips, live validation, theme-aware re-rendering.
+// ============================================================
+const csUI = (() => {
+  const COLLAPSE_KEY = 'controlStudio.collapsedSections';
+
+  // -------- Modal management --------
+  function showModal(id) {
+    const m = document.getElementById(id);
+    if (!m) return;
+    m.classList.add('active');
+    m.setAttribute('aria-hidden', 'false');
+    const firstFocusable = m.querySelector('button, [tabindex]:not([tabindex="-1"])');
+    if (firstFocusable) setTimeout(() => firstFocusable.focus(), 50);
+  }
+  function hideModal(id) {
+    const m = document.getElementById(id);
+    if (!m) return;
+    m.classList.remove('active');
+    m.setAttribute('aria-hidden', 'true');
+  }
+  function hideAllModals() {
+    document.querySelectorAll('.modal-overlay.active').forEach((m) => {
+      m.classList.remove('active');
+      m.setAttribute('aria-hidden', 'true');
+    });
+  }
+
+  // -------- Confirmation dialog: returns Promise<boolean> --------
+  function confirm({ title = '確認動作', message = '確定要執行？', okText = '確認', cancelText = '取消', danger = true } = {}) {
+    return new Promise((resolve) => {
+      const overlay = document.getElementById('confirm-modal');
+      const titleEl = document.getElementById('confirm-title');
+      const msgEl = document.getElementById('confirm-message');
+      const okBtn = document.getElementById('confirm-ok');
+      const cancelBtn = document.getElementById('confirm-cancel');
+      if (!overlay || !okBtn || !cancelBtn) { resolve(window.confirm(message)); return; }
+      titleEl.textContent = title;
+      msgEl.textContent = message;
+      okBtn.textContent = okText;
+      cancelBtn.textContent = cancelText;
+      okBtn.classList.toggle('btn-primary', !!danger);
+
+      const cleanup = (result) => {
+        okBtn.removeEventListener('click', onOk);
+        cancelBtn.removeEventListener('click', onCancel);
+        overlay.removeEventListener('click', onBackdrop);
+        hideModal('confirm-modal');
+        resolve(result);
+      };
+      const onOk = () => cleanup(true);
+      const onCancel = () => cleanup(false);
+      const onBackdrop = (e) => { if (e.target === overlay) cleanup(false); };
+      okBtn.addEventListener('click', onOk);
+      cancelBtn.addEventListener('click', onCancel);
+      overlay.addEventListener('click', onBackdrop);
+      showModal('confirm-modal');
+    });
+  }
+
+  // -------- Button loading state --------
+  function setLoading(btn, on = true, busyText = null) {
+    if (!btn) return;
+    if (on) {
+      btn.classList.add('is-loading');
+      btn.disabled = true;
+      btn.setAttribute('aria-busy', 'true');
+      if (busyText) {
+        btn.dataset.originalText = btn.textContent;
+        btn.textContent = busyText;
+      }
+    } else {
+      btn.classList.remove('is-loading');
+      btn.disabled = false;
+      btn.removeAttribute('aria-busy');
+      if (btn.dataset.originalText) {
+        btn.textContent = btn.dataset.originalText;
+        delete btn.dataset.originalText;
+      }
+    }
+  }
+  // Wrap any async operation so the button shows feedback for at least a tick
+  async function withLoading(btnOrId, fn) {
+    const btn = typeof btnOrId === 'string' ? document.getElementById(btnOrId) : btnOrId;
+    setLoading(btn, true);
+    try {
+      await Promise.resolve().then(fn);
+    } finally {
+      setLoading(btn, false);
+    }
+  }
+
+  // -------- Collapsible sections --------
+  function loadCollapseState() {
+    try { return JSON.parse(localStorage.getItem(COLLAPSE_KEY) || '{}'); } catch { return {}; }
+  }
+  function saveCollapseState(map) {
+    try { localStorage.setItem(COLLAPSE_KEY, JSON.stringify(map)); } catch { /* noop */ }
+  }
+  function panelKey(panel) {
+    return panel.id || panel.querySelector('.section-title')?.textContent?.trim()?.slice(0, 40) || 'anon';
+  }
+  function wrapSectionBodies() {
+    document.querySelectorAll('.section-panel').forEach((panel) => {
+      // Already wrapped?
+      if (panel.querySelector(':scope > .section-body')) return;
+      const children = Array.from(panel.children);
+      // Find the title element — either direct .section-title or a wrapper containing it
+      let titleEl = null;
+      let titleIdx = -1;
+      for (let i = 0; i < children.length; i++) {
+        const c = children[i];
+        if (c.classList?.contains('section-title')) { titleEl = c; titleIdx = i; break; }
+        if (c.querySelector?.(':scope > .section-title, :scope > h3.section-title')) { titleEl = c; titleIdx = i; break; }
+      }
+      if (titleIdx < 0) return;
+      const body = document.createElement('div');
+      body.className = 'section-body';
+      // Move all elements after the title into the body
+      for (let i = titleIdx + 1; i < children.length; i++) body.appendChild(children[i]);
+      panel.appendChild(body);
+      panel.classList.add('collapsible');
+      // Make title clickable
+      const clickTarget = titleEl.classList.contains('section-title') ? titleEl : titleEl.querySelector('.section-title');
+      if (clickTarget) {
+        clickTarget.setAttribute('role', 'button');
+        clickTarget.setAttribute('tabindex', '0');
+        clickTarget.setAttribute('aria-expanded', 'true');
+        clickTarget.addEventListener('click', (e) => {
+          // Don't toggle if clicking on a nested input/button inside the title
+          if (e.target.closest('input, button, select, label, [data-no-collapse]') && e.target !== clickTarget) return;
+          togglePanel(panel);
+        });
+        clickTarget.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); togglePanel(panel); }
+        });
+      }
+    });
+  }
+  function togglePanel(panel, collapsed = null) {
+    const willCollapse = collapsed === null ? !panel.classList.contains('collapsed') : collapsed;
+    panel.classList.toggle('collapsed', willCollapse);
+    const title = panel.querySelector('.section-title');
+    if (title) title.setAttribute('aria-expanded', willCollapse ? 'false' : 'true');
+    const map = loadCollapseState();
+    map[panelKey(panel)] = willCollapse;
+    saveCollapseState(map);
+  }
+  function restoreCollapseState() {
+    const map = loadCollapseState();
+    document.querySelectorAll('.section-panel.collapsible').forEach((panel) => {
+      if (map[panelKey(panel)]) togglePanel(panel, true);
+    });
+  }
+  function collapseAll() {
+    document.querySelectorAll('.section-panel.collapsible').forEach((panel) => togglePanel(panel, true));
+  }
+  function expandAll() {
+    document.querySelectorAll('.section-panel.collapsible').forEach((panel) => togglePanel(panel, false));
+  }
+
+  // -------- Quick Start presets --------
+  const presets = {
+    'rc-circuit': { type: 'tf', num: '1', den: '1, 1', desc: 'RC low-pass G(s)=1/(s+1)' },
+    'dc-motor': { type: 'tf', num: '5', den: '1, 6, 5', desc: 'DC motor G(s)=5/(s²+6s+5)' },
+    'mass-spring': { type: 'tf', num: '1', den: '1, 0.4, 4', desc: 'Mass-spring G(s)=1/(s²+0.4s+4)' },
+    'inverted-pendulum': { type: 'tf', num: '1', den: '1, 0, -4', desc: 'Inverted pendulum (unstable)' },
+    'non-minimum': { type: 'tf', num: '-1, 2', den: '1, 3, 2', desc: 'Non-minimum phase' },
+    'high-order': { type: 'tf', num: '1', den: '1, 4, 6, 4, 1', desc: 'High-order (s+1)⁴' },
+    'discrete-fir': { type: 'dtf', num: '0.5', den: '1, -0.5', desc: 'Discrete 1st-order H(z)' },
+    'mimo-2x2': { type: 'mimo', A: '-1 0.5\n0 -2', B: '1 0\n0 1', C: '1 0\n0 1', D: '0 0\n0 0', desc: '2×2 MIMO coupling' },
+  };
+  function loadPreset(name) {
+    const p = presets[name];
+    if (!p) return;
+    if (p.type === 'tf') {
+      // Switch to SISO mode if needed, TF tab, set values, trigger update
+      document.querySelector('.system-mode-btn[data-mode="siso"]')?.click();
+      document.querySelector('.sys-tab[data-type="tf"]')?.click();
+      const numEl = document.getElementById('tf-num');
+      const denEl = document.getElementById('tf-den');
+      if (numEl) numEl.value = p.num;
+      if (denEl) denEl.value = p.den;
+      document.getElementById('btn-apply')?.click();
+    } else if (p.type === 'dtf') {
+      document.querySelector('.system-mode-btn[data-mode="siso"]')?.click();
+      document.querySelector('.sys-tab[data-type="dtf"]')?.click();
+      const numEl = document.getElementById('dtf-num');
+      const denEl = document.getElementById('dtf-den');
+      if (numEl) numEl.value = p.num;
+      if (denEl) denEl.value = p.den;
+      document.getElementById('btn-apply')?.click();
+    } else if (p.type === 'mimo') {
+      document.querySelector('.system-mode-btn[data-mode="mimo"]')?.click();
+      const ids = ['mimo-a', 'mimo-b', 'mimo-c', 'mimo-d'];
+      const keys = ['A', 'B', 'C', 'D'];
+      ids.forEach((id, i) => {
+        const el = document.getElementById(id);
+        if (el && p[keys[i]]) el.value = p[keys[i]];
+      });
+      document.getElementById('btn-mimo-update')?.click();
+    }
+    hideModal('quickstart-modal');
+  }
+
+  // -------- Tooltips for technical inputs --------
+  const tooltipMap = {
+    'pid-N': 'D-filter pole N：濾波頻寬。N 越大越接近理想 PID；N 小則更抑制雜訊（建議 10–1000）',
+    'preset-ku': 'Ultimate gain Ku：閉迴路臨界震盪時的增益（Ziegler-Nichols 經典法）',
+    'preset-tu': 'Ultimate period Tu：對應 Ku 時的震盪週期（秒）',
+    'comp-alpha': 'Compensator α：lead 設計 α<1（相位前移），lag 設計 α>1（增益衰減）',
+    'lead-target-phase': 'Target phase margin (°)：希望達到的相位裕度',
+    'lead-target-wc': 'Target crossover ω_c (rad/s)：希望開迴路增益穿越的頻率',
+    'robust-wmin': 'Frequency sweep lower bound (rad/s)',
+    'robust-wmax': 'Frequency sweep upper bound (rad/s)',
+    'mpc-horizon': 'Prediction horizon N：MPC 預測未來 N 步進行最佳化',
+    'mpc-umin': 'Control input lower bound',
+    'mpc-umax': 'Control input upper bound',
+    'sample-time': 'Sample time Ts (seconds) — used for C→D conversion and discrete simulation',
+  };
+  function applyTooltips() {
+    Object.entries(tooltipMap).forEach(([id, text]) => {
+      const el = document.getElementById(id);
+      if (el && !el.title) el.title = text;
+    });
+  }
+
+  // -------- Live matrix dimension preview --------
+  function parseMatrixDims(text) {
+    const rows = text.trim().split(/\n/).filter(Boolean);
+    if (rows.length === 0) return null;
+    const cols = rows[0].trim().split(/[\s,]+/).filter(Boolean).length;
+    const allEqual = rows.every((r) => r.trim().split(/[\s,]+/).filter(Boolean).length === cols);
+    return { rows: rows.length, cols, valid: allEqual };
+  }
+  function attachMatrixValidator(textareaId, expectedShape = null) {
+    const el = document.getElementById(textareaId);
+    if (!el) return;
+    let hint = el.parentElement.querySelector('.input-validation');
+    if (!hint) {
+      hint = document.createElement('div');
+      hint.className = 'input-validation';
+      el.parentElement.appendChild(hint);
+    }
+    const update = () => {
+      const dims = parseMatrixDims(el.value);
+      if (!dims) { hint.textContent = ''; hint.className = 'input-validation'; return; }
+      if (!dims.valid) {
+        hint.textContent = '⚠ rows have inconsistent column counts';
+        hint.className = 'input-validation err';
+      } else {
+        hint.textContent = `${dims.rows} × ${dims.cols}`;
+        hint.className = 'input-validation ok';
+      }
+    };
+    el.addEventListener('input', update);
+    update();
+  }
+  function initMatrixValidators() {
+    ['ss-a', 'ss-b', 'ss-c', 'ss-d', 'mimo-a', 'mimo-b', 'mimo-c', 'mimo-d'].forEach((id) => attachMatrixValidator(id));
+  }
+
+  // -------- Quick Start logic --------
+  function initQuickStart() {
+    document.getElementById('btn-quickstart')?.addEventListener('click', () => showModal('quickstart-modal'));
+    document.querySelectorAll('[data-modal-close]').forEach((btn) => {
+      btn.addEventListener('click', () => hideModal(btn.dataset.modalClose));
+    });
+    document.querySelectorAll('.modal-overlay').forEach((overlay) => {
+      overlay.addEventListener('click', (e) => { if (e.target === overlay) hideModal(overlay.id); });
+    });
+    document.querySelectorAll('[data-preset]').forEach((btn) => {
+      btn.addEventListener('click', () => loadPreset(btn.dataset.preset));
+    });
+    // Auto-open on first visit
+    try {
+      if (!localStorage.getItem('controlStudio.seenQuickStart')) {
+        setTimeout(() => { showModal('quickstart-modal'); localStorage.setItem('controlStudio.seenQuickStart', '1'); }, 600);
+      }
+    } catch { /* noop */ }
+  }
+
+  // -------- Keyboard shortcuts --------
+  function initShortcuts() {
+    document.addEventListener('keydown', (e) => {
+      // Esc: close any open modal
+      if (e.key === 'Escape') { hideAllModals(); return; }
+      // Ctrl/Cmd + key shortcuts (skip if user is typing in an input)
+      const inField = ['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement?.tagName);
+      const mod = e.ctrlKey || e.metaKey;
+      if (mod && (e.key === '/' || e.key === '?')) { e.preventDefault(); showModal('quickstart-modal'); return; }
+      if (mod && e.key === 's' && !inField) { e.preventDefault(); document.getElementById('btn-save-project')?.click(); }
+      if (mod && e.key === 'e' && !inField) { e.preventDefault(); document.getElementById('btn-export-csv')?.click(); }
+      if (e.altKey && e.key === 's') { e.preventDefault(); collapseAll(); }
+      if (e.altKey && e.key === 'e') { e.preventDefault(); expandAll(); }
+    });
+  }
+
+  // -------- Wrap destructive actions with confirmation --------
+  function wrapDestructiveButtons() {
+    const clearSnapshotsBtn = document.getElementById('btn-clear-snapshots');
+    if (clearSnapshotsBtn && !clearSnapshotsBtn.dataset.wrapped) {
+      clearSnapshotsBtn.dataset.wrapped = '1';
+      const original = clearSnapshotsBtn.onclick;
+      // Replace any existing listeners by cloning the node
+      const clone = clearSnapshotsBtn.cloneNode(true);
+      clearSnapshotsBtn.parentNode.replaceChild(clone, clearSnapshotsBtn);
+      clone.dataset.wrapped = '1';
+      clone.addEventListener('click', async () => {
+        const ok = await confirm({ title: 'Clear snapshots', message: '確定要清空所有比較 snapshots？此動作無法復原。', okText: '清空' });
+        if (ok && typeof clearSnapshots === 'function') clearSnapshots();
+      });
+    }
+    const clearSessionBtn = document.getElementById('btn-clear-session');
+    if (clearSessionBtn && !clearSessionBtn.dataset.wrapped) {
+      clearSessionBtn.dataset.wrapped = '1';
+      const clone = clearSessionBtn.cloneNode(true);
+      clearSessionBtn.parentNode.replaceChild(clone, clearSessionBtn);
+      clone.dataset.wrapped = '1';
+      clone.addEventListener('click', async () => {
+        const ok = await confirm({ title: 'Clear session', message: '確定要清除本地 session autosave？目前未儲存的設計會在重新整理後遺失。', okText: '清除' });
+        if (ok && typeof clearSessionStorage === 'function') clearSessionStorage();
+      });
+    }
+  }
+
+  // -------- Theme-aware Plotly re-render on theme toggle --------
+  function watchThemeForCharts() {
+    const observer = new MutationObserver(() => {
+      // After theme switch, re-render visible Plotly charts so their fonts/lines pick up new CSS vars
+      setTimeout(() => {
+        document.querySelectorAll('.js-plotly-plot').forEach((el) => {
+          try { if (window.Plotly) window.Plotly.relayout(el, { paper_bgcolor: 'rgba(0,0,0,0)', plot_bgcolor: 'rgba(0,0,0,0)' }); } catch { /* noop */ }
+        });
+      }, 100);
+    });
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+  }
+
+  // -------- Init --------
+  function init() {
+    wrapSectionBodies();
+    restoreCollapseState();
+    applyTooltips();
+    initMatrixValidators();
+    initQuickStart();
+    initShortcuts();
+    wrapDestructiveButtons();
+    watchThemeForCharts();
+  }
+
+  return { init, showModal, hideModal, confirm, setLoading, withLoading, collapseAll, expandAll, loadPreset };
+})();
+
 window.toggleTheme = toggleTheme;
+window.csUI = csUI;
 window.ControlStudioSmoke = {
   getState: controlStudioSmokeState,
   run: runControlStudioSmoke,
