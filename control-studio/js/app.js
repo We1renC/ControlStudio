@@ -2,8 +2,8 @@ import { TransferFunction } from './control/transfer-function.js';
 import { DiscreteTransferFunction } from './control/discrete-transfer-function.js';
 import { parseMatrixInput, stateSpaceToTransferFunction, controllabilityMatrix, observabilityMatrix } from './control/state-space.js?v=p5';
 import { matRank } from './math/matrix.js?v=p5';
-import { PIDController } from './control/pid.js';
-import { compensatorDescription, designLagCompensator, designLeadCompensator, leadLagTransferFunction, normalizeCompensatorConfig } from './control/compensator.js?v=control-lag-1';
+import { PIDController, TwoDOFPIDController } from './control/pid.js';
+import { compensatorDescription, designLagCompensator, designLeadCompensator, leadLagTransferFunction, normalizeCompensatorConfig, notchFilter, notchFilterDescription } from './control/compensator.js?v=control-lag-1';
 import { impulseResponse, rampResponse, stepResponse } from './analysis/time-response.js';
 import { discreteStepResponse } from './analysis/discrete-response.js';
 import { bodeData, nyquistData, autoFreqRange, nicholsData, nyquistEncirclements } from './analysis/frequency-response.js';
@@ -270,6 +270,28 @@ function initEventListeners() {
       updateCompensatorVisibility();
       updateController();
     }, 150);
+    document.getElementById(id)?.addEventListener('input', handler);
+    document.getElementById(id)?.addEventListener('change', handler);
+  });
+
+  // Notch filter inputs
+  ['notch-wn', 'notch-zeta-z', 'notch-zeta-p'].forEach((id) => {
+    const handler = debounce(() => {
+      readCompensatorInputs();
+      updateController();
+    }, 150);
+    document.getElementById(id)?.addEventListener('input', handler);
+    document.getElementById(id)?.addEventListener('change', handler);
+  });
+
+  // 2-DOF PID checkbox and inputs
+  document.getElementById('enable-2dof')?.addEventListener('change', (e) => {
+    const twodofFields = document.getElementById('twodof-fields');
+    if (twodofFields) twodofFields.style.display = e.target.checked ? 'block' : 'none';
+    updateController();
+  });
+  ['pid-beta', 'pid-gamma'].forEach((id) => {
+    const handler = debounce(() => { updateController(); }, 150);
     document.getElementById(id)?.addEventListener('input', handler);
     document.getElementById(id)?.addEventListener('change', handler);
   });
@@ -781,6 +803,15 @@ function applyPIDPreset() {
       return;
     }
 
+    if (preset.startsWith('tl-')) {
+      const Ku = readRequiredPositiveNumber('preset-ku', 'Ku');
+      const Tu = readRequiredPositiveNumber('preset-tu', 'Tu');
+      const type = preset === 'tl-pi' ? 'PI' : 'PID';
+      setPIDFromController(PIDController.tyreusLuyben(Ku, Tu, type), `tyreus-luyben-${type.toLowerCase()}`);
+      clearError();
+      return;
+    }
+
     const plantK = readRequiredPositiveNumber('preset-plant-k', 'FOPDT K');
     const [tau, td] = parsePolyString(document.getElementById('preset-fopdt')?.value || '') || [];
     if (!Number.isFinite(tau) || tau <= 0 || !Number.isFinite(td) || td <= 0) {
@@ -795,6 +826,9 @@ function applyPIDPreset() {
     } else if (preset === 'simc') {
       const tauC = parseFloat(document.getElementById('preset-lambda')?.value || td);
       setPIDFromController(PIDController.simc(plantK, tau, td, Number.isFinite(tauC) ? tauC : null), 'simc');
+    } else if (preset === 'itae-pi' || preset === 'itae-pid') {
+      const type = preset === 'itae-pi' ? 'PI' : 'PID';
+      setPIDFromController(PIDController.itae(plantK, tau, td, type), `itae-${type.toLowerCase()}`);
     } else {
       setPIDFromController(PIDController.cohenCoon(plantK, tau, td), 'cohen-coon');
     }
@@ -1650,12 +1684,23 @@ function applyLagHelper() {
 }
 
 function readCompensatorInputs() {
-  state.compensator = normalizeCompensatorConfig({
-    mode: document.getElementById('comp-mode')?.value || 'none',
-    gain: Number(document.getElementById('comp-gain')?.value ?? state.compensator.gain),
-    tau: Number(document.getElementById('comp-tau')?.value ?? state.compensator.tau),
-    alpha: Number(document.getElementById('comp-alpha')?.value ?? state.compensator.alpha),
-  });
+  const mode = document.getElementById('comp-mode')?.value || 'none';
+  if (mode === 'notch') {
+    const wn = Number(document.getElementById('notch-wn')?.value ?? 10);
+    const zetaZ = Number(document.getElementById('notch-zeta-z')?.value ?? 0.01);
+    const zetaP = Number(document.getElementById('notch-zeta-p')?.value ?? 0.5);
+    state.notch = { wn, zetaZ, zetaP };
+    state.compensator = normalizeCompensatorConfig({ mode: 'none' });
+    state.compensator.mode = 'notch';
+  } else {
+    state.notch = null;
+    state.compensator = normalizeCompensatorConfig({
+      mode,
+      gain: Number(document.getElementById('comp-gain')?.value ?? state.compensator.gain),
+      tau: Number(document.getElementById('comp-tau')?.value ?? state.compensator.tau),
+      alpha: Number(document.getElementById('comp-alpha')?.value ?? state.compensator.alpha),
+    });
+  }
 }
 
 function syncCompensatorInputs() {
@@ -1696,7 +1741,7 @@ function readPositiveNumberField(id, label) {
 
 function validateCompensatorInputs() {
   const mode = document.getElementById('comp-mode')?.value || 'none';
-  if (mode === 'none') return;
+  if (mode === 'none' || mode === 'notch') return;
   readPositiveNumberField('comp-gain', 'Compensator gain');
   readPositiveNumberField('comp-tau', 'Time constant tau');
   const alpha = readPositiveNumberField('comp-alpha', 'Alpha');
@@ -1712,8 +1757,10 @@ function validateCompensatorInputs() {
 
 function updateCompensatorVisibility() {
   const fields = document.getElementById('comp-fields');
+  const notchFields = document.getElementById('comp-notch-fields');
   const mode = document.getElementById('comp-mode')?.value || state.compensator.mode;
-  if (fields) fields.style.display = mode === 'none' ? 'none' : 'block';
+  if (fields) fields.style.display = (mode === 'lead' || mode === 'lag') ? 'block' : 'none';
+  if (notchFields) notchFields.style.display = mode === 'notch' ? 'block' : 'none';
 }
 
 function parseInitialStateInput(value) {
@@ -1866,9 +1913,15 @@ function updateSystemSetupCopy() {
     modelCopy.textContent = '直接輸入 plant 的分子與分母係數；下方會同步更新成具體傳遞函數。';
   }
 
+  const compTfForDisplay = (state.compensator.mode === 'notch' && state.notch)
+    ? notchFilter(state.notch.wn, state.notch.zetaZ, state.notch.zetaP)
+    : leadLagTransferFunction(state.compensator);
+  const compDescForDisplay = (state.compensator.mode === 'notch' && state.notch)
+    ? notchFilterDescription(state.notch.wn, state.notch.zetaZ, state.notch.zetaP)
+    : compensatorDescription(state.compensator);
   controllerEquation.innerHTML = [
     renderTransferFunctionEquation('C(s) =', controllerTf, `PID: Kp=${state.pidParams.Kp.toFixed(2)}, Ki=${state.pidParams.Ki.toFixed(2)}, Kd=${state.pidParams.Kd.toFixed(2)}`),
-    renderTransferFunctionEquation('Cc(s) =', leadLagTransferFunction(state.compensator), compensatorDescription(state.compensator)),
+    renderTransferFunctionEquation('Cc(s) =', compTfForDisplay, compDescForDisplay),
   ].join('');
 
   const loopParts = [
@@ -2012,9 +2065,39 @@ function updateController() {
     validateCompensatorInputs();
     readCompensatorInputs();
     const { Kp, Ki, Kd, N } = state.pidParams;
-    const pid = new PIDController(Kp, Ki, Kd, N);
-    const compensatorTf = leadLagTransferFunction(state.compensator);
-    const controllerTf = pid.toTransferFunction().series(compensatorTf);
+
+    // Handle 2-DOF PID
+    const use2dof = document.getElementById('enable-2dof')?.checked;
+    let pid;
+    let controllerTf;
+    if (use2dof) {
+      const beta = Number(document.getElementById('pid-beta')?.value ?? 1);
+      const gamma = Number(document.getElementById('pid-gamma')?.value ?? 0);
+      const ctrl2dof = new TwoDOFPIDController(Kp, Ki, Kd, N, beta, gamma);
+      pid = new PIDController(Kp, Ki, Kd, N);
+      state.twoDof = { controller: ctrl2dof, beta, gamma };
+      // For loop TF, use feedback TF (disturbance rejection); setpoint TF stored for reference
+      controllerTf = ctrl2dof.toFeedbackTF();
+      const infoEl = document.getElementById('twodof-info');
+      if (infoEl) {
+        infoEl.textContent = `β=${beta} reduces overshoot on setpoint; γ=${gamma} ${gamma === 0 ? 'eliminates derivative kick' : 'applies derivative to setpoint'}.`;
+      }
+    } else {
+      pid = new PIDController(Kp, Ki, Kd, N);
+      state.twoDof = null;
+      controllerTf = pid.toTransferFunction();
+    }
+
+    // Handle notch filter vs lead/lag
+    let compensatorTf;
+    if (state.compensator.mode === 'notch' && state.notch) {
+      const { wn, zetaZ, zetaP } = state.notch;
+      compensatorTf = notchFilter(wn, zetaZ, zetaP);
+    } else {
+      compensatorTf = leadLagTransferFunction(state.compensator);
+    }
+
+    controllerTf = controllerTf.series(compensatorTf);
     state.controller = {
       toTransferFunction: () => controllerTf,
       pid,

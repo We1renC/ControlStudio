@@ -48,6 +48,26 @@ export function designLeadCompensator({ phaseBoostDeg, crossoverFreq, gainStrate
   return normalizeCompensatorConfig({ mode: 'lead', gain, tau, alpha });
 }
 
+/**
+ * Notch filter transfer function.
+ * N(s) = (s² + 2·ζ_num·ω_n·s + ω_n²) / (s² + 2·ζ_den·ω_n·s + ω_n²)
+ * zetaNum < zetaDen gives attenuation at ω_n.
+ */
+export function notchFilter(omegaN, zetaNum, zetaDen) {
+  if (!(omegaN > 0)) throw new Error('Notch filter: omegaN must be > 0');
+  if (!(zetaNum >= 0)) throw new Error('Notch filter: zetaNum must be >= 0');
+  if (!(zetaDen > 0)) throw new Error('Notch filter: zetaDen must be > 0');
+  if (!(zetaNum < zetaDen)) throw new Error('Notch filter: zetaNum must be < zetaDen for attenuation');
+  const wn2 = omegaN * omegaN;
+  const num = [1, 2 * zetaNum * omegaN, wn2];
+  const den = [1, 2 * zetaDen * omegaN, wn2];
+  return new TransferFunction(num, den);
+}
+
+export function notchFilterDescription(omegaN, zetaNum, zetaDen) {
+  return `Notch ω_n=${omegaN}, ζ_z=${zetaNum}, ζ_p=${zetaDen}`;
+}
+
 export function designLagCompensator({ improvementFactor, crossoverFreq, zeroRatio = 10 } = {}) {
   const factor = Number(improvementFactor);
   const wc = Number(crossoverFreq);

@@ -574,6 +574,10 @@
               <option value="imc-pi">IMC PI (λ-tuning)</option>
               <option value="imc-pid">IMC PID (λ-tuning)</option>
               <option value="simc">Skogestad SIMC PI</option>
+              <option value="tl-pi">Tyreus-Luyben PI</option>
+              <option value="tl-pid">Tyreus-Luyben PID</option>
+              <option value="itae-pi">ITAE PI (Rovira)</option>
+              <option value="itae-pid">ITAE PID (Rovira)</option>
             </select>
           </div>
           <div class="summary-grid" style="margin-bottom:var(--space-2);">
@@ -599,12 +603,32 @@
             </div>
           </div>
           <button class="btn btn-sm" id="btn-apply-pid-preset" style="width:100%; justify-content:center;">Apply PID Preset</button>
+          <div class="input-group" style="margin-top:var(--space-4); border-top:1px solid var(--border-primary); padding-top:var(--space-3);">
+            <label style="display:flex;align-items:center;gap:8px;">
+              <input type="checkbox" id="enable-2dof" style="margin:0;">
+              2-DOF PID (reference weighting)
+            </label>
+          </div>
+          <div id="twodof-fields" style="display:none;">
+            <div class="summary-grid">
+              <div class="input-group" style="margin-bottom:0;">
+                <label>β (P weight on r)</label>
+                <input type="number" id="pid-beta" min="0" max="2" step="0.05" value="1">
+              </div>
+              <div class="input-group" style="margin-bottom:0;">
+                <label>γ (D weight on r)</label>
+                <input type="number" id="pid-gamma" min="0" max="1" step="0.05" value="0">
+              </div>
+            </div>
+            <div id="twodof-info" style="font-size:11px;color:var(--text-muted);margin-top:4px;"></div>
+          </div>
           <div class="input-group" style="margin-top:var(--space-4);">
             <label>Lead / Lag Compensator</label>
             <select id="comp-mode" style="background:var(--bg-tertiary); color:var(--text-primary); border:1px solid var(--border-primary); border-radius:var(--radius-sm); padding:8px 12px; font-size:12px;">
               <option value="none">None</option>
               <option value="lead">Lead</option>
               <option value="lag">Lag</option>
+              <option value="notch">Notch Filter</option>
             </select>
           </div>
           <div id="comp-fields" style="display:none;">
@@ -619,6 +643,20 @@
             <div class="input-group" style="margin-bottom:0;">
               <label>Alpha (lead: &lt;1, lag: &gt;1)</label>
               <input type="number" id="comp-alpha" min="0.01" step="0.1" value="0.2">
+            </div>
+          </div>
+          <div id="comp-notch-fields" style="display:none;">
+            <div class="input-group">
+              <label>ω_n (notch frequency, rad/s)</label>
+              <input type="number" id="notch-wn" min="0.01" step="0.1" value="10">
+            </div>
+            <div class="input-group">
+              <label>ζ_z (numerator damping, zero)</label>
+              <input type="number" id="notch-zeta-z" min="0" max="0.99" step="0.01" value="0.01">
+            </div>
+            <div class="input-group">
+              <label>ζ_p (denominator damping, pole)</label>
+              <input type="number" id="notch-zeta-p" min="0.01" step="0.01" value="0.5">
             </div>
           </div>
           <div class="summary-grid" style="margin-top:var(--space-4); margin-bottom:var(--space-2);">

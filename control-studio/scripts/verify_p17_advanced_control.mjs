@@ -129,6 +129,118 @@ console.log('\n=== P17-04: MPC MIMO output-space setpoint tracking ===\n');
   ok('MIMO output tracking cost finite', Number.isFinite(sim.totalCost));
 }
 
+// ============================================================
+// P17-05: Tyreus-Luyben tuning
+// ============================================================
+console.log('\n=== P17-05: Tyreus-Luyben tuning ===\n');
+import { PIDController, TwoDOFPIDController } from '../js/control/pid.js';
+import { notchFilter, notchFilterDescription } from '../js/control/compensator.js';
+{
+  // TL PI: Ku=6, Tu=2 → Kp=6/3.2=1.875, Ti=2.2*2=4.4 → Ki=1.875/4.4≈0.42614
+  const tlPI = PIDController.tyreusLuyben(6, 2, 'PI');
+  near('TL PI Kp ≈ 1.875', tlPI.Kp, 1.875, 1e-9);
+  near('TL PI Ki ≈ 0.42614', tlPI.Ki, 1.875 / 4.4, 1e-9);
+  near('TL PI Kd = 0', tlPI.Kd, 0, 1e-15);
+
+  // TL PID: Kp=6/2.2≈2.7273, Ti=4.4 → Ki≈0.6198, Td=2/6.3≈0.31746 → Kd≈Kp*Td≈0.8657
+  const tlPID = PIDController.tyreusLuyben(6, 2, 'PID');
+  near('TL PID Kp ≈ 2.7273', tlPID.Kp, 6 / 2.2, 1e-9);
+  near('TL PID Ti = 4.4', tlPID.Ki, (6 / 2.2) / 4.4, 1e-9);
+  near('TL PID Td = Tu/6.3', tlPID.Kd, (6 / 2.2) * (2 / 6.3), 1e-9);
+}
+
+// ============================================================
+// P17-06: ITAE tuning
+// ============================================================
+console.log('\n=== P17-06: ITAE tuning (Rovira) ===\n');
+{
+  // K=1, tau=5, theta=0.5 → r=0.1
+  const itaePI = PIDController.itae(1, 5, 0.5, 'PI');
+  // Kp = (0.586/1) * 0.1^(-0.916) > 0
+  ok('ITAE PI Kp > 0', itaePI.Kp > 0, `Kp=${itaePI.Kp.toFixed(4)}`);
+  ok('ITAE PI Ki > 0', itaePI.Ki > 0, `Ki=${itaePI.Ki.toFixed(4)}`);
+  ok('ITAE PI Kd = 0', itaePI.Kd === 0, `Kd=${itaePI.Kd}`);
+
+  const itaePID = PIDController.itae(1, 5, 0.5, 'PID');
+  ok('ITAE PID Kp > 0', itaePID.Kp > 0, `Kp=${itaePID.Kp.toFixed(4)}`);
+  ok('ITAE PID Ki > 0', itaePID.Ki > 0, `Ki=${itaePID.Ki.toFixed(4)}`);
+  ok('ITAE PID Kd > 0', itaePID.Kd > 0, `Kd=${itaePID.Kd.toFixed(4)}`);
+
+  // Check r validation
+  let threw = false;
+  try { PIDController.itae(1, 5, 6, 'PID'); } catch { threw = true; }
+  ok('ITAE throws for r >= 1', threw);
+}
+
+// ============================================================
+// P17-07: Notch filter
+// ============================================================
+console.log('\n=== P17-07: Notch filter ===\n');
+{
+  const nf = notchFilter(10, 0.01, 0.5);
+  ok('notchFilter returns TransferFunction', nf && typeof nf.evalAt === 'function');
+
+  // At ω=ωn=10, magnitude should be << 1 (attenuation)
+  // |H(jωn)| = |num(jωn)| / |den(jωn)|
+  // num(j10): (j10)^2 + 2*0.01*10*(j10) + 100 = -100 + 2j + 100 = 2j → |2j|=2
+  // den(j10): (j10)^2 + 2*0.5*10*(j10) + 100 = -100 + 100j + 100 = 100j → |100j|=100
+  // magnitude = 2/100 = 0.02 << 1
+  const atNotch = nf.evalAt(new Complex(0, 10));
+  ok('Notch filter attenuates at ω_n', atNotch.magnitude < 0.1,
+    `|H(j*10)|=${atNotch.magnitude.toFixed(4)}`);
+
+  // At ω=0.1 (far from notch), magnitude ≈ 1
+  const awayFromNotch = nf.evalAt(new Complex(0, 0.1));
+  ok('Notch filter passes far from ω_n', awayFromNotch.magnitude > 0.9,
+    `|H(j*0.1)|=${awayFromNotch.magnitude.toFixed(4)}`);
+
+  // Description string
+  const desc = notchFilterDescription(10, 0.01, 0.5);
+  ok('notchFilterDescription returns string', typeof desc === 'string' && desc.includes('10'));
+
+  // Validation: zetaNum >= zetaDen should throw
+  let threw = false;
+  try { notchFilter(10, 0.5, 0.1); } catch { threw = true; }
+  ok('notchFilter throws when zetaNum >= zetaDen', threw);
+}
+
+// ============================================================
+// P17-08: TwoDOFPIDController
+// ============================================================
+console.log('\n=== P17-08: TwoDOFPIDController ===\n');
+{
+  const ctrl = new TwoDOFPIDController(2, 0.5, 0.1, 100, 0.5, 0);
+  ok('TwoDOFPIDController has beta/gamma', ctrl.beta === 0.5 && ctrl.gamma === 0);
+
+  const Cy = ctrl.toFeedbackTF();
+  const Cr = ctrl.toSetpointTF();
+  ok('Feedback TF is TransferFunction', Cy && typeof Cy.evalAt === 'function');
+  ok('Setpoint TF is TransferFunction', Cr && typeof Cr.evalAt === 'function');
+
+  // At s=0 (DC), Cy should have pure integrator, so evaluate at low freq
+  // Setpoint TF has beta=0.5 on Kp and gamma=0 on Kd → at high freq numerator differs
+  // At DC: Cr/Cy should reflect β for proportional (both have same Ki so ratio→1 at DC with integrator)
+  // Check: with beta=0.5, setpoint TF Kp is 2*0.5=1 (vs feedback Kp=2)
+  // At s=infinity (high freq), C(s) ~ Kp (ignoring integrator and derivative filter)
+  // We verify via evalAt at a moderate freq
+  const sTest = new Complex(0, 0.001); // near DC where Ki dominates
+  const CyVal = Cy.evalAt(sTest);
+  const CrVal = Cr.evalAt(sTest);
+  ok('Cy and Cr are finite at near-DC', Number.isFinite(CyVal.magnitude) && Number.isFinite(CrVal.magnitude));
+
+  // closedLoopTF returns expected object
+  const plant = new TransferFunction([1], [1, 1]);
+  const cl = ctrl.closedLoopTF(plant);
+  ok('closedLoopTF returns {feedback, setpoint, plant, loopTf, oneDofCL}',
+    cl.feedback && cl.setpoint && cl.plant && cl.loopTf && cl.oneDofCL);
+
+  // Default beta=1, gamma=1 → setpointTF == feedbackTF (full 1-DOF equivalence)
+  const ctrl1dof = new TwoDOFPIDController(2, 0.5, 0.1, 100, 1, 1);
+  ok('beta=1, gamma=1 gives identical setpoint/feedback TFs',
+    Math.abs(ctrl1dof.toSetpointTF().evalAt(new Complex(10, 0)).magnitude -
+      ctrl1dof.toFeedbackTF().evalAt(new Complex(10, 0)).magnitude) < 1e-9);
+}
+
 console.log('');
 if (failed === 0) console.log('P17 advanced control: all checks passed');
 else {
