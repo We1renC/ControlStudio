@@ -136,6 +136,43 @@ export function identifyARX(u, y, na, nb, nk = 1, Ts = 1) {
 }
 
 /**
+ * Solve the normal equations with Tikhonov (ridge) regularization:
+ * (ΦᵀΦ + λI) θ = Φᵀy
+ * Used inside ARMAX where some columns may be near-zero (e.g. residuals ≈ 0).
+ */
+function normalEquationsRidge(Phi, y, lambda = 1e-8) {
+  const n = Phi[0].length;
+  const m = Phi.length;
+  const A = Array.from({ length: n }, () => new Array(n).fill(0));
+  const b = new Array(n).fill(0);
+  for (let i = 0; i < m; i++) {
+    const row = Phi[i];
+    for (let p = 0; p < n; p++) {
+      b[p] += row[p] * y[i];
+      for (let q = p; q < n; q++) A[p][q] += row[p] * row[q];
+    }
+  }
+  for (let p = 0; p < n; p++) {
+    for (let q = 0; q < p; q++) A[p][q] = A[q][p];
+    A[p][p] += lambda; // ridge
+  }
+  const aug = A.map((r, i) => [...r, b[i]]);
+  for (let k = 0; k < n; k++) {
+    let pivot = k;
+    for (let i = k + 1; i < n; i++) if (Math.abs(aug[i][k]) > Math.abs(aug[pivot][k])) pivot = i;
+    if (pivot !== k) { const t = aug[k]; aug[k] = aug[pivot]; aug[pivot] = t; }
+    const akk = aug[k][k];
+    if (Math.abs(akk) < 1e-300) continue; // still singular after ridge — skip
+    for (let j = k; j <= n; j++) aug[k][j] /= akk;
+    for (let i = 0; i < n; i++) if (i !== k) {
+      const f = aug[i][k];
+      for (let j = k; j <= n; j++) aug[i][j] -= f * aug[k][j];
+    }
+  }
+  return aug.map((r) => r[n]);
+}
+
+/**
  * ARMAX model identification via iterative pseudo-linear regression.
  * A(q)y = B(q)u + C(q)e, where C(q) = 1 + c₁z⁻¹ + ... + cₙcz⁻ⁿc
  *
@@ -199,8 +236,9 @@ export function identifyARMAX(u, y, na, nb, nc, nk = 1, Ts = 1, options = {}) {
       yVec.push(y[k]);
     }
 
-    // Solve normal equations
-    const result = normalEquations(Phi, yVec);
+    // Solve normal equations with small Tikhonov ridge regularization
+    // to handle near-singular columns (e.g. residuals ≈ 0 on first iterations).
+    const result = normalEquationsRidge(Phi, yVec, 1e-8);
     aTail = result.slice(0, na);
     bTail = result.slice(na, na + nb);
     c = result.slice(na + nb);

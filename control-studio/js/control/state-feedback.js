@@ -1443,6 +1443,86 @@ export function checkPoleRegion(poles, region) {
 }
 
 /**
+ * H∞ filter — worst-case optimal state estimation.
+ * Solves the modified CARE: A·P + P·A^T - P·S·P + Qw = 0
+ * where S = C^T·Rv⁻¹·C - γ⁻²·I.
+ *
+ * Uses the LQR duality: this CARE is equivalent to the LQR CARE
+ * for the dual system (A^T, L_chol, Qw, I) where L_chol·L_chol^T = S.
+ *
+ * Requires γ > γ* (feasibility). If γ is too small, S will not be
+ * positive definite and an error is thrown.
+ *
+ * @param {number[][]} A - n×n continuous state matrix
+ * @param {number[][]} C - p×n output matrix
+ * @param {number[][]} Qw - n×n process noise intensity (must be ≥ 0)
+ * @param {number[][]} Rv - p×p measurement noise covariance (must be > 0)
+ * @param {number} gamma - H∞ performance level (γ > γ* > 0)
+ * @returns {{ P, K, Aobs, filterPoles, stable, gamma, effectiveGain }}
+ */
+export function solveHinfFilter(A, C, Qw, Rv, gamma) {
+  const n = A.length;
+  const p = C.length;
+  if (!Number.isFinite(gamma) || gamma <= 0) throw new Error('H∞ filter: γ must be a positive finite number');
+
+  // Compute S = C^T * Rv^{-1} * C - γ^{-2} * I
+  let Rvinv;
+  try { Rvinv = matInverse(Rv); } catch(_) { throw new Error('H∞ filter: Rv must be invertible'); }
+  const Ct = matTranspose(C);
+  const CtRvinvC = matMul(Ct, matMul(Rvinv, C)); // n×n
+  const gammaInvSq = 1 / (gamma * gamma);
+  const S = CtRvinvC.map((row, i) => row.map((v, j) => v - (i === j ? gammaInvSq : 0)));
+
+  // Check positive definiteness of S (necessary for feasibility)
+  if (!matIsPositiveDefinite(S)) {
+    throw new Error(`H∞ filter: γ=${gamma.toFixed(3)} too small — S = C^T·Rv⁻¹·C - γ⁻²·I is not positive definite. Increase γ.`);
+  }
+
+  // Cholesky factorization: S = L·L^T (lower triangular)
+  // So B̃·R̃⁻¹·B̃^T = S with B̃ = L, R̃ = I
+  const L = _choleskyLower(S);
+
+  // Dual LQR: solveLqr(A^T, L, Qw, I_n) → solution P is the H∞ filter covariance
+  // LQR CARE: (A^T)^T·P + P·(A^T) - P·L·I⁻¹·L^T·P + Qw = 0
+  //         = A·P + P·A^T - P·L·L^T·P + Qw = 0
+  //         = A·P + P·A^T - P·S·P + Qw = 0  ✓
+  const I_n = matIdentity(n);
+  const At = matTranspose(A);
+  const lqrResult = solveLqr(At, L, matSymmetrize(Qw), I_n);
+  const P = lqrResult.P; // H∞ filter error covariance
+
+  // Filter gain: K = P·C^T·Rv⁻¹
+  const K = matMul(matMul(P, Ct), Rvinv);
+
+  // Observer matrix: A_obs = A - K·C
+  const Aobs = matSub(A, matMul(K, C));
+  const filterPoles = matrixPoles(Aobs);
+  const stable = filterPoles.every((pole) => pole.re < 0);
+
+  // Effective H∞ gain bound: γ (user-provided; actual bound ≤ γ)
+  return { P, K, Aobs, filterPoles, stable, gamma };
+}
+
+/** Internal: Cholesky lower-triangular factor of a positive definite matrix. */
+function _choleskyLower(A) {
+  const n = A.length;
+  const L = Array.from({ length: n }, () => new Array(n).fill(0));
+  for (let i = 0; i < n; i++) {
+    for (let j = 0; j <= i; j++) {
+      let sum = A[i][j];
+      for (let k = 0; k < j; k++) sum -= L[i][k] * L[j][k];
+      if (i === j) {
+        if (sum <= 1e-14) throw new Error('Cholesky: matrix is not positive definite');
+        L[i][j] = Math.sqrt(sum);
+      } else {
+        L[i][j] = sum / L[j][j];
+      }
+    }
+  }
+  return L;
+}
+
+/**
  * Find LQR weights that keep closed-loop poles inside a region via iterative Q scaling.
  * Starts from given Q, R and scales Q until all CL poles satisfy the region, up to maxIter.
  *

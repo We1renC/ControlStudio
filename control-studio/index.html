@@ -1151,6 +1151,19 @@
                 <div id="chart-ekf" style="height:200px;margin-top:var(--space-2);"></div>
               </div>
 
+              <!-- H∞ Filter -->
+              <div style="border-top:1px solid var(--border-primary); margin-top:var(--space-4); padding-top:var(--space-3);">
+                <div style="font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase;margin-bottom:8px;">H∞ Filter (Worst-case Optimal)</div>
+                <div style="font-size:11px;color:var(--text-muted);margin-bottom:8px;">Minimises worst-case disturbance-to-error gain. γ→∞ recovers Kalman filter.</div>
+                <div class="summary-grid">
+                  <div class="input-group" style="margin-bottom:0;"><label>γ (performance)</label><input type="number" id="hinf-filter-gamma" value="10" min="0.1" step="0.5"></div>
+                  <div class="input-group" style="margin-bottom:0;"><label>Qw diag</label><input type="text" id="hinf-filter-qw" value="0.1, 0.1" placeholder="e.g. 0.1, 0.1"></div>
+                </div>
+                <div class="input-group" style="margin-top:var(--space-2);"><label>Rv (scalar)</label><input type="number" id="hinf-filter-rv" value="1" min="0.001" step="0.1"></div>
+                <button class="btn btn-sm" id="btn-hinf-filter" style="width:100%;justify-content:center;margin-top:var(--space-2);">Compute H∞ Filter Gain</button>
+                <div id="hinf-filter-out" style="display:none;font-size:11px;margin-top:var(--space-2);"></div>
+              </div>
+
               <!-- LQG Simulation -->
               <div style="margin-top:12px;border-top:1px solid var(--border-primary);padding-top:12px;">
                 <div style="font-size:10px;font-weight:700;color:var(--color-accent);text-transform:uppercase;margin-bottom:6px;">LQG = LQR + Kalman</div>
@@ -1427,6 +1440,16 @@
           </div>
           <button class="btn btn-sm" id="btn-phase-portrait" type="button" style="width:100%;justify-content:center;margin-bottom:8px;">Plot Phase Portrait</button>
           <div id="chart-phase-portrait" style="height:280px;"></div>
+          <div style="border-top:1px solid var(--border-primary); margin-top:var(--space-4); padding-top:var(--space-3);">
+            <div style="font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase;margin-bottom:8px;">Equilibrium Detection &amp; Bifurcation</div>
+            <div style="font-size:11px;color:var(--text-muted);margin-bottom:8px;">Finds all equilibria of the current 2-state linearized system and classifies their stability type.</div>
+            <div class="summary-grid">
+              <div class="input-group" style="margin-bottom:0;"><label>Search range x₁</label><input type="number" id="eq-range1" value="5" min="0.1" step="0.5"></div>
+              <div class="input-group" style="margin-bottom:0;"><label>Search range x₂</label><input type="number" id="eq-range2" value="5" min="0.1" step="0.5"></div>
+            </div>
+            <button class="btn btn-sm" id="btn-find-eq" style="width:100%;justify-content:center;margin-top:var(--space-2);">Find Equilibria</button>
+            <div id="eq-out" style="display:none;font-size:11px;margin-top:var(--space-2);"></div>
+          </div>
         </section>
 
         <section class="section-panel">

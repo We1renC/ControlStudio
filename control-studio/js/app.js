@@ -16,7 +16,7 @@ import { c2dMatchedZ, c2dTustin, c2dTustinPrewarp, c2dZOH } from './control/c2d.
 import { specsToTargetPoles, designLeadForPM, deadbeatGain } from './control/design.js?v=p5';
 import { polyadd, polyscale, polyroots } from './math/polynomial.js?v=p4';
 import { Complex } from './math/complex.js';
-import { analyzeLyapunov, augmentWithIntegralAction, brysonsRule, checkPoleRegion, closedLoopTransferFromStateFeedback, designIntegralLQR, discretizeZOH, innovationStats, lqrWithPoleRegion, observerPoles, placeObserver, placeStateFeedback, resolveDesignStateSpace, simulateLqg, simulateObserver, solveDiscreteKalman, solveLqe, solveLqr, solveLqrMIMO } from './control/state-feedback.js?v=p8d';
+import { analyzeLyapunov, augmentWithIntegralAction, brysonsRule, checkPoleRegion, closedLoopTransferFromStateFeedback, designIntegralLQR, discretizeZOH, innovationStats, lqrWithPoleRegion, observerPoles, placeObserver, placeStateFeedback, resolveDesignStateSpace, simulateLqg, simulateObserver, solveDiscreteKalman, solveLqe, solveLqr, solveLqrMIMO, solveHinfFilter } from './control/state-feedback.js?v=p8d';
 import { matIdentity, matTranspose, matSub, matMul } from './math/matrix.js?v=p5';
 import { BlockEditor } from './editor/editor.js';
 import { MIMOStateSpace, parseMIMOMatrices, rgaSteady, rgaDiagnosis, rgaInvariants, singularValueBode, staticDecoupler, applyDecoupler, dynamicDecouplerAtFrequency, evalAtJw, singularValues } from './control/mimo.js';
@@ -30,6 +30,7 @@ import { toMatlabScript, toPythonScript, downloadScript } from './utils/codegen.
 import { mixedSensitivityCost, tunePIDForMixedSensitivity, defaultMixedSensitivityWeights } from './control/hinf_synth.js';
 import { gaTunePID, nsga2TunePID } from './control/ga_tuner.js';
 import { runLinearEKF } from './control/ekf.js';
+import { findEquilibrium, classifyEquilibrium, scanEquilibria } from './analysis/equilibrium.js';
 import { phasePortrait, linearVelocityField } from './analysis/phase-portrait.js';
 import { tfToControllableCanonical } from './control/state-space.js?v=p5';
 
@@ -763,6 +764,63 @@ function initEventListeners() {
           }
         } finally { btn.classList.remove('is-loading'); btn.disabled = false; }
       }, 30);
+    } catch (err) { showError(err.message); }
+  });
+
+  // H∞ filter
+  document.getElementById('btn-hinf-filter')?.addEventListener('click', () => {
+    try {
+      const model = resolveDesignStateSpace(state);
+      if (!model) throw new Error('請先建立 state-space 模型（MIMO 模式）');
+      const gamma = parseFloat(document.getElementById('hinf-filter-gamma')?.value || '2');
+      const qwVal = parseFloat(document.getElementById('hinf-filter-qw')?.value || '1');
+      const rvVal = parseFloat(document.getElementById('hinf-filter-rv')?.value || '1');
+      const n = model.A.length;
+      const p = model.C.length;
+      const Qw = matIdentity(n).map((row) => row.map((v) => v * qwVal));
+      const Rv = matIdentity(p).map((row) => row.map((v) => v * rvVal));
+      const result = solveHinfFilter(model.A, model.C, Qw, Rv, gamma);
+      const K = result.K;
+      const out = document.getElementById('hinf-filter-out');
+      if (out) {
+        const kStr = K.map((row) => row.map((v) => v.toFixed(5)).join(', ')).join('\n');
+        out.style.display = 'block';
+        out.textContent = `H∞ filter gain K (γ=${gamma}):\n${kStr}\n\nP eigenvalues: ${result.Peig?.map((v) => v.toFixed(4)).join(', ') ?? 'n/a'}`;
+      }
+    } catch (err) { showError(err.message); }
+  });
+
+  // Equilibrium detection
+  document.getElementById('btn-find-eq')?.addEventListener('click', () => {
+    try {
+      const model = resolveDesignStateSpace(state);
+      if (!model) throw new Error('請先建立 state-space 模型（MIMO 模式）');
+      const n = model.A.length;
+      if (n !== 2) throw new Error('Equilibrium scan 目前僅支援 n=2 系統');
+      const r1 = parseFloat(document.getElementById('eq-range1')?.value || '3');
+      const r2 = parseFloat(document.getElementById('eq-range2')?.value || '3');
+      // Linearized: ẋ = A·x (equilibrium at x*=0 unless B·u term exists)
+      const A = model.A;
+      const f = (x) => [
+        A[0][0] * x[0] + A[0][1] * x[1],
+        A[1][0] * x[0] + A[1][1] * x[1],
+      ];
+      const searchBounds = [[-r1, r1], [-r2, r2]];
+      const equilibria = scanEquilibria(f, searchBounds, { gridSize: 6, tol: 1e-7 });
+      const out = document.getElementById('eq-out');
+      if (out) {
+        if (equilibria.length === 0) {
+          out.style.display = 'block';
+          out.textContent = '未找到平衡點（搜索範圍內）';
+        } else {
+          const lines = equilibria.map((eq, i) => {
+            const cls = classifyEquilibrium(f, eq.x, { h: 1e-5 });
+            return `[${i + 1}] x*=(${eq.x.map((v) => v.toFixed(4)).join(', ')})  類型: ${cls.type}  (λ=${cls.eigenvalues?.map((λ) => `${λ.re.toFixed(3)}${λ.im >= 0 ? '+' : ''}${λ.im.toFixed(3)}j`).join(', ') ?? 'n/a'})`;
+          });
+          out.style.display = 'block';
+          out.textContent = `找到 ${equilibria.length} 個平衡點：\n${lines.join('\n')}`;
+        }
+      }
     } catch (err) { showError(err.message); }
   });
 
