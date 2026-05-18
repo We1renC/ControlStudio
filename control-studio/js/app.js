@@ -27,6 +27,9 @@ import { polyToLatex, tfToLatex, renderLatex, pidToLatex } from './utils/latex.j
 import { setSeed, getSeed, resetSeed } from './math/rng.js';
 import { identifyARX, autoARXOrder } from './control/sysid.js';
 import { toMatlabScript, toPythonScript, downloadScript } from './utils/codegen.js';
+import { mixedSensitivityCost, tunePIDForMixedSensitivity, defaultMixedSensitivityWeights } from './control/hinf_synth.js';
+import { gaTunePID } from './control/ga_tuner.js';
+import { phasePortrait, linearVelocityField } from './analysis/phase-portrait.js';
 import { tfToControllableCanonical } from './control/state-space.js?v=p5';
 
 // ============================================================
@@ -342,6 +345,126 @@ function initEventListeners() {
     const design = buildCodegenPayload();
     const script = toPythonScript(design);
     downloadScript(script, `controlstudio-${new Date().toISOString().slice(0,19).replace(/[:.]/g,'-')}.py`, 'text/x-python');
+  });
+
+  // P16-01: H∞ synthesis handlers
+  function _hinfWeightsFromUI() {
+    const wB = parseFloat(document.getElementById('hinf-wb')?.value || '1');
+    const M = parseFloat(document.getElementById('hinf-m')?.value || '1.8');
+    const Ahigh = parseFloat(document.getElementById('hinf-ahi')?.value || '0.1');
+    return defaultMixedSensitivityWeights({ wB, M, Ahigh });
+  }
+  document.getElementById('btn-hinf-evaluate')?.addEventListener('click', () => {
+    const out = document.getElementById('hinf-out');
+    try {
+      if (!state.plant) throw new Error('請先建立 plant');
+      const C = state.controller?.toTransferFunction?.();
+      if (!C) throw new Error('需要 PID controller');
+      const L = C.series(state.plant);
+      const w = _hinfWeightsFromUI();
+      const omegas = Array.from({ length: 100 }, (_, i) => Math.pow(10, -2 + (4 * i) / 99));
+      const r = mixedSensitivityCost(w.W1, w.W2, w.W3, L, C, omegas);
+      out.style.display = 'block';
+      out.innerHTML = `<div style="color:var(--color-accent);font-weight:700;">‖[W₁S; W₂KS; W₃T]‖∞ = ${r.peak.toFixed(4)}</div><div>Peak @ ω = ${r.peakOmega.toFixed(3)} rad/s</div>`;
+    } catch (err) {
+      out.style.display = 'block';
+      out.innerHTML = `<span style="color:var(--color-unstable);">${err.message}</span>`;
+    }
+  });
+  document.getElementById('btn-hinf-synth')?.addEventListener('click', () => {
+    const out = document.getElementById('hinf-out');
+    try {
+      if (!state.plant) throw new Error('請先建立 plant');
+      const w = _hinfWeightsFromUI();
+      const seed = [state.pidParams.Kp, state.pidParams.Ki, state.pidParams.Kd];
+      const result = tunePIDForMixedSensitivity(state.plant, w, { initial: seed, maxIter: 100 });
+      // Apply to live PID
+      state.pidParams.Kp = result.Kp;
+      state.pidParams.Ki = result.Ki;
+      state.pidParams.Kd = result.Kd;
+      syncPIDSliders?.();
+      updateController?.();
+      out.style.display = 'block';
+      out.innerHTML = `<div style="color:var(--color-stable);font-weight:700;">Synthesised: Kp=${result.Kp.toFixed(3)}, Ki=${result.Ki.toFixed(3)}, Kd=${result.Kd.toFixed(3)}</div><div>cost = ${result.cost.toFixed(4)} (was ${result.history[0].toFixed(4)})</div>`;
+    } catch (err) {
+      out.style.display = 'block';
+      out.innerHTML = `<span style="color:var(--color-unstable);">${err.message}</span>`;
+    }
+  });
+
+  // P16-04: GA tuner
+  document.getElementById('btn-ga-tune')?.addEventListener('click', () => {
+    const out = document.getElementById('ga-out');
+    const btn = document.getElementById('btn-ga-tune');
+    try {
+      if (!state.plant) throw new Error('請先建立 plant');
+      const pop = parseInt(document.getElementById('ga-pop').value, 10);
+      const gens = parseInt(document.getElementById('ga-gens').value, 10);
+      const weights = {
+        overshoot: parseFloat(document.getElementById('ga-w-os').value || '1'),
+        settle: parseFloat(document.getElementById('ga-w-settle').value || '0.5'),
+        iae: parseFloat(document.getElementById('ga-w-iae').value || '0.3'),
+      };
+      btn.classList.add('is-loading'); btn.disabled = true;
+      setTimeout(() => {
+        try {
+          const result = gaTunePID(state.plant, { populationSize: pop, generations: gens, weights });
+          state.pidParams.Kp = result.best.Kp;
+          state.pidParams.Ki = result.best.Ki;
+          state.pidParams.Kd = result.best.Kd;
+          syncPIDSliders?.();
+          updateController?.();
+          out.style.display = 'block';
+          out.innerHTML = `<div style="color:var(--color-stable);font-weight:700;">Best: Kp=${result.best.Kp.toFixed(3)}, Ki=${result.best.Ki.toFixed(3)}, Kd=${result.best.Kd.toFixed(3)}</div><div>cost = ${result.best.cost.toFixed(3)} (from ${result.history[0].toFixed(3)})</div>`;
+          if (window.Plotly) {
+            window.Plotly.newPlot('chart-ga', [
+              { x: result.history.map((_, i) => i), y: result.history, mode: 'lines+markers', name: 'best cost', line: { color: '#10b981' } },
+            ], {
+              ...PLOTLY_LAYOUT_BASE(),
+              margin: { t: 8, r: 10, b: 28, l: 40 },
+              xaxis: { title: 'generation', gridcolor: 'rgba(255,255,255,0.06)' },
+              yaxis: { title: 'cost', gridcolor: 'rgba(255,255,255,0.06)' },
+            }, { responsive: true, displayModeBar: false });
+          }
+        } finally {
+          btn.classList.remove('is-loading'); btn.disabled = false;
+        }
+      }, 30);
+    } catch (err) {
+      btn.classList.remove('is-loading'); btn.disabled = false;
+      out.style.display = 'block';
+      out.innerHTML = `<span style="color:var(--color-unstable);">${err.message}</span>`;
+    }
+  });
+
+  // P16-03: Phase portrait
+  document.getElementById('btn-phase-portrait')?.addEventListener('click', () => {
+    try {
+      if (!state.mimoPlant || state.mimoPlant.n !== 2) throw new Error('Phase portrait 需要 MIMO 模式且 n=2（2 個狀態）');
+      const A = state.mimoPlant.A;
+      const f = linearVelocityField(A);
+      const r1 = parseFloat(document.getElementById('pp-x1-range').value || '3');
+      const r2 = parseFloat(document.getElementById('pp-x2-range').value || '3');
+      const tMax = parseFloat(document.getElementById('pp-tmax').value || '6');
+      const pp = phasePortrait(f, { x1Min: -r1, x1Max: r1, x2Min: -r2, x2Max: r2, gridSize: 7, tMax, dt: 0.04 });
+      if (window.Plotly) {
+        const traces = pp.trajectories.map((tr) => ({
+          x: tr.x1, y: tr.x2, mode: 'lines',
+          line: { color: '#6366f1', width: 1 }, showlegend: false, hoverinfo: 'skip',
+        }));
+        // Vector field as small arrows (using quiver-like markers)
+        traces.push({
+          x: pp.vectorField.x1, y: pp.vectorField.x2,
+          mode: 'markers', marker: { size: 3, color: '#ec4899' }, showlegend: false, hoverinfo: 'skip',
+        });
+        window.Plotly.newPlot('chart-phase-portrait', traces, {
+          ...PLOTLY_LAYOUT_BASE(),
+          margin: { t: 10, r: 10, b: 30, l: 40 },
+          xaxis: { title: 'x₁', range: [-r1, r1], gridcolor: 'rgba(255,255,255,0.06)' },
+          yaxis: { title: 'x₂', range: [-r2, r2], scaleanchor: 'x', scaleratio: 1, gridcolor: 'rgba(255,255,255,0.06)' },
+        }, { responsive: true, displayModeBar: false });
+      }
+    } catch (err) { showError(err.message); }
   });
 
   // P15-04: Root locus K-sweep animation
