@@ -25,10 +25,10 @@ import { sensitivityBode, robustPeaks, uncertaintyEnvelope, hInfNorm, additiveUn
 import { applyDelay, padeApprox, delayMargin, smithPredictor } from './control/delay.js';
 import { polyToLatex, tfToLatex, renderLatex, pidToLatex } from './utils/latex.js';
 import { setSeed, getSeed, resetSeed } from './math/rng.js';
-import { identifyARX, autoARXOrder } from './control/sysid.js';
+import { identifyARMAX, identifyARX, autoARXOrder } from './control/sysid.js';
 import { toMatlabScript, toPythonScript, downloadScript } from './utils/codegen.js';
 import { mixedSensitivityCost, tunePIDForMixedSensitivity, defaultMixedSensitivityWeights } from './control/hinf_synth.js';
-import { gaTunePID } from './control/ga_tuner.js';
+import { gaTunePID, nsga2TunePID } from './control/ga_tuner.js';
 import { runLinearEKF } from './control/ekf.js';
 import { phasePortrait, linearVelocityField } from './analysis/phase-portrait.js';
 import { tfToControllableCanonical } from './control/state-space.js?v=p5';
@@ -95,6 +95,162 @@ const SESSION_STORAGE_KEY = 'control-studio-session-v1';
 let apiAnalysisRequestId = 0;
 
 // ============================================================
+// UNDO / REDO HISTORY
+// ============================================================
+const _history = { stack: [], idx: -1, maxDepth: 50 };
+
+function _historySnapshot() {
+  if (!state.plant) return null;
+  return {
+    num: [...state.plant.num],
+    den: [...state.plant.den],
+    domain: state.domain,
+    Kp: state.pidParams.Kp,
+    Ki: state.pidParams.Ki,
+    Kd: state.pidParams.Kd,
+    N: state.pidParams.N,
+    compMode: state.compensator?.mode,
+    compGain: state.compensator?.gain,
+    compTau: state.compensator?.tau,
+    compAlpha: state.compensator?.alpha,
+  };
+}
+
+function historySave() {
+  const snap = _historySnapshot();
+  if (!snap) return;
+  // Drop any redo entries above current index
+  _history.stack.splice(_history.idx + 1);
+  _history.stack.push(snap);
+  if (_history.stack.length > _history.maxDepth) _history.stack.shift();
+  _history.idx = _history.stack.length - 1;
+  _updateHistoryButtons();
+}
+
+function historyUndo() {
+  if (_history.idx <= 0) return;
+  _history.idx--;
+  _applySnapshot(_history.stack[_history.idx]);
+}
+
+function historyRedo() {
+  if (_history.idx >= _history.stack.length - 1) return;
+  _history.idx++;
+  _applySnapshot(_history.stack[_history.idx]);
+}
+
+function _applySnapshot(snap) {
+  if (!snap) return;
+  state.pidParams.Kp = snap.Kp;
+  state.pidParams.Ki = snap.Ki;
+  state.pidParams.Kd = snap.Kd;
+  state.pidParams.N = snap.N;
+  if (snap.compMode) {
+    state.compensator = { mode: snap.compMode, gain: snap.compGain, tau: snap.compTau, alpha: snap.compAlpha };
+    syncCompensatorInputs?.();
+  }
+  syncPIDSliders?.();
+  updateController?.();
+  _updateHistoryButtons();
+}
+
+function _updateHistoryButtons() {
+  const undoBtn = document.getElementById('btn-undo');
+  const redoBtn = document.getElementById('btn-redo');
+  if (undoBtn) undoBtn.disabled = _history.idx <= 0;
+  if (redoBtn) redoBtn.disabled = _history.idx >= _history.stack.length - 1;
+}
+
+// ============================================================
+// URL STATE SHARE (base64)
+// ============================================================
+
+/** Encode the shareable parts of state to a base64 URL fragment. */
+function encodeStateToUrl() {
+  if (!state.plant) return null;
+  try {
+    const payload = {
+      v: 1,
+      domain: state.domain,
+      num: state.plant.num,
+      den: state.plant.den,
+      Kp: state.pidParams.Kp,
+      Ki: state.pidParams.Ki,
+      Kd: state.pidParams.Kd,
+      N: state.pidParams.N,
+      compMode: state.compensator?.mode || 'none',
+      compGain: state.compensator?.gain,
+      compTau: state.compensator?.tau,
+      compAlpha: state.compensator?.alpha,
+      showCL: state.showClosedLoop,
+      responseType: state.responseType,
+    };
+    if (state.domain === 'z' && state.plant.sampleTime) payload.Ts = state.plant.sampleTime;
+    const json = JSON.stringify(payload);
+    const b64 = btoa(unescape(encodeURIComponent(json)));
+    return b64;
+  } catch (_) { return null; }
+}
+
+/** Decode a base64 string from URL and restore state (returns true if successful). */
+function decodeStateFromUrl(b64) {
+  try {
+    const json = decodeURIComponent(escape(atob(b64)));
+    const p = JSON.parse(json);
+    if (!p || p.v !== 1 || !Array.isArray(p.num) || !Array.isArray(p.den)) return false;
+    // Restore plant via existing input fields → triggers normal plant setup
+    if (p.domain === 'z') {
+      document.getElementById('dtf-num').value = p.num.join(', ');
+      document.getElementById('dtf-den').value = p.den.join(', ');
+      if (p.Ts) document.getElementById('dtf-ts').value = p.Ts;
+      // Switch to DTF tab
+      document.querySelectorAll('.sys-tab').forEach(t => t.classList.toggle('active', t.dataset.type === 'dtf'));
+      document.querySelectorAll('.sys-input-section').forEach(s => { s.style.display = 'none'; });
+      const dtfSec = document.getElementById('sys-dtf');
+      if (dtfSec) dtfSec.style.display = 'block';
+      state.systemType = 'dtf';
+      state.domain = 'z';
+    } else {
+      document.getElementById('tf-num').value = p.num.join(', ');
+      document.getElementById('tf-den').value = p.den.join(', ');
+      // Switch to TF tab
+      document.querySelectorAll('.sys-tab').forEach(t => t.classList.toggle('active', t.dataset.type === 'tf'));
+      document.querySelectorAll('.sys-input-section').forEach(s => { s.style.display = 'none'; });
+      const tfSec = document.getElementById('sys-tf');
+      if (tfSec) tfSec.style.display = 'block';
+      state.systemType = 'tf';
+      state.domain = 's';
+    }
+    updateSystem?.();
+    // Restore PID
+    if (Number.isFinite(p.Kp)) state.pidParams.Kp = p.Kp;
+    if (Number.isFinite(p.Ki)) state.pidParams.Ki = p.Ki;
+    if (Number.isFinite(p.Kd)) state.pidParams.Kd = p.Kd;
+    if (Number.isFinite(p.N)) state.pidParams.N = p.N;
+    syncPIDSliders?.();
+    // Restore compensator
+    if (p.compMode && p.compMode !== 'none') {
+      state.compensator = { mode: p.compMode, gain: p.compGain ?? 1, tau: p.compTau ?? 1, alpha: p.compAlpha ?? 0.2 };
+      syncCompensatorInputs?.();
+    }
+    // Restore UI toggles
+    if (p.responseType) {
+      state.responseType = p.responseType;
+      const el = document.getElementById('response-type');
+      if (el) el.value = p.responseType;
+    }
+    if (typeof p.showCL === 'boolean') {
+      state.showClosedLoop = p.showCL;
+      const cl = document.getElementById('cl-toggle');
+      if (cl) cl.checked = p.showCL;
+    }
+    updateController?.();
+    refreshAllCharts?.();
+    return true;
+  } catch (_) { return false; }
+}
+
+// ============================================================
 // INIT
 // ============================================================
 document.addEventListener('DOMContentLoaded', () => {
@@ -115,6 +271,16 @@ document.addEventListener('DOMContentLoaded', () => {
   // P13: UI/UX layer — collapsibles, modals, shortcuts, presets, tooltips
   if (typeof csUI !== 'undefined') csUI.init();
   syncAdvisorModeVisibility();
+
+  // ── Restore from share URL if present (#share=<base64>) ─────
+  const shareHash = location.hash.match(/[#&]share=([A-Za-z0-9+/=]+)/);
+  if (shareHash) {
+    // Small delay so csUI.init() & updateSystem() have settled
+    setTimeout(() => { decodeStateFromUrl(shareHash[1]); }, 150);
+  }
+
+  // Initialise undo/redo button states
+  _updateHistoryButtons();
 });
 
 function initTheme() {
@@ -561,6 +727,45 @@ function initEventListeners() {
     }
   });
 
+  // NSGA-II multi-objective PID tuner
+  document.getElementById('btn-nsga2')?.addEventListener('click', () => {
+    try {
+      if (!state.plant) throw new Error('請先建立 plant');
+      const pop = parseInt(document.getElementById('nsga-pop').value, 10);
+      const gens = parseInt(document.getElementById('nsga-gens').value, 10);
+      const btn = document.getElementById('btn-nsga2');
+      btn.classList.add('is-loading'); btn.disabled = true;
+      setTimeout(() => {
+        try {
+          const result = nsga2TunePID(state.plant, { populationSize: pop, generations: gens });
+          const pf = result.paretoFront;
+          const out = document.getElementById('nsga-out');
+          out.style.display = 'block';
+          out.innerHTML = `<div style="color:var(--color-accent);font-weight:700;">Pareto Front: ${pf.length} solutions</div>
+            <div style="color:var(--text-muted);font-size:10px;">Best overshoot: ${pf[0]?.objectives[0].toFixed(2)}% | Best settling: ${pf[pf.length-1]?.objectives[1].toFixed(3)}s</div>`;
+          if (window.Plotly) {
+            window.Plotly.newPlot('chart-nsga', [{
+              x: pf.map((s) => s.objectives[0]),
+              y: pf.map((s) => s.objectives[1]),
+              mode: 'markers+lines',
+              type: 'scatter',
+              marker: { color: pf.map((s) => s.Kp), colorscale: 'Viridis', size: 8, showscale: true, colorbar: { title: 'Kp', thickness: 10 } },
+              text: pf.map((s) => `Kp=${s.Kp.toFixed(2)}, Ki=${s.Ki.toFixed(2)}, Kd=${s.Kd.toFixed(2)}`),
+              hovertemplate: '%{text}<br>OS=%{x:.2f}%<br>Ts=%{y:.3f}s<extra></extra>',
+              name: 'Pareto front',
+            }], {
+              ...PLOTLY_LAYOUT_BASE(),
+              margin: { t: 8, r: 60, b: 40, l: 50 },
+              xaxis: { title: 'Overshoot (%)', gridcolor: 'rgba(255,255,255,0.06)' },
+              yaxis: { title: 'Settling time (s)', gridcolor: 'rgba(255,255,255,0.06)' },
+              showlegend: false,
+            }, { responsive: true, displayModeBar: false });
+          }
+        } finally { btn.classList.remove('is-loading'); btn.disabled = false; }
+      }, 30);
+    } catch (err) { showError(err.message); }
+  });
+
   // P16-03: Phase portrait
   document.getElementById('btn-phase-portrait')?.addEventListener('click', () => {
     try {
@@ -627,6 +832,30 @@ function initEventListeners() {
       updateSystem();
       switchView('dashboard');
     }
+  });
+
+  // ── Share URL ────────────────────────────────────────────────
+  document.getElementById('btn-share-url')?.addEventListener('click', () => {
+    const b64 = encodeStateToUrl();
+    if (!b64) { showError('先建立 Plant 才能分享'); return; }
+    const url = `${location.origin}${location.pathname}#share=${b64}`;
+    navigator.clipboard?.writeText(url).then(() => {
+      const btn = document.getElementById('btn-share-url');
+      const orig = btn.textContent;
+      btn.textContent = '✓ Copied!';
+      setTimeout(() => { btn.textContent = orig; }, 2000);
+    }).catch(() => {
+      prompt('Share URL (Ctrl+C to copy):', url);
+    });
+  });
+
+  // ── Undo / Redo buttons & keyboard shortcuts ─────────────────
+  document.getElementById('btn-undo')?.addEventListener('click', historyUndo);
+  document.getElementById('btn-redo')?.addEventListener('click', historyRedo);
+
+  document.addEventListener('keydown', (e) => {
+    if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key === 'z') { e.preventDefault(); historyUndo(); }
+    if ((e.ctrlKey || e.metaKey) && (e.key === 'y' || (e.shiftKey && e.key === 'z'))) { e.preventDefault(); historyRedo(); }
   });
 }
 
@@ -900,6 +1129,7 @@ function applyPIDPreset() {
       const Tu = readRequiredPositiveNumber('preset-tu', 'Tu');
       const type = preset === 'zn-p' ? 'P' : preset === 'zn-pi' ? 'PI' : 'PID';
       setPIDFromController(PIDController.zieglerNichols(Ku, Tu, type), `ziegler-nichols-${type.toLowerCase()}`);
+      historySave();
       clearError();
       return;
     }
@@ -909,6 +1139,7 @@ function applyPIDPreset() {
       const Tu = readRequiredPositiveNumber('preset-tu', 'Tu');
       const type = preset === 'tl-pi' ? 'PI' : 'PID';
       setPIDFromController(PIDController.tyreusLuyben(Ku, Tu, type), `tyreus-luyben-${type.toLowerCase()}`);
+      historySave();
       clearError();
       return;
     }
@@ -933,6 +1164,7 @@ function applyPIDPreset() {
     } else {
       setPIDFromController(PIDController.cohenCoon(plantK, tau, td), 'cohen-coon');
     }
+    historySave();
     clearError();
   } catch (err) {
     showError(err.message);
@@ -1796,6 +2028,7 @@ function applyDesignLeadToController() {
     lagTarget: null,
   };
   syncCompensatorInputs();
+  historySave();
   updateController();
 }
 
@@ -1813,6 +2046,7 @@ function applyLeadHelper() {
       lagTarget: null,
     };
     syncCompensatorInputs();
+    historySave();
     updateController();
     clearError();
   } catch (err) {
@@ -1838,6 +2072,7 @@ function applyLagHelper() {
       lagTarget: { improvementFactor, crossoverFreq },
     };
     syncCompensatorInputs();
+    historySave();
     updateController();
     clearError();
   } catch (err) {
@@ -2121,6 +2356,7 @@ function updateSystem() {
       updateDomainUI();
       updateSystemSetupCopy();
       saveSessionToStorage();
+      historySave();
       refreshAllCharts();
       return;
     }
@@ -2190,6 +2426,7 @@ function updateSystem() {
     }
     clearError();
     autoToggleOpenLoopForUnstablePlant();
+    historySave();
     updateController();
   } catch (err) {
     showError(err.message);
@@ -5691,8 +5928,10 @@ const csUI = (() => {
       const text = document.getElementById('sysid-csv')?.value || '';
       const { u, y } = parseCSVtoUY(text);
       const Ts = parseFloat(document.getElementById('sysid-ts')?.value || '0.1');
+      const modelType = document.getElementById('sysid-model')?.value ?? 'arx';
       let model;
       if (autoOrder) {
+        // Auto-order always uses ARX
         const { best, candidates } = autoARXOrder(u, y, { naMax: 4, nbMax: 4, Ts });
         if (!best) throw new Error('Auto-order failed');
         model = best;
@@ -5702,25 +5941,46 @@ const csUI = (() => {
         const na = parseInt(document.getElementById('sysid-na').value, 10);
         const nb = parseInt(document.getElementById('sysid-nb').value, 10);
         const nk = parseInt(document.getElementById('sysid-nk').value, 10);
-        model = identifyARX(u, y, na, nb, nk, Ts);
+        if (modelType === 'armax') {
+          const nc = parseInt(document.getElementById('sysid-nc')?.value || '0', 10);
+          model = identifyARMAX(u, y, na, nb, nc, nk, Ts);
+        } else {
+          model = identifyARX(u, y, na, nb, nk, Ts);
+        }
       }
       _lastSysIdModel = model;
-      const aStr = model.a.map((v) => v.toFixed(4)).join(', ');
-      const bStr = model.b.map((v) => v.toFixed(4)).join(', ');
+
+      const isARMAX = modelType === 'armax' && !autoOrder;
+      const ord = model.order;
+      // For ARMAX, a/b are raw tail arrays; for ARX, a includes leading 1.
+      // Display: show full A polynomial for ARX, raw coefficients for ARMAX
+      const aDisplayStr = isARMAX
+        ? model.a.map((v) => v.toFixed(4)).join(', ')
+        : model.a.map((v) => v.toFixed(4)).join(', ');
+      const bDisplayStr = model.b.map((v) => v.toFixed(4)).join(', ');
+      const modelLabel = isARMAX
+        ? `ARMAX(${ord.na}, ${ord.nb}, ${ord.nc}, nk=${ord.nk}) — ${model.iterations} iter`
+        : `ARX(${ord.na}, ${ord.nb}, nk=${ord.nk})`;
+
+      const lines = [
+        `<div style="color:var(--color-accent);font-weight:700;">${modelLabel}</div>`,
+        `<div>A(z⁻¹) coeff = [${aDisplayStr}]</div>`,
+        `<div>B(z⁻¹) coeff = [${bDisplayStr}]</div>`,
+      ];
+      if (isARMAX && model.c && model.c.length > 0) {
+        lines.push(`<div>C(z⁻¹) coeff = [${model.c.map((v) => v.toFixed(4)).join(', ')}]</div>`);
+      }
+      lines.push(`<div>Fit: ${model.fitPercent.toFixed(2)}% · MSE: ${model.mse.toExponential(3)} · AIC: ${model.aic.toFixed(1)}</div>`);
       out.style.display = 'block';
-      out.innerHTML = [
-        `<div style="color:var(--color-accent);font-weight:700;">ARX(${model.order.na}, ${model.order.nb}, nk=${model.order.nk})</div>`,
-        `<div>A(z⁻¹) = [${aStr}]</div>`,
-        `<div>B(z⁻¹) = [${bStr}]</div>`,
-        `<div>Fit: ${model.fitPercent.toFixed(2)}% · MSE: ${model.mse.toExponential(3)} · AIC: ${model.aic.toFixed(1)}</div>`,
-      ].join('');
+      out.innerHTML = lines.join('');
 
       // Plot measured y vs predicted yhat
       if (window.Plotly) {
         const t = u.map((_, k) => k);
+        const predLabel = isARMAX ? 'ARMAX predicted' : 'ARX predicted';
         window.Plotly.newPlot('chart-sysid', [
           { x: t, y: y, mode: 'lines', name: 'measured', line: { color: '#10b981', width: 1.4 } },
-          { x: t, y: model.yhat, mode: 'lines', name: 'ARX predicted', line: { color: '#ec4899', width: 1.4, dash: 'dot' } },
+          { x: t, y: model.yhat, mode: 'lines', name: predLabel, line: { color: '#ec4899', width: 1.4, dash: 'dot' } },
         ], {
           paper_bgcolor: 'rgba(0,0,0,0)', plot_bgcolor: 'rgba(0,0,0,0)',
           font: { color: '#94a3b8', size: 10 },
@@ -5738,14 +5998,16 @@ const csUI = (() => {
 
   function applySysIdModel() {
     if (!_lastSysIdModel) {
-      showError('請先 Fit ARX 取得模型');
+      showError('請先 Fit 取得模型');
       return;
     }
-    // Switch to discrete TF view
+    // Switch to discrete TF view — use the .tf object's numerator/denominator
+    // which are already in the correct full polynomial form for both ARX and ARMAX.
+    const tf = _lastSysIdModel.tf;
     document.querySelector('.system-mode-btn[data-mode="siso"]')?.click();
     document.querySelector('.sys-tab[data-type="dtf"]')?.click();
-    document.getElementById('dtf-num').value = _lastSysIdModel.b.map((v) => v.toFixed(6)).join(', ');
-    document.getElementById('dtf-den').value = _lastSysIdModel.a.map((v) => v.toFixed(6)).join(', ');
+    document.getElementById('dtf-num').value = tf.num.map((v) => v.toFixed(6)).join(', ');
+    document.getElementById('dtf-den').value = tf.den.map((v) => v.toFixed(6)).join(', ');
     document.getElementById('btn-apply')?.click();
   }
 

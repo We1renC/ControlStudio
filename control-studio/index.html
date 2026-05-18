@@ -319,6 +319,9 @@
         <button class="btn btn-sm" id="view-editor" disabled aria-disabled="true" title="Block Diagram editor 暫時停用中（保留給後續開發）">Block Diagram</button>
       </div>
       <div class="divider-v"></div>
+      <button class="btn btn-sm" id="btn-undo" title="Undo (Ctrl+Z)" aria-label="Undo last change" disabled style="font-size:11px;">&#x21A9; Undo</button>
+      <button class="btn btn-sm" id="btn-redo" title="Redo (Ctrl+Y)" aria-label="Redo last change" disabled style="font-size:11px;">&#x21AA; Redo</button>
+      <button class="btn btn-sm" id="btn-share-url" title="Copy share URL to clipboard" aria-label="Copy share URL" style="font-size:11px;">&#x29C9; Share</button>
       <button class="btn btn-sm" id="btn-quickstart" title="Quick Start with example presets (Ctrl+/)" aria-label="Open Quick Start guide">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
         <span>Help</span>
@@ -484,13 +487,23 @@
         </section>
 
         <section class="section-panel" id="sysid-panel">
-          <div class="section-title">System Identification (ARX)</div>
+          <div class="section-title">System Identification (ARX / ARMAX)</div>
           <p class="section-copy">從輸入-輸出資料估計離散傳遞函數。可貼上 CSV（每列：u, y）或用按鈕載入範例。</p>
           <div style="display:flex;gap:6px;margin-bottom:8px;">
             <div class="input-group" style="flex:1;margin-bottom:0;"><label>na</label><input type="number" id="sysid-na" min="1" max="8" value="2"></div>
             <div class="input-group" style="flex:1;margin-bottom:0;"><label>nb</label><input type="number" id="sysid-nb" min="1" max="8" value="2"></div>
             <div class="input-group" style="flex:1;margin-bottom:0;"><label>nk (delay)</label><input type="number" id="sysid-nk" min="0" max="10" value="1"></div>
             <div class="input-group" style="flex:1;margin-bottom:0;"><label>Ts (s)</label><input type="number" id="sysid-ts" step="0.01" value="0.1"></div>
+          </div>
+          <div style="display:flex;gap:6px;margin-bottom:8px;">
+            <div class="input-group" style="flex:1;margin-bottom:0;">
+              <label>Model</label>
+              <select id="sysid-model" style="background:var(--bg-tertiary);color:var(--text-primary);border:1px solid var(--border-primary);border-radius:var(--radius-sm);padding:8px 12px;font-size:12px;">
+                <option value="arx">ARX</option>
+                <option value="armax">ARMAX</option>
+              </select>
+            </div>
+            <div class="input-group" style="flex:1;margin-bottom:0;"><label>nc (ARMAX C order)</label><input type="number" id="sysid-nc" min="0" max="8" step="1" value="0"></div>
           </div>
           <label style="font-size:11px;color:var(--text-muted);">CSV 資料（u,y 每列；標題列可省略）</label>
           <textarea id="sysid-csv" rows="6" placeholder="0,0&#10;1,0.4&#10;1,0.68&#10;..." style="font-family:ui-monospace,monospace;font-size:11px;"></textarea>
@@ -500,7 +513,7 @@
             <button class="btn btn-sm" id="btn-sysid-example" type="button" style="flex:1;justify-content:center;">Load Example</button>
           </div>
           <div style="display:flex;gap:6px;margin-bottom:8px;">
-            <button class="btn btn-primary btn-sm" id="btn-sysid-fit" type="button" style="flex:2;justify-content:center;">Fit ARX</button>
+            <button class="btn btn-primary btn-sm" id="btn-sysid-fit" type="button" style="flex:2;justify-content:center;">Fit Model</button>
             <button class="btn btn-sm" id="btn-sysid-auto" type="button" style="flex:1;justify-content:center;" title="Sweep orders 1..4 and pick minimum AIC">Auto Order</button>
             <button class="btn btn-sm" id="btn-sysid-apply" type="button" style="flex:1;justify-content:center;" title="Replace current plant with the identified model">Apply →</button>
           </div>
@@ -1389,6 +1402,17 @@
           <button class="btn btn-primary btn-sm" id="btn-ga-tune" type="button" style="width:100%;justify-content:center;margin-bottom:8px;">Run GA Tuner</button>
           <div id="ga-out" style="font-size:11px;font-family:monospace;color:var(--text-secondary);background:rgba(15,17,23,.4);padding:8px;border-radius:6px;line-height:1.6;display:none;margin-bottom:8px;"></div>
           <div id="chart-ga" style="height:140px;"></div>
+
+          <div style="border-top:1px solid var(--border-primary);margin-top:var(--space-4);padding-top:var(--space-3);">
+            <div style="font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase;margin-bottom:8px;">NSGA-II Multi-Objective (Pareto)</div>
+            <div class="summary-grid">
+              <div class="input-group" style="margin-bottom:0;"><label>Pop size</label><input type="number" id="nsga-pop" value="30" min="10" max="100" step="5"></div>
+              <div class="input-group" style="margin-bottom:0;"><label>Generations</label><input type="number" id="nsga-gens" value="25" min="5" max="100" step="5"></div>
+            </div>
+            <button class="btn btn-sm" id="btn-nsga2" style="width:100%;justify-content:center;margin-top:var(--space-2);">Run NSGA-II (Overshoot vs. Settling)</button>
+            <div id="nsga-out" style="display:none;font-size:11px;margin-top:var(--space-2);"></div>
+            <div id="chart-nsga" style="height:200px;margin-top:var(--space-2);"></div>
+          </div>
         </section>
 
         <section class="section-panel" id="phase-portrait-panel" data-advisor-mode="mimo" style="display:none;">

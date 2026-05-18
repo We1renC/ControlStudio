@@ -136,6 +136,122 @@ export function identifyARX(u, y, na, nb, nk = 1, Ts = 1) {
 }
 
 /**
+ * ARMAX model identification via iterative pseudo-linear regression.
+ * A(q)y = B(q)u + C(q)e, where C(q) = 1 + c₁z⁻¹ + ... + cₙcz⁻ⁿc
+ *
+ * @param {number[]} u - input sequence
+ * @param {number[]} y - output sequence
+ * @param {number} na - A polynomial order
+ * @param {number} nb - B polynomial order
+ * @param {number} nc - C polynomial order (noise MA order)
+ * @param {number} nk - input delay (≥1)
+ * @param {number} Ts - sample time
+ * @param {{ maxIter?: number, tol?: number }} [options]
+ * @returns {{ a, b, c, tf, yhat, residual, fitPercent, mse, aic, iterations }}
+ *   a[i]: coefficients of A (i=1..na), b[j]: coefficients of B (j=0..nb-1), c[k]: C coefficients
+ *   tf: estimated discrete TransferFunction B(z⁻¹)/A(z⁻¹) (noise model separate)
+ */
+export function identifyARMAX(u, y, na, nb, nc, nk = 1, Ts = 1, options = {}) {
+  if (!Number.isInteger(na) || na < 0) throw new Error('ARMAX: na must be a non-negative integer');
+  if (!Number.isInteger(nb) || nb < 1) throw new Error('ARMAX: nb must be a positive integer');
+  if (!Number.isInteger(nc) || nc < 0) throw new Error('ARMAX: nc must be a non-negative integer');
+  if (!Number.isInteger(nk) || nk < 0) throw new Error('ARMAX: nk must be a non-negative integer');
+
+  // nc=0 degenerates to ARX
+  if (nc === 0) {
+    const arxResult = identifyARX(u, y, na, nb, nk, Ts);
+    return { ...arxResult, c: [], iterations: 1 };
+  }
+
+  const maxIter = options.maxIter ?? 20;
+  const tol = options.tol ?? 1e-6;
+  const N = y.length;
+  const maxLag = Math.max(na, nb + nk - 1, nc);
+
+  if (N < maxLag + 10) throw new Error('ARMAX: not enough data points for given orders');
+
+  // Initialize with ARX estimate (C=1)
+  const arxInit = identifyARX(u, y, na, nb, nk, Ts);
+  // a/b from ARX are in [1, a1, ..., ana] and [0..0, b1, ...] form
+  // We need the raw coefficient arrays for the iterative loop
+  let aTail = arxInit.a.slice(1);   // [a1, ..., ana]
+  let bTail = arxInit.b.slice(nk);  // [b1, ..., bnb]
+  let c = new Array(nc).fill(0);    // start with C=1 (zero MA coefficients)
+
+  let prevParams = [...aTail, ...bTail, ...c];
+  let iterations = 0;
+
+  for (let iter = 0; iter < maxIter; iter++) {
+    // Compute residuals from current model
+    const yhat = _computeARMAXOutput(u, y, aTail, bTail, c, na, nb, nc, nk, N);
+    const e = y.map((yi, k) => yi - yhat[k]);
+
+    // Build extended regressor: [past y, past u, past e]
+    const Phi = [];
+    const yVec = [];
+
+    for (let k = maxLag; k < N; k++) {
+      const row = [];
+      for (let i = 1; i <= na; i++) row.push(-(y[k - i] ?? 0));
+      for (let j = 0; j < nb; j++) row.push(u[k - nk - j] ?? 0);
+      for (let l = 1; l <= nc; l++) row.push(e[k - l] ?? 0);
+      Phi.push(row);
+      yVec.push(y[k]);
+    }
+
+    // Solve normal equations
+    const result = normalEquations(Phi, yVec);
+    aTail = result.slice(0, na);
+    bTail = result.slice(na, na + nb);
+    c = result.slice(na + nb);
+
+    const newParams = [...aTail, ...bTail, ...c];
+    const diff = Math.max(...newParams.map((p, i) => Math.abs(p - prevParams[i])));
+    prevParams = newParams;
+    iterations = iter + 1;
+    if (diff < tol) break;
+  }
+
+  // Final output and metrics
+  const yhat = _computeARMAXOutput(u, y, aTail, bTail, c, na, nb, nc, nk, N);
+  const residuals = y.map((yi, k) => yi - yhat[k]);
+  const mse = residuals.reduce((s, ei) => s + ei * ei, 0) / N;
+  const yMean = y.reduce((s, v) => s + v, 0) / N;
+  const ssTot = y.reduce((s, yi) => s + (yi - yMean) ** 2, 0);
+  const fitPercent = ssTot > 1e-12
+    ? Math.max(0, (1 - Math.sqrt(residuals.reduce((s, ei) => s + ei * ei, 0) / ssTot)) * 100)
+    : NaN;
+  const nParams = na + nb + nc;
+  const aic = N * Math.log(mse + 1e-300) + 2 * nParams;
+
+  // Build discrete TF: B(z⁻¹)/A(z⁻¹) (noise model C is separate)
+  const aFull = [1, ...aTail];                        // [1, a1, ..., ana]
+  const bFull = [...new Array(nk).fill(0), ...bTail]; // with leading delay zeros
+
+  return {
+    a: aTail, b: bTail, c,
+    tf: new DiscreteTransferFunction(bFull, aFull, Ts),
+    yhat, residual: residuals,
+    fitPercent, mse, aic, iterations,
+    order: { na, nb, nc, nk },
+  };
+}
+
+function _computeARMAXOutput(u, y, aTail, bTail, c, na, nb, nc, nk, N) {
+  const yhat = new Array(N).fill(0);
+  const e = new Array(N).fill(0);
+  for (let k = 0; k < N; k++) {
+    let yk = 0;
+    for (let i = 1; i <= na; i++) yk -= (aTail[i - 1] ?? 0) * (y[k - i] ?? 0);
+    for (let j = 0; j < nb; j++) yk += (bTail[j] ?? 0) * (u[k - nk - j] ?? 0);
+    for (let l = 1; l <= nc; l++) yk += (c[l - 1] ?? 0) * (e[k - l] ?? 0);
+    yhat[k] = yk;
+    e[k] = y[k] - yk;
+  }
+  return yhat;
+}
+
+/**
  * Convenience: try several (na, nb) combinations and pick the one with lowest AIC.
  */
 export function autoARXOrder(u, y, options = {}) {
