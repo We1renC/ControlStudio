@@ -2666,6 +2666,35 @@ function renderBodePlot(sys, targetId = 'chart-active') {
         }
       }
       if (annotations.length) layout.annotations = annotations;
+
+      // BW marker: closed-loop -3 dB bandwidth (from state.closedLoop if available)
+      try {
+        const clSys = state.closedLoop;
+        if (clSys) {
+          const bwRange = autoFreqRange(clSys);
+          const clData = bodeData(clSys, bwRange.wMin, bwRange.wMax);
+          const dcMag = Math.pow(10, clData.magDB[0] / 20);
+          const threshold = dcMag / Math.SQRT2;
+          let bwW = null;
+          for (let bi = 0; bi < clData.w.length; bi++) {
+            if (Math.pow(10, clData.magDB[bi] / 20) < threshold) { bwW = clData.w[bi]; break; }
+          }
+          if (bwW && Number.isFinite(bwW)) {
+            traces.push({
+              x: [bwW, bwW], y: [magMin, magMax],
+              type: 'scatter', mode: 'lines',
+              line: { color: '#a855f7', width: 1, dash: 'dashdot' },
+              name: `ω_BW=${fmtNum(bwW, 3)} rad/s`, hoverinfo: 'name',
+            });
+            layout.annotations = [...(layout.annotations || []), {
+              x: Math.log10(bwW), y: magMin + (magMax - magMin) * 0.08,
+              xref: 'x', yref: 'y',
+              text: `ω_BW`, showarrow: false,
+              font: { size: 9, color: '#a855f7' },
+            }];
+          }
+        }
+      } catch (_) { /* bandwidth detection optional */ }
     } catch (_) { /* ignore — fall back to plain bode */ }
   }
 
