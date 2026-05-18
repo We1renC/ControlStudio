@@ -430,3 +430,146 @@ export function hInfNorm(mimoSys, options = {}) {
 
   return { norm, peakOmega, gridValues };
 }
+
+// ---------------------------------------------------------------------------
+// Phase 17: structured μ analysis / D-scaling surrogate
+// ---------------------------------------------------------------------------
+
+function assertSquareComplexMatrix(M) {
+  if (!Array.isArray(M) || !M.length || M.some((row) => !Array.isArray(row) || row.length !== M.length)) {
+    throw new Error('structured μ requires a non-empty square complex matrix');
+  }
+}
+
+function scaleComplexMatrix(M, logScales) {
+  return M.map((row, i) =>
+    row.map((value, j) => {
+      const ratio = Math.exp(logScales[i] - logScales[j]);
+      return new Complex(value.re * ratio, value.im * ratio);
+    })
+  );
+}
+
+function maxSigmaOfScaled(M, logScales) {
+  return singularValues(scaleComplexMatrix(M, logScales))[0];
+}
+
+/**
+ * Upper bound for the structured singular value μΔ(M).
+ *
+ * The browser implementation uses diagonal positive D-scaling:
+ *   μ(M) ≤ inf_D σ_max(D M D⁻¹)
+ *
+ * For SISO this is exact. For diagonal repeated scalar blocks this is the
+ * standard first-pass upper-bound used before a heavier DK-iteration backend.
+ */
+export function structuredMuUpperBound(M, options = {}) {
+  assertSquareComplexMatrix(M);
+  const n = M.length;
+  if (n === 1) {
+    return {
+      upperBound: M[0][0].magnitude,
+      unscaledUpperBound: M[0][0].magnitude,
+      logScales: [0],
+      scales: [1],
+      iterations: 0,
+      method: 'siso-exact',
+    };
+  }
+
+  const maxIter = options.maxIter ?? 80;
+  const minStep = options.minStep ?? 1e-4;
+  let step = options.initialStep ?? 0.75;
+  const logScales = new Array(n).fill(0);
+  const unscaledUpperBound = maxSigmaOfScaled(M, logScales);
+  let best = unscaledUpperBound;
+  let iterations = 0;
+
+  while (step >= minStep && iterations < maxIter) {
+    let improved = false;
+    for (let i = 1; i < n; i++) {
+      for (const dir of [-1, 1]) {
+        const trial = logScales.slice();
+        trial[i] += dir * step;
+        const value = maxSigmaOfScaled(M, trial);
+        if (value < best - 1e-10) {
+          logScales[i] = trial[i];
+          best = value;
+          improved = true;
+        }
+      }
+    }
+    if (!improved) step *= 0.5;
+    iterations++;
+  }
+
+  return {
+    upperBound: best,
+    unscaledUpperBound,
+    logScales,
+    scales: logScales.map(Math.exp),
+    iterations,
+    method: 'diagonal-D-scaling-upper-bound',
+  };
+}
+
+export function structuredMuSweep(mimoSys, omegas, options = {}) {
+  if (!Array.isArray(omegas) || !omegas.length) throw new Error('omegas must be a non-empty array');
+  const points = omegas.map((omega) => {
+    const M = evalAtJw(mimoSys, omega);
+    const result = structuredMuUpperBound(M, options);
+    return { omega, ...result };
+  });
+  let peak = -Infinity;
+  let peakOmega = NaN;
+  for (const point of points) {
+    if (point.upperBound > peak) {
+      peak = point.upperBound;
+      peakOmega = point.omega;
+    }
+  }
+  return {
+    omegas: [...omegas],
+    points,
+    peak,
+    peakOmega,
+    peakDB: 20 * Math.log10(Math.max(peak, 1e-30)),
+    method: 'structured-mu-D-scaling-sweep',
+  };
+}
+
+/**
+ * DK-style static gain search surrogate:
+ * choose scalar loop gain k that minimizes maxω μ(k·M(jω)).
+ *
+ * This is not industrial full DK iteration. It gives ControlStudio an explicit
+ * structured robust design loop with a reproducible objective and D-scales.
+ */
+export function structuredMuSynthesisSurrogate(mimoSys, omegas, options = {}) {
+  const gainCandidates = options.gainCandidates ?? Array.from({ length: 41 }, (_, i) => Math.pow(10, -2 + (4 * i) / 40));
+  if (!gainCandidates.length || gainCandidates.some((value) => !(value > 0))) {
+    throw new Error('gainCandidates must be positive');
+  }
+  let best = null;
+  const candidates = gainCandidates.map((gain) => {
+    const points = omegas.map((omega) => {
+      const scaled = evalAtJw(mimoSys, omega).map((row) =>
+        row.map((value) => new Complex(value.re * gain, value.im * gain))
+      );
+      const result = structuredMuUpperBound(scaled, options);
+      return { omega, ...result };
+    });
+    const peak = Math.max(...points.map((point) => point.upperBound));
+    const peakOmega = points.reduce((acc, point) => point.upperBound > acc.upperBound ? point : acc, points[0]).omega;
+    const candidate = { gain, peak, peakOmega, points };
+    if (!best || peak < best.peak) best = candidate;
+    return candidate;
+  });
+  return {
+    bestGain: best.gain,
+    peak: best.peak,
+    peakOmega: best.peakOmega,
+    candidates,
+    method: 'static-gain-DK-surrogate',
+  };
+}

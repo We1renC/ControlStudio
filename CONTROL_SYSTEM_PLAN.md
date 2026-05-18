@@ -121,7 +121,7 @@
 - Static Decoupler（W = G(0)⁻¹ 自動解耦）
 - MIMO LQR（R 為矩陣的 CARE 求解，Newton-Kleinman 迭代）
 
-### Phase 10 ~ Phase 16 已完成（Advanced Control / Product Maturity）
+### Phase 10 ~ Phase 17 已完成（Advanced Control / Product Maturity）
 - Phase 10：Schur / Hamiltonian CARE、MPC baseline、Dynamic Decoupler、Robust sensitivity baseline、constraint UI 與高階 CARE hardening
 - Phase 11：DARE、MPC terminal cost `P∞`、setpoint tracking、state constraints / soft slack、H∞ norm、dynamic RGA
 - Phase 12：robust sensitivity dB-scale visualisation、reference lines、bandwidth、MIMO `||G||∞`
@@ -129,12 +129,9 @@
 - Phase 14：time delay / Padé / Smith predictor、IMC / SIMC tuning、KaTeX 公式渲染、industrial presets、disk margin、seed control
 - Phase 15：ARX system identification、controller A/B compare、MATLAB / Python codegen、root-locus animation
 - Phase 16：H∞ mixed-sensitivity PID synthesis helper、GA PID auto-tuner、phase portrait、describing functions
+- Phase 17：plant-order dynamic H∞ mixed-sensitivity synthesis、structured μ D-scaling upper-bound / DK-style static gain surrogate、MIMO characteristic loci / Gershgorin bands / inverse Nyquist array、MPC MIMO output-space setpoint tracking
 
 ### 尚未完成能力
-- 完整 H∞ synthesis（目前只有 mixed-sensitivity PID helper，不是 full-order H∞ controller synthesis）
-- μ-synthesis / structured robust design
-- MIMO Frequency-domain 進一步設計（characteristic locus、INA）
-- MPC MIMO 多輸出 setpoint tracking
 - 自動產生報告 / 報告模板
 - 前端分析流程預設全面切到統一 API
 - Electron packaging / 教學模式
@@ -392,16 +389,18 @@
 - Paused：教學模式 / Electron / 報告模板 / Block Diagram expansion。
 - Verification：`test_control.js` 覆蓋 Hamiltonian CARE analytic cases、MIMO diagonal analytic case、Spacecraft marginally stable case、MPC scalar Riccati hand derivation、Dynamic Decoupler selected-frequency inverse、Robust `S/T/KS` identity、CARE residual 與 closed-loop Lyapunov proof。
 
-### Phase 12 ~ Phase 16 Feature Track
+### Phase 12 ~ Phase 17 Feature Track
 - Done：Phase 12 robust visualisation — `H∞ Norms` dB chart、0 / 5.1 / 8 dB reference lines、bandwidth metric、MIMO `||G||∞` 曲線。
 - Done：Phase 13 UI/UX overhaul — collapsible sections、Quick Start modal、confirm modal、field-level validation hints、keyboard shortcuts、accessibility / responsive cleanup。
 - Done：Phase 14 delay / formula / industrial tuning — Padé delay、delay margin、Smith predictor、IMC / SIMC tuning、KaTeX、28 presets、disk margin、seedable RNG。
 - Done：Phase 15 workflow tooling — ARX identification、open-loop A/B Bode compare、MATLAB / Python code export、root-locus K-sweep animation。
 - Done：Phase 16 advanced synthesis / nonlinear entry points — mixed-sensitivity PID tuning、GA PID auto-tuner、2D phase portrait、describing functions。
+- Done：Phase 17 advanced robust / MIMO / MPC extensions — plant-order dynamic H∞ mixed-sensitivity synthesis、structured μ D-scaling upper-bound、DK-style static gain surrogate、characteristic loci、Gershgorin bands、inverse Nyquist array、MIMO output-space MPC tracking。
 - Verification：
   - `npm run verify:p14`
   - `npm run verify:p15`
   - `npm run verify:p16`
+  - `npm run verify:p17`
   - `npm run verify:all`
 
 ### Stage 4: Productization
@@ -425,7 +424,7 @@
 1. 先讀本文件，再動手修改控制系統相關檔案。
 2. 若修改數值核心、API 分析輸出或穩定性指標，需對照 `CONTROL_SYSTEM_VERIFICATION_CASES.md` 的案例與數學推導。
 3. 後續開發順序以 `CONTROL_SYSTEM_BACKLOG.md` 為準。
-4. Phase 16 已完成；若啟動下一階段，先在 `CONTROL_SYSTEM_BACKLOG.md` 定義新的 `p17+` 範圍與驗證基線，再做後續擴充。
+4. Phase 17 已完成；若啟動下一階段，先在 `CONTROL_SYSTEM_BACKLOG.md` 定義新的 `p18+` 範圍與驗證基線，再做後續擴充。
 5. 若新增控制系統分析功能，必須補：
    - 文件
    - 至少一個 smoke test 或驗證流程

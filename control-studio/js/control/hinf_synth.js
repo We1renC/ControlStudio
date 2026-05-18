@@ -14,6 +14,7 @@
 // constraint (large at high ω).
 
 import { Complex } from '../math/complex.js';
+import { rootsToRealPoly } from '../math/polynomial.js';
 import { TransferFunction } from './transfer-function.js';
 import { PIDController } from './pid.js';
 
@@ -134,6 +135,164 @@ export function tunePIDForMixedSensitivity(plant, weights, options = {}) {
   }
   const [Kp, Ki, Kd] = simplex[0];
   return { Kp, Ki, Kd, cost: evals[0], history };
+}
+
+function defaultOmegaGrid() {
+  const out = [];
+  for (let i = 0; i < 100; i++) out.push(Math.pow(10, -2 + (5 * i) / 99));
+  return out;
+}
+
+function nelderMead(seed, cost, options = {}) {
+  const n = seed.length;
+  const maxIter = options.maxIter ?? 180;
+  const tol = options.tol ?? 1e-7;
+  const alpha = 1;
+  const gamma = 2;
+  const rho = 0.5;
+  const sigma = 0.5;
+
+  let simplex = [seed.slice()];
+  for (let i = 0; i < n; i++) {
+    const point = seed.slice();
+    const step = options.step?.[i] ?? (Math.abs(seed[i]) > 1e-9 ? 0.15 * Math.abs(seed[i]) : 0.15);
+    point[i] += step;
+    simplex.push(point);
+  }
+  let evals = simplex.map(cost);
+  const history = [];
+
+  for (let iter = 0; iter < maxIter; iter++) {
+    const order = evals.map((value, i) => [value, i]).sort((a, b) => a[0] - b[0]);
+    simplex = order.map(([, i]) => simplex[i]);
+    evals = order.map(([value]) => value);
+    history.push(evals[0]);
+    if (Math.abs(evals[n] - evals[0]) < tol) break;
+
+    const centroid = new Array(n).fill(0);
+    for (let i = 0; i < n; i++) {
+      for (let j = 0; j < n; j++) centroid[j] += simplex[i][j] / n;
+    }
+    const worst = simplex[n];
+    const reflected = centroid.map((c, j) => c + alpha * (c - worst[j]));
+    const fReflected = cost(reflected);
+
+    if (fReflected < evals[n - 1] && fReflected >= evals[0]) {
+      simplex[n] = reflected;
+      evals[n] = fReflected;
+      continue;
+    }
+    if (fReflected < evals[0]) {
+      const expanded = centroid.map((c, j) => c + gamma * (reflected[j] - c));
+      const fExpanded = cost(expanded);
+      if (fExpanded < fReflected) {
+        simplex[n] = expanded;
+        evals[n] = fExpanded;
+      } else {
+        simplex[n] = reflected;
+        evals[n] = fReflected;
+      }
+      continue;
+    }
+
+    const contracted = centroid.map((c, j) => c + rho * (worst[j] - c));
+    const fContracted = cost(contracted);
+    if (fContracted < evals[n]) {
+      simplex[n] = contracted;
+      evals[n] = fContracted;
+      continue;
+    }
+
+    for (let i = 1; i <= n; i++) {
+      for (let j = 0; j < n; j++) simplex[i][j] = simplex[0][j] + sigma * (simplex[i][j] - simplex[0][j]);
+      evals[i] = cost(simplex[i]);
+    }
+  }
+
+  const order = evals.map((value, i) => [value, i]).sort((a, b) => a[0] - b[0]);
+  return { best: simplex[order[0][1]], cost: order[0][0], history };
+}
+
+function stableDenominatorFromLogPoles(logPoles) {
+  const poles = logPoles.map((value) => -Math.exp(Math.max(-8, Math.min(8, value))));
+  return { poles, den: rootsToRealPoly(poles) };
+}
+
+export function dynamicControllerFromParams(params, order) {
+  if (!Number.isInteger(order) || order < 0) throw new Error('controller order must be a non-negative integer');
+  const expected = order + 1 + order;
+  if (!Array.isArray(params) || params.length !== expected) {
+    throw new Error(`expected ${expected} controller parameters for order ${order}`);
+  }
+  const num = params.slice(0, order + 1);
+  const { den, poles } = stableDenominatorFromLogPoles(params.slice(order + 1));
+  return {
+    controllerTf: new TransferFunction(num, den),
+    numerator: num,
+    denominator: den,
+    poles,
+  };
+}
+
+/**
+ * Fixed/full-order dynamic mixed-sensitivity H∞ synthesis.
+ *
+ * This solves the same weighted objective as mixedSensitivityCost, but searches
+ * over a stable proper dynamic controller K(s)=N(s)/D(s). When order is omitted,
+ * it uses plant.order, giving a full-order controller relative to the plant.
+ * The implementation is deterministic frequency-domain optimization, suitable
+ * for browser-side design review; it is not a Riccati/LMI Glover-Doyle solver.
+ */
+export function synthesizeDynamicMixedSensitivity(plant, weights, options = {}) {
+  if (!plant) throw new Error('plant required');
+  const order = options.order ?? Math.max(0, plant.order);
+  if (!Number.isInteger(order) || order < 0) throw new Error('order must be a non-negative integer');
+  const omegas = options.omegas || defaultOmegaGrid();
+  const seed = options.initial && options.initial.length === order + 1 + order
+    ? options.initial.slice()
+    : [
+        ...(options.initialNumerator || Array.from({ length: order + 1 }, (_, i) => (i === 0 ? 1 : 0))),
+        ...Array.from({ length: order }, (_, i) => Math.log((i + 1) * (options.poleSpacing ?? 1))),
+      ];
+
+  const cost = (params) => {
+    if (params.some((value) => !Number.isFinite(value))) return 1e9;
+    try {
+      const { controllerTf } = dynamicControllerFromParams(params, order);
+      const L = controllerTf.series(plant);
+      const cl = L.feedback();
+      if (!cl.isStable()) return 1e8;
+      const result = mixedSensitivityCost(weights.W1, weights.W2, weights.W3, L, controllerTf, omegas);
+      return Number.isFinite(result.peak) ? result.peak : 1e8;
+    } catch (_) {
+      return 1e9;
+    }
+  };
+
+  const search = nelderMead(seed, cost, {
+    maxIter: options.maxIter ?? 220,
+    tol: options.tol ?? 1e-7,
+    step: options.step,
+  });
+  const controller = dynamicControllerFromParams(search.best, order);
+  const loopTf = controller.controllerTf.series(plant);
+  const result = mixedSensitivityCost(weights.W1, weights.W2, weights.W3, loopTf, controller.controllerTf, omegas);
+  return {
+    ...controller,
+    order,
+    cost: search.cost,
+    peak: result.peak,
+    peakOmega: result.peakOmega,
+    history: search.history,
+    omegas,
+  };
+}
+
+export function fullOrderHinfMixedSensitivity(plant, weights, options = {}) {
+  return synthesizeDynamicMixedSensitivity(plant, weights, {
+    ...options,
+    order: options.order ?? Math.max(1, plant.order),
+  });
 }
 
 /**

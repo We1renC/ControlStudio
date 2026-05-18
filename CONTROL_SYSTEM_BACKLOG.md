@@ -31,8 +31,8 @@
 ## Current Baseline
 
 - Branch: `main`
-- Latest synced commit: `84241c7 feat(p16): H∞ mixed-sensitivity synthesis, GA PID auto-tuner, phase portrait, describing functions`
-- Current checkpoint: **All CS-P0 ~ CS-P16 items done.** 主線現況已包含：Phase 10/11 的 CARE/DARE/MPC/robust/dynamic-RGA，Phase 12 的 H∞ 視覺化，Phase 13 的 UI/UX overhaul，Phase 14 的 delay/IMC/LaTeX/disk margin/seed control，Phase 15 的 ARX system ID / codegen / compare bode / root-locus animation，以及 Phase 16 的 mixed-sensitivity PID synthesis / GA PID auto-tuner / phase portrait / describing functions。
+- Latest synced commit: `main HEAD`（Phase 17 advanced robust / MIMO / MPC extensions）
+- Current checkpoint: **All CS-P0 ~ CS-P17 items done.** 主線現況已包含：Phase 10/11 的 CARE/DARE/MPC/robust/dynamic-RGA，Phase 12 的 H∞ 視覺化，Phase 13 的 UI/UX overhaul，Phase 14 的 delay/IMC/LaTeX/disk margin/seed control，Phase 15 的 ARX system ID / codegen / compare bode / root-locus animation，Phase 16 的 mixed-sensitivity PID synthesis / GA PID auto-tuner / phase portrait / describing functions，以及 Phase 17 的 plant-order dynamic H∞ / structured μ / advanced MIMO frequency-domain diagnostics / MIMO output MPC tracking。
 - Scenario 5 browser walkthrough result: Phase 10 math + UI both operational.
 - Scenario 6 browser walkthrough result: SISO / MIMO core workflows are UI-operable.
 - Latest full-theory audit:
@@ -318,12 +318,23 @@ Phase 10 + Phase 11 全部完成：
 | CS-P16-03 | P2 | Done | Phase portrait + describing functions | Browser regression；`84241c7` |
 | CS-P16-04 | P1 | Done | GA-based PID auto-tuner | `node control-studio/scripts/verify_p16_ga.mjs` |
 
-**Validation aggregate status：`npm run verify:all` 現在涵蓋 phase11 / p14 / p15 / p16 / cases，多套件合計 100+ checks。**
+### Phase 17: Advanced Robust / MIMO / MPC Extensions (CS-P17)
+
+目標：把 Phase 16 後仍未展開的高階控制理論入口補成可驗證的數學核心。此 phase 採 browser-side deterministic baseline：H∞ 以 plant-order dynamic mixed-sensitivity optimizer 實作，μ synthesis 以 diagonal D-scaling upper-bound 與 DK-style static gain surrogate 實作；若未來要 MATLAB Robust Control Toolbox 等級，可再接 Riccati/LMI backend。
+
+| ID | Priority | Status | Item | Verification |
+| --- | --- | --- | --- | --- |
+| CS-P17-01 | P1 | Done | Plant-order dynamic H∞ mixed-sensitivity synthesis | `node control-studio/scripts/verify_p17_advanced_control.mjs` |
+| CS-P17-02 | P1 | Done | Structured μ D-scaling upper-bound + DK-style static gain surrogate | `node control-studio/scripts/verify_p17_advanced_control.mjs` |
+| CS-P17-03 | P2 | Done | MIMO frequency-domain design diagnostics: characteristic loci, Gershgorin bands, inverse Nyquist array | `node control-studio/scripts/verify_p17_advanced_control.mjs` |
+| CS-P17-04 | P1 | Done | MPC MIMO output-space setpoint tracking (`y_ref = Cx + Du`) | `node control-studio/scripts/verify_p17_advanced_control.mjs` |
+
+**Validation aggregate status：`npm run verify:all` 現在涵蓋 phase11 / p14 / p15 / p16 / p17 / cases，多套件合計 120+ checks。**
 
 後續可選項目（非主線，視需求）：
-1. （P3）MPC MIMO setpoint tracking（多輸出追蹤，需 y=Cx 輸出空間 reference）
-2. （P3）完整 H∞ synthesis（two-Riccati / Glover-Doyle，而非目前的 mixed-sensitivity PID helper）
-3. （P3）擴大 uncertainty sweep：multiplicative output uncertainty、structured / parametric uncertainty
+1. （P3）Riccati / LMI based Glover-Doyle H∞ backend（取代目前 browser-side dynamic optimizer）
+2. （P3）完整 DK-iteration with dynamic D/K fitting（取代目前 static gain surrogate）
+3. （P3）parametric uncertainty 與 Monte-Carlo robust validation
 
 ## Do Not Start Yet
 

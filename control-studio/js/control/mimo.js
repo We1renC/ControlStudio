@@ -476,6 +476,85 @@ export function dynamicRGADiagonal(mimoSys, omegas) {
   }));
 }
 
+// ============================================================
+// Phase 17: MIMO frequency-domain design diagnostics
+// ============================================================
+
+function complexTrace2(G) {
+  return G[0][0].add(G[1][1]);
+}
+
+function complexDet2(G) {
+  return G[0][0].mul(G[1][1]).sub(G[0][1].mul(G[1][0]));
+}
+
+function characteristicEigenvalues(G) {
+  if (G.length !== G[0].length) {
+    throw new Error('characteristic loci require a square frequency-response matrix');
+  }
+  if (G.length === 1) return [G[0][0]];
+  if (G.length !== 2) {
+    throw new Error('characteristic loci currently support 1×1 and 2×2 systems');
+  }
+  const tr = complexTrace2(G);
+  const det = complexDet2(G);
+  const disc = tr.mul(tr).sub(det.mul(4)).sqrt();
+  return [tr.add(disc).div(2), tr.sub(disc).div(2)];
+}
+
+/**
+ * Characteristic loci: eigenvalues λ_i(G(jω)) across frequency.
+ * These are used in MIMO Nyquist-style design to see whether loop eigenvalues
+ * encircle the critical point after pairing / decoupling.
+ */
+export function characteristicLoci(mimoSys, omegas) {
+  if (mimoSys.p !== mimoSys.m) {
+    throw new Error(`characteristicLoci requires a square system (p=m). Got p=${mimoSys.p}, m=${mimoSys.m}`);
+  }
+  return omegas.map((omega) => {
+    const G = evalAtJw(mimoSys, omega);
+    return { omega, eigenvalues: characteristicEigenvalues(G) };
+  });
+}
+
+/**
+ * Gershgorin bands for G(jω): center = G_ii(jω), radius = Σ_{j≠i}|G_ij(jω)|.
+ * A small radius/center ratio indicates weaker loop interaction around ω.
+ */
+export function gershgorinBands(mimoSys, omegas) {
+  if (mimoSys.p !== mimoSys.m) {
+    throw new Error(`gershgorinBands requires a square system (p=m). Got p=${mimoSys.p}, m=${mimoSys.m}`);
+  }
+  return omegas.map((omega) => {
+    const G = evalAtJw(mimoSys, omega);
+    const bands = G.map((row, i) => {
+      const radius = row.reduce((sum, value, j) => sum + (i === j ? 0 : value.magnitude), 0);
+      const center = row[i];
+      return {
+        center,
+        radius,
+        ratio: radius / Math.max(center.magnitude, 1e-30),
+      };
+    });
+    return { omega, bands };
+  });
+}
+
+/**
+ * Inverse Nyquist Array (INA): entries of G(jω)^-1 across frequency.
+ * Useful when designing diagonal controllers on inverse plant channels.
+ */
+export function inverseNyquistArray(mimoSys, omegas) {
+  if (mimoSys.p !== mimoSys.m) {
+    throw new Error(`inverseNyquistArray requires a square system (p=m). Got p=${mimoSys.p}, m=${mimoSys.m}`);
+  }
+  return omegas.map((omega) => {
+    const G = evalAtJw(mimoSys, omega);
+    const inverse = complexInverseMatrix(G);
+    return { omega, inverse };
+  });
+}
+
 /** Compute σ_max(ω), σ_min(ω) across frequency grid. */
 export function singularValueBode(mimoSys, omegas) {
   const sigmaMax = [];

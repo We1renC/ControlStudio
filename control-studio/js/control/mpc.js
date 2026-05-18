@@ -14,6 +14,7 @@ import {
   matIsPositiveDefinite,
   matMul,
   matScale,
+  matSolve,
   matSub,
   matSymmetrize,
   matTranspose,
@@ -283,6 +284,183 @@ export function simulateMpcTracking(Ad, Bd, Q, R, horizon, x0, reference, constr
     trackingErrors,
     totalCost,
     finalTrackingErrorNormInf: maxAbsMatrix(finalError),
+    steps,
+    horizon,
+  };
+}
+
+function regularizedLeastSquares(A, b, reg = 1e-9) {
+  const At = matTranspose(A);
+  const AtA = matMul(At, A);
+  const Atb = matMul(At, b);
+  const n = AtA.length;
+  for (let i = 0; i < n; i++) AtA[i][i] += reg;
+  return matSolve(AtA, Atb);
+}
+
+function matrixColumnResidual(A, x, b) {
+  const Ax = matMul(A, x);
+  let residual = 0;
+  for (let i = 0; i < Ax.length; i++) residual = Math.max(residual, Math.abs(Ax[i][0] - b[i][0]));
+  return residual;
+}
+
+function outputAt(C, D, x, u) {
+  return addColumn(matMul(C, x), matMul(D, u));
+}
+
+/**
+ * MIMO output-space setpoint steady-state solver.
+ *
+ * Finds x_ss, u_ss satisfying:
+ *   x_ss = A_d x_ss + B_d u_ss
+ *   y_ref = C x_ss + D u_ss
+ *
+ * Non-square plants use a regularized least-squares solution, so the residual
+ * explicitly reports whether the requested output setpoint is exactly reachable.
+ */
+export function solveOutputSetpointSteadyState(Ad, Bd, C, D, yRef, options = {}) {
+  const n = Ad.length;
+  const m = Bd[0].length;
+  const p = C.length;
+  assertMatrixShape('Ad', Ad, n, n);
+  assertMatrixShape('Bd', Bd, n, m);
+  assertMatrixShape('C', C, p, n);
+  assertMatrixShape('D', D, p, m);
+  assertMatrixShape('yRef', yRef, p, 1);
+
+  const ImA = matSub(matIdentity(n), Ad);
+  const E = [];
+  const b = [];
+  for (let i = 0; i < n; i++) {
+    E.push([...ImA[i], ...Bd[i].map((value) => -value)]);
+    b.push([0]);
+  }
+  for (let i = 0; i < p; i++) {
+    E.push([...C[i], ...D[i]]);
+    b.push([yRef[i][0]]);
+  }
+
+  const reg = options.regularization ?? 1e-9;
+  let z;
+  try {
+    z = E.length === n + m ? matSolve(E, b) : regularizedLeastSquares(E, b, reg);
+  } catch (_) {
+    z = regularizedLeastSquares(E, b, reg);
+  }
+  const x_ss = z.slice(0, n);
+  const u_ss = z.slice(n, n + m);
+  const dynamicResidual = matrixColumnResidual(
+    E.slice(0, n).map((row) => row.slice(0, n + m)),
+    z,
+    b.slice(0, n),
+  );
+  const outputResidual = matrixColumnResidual(
+    E.slice(n).map((row) => row.slice(0, n + m)),
+    z,
+    b.slice(n),
+  );
+
+  return {
+    x_ss,
+    u_ss,
+    y_ss: outputAt(C, D, x_ss, u_ss),
+    dynamicResidual,
+    outputResidual,
+    residual: Math.max(dynamicResidual, outputResidual),
+    exact: Math.max(dynamicResidual, outputResidual) < (options.tolerance ?? 1e-7),
+  };
+}
+
+export function firstMpcActionOutputTracking(
+  Ad, Bd, C, D, Q, R, horizon, x, yReference, constraints = {}, Qf = null, options = {},
+) {
+  const n = Ad.length;
+  const m = Bd[0].length;
+  assertMatrixShape('x', x, n, 1);
+  const steady = solveOutputSetpointSteadyState(Ad, Bd, C, D, yReference, options);
+  const e0 = matSub(x, steady.x_ss);
+
+  const rawMin = constraints.uMin ?? -Infinity;
+  const rawMax = constraints.uMax ?? Infinity;
+  const uMinAbs = Array.isArray(rawMin) ? rawMin : Array(m).fill(rawMin);
+  const uMaxAbs = Array.isArray(rawMax) ? rawMax : Array(m).fill(rawMax);
+  const vMin = uMinAbs.map((b, j) => Number.isFinite(b) ? b - steady.u_ss[j][0] : b);
+  const vMax = uMaxAbs.map((b, j) => Number.isFinite(b) ? b - steady.u_ss[j][0] : b);
+
+  const vResult = firstMpcActionConstrained(Ad, Bd, Q, R, horizon, e0, { uMin: vMin, uMax: vMax }, Qf);
+  const u = vResult.u.map((row, j) => [row[0] + steady.u_ss[j][0]]);
+  return {
+    u,
+    v: vResult.u,
+    steady,
+    stateTrackingError: e0,
+    outputError: mpcTrackingError(yReference, outputAt(C, D, x, u)),
+    anyActive: vResult.anyActive,
+    riccati: vResult,
+  };
+}
+
+/**
+ * Receding-horizon MPC tracking for MIMO output references y_ref.
+ * reference may be a fixed p×1 matrix or a function (k) → p×1.
+ */
+export function simulateMpcOutputTracking(
+  Ad, Bd, C, D, Q, R, horizon, x0, reference, constraints = {}, options = {},
+) {
+  const n = Ad.length;
+  const m = Bd[0].length;
+  const p = C.length;
+  assertMatrixShape('x0', x0, n, 1);
+  assertMatrixShape('C', C, p, n);
+  assertMatrixShape('D', D, p, m);
+  const steps = options.steps ?? 30;
+  const Qmat = Q ? matSymmetrize(cloneMatrix(Q)) : matIdentity(n);
+  const Rmat = R ? matSymmetrize(cloneMatrix(R)) : matIdentity(m);
+  validateMpcModel(Ad, Bd, Qmat, Rmat, horizon);
+  if (!Number.isInteger(steps) || steps <= 0) throw new Error('steps must be a positive integer');
+
+  const getRef = (typeof reference === 'function') ? reference : () => reference;
+  assertMatrixShape('reference(0)', getRef(0), p, 1);
+
+  const x = [cloneMatrix(x0)];
+  const y = [];
+  const u = [];
+  const outputErrors = [];
+  const steadyStates = [];
+  let totalCost = 0;
+
+  for (let k = 0; k < steps; k++) {
+    const ref = getRef(k);
+    const action = firstMpcActionOutputTracking(
+      Ad, Bd, C, D, Qmat, Rmat, horizon, x[k], ref, constraints, options.Qf || null, options,
+    );
+    const uk = action.u;
+    const yk = outputAt(C, D, x[k], uk);
+    const xNext = addColumn(matMul(Ad, x[k]), matMul(Bd, uk));
+    const cost = quadraticForm(action.stateTrackingError, Qmat) + quadraticForm(action.v, Rmat);
+    u.push(uk);
+    y.push(yk);
+    x.push(xNext);
+    outputErrors.push(mpcTrackingError(ref, yk));
+    steadyStates.push(action.steady);
+    totalCost += cost;
+  }
+
+  const finalRef = getRef(steps - 1);
+  const finalSteady = solveOutputSetpointSteadyState(Ad, Bd, C, D, finalRef, options);
+  const finalOutput = outputAt(C, D, x[x.length - 1], finalSteady.u_ss);
+  const finalOutputError = mpcTrackingError(finalRef, finalOutput);
+  return {
+    x,
+    y,
+    u,
+    outputErrors,
+    steadyStates,
+    totalCost,
+    finalOutput,
+    finalOutputErrorNormInf: maxAbsMatrix(finalOutputError),
+    finalSteadyResidual: finalSteady.residual,
     steps,
     horizon,
   };

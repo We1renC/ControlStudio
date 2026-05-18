@@ -1,6 +1,7 @@
 {
   "name": "nvdia-os-support",
   "private": true,
+  "type": "module",
   "version": "0.0.0",
   "description": "ControlStudio + NVIDIA model selector support repo. Scripts here are thin wrappers around the math-core verification runners.",
   "scripts": {
@@ -9,9 +10,10 @@
     "verify:p14": "node control-studio/scripts/verify_p14_delay.mjs && node control-studio/scripts/verify_p14_imc.mjs && node control-studio/scripts/verify_p14_rng.mjs",
     "verify:p15": "node control-studio/scripts/verify_p15_sysid.mjs",
     "verify:p16": "node control-studio/scripts/verify_p16_hinf.mjs && node control-studio/scripts/verify_p16_ga.mjs",
+    "verify:p17": "node control-studio/scripts/verify_p17_advanced_control.mjs",
     "verify:cases": "node control-studio/scripts/verify_control_cases.mjs",
     "verify:api": "node control-studio/scripts/verify_control_api_contract.mjs",
-    "verify:all": "npm run verify:math && npm run verify:phase11 && npm run verify:p14 && npm run verify:p15 && npm run verify:p16 && npm run verify:cases",
+    "verify:all": "npm run verify:math && npm run verify:phase11 && npm run verify:p14 && npm run verify:p15 && npm run verify:p16 && npm run verify:p17 && npm run verify:cases",
     "install:hooks": "bash scripts/install-hooks.sh"
   }
 }

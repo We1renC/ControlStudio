@@ -9,11 +9,11 @@
 - 已建立獨立 git repo，避免被 `/Users/w.rc` 外層 git 混入。
 - 控制系統目前同步基線：
   - Branch: `main`
-  - Latest active line: `84241c7 feat(p16): H∞ mixed-sensitivity synthesis, GA PID auto-tuner, phase portrait, describing functions`
+  - Latest active line: `main HEAD`（Phase 17 advanced robust / MIMO / MPC extensions）
   - Full phase audit checkpoints:
     - `7a318b3 fix(control): harden phase 7-9 theory diagnostics`
     - `46e20da fix(control): harden phase 0-6 theory checks`
-  - 近期主線已接續完成 Phase 12 ~ Phase 16；目前 codebase 已包含 H∞ 視覺化與 MIMO `||G||∞`、大幅 UI/UX 改版、time delay / IMC / disk margin / LaTeX、ARX system ID / A-B compare / codegen / root-locus animation、以及 H∞ mixed-sensitivity PID synthesis / GA PID auto-tuner / phase portrait / describing functions。
+  - 近期主線已接續完成 Phase 12 ~ Phase 17；目前 codebase 已包含 H∞ 視覺化與 MIMO `||G||∞`、大幅 UI/UX 改版、time delay / IMC / disk margin / LaTeX、ARX system ID / A-B compare / codegen / root-locus animation、H∞ mixed-sensitivity PID synthesis / GA PID auto-tuner / phase portrait / describing functions，以及 Phase 17 的 plant-order dynamic H∞、structured μ、MIMO frequency-domain diagnostics、MPC MIMO output tracking。
 - 已完成 NVIDIA Build Models 資料集中管理。
 - 已新增 agent 入口文件：
   - `AGENTS.md`：專案規則、標準流程、擴充規則與品質判準。
@@ -91,8 +91,14 @@
     - Done：GA-based PID auto-tuner
     - Done：2D phase portrait
     - Done：describing functions（saturation / relay / dead-zone）
+  - Phase 17：Done
+    - Done：plant-order dynamic H∞ mixed-sensitivity synthesis
+    - Done：structured μ D-scaling upper-bound
+    - Done：DK-style static gain robust design surrogate
+    - Done：MIMO characteristic loci / Gershgorin bands / inverse Nyquist array
+    - Done：MPC MIMO output-space setpoint tracking
   - Block Diagram expansion：Paused
-  - Phase 0 ~ Phase 16 已完成通盤數學理論與產品流程檢查。後續若修改數值核心，至少重跑 `npm run verify:math`、`npm run verify:phase11`、`npm run verify:p14`、`npm run verify:p15`、`npm run verify:p16`、`npm run verify:all`、`node test_control.js`、`node control-studio/scripts/control_regression_dashboard.mjs`。
+  - Phase 0 ~ Phase 17 已完成通盤數學理論與產品流程檢查。後續若修改數值核心，至少重跑 `npm run verify:math`、`npm run verify:phase11`、`npm run verify:p14`、`npm run verify:p15`、`npm run verify:p16`、`npm run verify:p17`、`npm run verify:all`、`node test_control.js`、`node control-studio/scripts/control_regression_dashboard.mjs`。
 - 已建立 symlink：
   - `/Users/w.rc/.config/agents/skills/nvidia-model-selector`
   - 指向 `/Users/w.rc/nvdiaOSsupport/skills/nvidia-model-selector`
@@ -226,13 +232,14 @@ git log --oneline -5
 - `control-studio` 已補 Phase 14：time delay / Padé、delay margin、Smith predictor 包裝、IMC / SIMC tuning、KaTeX 公式、28 個 presets、disk margin / additive uncertainty、seedable RNG；`npm run verify:p14` 可重跑 3 組驗證。
 - `control-studio` 已補 Phase 15：ARX system ID（least squares + AIC auto order）、Compare Bode overlay、MATLAB / Python codegen、root-locus K-sweep animation；`npm run verify:p15` 可重跑驗證。
 - `control-studio` 已補 Phase 16：mixed-sensitivity H∞ PID synthesis helper、GA PID auto-tuner、phase portrait、describing functions；`npm run verify:p16` 可重跑驗證。
+- `control-studio` 已補 Phase 17：plant-order dynamic H∞ mixed-sensitivity synthesis、structured μ D-scaling upper-bound / DK-style static gain surrogate、MIMO characteristic loci / Gershgorin bands / inverse Nyquist array、MPC MIMO output-space setpoint tracking；`npm run verify:p17` 可重跑驗證。
 
 ## 後續可做
-1. 控制系統主線已推進到 Phase 16；下一步若要擴充，應以 `p17+` 的新文件或 backlog 區塊定義，不要再沿用舊的 Phase 10 / 11 next-step 描述。
-2. Robust Control 目前已有 mixed-sensitivity PID synthesis helper，但仍不是完整 Glover-Doyle H∞ / μ synthesis。
+1. 控制系統主線已推進到 Phase 17；下一步若要擴充，應以 `p18+` 的新文件或 backlog 區塊定義，不要再沿用舊的 Phase 10 / 11 next-step 描述。
+2. Robust Control 已有 browser-side plant-order dynamic H∞ 與 structured μ/D-scaling baseline；若要 MATLAB Robust Control Toolbox 等級，下一步才是 Riccati/LMI Glover-Doyle backend 與 full DK-iteration。
 3. Teaching Mode / Electron / Report Template 目前使用者要求擱置，不要開發。
 4. Block Diagram 目前維持 paused；不要新增 block diagram 功能，除非使用者重新明確恢復。
-5. 若要再推控制理論主線，優先考慮完整 H∞ synthesis、MPC MIMO setpoint tracking、或更廣的 uncertainty framework，而不是回頭做 block diagram。
+5. 若要再推控制理論主線，優先考慮 Riccati/LMI H∞ backend、full DK-iteration、或 parametric uncertainty / Monte-Carlo robust validation，而不是回頭做 block diagram。
 6. 加 `agents/openai.yaml` UI metadata。
 7. 增強 evaluator：從 heuristic 檢查升級成 judge model + golden dataset。
 8. 若 NVIDIA Build Models 更新，先更新根目錄資料檔，再同步 `skills/nvidia-model-selector/references/`。
