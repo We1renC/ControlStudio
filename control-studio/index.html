@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ControlStudio — Visual Control System Designer</title>
+  <title>ControlStudio — Control System Workbench</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;600;700&display=swap" rel="stylesheet">
@@ -332,15 +332,15 @@
   <main role="main">
     <aside role="complementary" aria-label="Control system configuration">
       <div class="sidebar-tabs" role="tablist" aria-label="Configuration sections">
-        <button class="sidebar-tab active" data-sidebar="model" role="tab" aria-selected="true" aria-controls="panel-model">System</button>
-        <button class="sidebar-tab" data-sidebar="simulate" role="tab" aria-selected="false" aria-controls="panel-simulate">Sim</button>
-        <button class="sidebar-tab" data-sidebar="advisor" role="tab" aria-selected="false" aria-controls="panel-advisor">Advisor</button>
+        <button class="sidebar-tab active" data-sidebar="model" role="tab" aria-selected="true" aria-controls="panel-model">Plant</button>
+        <button class="sidebar-tab" data-sidebar="simulate" role="tab" aria-selected="false" aria-controls="panel-simulate">Simulation</button>
+        <button class="sidebar-tab" data-sidebar="advisor" role="tab" aria-selected="false" aria-controls="panel-advisor">Design</button>
         <button class="sidebar-tab" data-sidebar="compare" role="tab" aria-selected="false" aria-controls="panel-compare">Compare</button>
       </div>
 
       <div class="sidebar-panel active" id="panel-model">
         <section class="section-panel" id="system-mode-panel">
-          <div class="section-title" style="margin-bottom:8px;">System Type</div>
+          <div class="section-title" style="margin-bottom:8px;">Plant Structure</div>
           <div style="display:flex;gap:6px;background:var(--bg-secondary);padding:4px;border-radius:var(--radius-sm);">
             <button class="btn btn-sm system-mode-btn active" data-mode="siso" style="flex:1;justify-content:center;">SISO</button>
             <button class="btn btn-sm system-mode-btn" data-mode="mimo" style="flex:1;justify-content:center;">MIMO</button>
@@ -351,13 +351,13 @@
         </section>
 
         <section class="section-panel" id="siso-input-panel">
-          <div class="section-title">Plant Model</div>
-          <p class="section-copy" id="model-section-copy">直接輸入 plant 的係數或狀態方程；上方會同步更新成具體數學式。</p>
+          <div class="section-title">Plant Definition</div>
+          <p class="section-copy" id="model-section-copy">直接輸入 plant 的係數或狀態方程；下方會同步更新成具體數學式。</p>
           <div class="sys-tab-group">
-            <div class="sys-tab active" data-type="tf">TF (s)</div>
-            <div class="sys-tab" data-type="ss">SS</div>
+            <div class="sys-tab active" data-type="tf">Continuous TF G(s)</div>
+            <div class="sys-tab" data-type="ss">State Space</div>
             <div class="sys-tab" data-type="zpk">ZPK</div>
-            <div class="sys-tab" data-type="dtf" style="color:var(--color-stable);">TF (z)</div>
+            <div class="sys-tab" data-type="dtf" style="color:var(--color-stable);">Discrete TF G(z)</div>
           </div>
           <div id="sys-tf" class="sys-input-section">
             <div class="input-group">
@@ -432,7 +432,7 @@
               <input type="number" id="dtf-ts" min="0.001" step="0.01" value="0.1">
             </div>
           </div>
-          <button class="btn btn-primary" style="width:100%; margin-top:var(--space-2);" id="btn-apply">Update System</button>
+          <button class="btn btn-primary" style="width:100%; margin-top:var(--space-2);" id="btn-apply">Update Plant</button>
         </section>
 
         <section class="section-panel" id="mimo-input-panel" style="display:none;">
@@ -480,7 +480,7 @@
 0 0</textarea>
           </div>
 
-          <button class="btn btn-primary btn-sm" id="btn-mimo-update" style="width:100%;justify-content:center;">Update MIMO System</button>
+          <button class="btn btn-primary btn-sm" id="btn-mimo-update" style="width:100%;justify-content:center;">Update MIMO Plant</button>
         </section>
 
         <section class="section-panel" id="sysid-panel">
@@ -646,11 +646,11 @@
         </section>
 
         <section class="section-panel">
-          <div class="section-title">System Equations</div>
-          <p class="section-copy">目前設定對應的控制模型與方程式如下。</p>
+          <div class="section-title">Current Control Equations</div>
+          <p class="section-copy">目前 plant、controller 與 loop 的數學式如下。</p>
           <div class="equation-list">
             <div class="equation-card">
-              <div class="equation-label">System Equation</div>
+              <div class="equation-label">Plant Equation</div>
               <div class="equation-math" id="system-equation"></div>
             </div>
             <div class="equation-card">
@@ -658,7 +658,7 @@
               <div class="equation-math" id="controller-equation"></div>
             </div>
             <div class="equation-card">
-              <div class="equation-label">Loop Equation</div>
+              <div class="equation-label">Loop / Closed-Loop Equation</div>
               <div class="equation-math" id="loop-equation"></div>
             </div>
           </div>
@@ -792,7 +792,7 @@
 
       <div class="sidebar-panel" id="panel-advisor">
         <section class="section-panel s-domain-only">
-          <div class="section-title">Design Assistant (Specs → Controller)</div>
+          <div class="section-title">Controller Design (Specs → Controller)</div>
           <p style="font-size:12px;color:var(--text-muted);line-height:1.6;margin-bottom:var(--space-3);">
             輸入閉迴路目標規格 → 自動轉換為主導極點 / Lead 補償器。
           </p>
@@ -1032,9 +1032,9 @@
         </section>
 
         <section class="section-panel" id="mimo-analysis-panel" data-advisor-mode="mimo" style="display:none;">
-          <div class="section-title">MIMO Analysis</div>
+          <div class="section-title">MIMO Interaction Analysis</div>
           <p style="font-size:11px;color:var(--text-muted);line-height:1.5;margin-bottom:10px;">
-            RGA 與 Singular Value 分析。需在 MIMO 模式下使用。
+            RGA、singular-value 與解耦分析。需在 MIMO 模式下使用。
           </p>
 
           <div style="margin-bottom:14px;">
@@ -1044,7 +1044,7 @@
           </div>
 
           <div>
-            <div style="font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase;margin-bottom:6px;">Singular Value Bode</div>
+            <div style="font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase;margin-bottom:6px;">Singular-Value Frequency Plot</div>
             <div style="display:flex;gap:8px;margin-bottom:8px;">
               <div class="input-group" style="flex:1;margin-bottom:0;">
                 <label>ω min (rad/s)</label>
@@ -1062,14 +1062,14 @@
 
           <!-- Static Decoupler -->
           <div style="margin-top:14px;border-top:1px solid var(--border-primary);padding-top:12px;">
-            <div style="font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase;margin-bottom:6px;">Static Decoupler</div>
+            <div style="font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase;margin-bottom:6px;">Static DC Decoupler</div>
             <p style="font-size:10px;color:var(--text-muted);margin-bottom:8px;">計算 W = G(0)⁻¹ 使 DC 增益變對角。套用後 channel grid 應呈對角化，重算 RGA 應趨近單位矩陣。</p>
-            <button class="btn btn-sm" id="btn-mimo-decoupler" style="width:100%;justify-content:center;margin-bottom:8px;">Compute &amp; Apply Decoupler</button>
+            <button class="btn btn-sm" id="btn-mimo-decoupler" style="width:100%;justify-content:center;margin-bottom:8px;">Compute &amp; Apply DC Decoupler</button>
             <div id="mimo-decoupler-out" style="font-size:11px;font-family:monospace;color:var(--text-secondary);background:rgba(15,17,23,.4);padding:8px;border-radius:6px;line-height:1.6;display:none;"></div>
 
-            <!-- Dynamic Decoupler @ ω -->
+            <!-- Frequency-point inverse decoupler @ ωc -->
             <div style="margin-top:14px;border-top:1px solid var(--border-primary);padding-top:12px;">
-              <div style="font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase;margin-bottom:6px;">Dynamic Decoupler @ ω</div>
+              <div style="font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase;margin-bottom:6px;">Frequency-Point Decoupler W(jωc)</div>
               <p style="font-size:10px;color:var(--text-muted);margin-bottom:8px;">
                 在指定 crossover 頻率 ωc 計算 W(jωc) = G(jωc)⁻¹。檢查 off-diagonal residual 是否夠小作為 dynamic decoupling 的可行性指標。
               </p>
@@ -1077,7 +1077,7 @@
                 <label>ωc (rad/s)</label>
                 <input type="number" id="mimo-dyn-omega" value="1" min="0.001" step="0.1">
               </div>
-              <button class="btn btn-sm" id="btn-mimo-dyn-decoupler" style="width:100%;justify-content:center;margin-bottom:8px;">Compute Dynamic Decoupler</button>
+              <button class="btn btn-sm" id="btn-mimo-dyn-decoupler" style="width:100%;justify-content:center;margin-bottom:8px;">Compute W(jωc) Inverse</button>
               <div id="mimo-dyn-decoupler-out" style="font-size:11px;font-family:monospace;color:var(--text-secondary);background:rgba(15,17,23,.4);padding:8px;border-radius:6px;line-height:1.6;display:none;"></div>
             </div>
           </div>
@@ -1102,9 +1102,9 @@
         </section>
 
         <section class="section-panel" id="mpc-panel">
-          <div class="section-title">MPC (Discrete, Receding-Horizon)</div>
+          <div class="section-title">MPC Regulation (Discrete LQR-MPC)</div>
           <p style="font-size:11px;color:var(--text-muted);line-height:1.5;margin-bottom:10px;">
-            有限預測 horizon 的 LQR-MPC baseline。先把 continuous plant 用 ZOH 離散化，再用 receding-horizon 計算 u₀。<br>
+            有限預測 horizon 的 regulation baseline。先把 continuous plant 用 ZOH 離散化，再用 receding-horizon 計算 u₀。<br>
             SISO 模式自動用 plant 轉 controllable canonical SS；MIMO 模式直接用 mimoPlant ABCD。
           </p>
           <div style="display:flex;gap:8px;margin-bottom:8px;">
@@ -1134,7 +1134,7 @@
             <label>Initial state x₀ (n×1, comma separated)</label>
             <input type="text" id="mpc-x0" value="1, 0" placeholder="1, 0">
           </div>
-          <button class="btn btn-sm" id="btn-mpc-simulate" style="width:100%;justify-content:center;margin-bottom:8px;">Simulate MPC (Unconstrained)</button>
+          <button class="btn btn-sm" id="btn-mpc-simulate" style="width:100%;justify-content:center;margin-bottom:8px;">Simulate Regulation MPC</button>
           <div id="mpc-out" style="font-size:11px;font-family:monospace;color:var(--text-secondary);background:rgba(15,17,23,.4);padding:8px;border-radius:6px;line-height:1.6;display:none;margin-bottom:8px;"></div>
           <div id="chart-mpc-x" style="height:150px;"></div>
           <div id="chart-mpc-u" style="height:120px;margin-top:4px;"></div>
@@ -1161,7 +1161,7 @@
         </section>
 
         <section class="section-panel" id="robust-panel" data-advisor-mode="siso">
-          <div class="section-title">Robust Sensitivity (S / T / KS)</div>
+          <div class="section-title">SISO Robustness: Sensitivity Functions</div>
           <p style="font-size:11px;color:var(--text-muted);line-height:1.5;margin-bottom:10px;">
             計算 |S(jω)|, |T(jω)|, |KS(jω)| 三條 sensitivity Bode。Peak |S|, |T| 對應 robust margin：peak &lt; 1.8 = low risk，1.8-2.5 = medium，&gt; 2.5 = high。<br>
             Loop transfer L = C·G（current PID + plant）。SISO only。
@@ -1177,7 +1177,7 @@
                 <input type="number" id="robust-wmax" value="100" step="1">
               </div>
             </div>
-            <button class="btn btn-sm" id="btn-robust" style="width:100%;justify-content:center;margin-bottom:8px;">Compute Sensitivity Bode</button>
+            <button class="btn btn-sm" id="btn-robust" style="width:100%;justify-content:center;margin-bottom:8px;">Plot S / T / KS</button>
             <div id="robust-out" style="font-size:11px;font-family:monospace;color:var(--text-secondary);background:rgba(15,17,23,.4);padding:8px;border-radius:6px;line-height:1.6;display:none;margin-bottom:8px;"></div>
             <div id="chart-robust" style="height:200px;"></div>
 
@@ -1200,7 +1200,7 @@
                 <input type="number" id="unc-samples" value="3" step="1" min="1" max="10">
               </div>
             </div>
-            <button class="btn btn-sm" id="btn-uncertainty" style="width:100%;justify-content:center;margin-bottom:8px;">Compute Worst-Case Envelope</button>
+            <button class="btn btn-sm" id="btn-uncertainty" style="width:100%;justify-content:center;margin-bottom:8px;">Run Uncertainty Sweep</button>
             <div id="uncertainty-out" style="font-size:11px;font-family:monospace;color:var(--text-secondary);background:rgba(15,17,23,.4);padding:8px;border-radius:6px;line-height:1.6;display:none;margin-bottom:8px;"></div>
             <div id="chart-uncertainty" style="height:200px;display:none;"></div>
           </div>
@@ -1208,19 +1208,19 @@
         </section>
 
         <section class="section-panel" id="mimo-hinf-panel" data-advisor-mode="mimo" style="display:none;">
-          <div class="section-title">MIMO H∞ Norm</div>
+          <div class="section-title">MIMO Plant H∞ Norm</div>
           <p style="font-size:11px;color:var(--text-muted);line-height:1.5;margin-bottom:10px;">
             計算 MIMO plant 傳遞矩陣的 `‖G‖∞`（最大奇異值頻率曲線峰值），用來看最壞輸入方向的最大增益。
           </p>
-          <button class="btn btn-sm" id="btn-mimo-hinf" style="width:100%;justify-content:center;margin-bottom:8px;">Compute ‖G‖∞ (MIMO)</button>
+          <button class="btn btn-sm" id="btn-mimo-hinf" style="width:100%;justify-content:center;margin-bottom:8px;">Compute MIMO ‖G‖∞</button>
           <div id="mimo-hinf-out" style="font-size:11px;font-family:monospace;color:var(--text-secondary);background:rgba(15,17,23,.4);padding:8px;border-radius:6px;line-height:1.6;display:none;margin-bottom:8px;"></div>
           <div id="chart-mimo-hinf" style="height:160px;"></div>
         </section>
 
         <section class="section-panel" id="hinf-panel" data-advisor-mode="siso">
-          <div class="section-title">H∞ Mixed-Sensitivity Synthesis</div>
+          <div class="section-title">H∞ Mixed-Sensitivity PID Tuning</div>
           <p style="font-size:11px;color:var(--text-muted);line-height:1.5;margin-bottom:10px;">
-            設定 W1（performance，低頻）和 W3（robustness，高頻）權重，最小化 ‖[W1·S; W2·KS; W3·T]‖∞。
+            設定 W1（performance，低頻）和 W3（robustness，高頻）權重，在 PID 參數空間最小化 ‖[W1·S; W2·KS; W3·T]‖∞。
             按 Nelder-Mead 在 PID 空間搜尋。
           </p>
           <div style="display:flex;gap:6px;margin-bottom:6px;">
@@ -1229,7 +1229,7 @@
             <div class="input-group" style="flex:1;margin-bottom:0;"><label>A_high</label><input type="number" id="hinf-ahi" value="0.1" step="0.05" min="0"></div>
           </div>
           <button class="btn btn-sm" id="btn-hinf-evaluate" type="button" style="width:100%;justify-content:center;margin-bottom:6px;">Evaluate Cost</button>
-          <button class="btn btn-primary btn-sm" id="btn-hinf-synth" type="button" style="width:100%;justify-content:center;margin-bottom:8px;">Synthesise PID (Nelder-Mead)</button>
+          <button class="btn btn-primary btn-sm" id="btn-hinf-synth" type="button" style="width:100%;justify-content:center;margin-bottom:8px;">Tune PID via H∞ Cost</button>
           <div id="hinf-out" style="font-size:11px;font-family:monospace;color:var(--text-secondary);background:rgba(15,17,23,.4);padding:8px;border-radius:6px;line-height:1.6;display:none;"></div>
         </section>
 
@@ -1267,20 +1267,20 @@
         </section>
 
         <section class="section-panel">
-          <div class="section-title">AI Advisor</div>
+          <div class="section-title">NVIDIA Control Advisor</div>
           <p style="font-size:12px; color:var(--text-muted); line-height:1.6; margin-bottom:var(--space-4);">
             根據目前模型、PID 參數與穩定性指標產生調參建議。請先啟動 Unified API（127.0.0.1:8770）。
           </p>
           <button class="btn btn-sm" id="btn-ai-advisor" style="width:100%; justify-content:center;">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-            Generate AI Advice
+            Generate Control Advice
           </button>
         </section>
 
         <div id="ai-response-container" style="display:none;">
           <div class="ai-panel">
             <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
-              <span style="font-size:12px; font-weight:700; color:var(--color-accent);">NVIDIA AI EXPERT</span>
+              <span style="font-size:12px; font-weight:700; color:var(--color-accent);">NVIDIA CONTROL ADVISOR</span>
               <div class="loader" id="ai-loading"></div>
             </div>
             <div id="ai-text" class="markdown-content"></div>
@@ -1414,7 +1414,7 @@
 
           <div class="chart-cell plot-main" id="mimo-grid-cell" style="display:none;grid-column:1 / 2;">
             <div class="chart-header">
-              <span id="mimo-grid-title">All Channels (Step Response)</span>
+              <span id="mimo-grid-title">All Plant Channels (Open-Loop Step Response)</span>
               <span style="font-size:11px;color:var(--text-muted);">u<sub>j</sub> → y<sub>i</sub></span>
             </div>
             <div id="chart-mimo-grid" style="flex:1;display:grid;gap:8px;padding:8px 0;min-height:clamp(280px, 48vh, 480px);"></div>

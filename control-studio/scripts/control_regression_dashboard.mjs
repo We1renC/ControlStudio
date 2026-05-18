@@ -23,7 +23,7 @@ const checks = [
   {
     name: 'Phase 10 math core verification',
     command: ['node', 'control-studio/scripts/verify_phase10_math_core.mjs'],
-    expect: ['Phase 10 math core verification passed: 12/12'],
+    expect: ['Phase 10 math core verification passed: 16/16'],
   },
   {
     name: 'Verification fixtures',
@@ -66,6 +66,18 @@ const staticChecks = [
     name: 'Analysis source toggle',
     file: 'control-studio/index.html',
     expect: ['analysis-source', 'FastAPI', 'Compare Local/API'],
+  },
+  {
+    name: 'UI naming precision',
+    file: 'control-studio/index.html',
+    expect: [
+      'Plant Structure',
+      'Plant Definition',
+      'MPC Regulation (Discrete LQR-MPC)',
+      'SISO Robustness: Sensitivity Functions',
+      'H∞ Mixed-Sensitivity PID Tuning',
+      'Frequency-Point Decoupler W(jωc)',
+    ],
   },
   {
     name: 'API status surface',

@@ -386,7 +386,7 @@ function initEventListeners() {
       syncPIDSliders?.();
       updateController?.();
       out.style.display = 'block';
-      out.innerHTML = `<div style="color:var(--color-stable);font-weight:700;">Synthesised: Kp=${result.Kp.toFixed(3)}, Ki=${result.Ki.toFixed(3)}, Kd=${result.Kd.toFixed(3)}</div><div>cost = ${result.cost.toFixed(4)} (was ${result.history[0].toFixed(4)})</div>`;
+      out.innerHTML = `<div style="color:var(--color-stable);font-weight:700;">PID tuned: Kp=${result.Kp.toFixed(3)}, Ki=${result.Ki.toFixed(3)}, Kd=${result.Kd.toFixed(3)}</div><div>H∞ cost = ${result.cost.toFixed(4)} (was ${result.history[0].toFixed(4)})</div>`;
     } catch (err) {
       out.style.display = 'block';
       out.innerHTML = `<span style="color:var(--color-unstable);">${err.message}</span>`;
@@ -743,7 +743,7 @@ function syncAdvisorModeVisibility() {
   const eligible = mode === 'mimo' && state.mimoPlant && state.mimoPlant.n === 2;
   button.disabled = !eligible;
   note.textContent = eligible
-    ? '使用目前 2-state MIMO model 繪製向量場與軌跡。'
+    ? '使用目前 2-state MIMO plant 繪製狀態平面向量場與軌跡。'
     : '僅 MIMO 模式且 n=2（2 個狀態變數）時可繪製。請先建立 2-state MIMO plant。';
 }
 
@@ -3844,7 +3844,7 @@ function updateMIMOSystem() {
     const statusEl = document.getElementById('mimo-status-out');
     if (statusEl) {
       statusEl.style.display = 'block';
-      statusEl.innerHTML = `<div style="color:var(--color-stable);font-weight:700;">MIMO System OK ✓</div>
+      statusEl.innerHTML = `<div style="color:var(--color-stable);font-weight:700;">MIMO Plant OK ✓</div>
         <div>n=${mimoPlant.n} states, m=${mimoPlant.m} inputs, p=${mimoPlant.p} outputs</div>
         <div>Total channels: ${mimoPlant.p * mimoPlant.m}</div>
         <div>Controllability rank: ${rankC}/${mimoPlant.n} &nbsp;|&nbsp; Observability rank: ${rankO}/${mimoPlant.n}</div>`;
@@ -3946,7 +3946,7 @@ function renderMIMOGrid() {
   // L2: surface whether grid cells are open-loop (plant TF) or closed-loop.
   // Per-channel MIMO step responses below are open-loop plant channel TFs.
   const titleEl = document.getElementById('mimo-grid-title');
-  if (titleEl) titleEl.textContent = 'All Channels (Open-loop Step Response)';
+  if (titleEl) titleEl.textContent = 'All Plant Channels (Open-Loop Step Response)';
 
   gridContainer.style.gridTemplateColumns = `repeat(${m}, minmax(0, 1fr))`;
   gridContainer.style.gridTemplateRows = `repeat(${p}, minmax(0, 1fr))`;
@@ -4004,7 +4004,7 @@ function applyMIMOChannel() {
 function computeMIMORGA() {
   try {
     clearFieldErrors();
-    if (!state.mimoPlant) throw new Error('請先設定 MIMO 系統');
+    if (!state.mimoPlant) throw new Error('請先設定 MIMO plant');
     if (state.mimoPlant.m !== state.mimoPlant.p) {
       throw new Error(`RGA 需要方陣系統 (m=p)，目前 m=${state.mimoPlant.m}, p=${state.mimoPlant.p}`);
     }
@@ -4031,7 +4031,7 @@ function computeMIMORGA() {
 
     const outEl = document.getElementById('mimo-rga-out');
     outEl.style.display = 'block';
-    outEl.innerHTML = `<div style="color:var(--color-accent);font-weight:700;">RGA Matrix (steady-state)</div>
+    outEl.innerHTML = `<div style="color:var(--color-accent);font-weight:700;">Steady-State RGA Matrix</div>
       <div style="margin:4px 0;">${matrixRows}</div>
       <div style="margin-top:4px;">row sum dev = ${fmtNum(invariants.rowDeviation, 6)} &nbsp;|&nbsp; col sum dev = ${fmtNum(invariants.colDeviation, 6)}</div>
       <div style="margin-top:8px;border-top:1px solid var(--border-primary);padding-top:6px;">${diagLines}${sugg}</div>
@@ -4050,7 +4050,7 @@ function computeMIMORGA() {
 function computeMIMOSVBode() {
   try {
     clearFieldErrors();
-    if (!state.mimoPlant) throw new Error('請先設定 MIMO 系統');
+    if (!state.mimoPlant) throw new Error('請先設定 MIMO plant');
 
     const wmin = parseFloat(document.getElementById('mimo-sv-wmin').value);
     const wmax = parseFloat(document.getElementById('mimo-sv-wmax').value);
@@ -4073,7 +4073,7 @@ function computeMIMOSVBode() {
 
     const outEl = document.getElementById('mimo-sv-out');
     outEl.style.display = 'block';
-    outEl.innerHTML = `<div style="color:var(--color-accent);font-weight:700;">Singular Value Bode</div>
+    outEl.innerHTML = `<div style="color:var(--color-accent);font-weight:700;">Singular-Value Frequency Plot</div>
       <div>σ_max @ ω_min: ${fmtNum(sMaxLow, 4)}</div>
       <div>σ_min @ ω_min: ${fmtNum(sMinLow, 4)}</div>
       <div>Condition κ @ ω_min: ${Number.isFinite(condDC) ? fmtNum(condDC, 3) : '∞'}</div>
@@ -4108,7 +4108,7 @@ function computeMIMOSVBode() {
 function computeMIMODecoupler() {
   try {
     clearFieldErrors();
-    if (!state.mimoPlant) throw new Error('請先設定 MIMO 系統');
+    if (!state.mimoPlant) throw new Error('請先設定 MIMO plant');
     if (state.mimoPlant.m !== state.mimoPlant.p) {
       throw new Error(`Decoupler 需要方陣 (m=p)，目前 ${state.mimoPlant.m}×${state.mimoPlant.p}`);
     }
@@ -4121,14 +4121,14 @@ function computeMIMODecoupler() {
 
     const outEl = document.getElementById('mimo-decoupler-out');
     outEl.style.display = 'block';
-    outEl.innerHTML = `<div style="color:var(--color-accent);font-weight:700;">Decoupler Applied ✓</div>
+    outEl.innerHTML = `<div style="color:var(--color-accent);font-weight:700;">Static DC Decoupler Applied ✓</div>
       <div style="margin-top:4px;">G(0) was:</div>
       <div>${renderLabeledMatrixTable(G0, { rowPrefix: 'y', colPrefix: 'u', digits: 3 })}</div>
       <div style="margin-top:4px;">W = G(0)⁻¹:</div>
       <div>${renderLabeledMatrixTable(W, { rowPrefix: 'u', colPrefix: 'v', digits: 3 })}</div>
       <div style="margin-top:4px;color:var(--color-stable);">G(0)·W (應為單位矩陣):</div>
       <div>${renderLabeledMatrixTable(verification, { rowPrefix: 'y', colPrefix: 'v', digits: 3 })}</div>
-      <div style="font-size:10px;color:var(--text-muted);margin-top:6px;">系統 B 已替換為 B·W。再次計算 RGA 應趨近 I。</div>`;
+      <div style="font-size:10px;color:var(--text-muted);margin-top:6px;">Plant input matrix B 已替換為 B·W。再次計算 RGA 應趨近 I。</div>`;
     clearError();
   } catch (err) {
     const outEl = document.getElementById('mimo-decoupler-out');
@@ -4143,7 +4143,7 @@ function computeMIMODecoupler() {
 function computeMIMOLqr() {
   try {
     clearFieldErrors();
-    if (!state.mimoPlant) throw new Error('請先設定 MIMO 系統');
+    if (!state.mimoPlant) throw new Error('請先設定 MIMO plant');
     const n = state.mimoPlant.n;
     const m = state.mimoPlant.m;
 
@@ -4248,7 +4248,7 @@ function computeMpcSimulation() {
     state.phase10.mpc = { sim, Ts };
 
     setPhase7Output('mpc-out', [
-      `<div style="color:var(--color-accent);font-weight:700;">MPC Result (horizon=${horizon}, Ts=${Ts}s, steps=${steps})</div>`,
+      `<div style="color:var(--color-accent);font-weight:700;">MPC Regulation Result (horizon=${horizon}, Ts=${Ts}s, steps=${steps})</div>`,
       `<div>Total cost J = ${fmtNum(sim.totalCost, 4)}</div>`,
       `<div>Final ‖x‖∞ = ${fmtNum(sim.finalStateNormInf, 6)}</div>`,
       `<div>First control u₀ = [${sim.u[0].map((r) => fmtNum(r[0], 4)).join(', ')}]</div>`,
@@ -4338,7 +4338,7 @@ function computeConstrainedMpc() {
 
     const activeSteps = simC.activeConstraintsLog.filter(Boolean).length;
     setPhase7Output('mpc-constrained-out', [
-      `<div style="color:var(--color-accent);font-weight:700;">Constrained vs Unconstrained MPC (horizon=${horizon}, Ts=${Ts}s)</div>`,
+      `<div style="color:var(--color-accent);font-weight:700;">Input-Constrained vs Unconstrained MPC Regulation (horizon=${horizon}, Ts=${Ts}s)</div>`,
       `<div>u bounds: [${uMin}, ${uMax}]</div>`,
       `<div>Active constraint steps: ${activeSteps} / ${steps}</div>`,
       `<div>Constrained cost J  = ${fmtNum(simC.totalCost, 4)}</div>`,
@@ -4393,7 +4393,7 @@ function computeRobustSensitivity() {
   try {
     clearFieldErrors();
     if (!state.plant) throw new Error('請先建立 plant');
-    if (state.systemMode === 'mimo') throw new Error('Robust Sensitivity 目前只支援 SISO 模式');
+    if (state.systemMode === 'mimo') throw new Error('SISO sensitivity functions 目前只支援 SISO 模式');
 
     const controllerTf = state.controller?.toTransferFunction?.();
     if (!controllerTf) throw new Error('無法取得 controller transfer function（請先設定 PID/compensator）');
@@ -4423,7 +4423,7 @@ function computeRobustSensitivity() {
 
     const riskColor = peaks.risk === 'low' ? 'var(--color-stable)' : peaks.risk === 'medium' ? '#f59e0b' : 'var(--color-unstable)';
     setPhase7Output('robust-out', [
-      `<div style="color:${riskColor};font-weight:700;">H∞ Norms (Risk: ${peaks.risk.toUpperCase()})</div>`,
+      `<div style="color:${riskColor};font-weight:700;">Sensitivity Peak Norms (Risk: ${peaks.risk.toUpperCase()})</div>`,
       `<div>‖S‖∞ = ${fmtNum(peaks.Ms.peak, 4)} (${fmtNum(peaks.Ms.peakDB, 2)} dB) @ ω=${fmtNum(peaks.Ms.peakOmega, 3)} rad/s</div>`,
       `<div>‖T‖∞ = ${fmtNum(peaks.Mt.peak, 4)} (${fmtNum(peaks.Mt.peakDB, 2)} dB) @ ω=${fmtNum(peaks.Mt.peakOmega, 3)} rad/s</div>`,
       peaks.MKs ? `<div>‖KS‖∞ = ${fmtNum(peaks.MKs.peak, 4)} (${fmtNum(peaks.MKs.peakDB, 2)} dB) @ ω=${fmtNum(peaks.MKs.peakOmega, 3)} rad/s</div>` : '',
@@ -4474,7 +4474,7 @@ function computeMIMOHinfNorm() {
 
     setPhase7Output('mimo-hinf-out', [
       `<div style="font-weight:700;color:var(--color-accent);">‖G‖∞ = ${fmtNum(norm.norm, 6)} (${fmtNum(20 * Math.log10(norm.norm), 2)} dB)</div>`,
-      `<div>Peak σ_max @ ω = ${fmtNum(norm.peakOmega, 4)} rad/s</div>`,
+      `<div>Peak σ_max(G(jω)) @ ω = ${fmtNum(norm.peakOmega, 4)} rad/s</div>`,
       `<div style="font-size:10px;color:var(--text-muted);margin-top:4px;">Grid: [${wmin}, ${wmax}] rad/s，300 點 + Golden-section 精化</div>`,
     ].join(''));
 
@@ -4510,7 +4510,7 @@ function computeUncertaintyEnvelope() {
   try {
     clearFieldErrors();
     if (!state.plant) throw new Error('請先建立 plant');
-    if (state.systemMode === 'mimo') throw new Error('Uncertainty Sweep 目前只支援 SISO 模式');
+    if (state.systemMode === 'mimo') throw new Error('SISO uncertainty sweep 目前只支援 SISO 模式');
 
     const controllerTf = state.controller?.toTransferFunction?.();
     if (!controllerTf) throw new Error('無法取得 controller transfer function（請先設定 PID/compensator）');
@@ -4559,7 +4559,7 @@ function computeUncertaintyEnvelope() {
     const riskColor = ratio > 2 ? 'var(--color-unstable)' : ratio > 1.3 ? '#f59e0b' : 'var(--color-stable)';
 
     setPhase7Output('uncertainty-out', [
-      `<div style="color:${riskColor};font-weight:700;">Worst-Case Peaks (k=[${gainFactors.map((g) => g.toFixed(2)).join(',')}], θ=[${phaseShiftsDeg.map((p) => p.toFixed(0) + '°').join(',')}])</div>`,
+      `<div style="color:${riskColor};font-weight:700;">Uncertainty Sweep Peaks (k=[${gainFactors.map((g) => g.toFixed(2)).join(',')}], θ=[${phaseShiftsDeg.map((p) => p.toFixed(0) + '°').join(',')}])</div>`,
       `<div>worst ‖S‖∞ = ${fmtNum(peakS.peak, 4)} ${Number.isFinite(peakS.peakDB) ? '(' + fmtNum(peakS.peakDB, 2) + ' dB)' : ''} @ ω=${fmtNum(peakS.peakOmega, 3)} rad/s</div>`,
       `<div>worst ‖T‖∞ = ${fmtNum(peakT.peak, 4)} ${Number.isFinite(peakT.peakDB) ? '(' + fmtNum(peakT.peakDB, 2) + ' dB)' : ''} @ ω=${fmtNum(peakT.peakOmega, 3)} rad/s</div>`,
       peakKS ? `<div>worst ‖KS‖∞ = ${fmtNum(peakKS.peak, 4)} ${Number.isFinite(peakKS.peakDB) ? '(' + fmtNum(peakKS.peakDB, 2) + ' dB)' : ''} @ ω=${fmtNum(peakKS.peakOmega, 3)} rad/s</div>` : '',
@@ -4593,7 +4593,7 @@ function computeUncertaintyEnvelope() {
 function computeMIMODynDecoupler() {
   try {
     clearFieldErrors();
-    if (!state.mimoPlant) throw new Error('請先設定 MIMO 系統');
+    if (!state.mimoPlant) throw new Error('請先設定 MIMO plant');
     const omega = parseFloat(document.getElementById('mimo-dyn-omega').value || '1');
     if (!(omega > 0)) throw new Error('ωc 必須 > 0');
 
@@ -4611,12 +4611,12 @@ function computeMIMODynDecoupler() {
 
     const outEl = document.getElementById('mimo-dyn-decoupler-out');
     outEl.style.display = 'block';
-    outEl.innerHTML = `<div style="color:var(--color-accent);font-weight:700;">Dynamic Decoupler @ ω=${fmtNum(omega, 4)} rad/s</div>
+    outEl.innerHTML = `<div style="color:var(--color-accent);font-weight:700;">Frequency-Point Inverse W(jωc), ωc=${fmtNum(omega, 4)} rad/s</div>
       <div style="margin-top:4px;">G(jω) =<br>${fmtMat(result.G)}</div>
       <div style="margin-top:6px;">W(jω) = G(jω)⁻¹:<br>${fmtMat(result.W)}</div>
       <div style="margin-top:6px;color:${colorRes};">Off-diagonal residual: ${fmtNum(result.offDiagonalNorm, 4)}</div>
       <div>Diagonal deviation: ${fmtNum(result.diagonalDeviation, 4)}</div>
-      <div style="font-size:10px;color:var(--text-muted);margin-top:6px;">注意：這是 selected-frequency inverse，不是完整 polynomial decoupler。實際部署需 W(s) 為 proper 且 stable。</div>`;
+      <div style="font-size:10px;color:var(--text-muted);margin-top:6px;">注意：這是單一頻率點的 inverse，不是完整 dynamic polynomial decoupler。實際部署需 W(s) 為 proper 且 stable。</div>`;
     clearError();
   } catch (err) {
     const outEl = document.getElementById('mimo-dyn-decoupler-out');
