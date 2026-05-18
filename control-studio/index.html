@@ -1166,7 +1166,7 @@
             計算 |S(jω)|, |T(jω)|, |KS(jω)| 三條 sensitivity Bode。Peak |S|, |T| 對應 robust margin：peak &lt; 1.8 = low risk，1.8-2.5 = medium，&gt; 2.5 = high。<br>
             Loop transfer L = C·G（current PID + plant）。SISO only。
           </p>
-          <div data-advisor-mode="siso">
+          <div>
             <div style="display:flex;gap:8px;margin-bottom:8px;">
               <div class="input-group" style="flex:1;margin-bottom:0;">
                 <label>ω min (rad/s)</label>
@@ -1217,7 +1217,7 @@
           <div id="chart-mimo-hinf" style="height:160px;"></div>
         </section>
 
-        <section class="section-panel" id="hinf-panel">
+        <section class="section-panel" id="hinf-panel" data-advisor-mode="siso">
           <div class="section-title">H∞ Mixed-Sensitivity Synthesis</div>
           <p style="font-size:11px;color:var(--text-muted);line-height:1.5;margin-bottom:10px;">
             設定 W1（performance，低頻）和 W3（robustness，高頻）權重，最小化 ‖[W1·S; W2·KS; W3·T]‖∞。
@@ -1233,7 +1233,7 @@
           <div id="hinf-out" style="font-size:11px;font-family:monospace;color:var(--text-secondary);background:rgba(15,17,23,.4);padding:8px;border-radius:6px;line-height:1.6;display:none;"></div>
         </section>
 
-        <section class="section-panel" id="ga-panel">
+        <section class="section-panel" id="ga-panel" data-advisor-mode="siso">
           <div class="section-title">GA Auto-Tuner</div>
           <p style="font-size:11px;color:var(--text-muted);line-height:1.5;margin-bottom:10px;">
             遺傳演算法搜尋最佳 PID 參數，目標為 overshoot + settling + IAE 的加權和。
