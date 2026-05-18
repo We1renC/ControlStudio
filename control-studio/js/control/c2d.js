@@ -1,8 +1,8 @@
 /**
  * c2d.js — Continuous-to-discrete transfer function conversion.
- * Supports Tustin (bilinear) for any-order TF, and ZOH for first-order TF.
+ * Methods: Tustin (bilinear), Tustin with prewarping, ZOH, Matched-Z.
  */
-import { polymul, polyscale } from '../math/polynomial.js?v=p5';
+import { polymul, polyscale, rootsToRealPoly } from '../math/polynomial.js?v=p5';
 import { matCreate, matExp } from '../math/matrix.js?v=p5';
 import { stateSpaceToTransferFunction, tfToControllableCanonical } from './state-space.js?v=p5';
 import { DiscreteTransferFunction } from './discrete-transfer-function.js';
@@ -15,9 +15,9 @@ function validateTs(Ts) {
  * Substitute s = (2/Ts)*(z-1)/(z+1) into a polynomial given in high-degree-first form.
  * Returns the resulting polynomial in z (high-degree-first, degree n).
  */
-function tustinPoly(coeffs, Ts) {
+function tustinPoly(coeffs, Ts, K = null) {
   const n = coeffs.length - 1;
-  const K = 2 / Ts;
+  if (K === null) K = 2 / Ts;
   const zm1 = [[1]];
   const zp1 = [[1]];
   for (let i = 1; i <= n; i++) {
@@ -52,6 +52,82 @@ export function c2dTustin(sys, Ts) {
   const numZ = tustinPoly(paddedNum, Ts);
   const lead = denZ[0];
   return new DiscreteTransferFunction(numZ.map((c) => c / lead), denZ.map((c) => c / lead), Ts);
+}
+
+/**
+ * Tustin (bilinear) with frequency prewarping at ω_prewarp.
+ * The bilinear mapping `s = K_w * (z-1)/(z+1)` uses
+ *   K_w = ω_prewarp / tan(ω_prewarp · Ts / 2)
+ * instead of the standard K = 2/Ts, ensuring the continuous-time and
+ * discrete-time frequency responses match exactly at ω_prewarp rad/s.
+ *
+ * @param {TransferFunction} sys
+ * @param {number} Ts - sample time
+ * @param {number} omegaPrewarp - desired exact-match frequency (rad/s)
+ * @returns {DiscreteTransferFunction}
+ */
+export function c2dTustinPrewarp(sys, Ts, omegaPrewarp) {
+  validateTs(Ts);
+  if (!Number.isFinite(omegaPrewarp) || omegaPrewarp <= 0) {
+    throw new Error('omegaPrewarp must be a positive finite number (rad/s)');
+  }
+  const halfPeriod = omegaPrewarp * Ts / 2;
+  const tanHalf = Math.tan(halfPeriod);
+  if (!Number.isFinite(tanHalf) || Math.abs(tanHalf) < 1e-12) {
+    throw new Error('Prewarping: ω_prewarp·Ts/2 is too close to π/2; reduce Ts or ω_prewarp');
+  }
+  const K = omegaPrewarp / tanHalf;
+  const n = sys.den.length - 1;
+  const m = sys.num.length - 1;
+  if (m > n) throw new Error('System must be proper (numerator degree ≤ denominator degree)');
+  const paddedNum = [...new Array(n - m).fill(0), ...sys.num];
+  const denZ = tustinPoly(sys.den, Ts, K);
+  const numZ = tustinPoly(paddedNum, Ts, K);
+  const lead = denZ[0];
+  return new DiscreteTransferFunction(numZ.map((c) => c / lead), denZ.map((c) => c / lead), Ts);
+}
+
+/**
+ * Matched-Z (pole-zero mapping) discretization.
+ * Maps each continuous pole s_k → z_k = exp(s_k·Ts) and zero similarly.
+ * Adds z=-1 zeros for excess poles (standard convention).
+ * DC gain is matched to the continuous-time system.
+ *
+ * @param {TransferFunction} sys
+ * @param {number} Ts
+ * @returns {DiscreteTransferFunction}
+ */
+export function c2dMatchedZ(sys, Ts) {
+  validateTs(Ts);
+  const mapToZ = (s) => {
+    const mag = Math.exp(s.re * Ts);
+    return { re: mag * Math.cos(s.im * Ts), im: mag * Math.sin(s.im * Ts) };
+  };
+
+  const contPoles = sys.poles();
+  const contZeros = sys.zeros();
+  const discPoles = contPoles.map(mapToZ);
+  const discZeros = contZeros.map(mapToZ);
+
+  // Add z=-1 zeros for excess poles (preserves causality)
+  const nExcess = contPoles.length - contZeros.length;
+  for (let i = 0; i < nExcess; i++) discZeros.push({ re: -1, im: 0 });
+
+  // Build numerator and denominator polynomials from discrete roots
+  const numZ = rootsToRealPoly(discZeros);
+  const denZ = rootsToRealPoly(discPoles);
+
+  // Match DC gain: G_c(0) should equal G_d(1)
+  // G_c(0) = sys.dcGain(); G_d(1) = sum(numZ) / sum(denZ)
+  const dcCont = sys.dcGain();
+  const sumNum = numZ.reduce((a, b) => a + b, 0);
+  const sumDen = denZ.reduce((a, b) => a + b, 0);
+  let gainFactor = 1;
+  if (Number.isFinite(dcCont) && Math.abs(sumNum) > 1e-14 && Math.abs(sumDen) > 1e-14) {
+    gainFactor = dcCont * sumDen / sumNum;
+  }
+  const scaledNum = numZ.map((c) => c * gainFactor);
+  return new DiscreteTransferFunction(scaledNum, denZ, Ts);
 }
 
 /**

@@ -5,7 +5,7 @@ import { polyadd, polydiv, polymul, polyroots, rootsToRealPoly } from '../js/mat
 import { rk4, rk45, interpolateUniform } from '../js/math/ode.js';
 import { TransferFunction } from '../js/control/transfer-function.js';
 import { DiscreteTransferFunction } from '../js/control/discrete-transfer-function.js';
-import { c2dTustin, c2dZOH } from '../js/control/c2d.js';
+import { c2dMatchedZ, c2dTustin, c2dTustinPrewarp, c2dZOH } from '../js/control/c2d.js';
 import { stateSpaceToTransferFunction, tfToControllableCanonical } from '../js/control/state-space.js';
 import { stepResponse } from '../js/analysis/time-response.js';
 import { discreteStepResponse } from '../js/analysis/discrete-response.js';
@@ -149,6 +149,38 @@ record('Continuous/discrete response consistency', () => {
   const zoh = c2dZOH(plant, 0.1);
   assertNear('Tustin DC gain', tustin.dcGain(), plant.dcGain(), 1e-12);
   assertNear('ZOH DC gain', zoh.dcGain(), plant.dcGain(), 1e-12);
+
+  // Tustin prewarping: |H_d(e^{jω_w·Ts})| should equal |H_c(jω_w)| exactly
+  const omegaW = 5; // rad/s
+  const prewarp = c2dTustinPrewarp(plant, 0.1, omegaW);
+  assertNear('Prewarp DC gain preserved', prewarp.dcGain(), plant.dcGain(), 1e-6);
+  // At ω_w: magnitude should match — verify via direct evaluation
+  // H_c(jω_w) magnitude = |1 / (jω_w + 1)| = 1/sqrt(ω_w²+1)
+  const contMagAtW = 1 / Math.sqrt(omegaW * omegaW + 1);
+  // H_d(e^{jω_w·Ts}): evaluate DiscreteTransferFunction at z=e^{jθ}, θ=ω_w*Ts
+  const theta = omegaW * 0.1;
+  const zRe = Math.cos(theta); const zIm = Math.sin(theta);
+  // Evaluate: sum(b_k * z^{-k}) / sum(a_k * z^{-k}) where z^{-k} = cos(-k*theta)+j*sin(-k*theta)
+  let numRe = 0, numIm = 0, denRe = 0, denIm = 0;
+  for (let k = 0; k < prewarp.num.length; k++) {
+    numRe += prewarp.num[k] * Math.cos(-k * theta);
+    numIm += prewarp.num[k] * Math.sin(-k * theta);
+  }
+  for (let k = 0; k < prewarp.den.length; k++) {
+    denRe += prewarp.den[k] * Math.cos(-k * theta);
+    denIm += prewarp.den[k] * Math.sin(-k * theta);
+  }
+  const discMagAtW = Math.sqrt(numRe * numRe + numIm * numIm) / Math.sqrt(denRe * denRe + denIm * denIm);
+  assertNear('Prewarp magnitude matches at ω_w', discMagAtW, contMagAtW, 1e-8);
+
+  // Matched-Z: poles map correctly, DC gain preserved
+  const matched = c2dMatchedZ(plant, 0.1);
+  assertNear('Matched-Z DC gain', matched.dcGain(), plant.dcGain(), 1e-6);
+  // Discrete pole should be exp(-1 * 0.1) = exp(-0.1)
+  const expectedPole = Math.exp(-1 * 0.1);
+  const discPoles = matched.poles();
+  const realPole = discPoles.find((p) => Math.abs(p.im) < 1e-9);
+  assertNear('Matched-Z pole = exp(-Ts)', realPole?.re ?? 0, expectedPole, 1e-8);
 });
 
 const failed = checks.filter((check) => !check.ok);

@@ -12,7 +12,7 @@ import { rootLocusData, rootLocusAsymptotes, rootLocusBreakPoints, rootLocusJwCr
 import { stabilityMargins, stepInfo, routhTable, analyzeStability } from './control/stability.js';
 import { parsePolyString, fmtNum, fmtDeg, fmtDB, fmtTime, fmtPercent } from './utils/format.js';
 import { zpkToTransferFunction, parseRootsString } from './control/zpk.js';
-import { c2dTustin, c2dZOH } from './control/c2d.js?v=p5';
+import { c2dMatchedZ, c2dTustin, c2dTustinPrewarp, c2dZOH } from './control/c2d.js?v=p5';
 import { specsToTargetPoles, designLeadForPM, deadbeatGain } from './control/design.js?v=p5';
 import { polyadd, polyscale, polyroots } from './math/polynomial.js?v=p4';
 import { Complex } from './math/complex.js';
@@ -185,12 +185,27 @@ function initEventListeners() {
     document.getElementById(id)?.addEventListener('input', debounce(updateSystem, 300));
   });
 
+  document.getElementById('c2d-method')?.addEventListener('change', (e) => {
+    const prewarpField = document.getElementById('c2d-prewarp-field');
+    if (prewarpField) prewarpField.style.display = e.target.value === 'tustin-prewarp' ? 'block' : 'none';
+  });
+
   document.getElementById('btn-c2d')?.addEventListener('click', () => {
     if (!state.plant || state.domain !== 's') return;
     const Ts = Number(document.getElementById('c2d-ts')?.value);
     const method = document.getElementById('c2d-method')?.value || 'tustin';
     try {
-      const disc = method === 'zoh' ? c2dZOH(state.plant, Ts) : c2dTustin(state.plant, Ts);
+      let disc;
+      if (method === 'zoh') {
+        disc = c2dZOH(state.plant, Ts);
+      } else if (method === 'tustin-prewarp') {
+        const omegaW = parseFloat(document.getElementById('c2d-prewarp-omega')?.value || '1');
+        disc = c2dTustinPrewarp(state.plant, Ts, omegaW);
+      } else if (method === 'matched-z') {
+        disc = c2dMatchedZ(state.plant, Ts);
+      } else {
+        disc = c2dTustin(state.plant, Ts);
+      }
       state.plant = disc;
       state.domain = 'z';
       state.sampleTime = Ts;
