@@ -161,3 +161,123 @@ export function impulseResponse(sys, durationOrOptions = null) {
 export function rampResponse(sys, durationOrOptions = null) {
   return simulateTimeResponse(sys, 'ramp', durationOrOptions);
 }
+
+/**
+ * Simulate PID controller + plant in open-loop feedback with actuator saturation
+ * and back-calculation anti-windup.
+ *
+ * Anti-windup law:  dxi/dt = e + (u_sat - u_unsat) / Tt
+ * When u_unsat is within [uMin, uMax], the correction term is zero (normal integral).
+ * When saturated, the correction pulls the integrator state back, preventing wind-up.
+ *
+ * @param {TransferFunction} plant - strictly proper plant G(s)
+ * @param {{ Kp:number, Ki:number, Kd:number, N?:number }} pid - PID gains
+ * @param {object} [options]
+ * @param {number} [options.uMin=-Infinity]  - lower actuator limit
+ * @param {number} [options.uMax=+Infinity]  - upper actuator limit
+ * @param {number} [options.Tt]              - anti-windup tracking time constant (default: 1/Ki)
+ * @param {number} [options.amplitude=1]     - step reference amplitude
+ * @param {number} [options.duration]        - simulation end time
+ * @param {number} [options.sampleCount=500]
+ * @returns {{ t: number[], y: number[], u: number[] }}
+ */
+export function simulatePIDAntiWindup(plant, pid, options = {}) {
+  const { Kp, Ki = 0, Kd = 0, N = 100 } = pid;
+  const uMin = Number.isFinite(options.uMin) ? options.uMin : -Infinity;
+  const uMax = Number.isFinite(options.uMax) ? options.uMax : Infinity;
+  const Tt = options.Tt ?? (Math.abs(Ki) > 1e-12 ? Math.max(0.01, 1 / Math.abs(Ki)) : 10);
+
+  // Plant CCF state-space
+  const n = plant.den.length - 1;
+  const den = plant.den;
+  const num = plant.num;
+  const paddedNum = new Array(n + 1).fill(0);
+  for (let i = 0; i < num.length; i++) paddedNum[n - (num.length - 1) + i] = num[i];
+
+  const plantDx = (xp, u) => {
+    const dx = new Array(n).fill(0);
+    for (let i = 0; i < n - 1; i++) dx[i] = xp[i + 1];
+    let last = u;
+    for (let i = 0; i < n; i++) last -= den[n - i] * xp[i];
+    dx[n - 1] = last;
+    return dx;
+  };
+  // Assumes strictly proper (D=0)
+  const plantOutput = (xp) => {
+    let y = 0;
+    for (let i = 0; i < n; i++) y += paddedNum[n - i] * xp[i];
+    return y;
+  };
+
+  // Duration estimate
+  const poles = plant.poles();
+  const realParts = poles.map(p => Math.abs(p.re)).filter(re => re > 1e-6);
+  const minReal = realParts.length > 0 ? Math.min(...realParts) : 0.1;
+  const tEnd = options.duration ?? Math.min(120, Math.max(5, 8 / minReal));
+  const nPoints = Math.max(20, Math.floor(options.sampleCount ?? 500));
+  const dt = tEnd / (nPoints - 1);
+  const h = Math.min(dt, 0.005);
+  const stepsPerOut = Math.max(1, Math.ceil(dt / h));
+  const actualH = dt / stepsPerOut;
+
+  const refAmp = options.amplitude ?? 1;
+  let xp = new Array(n).fill(0);
+  let xi = 0; // integral state
+  let xd = 0; // derivative filter state
+
+  const computeControl = (e, xi_, xd_) =>
+    Kp * e + Ki * xi_ + Kd * N * (e - xd_);
+  const saturate = (u) => Math.max(uMin, Math.min(uMax, u));
+
+  const tArr = [], yArr = [], uArr = [];
+
+  for (let i = 0; i < nPoints; i++) {
+    const y = plantOutput(xp);
+    const e = refAmp - y;
+    const uRaw = computeControl(e, xi, xd);
+    const uSat = saturate(uRaw);
+    tArr.push(i * dt);
+    yArr.push(y);
+    uArr.push(uSat);
+
+    // RK4 integration of [xp, xi, xd]
+    for (let step = 0; step < stepsPerOut; step++) {
+      const takeStep = (xp_, xi_, xd_, factor = 1) => {
+        const y_ = plantOutput(xp_);
+        const e_ = refAmp - y_;
+        const uR_ = computeControl(e_, xi_, xd_);
+        const uS_ = saturate(uR_);
+        return {
+          dxp: plantDx(xp_, uS_),
+          dxi: e_ + (uS_ - uR_) / Tt,
+          dxd: N * (e_ - xd_),
+        };
+      };
+
+      const s1 = takeStep(xp, xi, xd);
+      const xp2 = xp.map((v, j) => v + s1.dxp[j] * actualH / 2);
+      const xi2 = xi + s1.dxi * actualH / 2;
+      const xd2 = xd + s1.dxd * actualH / 2;
+
+      const s2 = takeStep(xp2, xi2, xd2);
+      const xp3 = xp.map((v, j) => v + s2.dxp[j] * actualH / 2);
+      const xi3 = xi + s2.dxi * actualH / 2;
+      const xd3 = xd + s2.dxd * actualH / 2;
+
+      const s3 = takeStep(xp3, xi3, xd3);
+      const xp4 = xp.map((v, j) => v + s3.dxp[j] * actualH);
+      const xi4 = xi + s3.dxi * actualH;
+      const xd4 = xd + s3.dxd * actualH;
+
+      const s4 = takeStep(xp4, xi4, xd4);
+
+      xp = xp.map((v, j) => v + (actualH / 6) * (s1.dxp[j] + 2 * s2.dxp[j] + 2 * s3.dxp[j] + s4.dxp[j]));
+      xi += (actualH / 6) * (s1.dxi + 2 * s2.dxi + 2 * s3.dxi + s4.dxi);
+      xd += (actualH / 6) * (s1.dxd + 2 * s2.dxd + 2 * s3.dxd + s4.dxd);
+    }
+
+    if (Math.abs(y) > 1e10) break; // safety
+  }
+
+  return { t: tArr, y: yArr, u: uArr };
+}

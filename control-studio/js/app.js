@@ -4,7 +4,7 @@ import { parseMatrixInput, stateSpaceToTransferFunction, controllabilityMatrix, 
 import { matRank } from './math/matrix.js?v=p5';
 import { PIDController, TwoDOFPIDController } from './control/pid.js';
 import { compensatorDescription, designLagCompensator, designLeadCompensator, leadLagTransferFunction, normalizeCompensatorConfig, notchFilter, notchFilterDescription } from './control/compensator.js?v=control-lag-1';
-import { impulseResponse, rampResponse, stepResponse } from './analysis/time-response.js';
+import { impulseResponse, rampResponse, simulatePIDAntiWindup, stepResponse } from './analysis/time-response.js';
 import { discreteStepResponse } from './analysis/discrete-response.js';
 import { bodeData, nyquistData, autoFreqRange, nicholsData, nyquistEncirclements } from './analysis/frequency-response.js';
 import { discreteBodeData } from './analysis/discrete-frequency-response.js?v=p5';
@@ -292,6 +292,20 @@ function initEventListeners() {
   });
   ['pid-beta', 'pid-gamma'].forEach((id) => {
     const handler = debounce(() => { updateController(); }, 150);
+    document.getElementById(id)?.addEventListener('input', handler);
+    document.getElementById(id)?.addEventListener('change', handler);
+  });
+
+  // Saturation / Anti-windup toggle
+  document.getElementById('enable-saturation')?.addEventListener('change', (e) => {
+    const satFields = document.getElementById('saturation-fields');
+    if (satFields) satFields.style.display = e.target.checked ? 'block' : 'none';
+    if (state.activePlot === 'step') refreshAllCharts();
+  });
+  ['sat-umin', 'sat-umax', 'sat-tt'].forEach((id) => {
+    const handler = debounce(() => {
+      if (document.getElementById('enable-saturation')?.checked && state.activePlot === 'step') refreshAllCharts();
+    }, 200);
     document.getElementById(id)?.addEventListener('input', handler);
     document.getElementById(id)?.addEventListener('change', handler);
   });
@@ -2532,7 +2546,7 @@ function compactLegend() {
 
 function renderTimeResponse(sys, targetId = 'chart-active') {
   const resp = currentResponseData(sys);
-  const trace = {
+  const traces = [{
     x: resp.t,
     y: resp.y,
     type: 'scatter',
@@ -2541,12 +2555,47 @@ function renderTimeResponse(sys, targetId = 'chart-active') {
     line: { color: getCSS('--color-accent'), width: 2 },
     fill: 'tozeroy',
     fillcolor: 'rgba(99, 102, 241, 0.05)',
-  };
+  }];
+
+  // Anti-windup overlay: only when step response and saturation is enabled
+  const satEnabled = document.getElementById('enable-saturation')?.checked;
+  if (satEnabled && state.responseType === 'step' && state.plant && state.pidParams && state.showClosedLoop) {
+    try {
+      const uMin = parseFloat(document.getElementById('sat-umin')?.value ?? '-1');
+      const uMax = parseFloat(document.getElementById('sat-umax')?.value ?? '1');
+      const Tt = parseFloat(document.getElementById('sat-tt')?.value ?? '1');
+      const amp = state.simulationConfig?.amplitude ?? 1;
+      // Simulate with anti-windup (saturated)
+      const awResp = simulatePIDAntiWindup(state.plant, state.pidParams, {
+        uMin, uMax, Tt, amplitude: amp,
+        duration: resp.t[resp.t.length - 1],
+        sampleCount: resp.t.length,
+      });
+      traces.push({
+        x: awResp.t, y: awResp.y,
+        type: 'scatter', mode: 'lines',
+        name: `With AW (u∈[${uMin},${uMax}])`,
+        line: { color: getCSS('--color-stable'), width: 2, dash: 'dash' },
+      });
+      // Control effort trace on secondary axis
+      traces.push({
+        x: awResp.t, y: awResp.u,
+        type: 'scatter', mode: 'lines',
+        name: 'u(t) saturated',
+        line: { color: getCSS('--color-secondary'), width: 1, dash: 'dot' },
+        yaxis: 'y2',
+      });
+    } catch (_) { /* silent if plant/pid not ready */ }
+  }
+
   // L1: title is shown in the chart-header (#active-plot-title); avoid duplicating it inside the plot.
   const layout = PLOTLY_LAYOUT_BASE();
   layout.showlegend = true;
   layout.legend = compactLegend();
-  Plotly.react(targetId, [trace], layout, { responsive: true, displayModeBar: false });
+  if (satEnabled && state.responseType === 'step') {
+    layout.yaxis2 = { overlaying: 'y', side: 'right', gridcolor: 'transparent', title: { text: 'u(t)', font: { size: 10 } } };
+  }
+  Plotly.react(targetId, traces, layout, { responsive: true, displayModeBar: false });
 }
 
 function renderBodePlot(sys, targetId = 'chart-active') {
@@ -2666,6 +2715,99 @@ function renderNyquistPlot(sys, targetId = 'chart-active') {
   Plotly.react(targetId, traces, layout, { responsive: true, displayModeBar: false });
 }
 
+/**
+ * Generate Nichols M-circle traces (iso-|T| contours).
+ * M-circle in Nyquist plane: center (-M²/(M²-1), 0), radius M/|M²-1|.
+ */
+function _nicholsMCircleTraces() {
+  // M values in dB and corresponding linear ratios
+  const mdB = [-6, -3, -1.5, 0, 1, 2, 3, 6];
+  const colors = ['#6b7280','#9ca3af','#d1d5db','#ef4444','#f97316','#eab308','#22c55e','#3b82f6'];
+  const traces = [];
+  for (let i = 0; i < mdB.length; i++) {
+    const M = Math.pow(10, mdB[i] / 20); // linear
+    const pts = [];
+    if (Math.abs(M - 1) < 1e-6) {
+      // M=1: vertical line Re[L] = -0.5 in Nyquist → phase of (-0.5 + j·Im)
+      for (let im = -20; im <= 20; im += 0.2) {
+        const re = -0.5;
+        if (Math.abs(im) < 1e-9) continue;
+        pts.push([Math.atan2(im, re) * 180 / Math.PI, 20 * Math.log10(Math.sqrt(0.25 + im * im))]);
+      }
+    } else {
+      const cx = -(M * M) / (M * M - 1);
+      const r = Math.abs(M / (M * M - 1));
+      for (let theta = 0; theta <= 2 * Math.PI; theta += 0.04) {
+        const re = cx + r * Math.cos(theta);
+        const im = r * Math.sin(theta);
+        const mag = Math.sqrt(re * re + im * im);
+        if (mag < 1e-9) continue;
+        pts.push([Math.atan2(im, re) * 180 / Math.PI, 20 * Math.log10(mag)]);
+      }
+    }
+    pts.sort((a, b) => a[0] - b[0]);
+    // Clip to visible Nichols chart region
+    const vis = pts.filter(([ph, db]) => ph >= -360 && ph <= 0 && db >= -40 && db <= 40);
+    if (vis.length < 2) continue;
+    traces.push({
+      x: vis.map(p => p[0]),
+      y: vis.map(p => p[1]),
+      type: 'scatter', mode: 'lines',
+      name: `M=${mdB[i]}dB`,
+      line: { color: colors[i], width: 1, dash: 'dot' },
+      hovertemplate: `M=${mdB[i]}dB<extra></extra>`,
+      showlegend: false,
+    });
+    // Label at right-most visible point
+    const lp = vis[vis.length - 1];
+    traces.push({
+      x: [lp[0]], y: [lp[1]], type: 'scatter', mode: 'text',
+      text: [`${mdB[i]}dB`], textposition: 'middle right',
+      textfont: { size: 9, color: colors[i] },
+      showlegend: false, hoverinfo: 'skip',
+    });
+  }
+  return traces;
+}
+
+/**
+ * Generate Nichols N-circle traces (iso-∠T contours).
+ * N-circle in Nyquist plane: center (-0.5, 1/(2N)), radius √(N²+1)/(2|N|).
+ * N = tan(φ) where φ is the closed-loop phase angle.
+ */
+function _nicholsNCircleTraces() {
+  const phiDeg = [-135, -90, -45, -30, 30, 45, 90, 135];
+  const traces = [];
+  for (const phi of phiDeg) {
+    if (Math.abs(phi) < 1e-6) continue;
+    const N = Math.tan(phi * Math.PI / 180);
+    if (!isFinite(N)) continue;
+    const cy = 1 / (2 * N);
+    const r = Math.sqrt(0.25 + cy * cy);
+    const pts = [];
+    for (let theta = 0; theta <= 2 * Math.PI; theta += 0.04) {
+      const re = -0.5 + r * Math.cos(theta);
+      const im = cy + r * Math.sin(theta);
+      const mag = Math.sqrt(re * re + im * im);
+      if (mag < 1e-9) continue;
+      pts.push([Math.atan2(im, re) * 180 / Math.PI, 20 * Math.log10(mag)]);
+    }
+    pts.sort((a, b) => a[0] - b[0]);
+    const vis = pts.filter(([ph, db]) => ph >= -360 && ph <= 0 && db >= -40 && db <= 40);
+    if (vis.length < 2) continue;
+    traces.push({
+      x: vis.map(p => p[0]),
+      y: vis.map(p => p[1]),
+      type: 'scatter', mode: 'lines',
+      name: `∠T=${phi}°`,
+      line: { color: 'rgba(139,92,246,0.4)', width: 1, dash: 'dash' },
+      hovertemplate: `∠T=${phi}°<extra></extra>`,
+      showlegend: false,
+    });
+  }
+  return traces;
+}
+
 function renderNicholsChart(sys, targetId = 'chart-active') {
   const range = autoFreqRange(sys);
   const data = nicholsData(sys, range.wMin, range.wMax);
@@ -2678,12 +2820,17 @@ function renderNicholsChart(sys, targetId = 'chart-active') {
     line: { color: getCSS('--color-accent'), width: 2 },
   };
   const criticalPoint = { x: [-180], y: [0], type: 'scatter', mode: 'markers', marker: { size: 9, color: getCSS('--color-unstable') }, name: '-180°, 0dB' };
+  const mCircles = _nicholsMCircleTraces();
+  const nCircles = _nicholsNCircleTraces();
   const layout = PLOTLY_LAYOUT_BASE();
   layout.xaxis.title = { text: 'Phase (deg)', font: { size: 11 } };
+  layout.xaxis.range = [-360, 0];
   layout.yaxis.title = { text: 'Magnitude (dB)', font: { size: 11 } };
+  layout.yaxis.range = [-40, 40];
   layout.showlegend = true;
   layout.legend = compactLegend();
-  Plotly.react(targetId, [trace, criticalPoint], layout, { responsive: true, displayModeBar: false });
+  // M/N circles drawn first, Nichols curve and critical point on top
+  Plotly.react(targetId, [...mCircles, ...nCircles, trace, criticalPoint], layout, { responsive: true, displayModeBar: false });
 }
 
 function renderActivePlot(sys) {

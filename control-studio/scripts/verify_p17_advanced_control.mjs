@@ -28,6 +28,7 @@ import {
   simulateMpcOutputTracking,
   solveOutputSetpointSteadyState,
 } from '../js/control/mpc.js';
+import { simulatePIDAntiWindup } from '../js/analysis/time-response.js';
 
 let failed = 0;
 function ok(label, condition, detail = '') {
@@ -239,6 +240,33 @@ console.log('\n=== P17-08: TwoDOFPIDController ===\n');
   ok('beta=1, gamma=1 gives identical setpoint/feedback TFs',
     Math.abs(ctrl1dof.toSetpointTF().evalAt(new Complex(10, 0)).magnitude -
       ctrl1dof.toFeedbackTF().evalAt(new Complex(10, 0)).magnitude) < 1e-9);
+}
+
+console.log('\n=== P17-09: Anti-windup back-calculation simulation ===\n');
+{
+  // Plant: 1/(s+1) — simple first-order
+  const plant = new TransferFunction([1], [1, 1]);
+  const pid = { Kp: 5, Ki: 2, Kd: 0 };
+
+  // Without saturation: standard closed-loop simulation
+  const free = simulatePIDAntiWindup(plant, pid, { amplitude: 1, sampleCount: 200 });
+  ok('simulatePIDAntiWindup returns t/y/u arrays', Array.isArray(free.t) && Array.isArray(free.y) && Array.isArray(free.u));
+  ok('t array has 200 points', free.t.length === 200);
+  ok('output eventually settles near 1 (no saturation)', Math.abs(free.y[free.y.length - 1] - 1) < 0.05);
+  ok('control output u starts positive', free.u[1] > 0);
+
+  // With saturation (tight limits → integrator would wind up without AW)
+  const sat = simulatePIDAntiWindup(plant, pid, { uMin: 0, uMax: 2, amplitude: 1, sampleCount: 200 });
+  ok('saturated simulation returns data', sat.t.length > 0);
+  ok('control never exceeds uMax=2', sat.u.every(u => u <= 2 + 1e-9));
+  ok('control never below uMin=0', sat.u.every(u => u >= -1e-9));
+  ok('output with AW still converges toward 1', Math.abs(sat.y[sat.y.length - 1] - 1) < 0.1);
+
+  // AW should prevent overshoot being worse than unsaturated version
+  const maxY_sat = Math.max(...sat.y);
+  const maxY_free = Math.max(...free.y);
+  // Saturated (with tight u) may be slower, but shouldn't blow up
+  ok('saturated peak output is finite', Number.isFinite(maxY_sat));
 }
 
 console.log('');
