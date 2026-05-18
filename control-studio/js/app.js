@@ -16,8 +16,8 @@ import { c2dMatchedZ, c2dTustin, c2dTustinPrewarp, c2dZOH } from './control/c2d.
 import { specsToTargetPoles, designLeadForPM, deadbeatGain } from './control/design.js?v=p5';
 import { polyadd, polyscale, polyroots } from './math/polynomial.js?v=p4';
 import { Complex } from './math/complex.js';
-import { analyzeLyapunov, brysonsRule, closedLoopTransferFromStateFeedback, discretizeZOH, innovationStats, observerPoles, placeObserver, placeStateFeedback, resolveDesignStateSpace, simulateLqg, simulateObserver, solveDiscreteKalman, solveLqe, solveLqr, solveLqrMIMO } from './control/state-feedback.js?v=p8c';
-import { matTranspose, matSub, matMul } from './math/matrix.js?v=p5';
+import { analyzeLyapunov, augmentWithIntegralAction, brysonsRule, checkPoleRegion, closedLoopTransferFromStateFeedback, designIntegralLQR, discretizeZOH, innovationStats, lqrWithPoleRegion, observerPoles, placeObserver, placeStateFeedback, resolveDesignStateSpace, simulateLqg, simulateObserver, solveDiscreteKalman, solveLqe, solveLqr, solveLqrMIMO } from './control/state-feedback.js?v=p8d';
+import { matIdentity, matTranspose, matSub, matMul } from './math/matrix.js?v=p5';
 import { BlockEditor } from './editor/editor.js';
 import { MIMOStateSpace, parseMIMOMatrices, rgaSteady, rgaDiagnosis, rgaInvariants, singularValueBode, staticDecoupler, applyDecoupler, dynamicDecouplerAtFrequency, evalAtJw, singularValues } from './control/mimo.js';
 import { simulateConstrainedMpc, simulateUnconstrainedMpc } from './control/mpc.js';
@@ -367,6 +367,76 @@ function initEventListeners() {
   document.getElementById('btn-phase7-place')?.addEventListener('click', computeStateFeedbackPlacement);
   document.getElementById('btn-phase7-lyapunov')?.addEventListener('click', computeLyapunovProof);
   document.getElementById('btn-phase7-lqr')?.addEventListener('click', computeLqrDesign);
+
+  // Phase 7 Extension: Integral-Action LQR
+  document.getElementById('btn-integral-lqr')?.addEventListener('click', () => {
+    try {
+      const model = currentPhase7DesignModel();
+      const n = model.A.length;
+      const p = model.C.length;
+      const m = model.B[0].length;
+      const qScale = parseFloat(document.getElementById('ilqr-qscale')?.value || '1');
+      const rScale = parseFloat(document.getElementById('ilqr-rscale')?.value || '1');
+      const Qaug = Array.from({length: n+p}, (_, i) =>
+        Array.from({length: n+p}, (_, j) => i===j ? qScale : 0));
+      const R = Array.from({length: m}, (_, i) =>
+        Array.from({length: m}, (_, j) => i===j ? rScale : 0));
+      const result = designIntegralLQR(model.A, model.B, model.C, Qaug, R);
+      const kxStr = result.Kx.map(row => `[${row.map(v => v.toFixed(4)).join(', ')}]`).join(', ');
+      const kiStr = result.Ki.map(row => `[${row.map(v => v.toFixed(4)).join(', ')}]`).join(', ');
+      const poleStr = result.poles.map(p => {
+        const stab = p.re < 0 ? '✓' : '✗';
+        return `${p.re.toFixed(3)}${p.im >= 0 ? '+' : ''}${p.im.toFixed(3)}j ${stab}`;
+      }).join(', ');
+      const out = document.getElementById('ilqr-out');
+      out.style.display = 'block';
+      out.innerHTML = `
+        <div style="color:var(--color-accent);font-weight:700;">Integral-Action LQR (augmented order ${n}+${p})</div>
+        <div>Kx = ${kxStr}</div>
+        <div>Ki = ${kiStr}</div>
+        <div>Augmented CL stable: ${result.augCLStable ? '<span style="color:var(--color-stable)">Yes ✓</span>' : '<span style="color:var(--color-unstable)">No ✗</span>'}</div>
+        <div style="color:var(--text-muted);font-size:10px;">CL poles: ${poleStr}</div>
+        <div style="color:var(--text-muted);font-size:10px;margin-top:4px;">Control law: u = −Kx·x − Ki·∫(r−y)dt eliminates steady-state error</div>`;
+      clearError();
+    } catch(err) { showError(err.message); }
+  });
+
+  // Phase 7 Extension: Regional pole region type toggle
+  document.getElementById('pole-region-type')?.addEventListener('change', (e) => {
+    const v = e.target.value;
+    document.getElementById('pole-region-params').style.display = v === 'none' ? 'none' : 'block';
+    document.getElementById('pole-region-disc').style.display = v === 'disc' ? 'block' : 'none';
+    document.getElementById('pole-region-sector').style.display = v === 'sector' ? 'block' : 'none';
+    document.getElementById('pole-region-strip').style.display = v === 'strip' ? 'block' : 'none';
+  });
+
+  // Phase 7 Extension: Check/auto-adjust LQR for pole region
+  document.getElementById('btn-check-pole-region')?.addEventListener('click', () => {
+    try {
+      const model = currentPhase7DesignModel();
+      const regionType = document.getElementById('pole-region-type')?.value;
+      let region;
+      if (regionType === 'disc') {
+        region = { type: 'disc', alpha: parseFloat(document.getElementById('pr-alpha').value), radius: parseFloat(document.getElementById('pr-radius').value) };
+      } else if (regionType === 'sector') {
+        region = { type: 'sector', zetaMin: parseFloat(document.getElementById('pr-zeta-min').value) };
+      } else if (regionType === 'strip') {
+        region = { type: 'strip', sigmaMin: parseFloat(document.getElementById('pr-re-min').value), sigmaMax: parseFloat(document.getElementById('pr-re-max').value) };
+      } else return;
+
+      const n = model.A.length; const m = model.B[0].length;
+      const Q = matIdentity(n); const R = matIdentity(m);
+      const result = lqrWithPoleRegion(model.A, model.B, Q, R, region, { maxIter: 12 });
+      const out = document.getElementById('pole-region-out');
+      out.style.display = 'block';
+      const poleStr = result.poles.map(p => `${p.re.toFixed(3)}${p.im >= 0 ? '+' : ''}${p.im.toFixed(3)}j`).join(', ');
+      out.innerHTML = `<div style="color:${result.satisfied ? 'var(--color-stable)' : 'var(--color-unstable)'};font-weight:700;">Region ${result.satisfied ? 'Satisfied ✓' : 'Not satisfied ✗'} (${result.iterations} iter)</div>
+        <div style="color:var(--text-muted);font-size:10px;">CL poles: ${poleStr}</div>
+        <div>K = [${result.K.map(row=>row.map(v=>v.toFixed(4)).join(', ')).join('; ')}]</div>`;
+      clearError();
+    } catch(err) { showError(err.message); }
+  });
+
   document.getElementById('btn-phase8-observer')?.addEventListener('click', computeObserverPlacement);
   document.getElementById('btn-phase8-kalman')?.addEventListener('click', computeKalmanGain);
   document.getElementById('btn-phase8-simulate')?.addEventListener('click', computeObserverSimulation);

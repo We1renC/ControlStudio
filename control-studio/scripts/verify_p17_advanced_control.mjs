@@ -269,6 +269,130 @@ console.log('\n=== P17-09: Anti-windup back-calculation simulation ===\n');
   ok('saturated peak output is finite', Number.isFinite(maxY_sat));
 }
 
+// ============================================================
+// P17-10: augmentWithIntegralAction
+// ============================================================
+console.log('\n=== P17-10: augmentWithIntegralAction ===\n');
+import {
+  augmentWithIntegralAction,
+  checkPoleRegion,
+  designIntegralLQR,
+  lqrWithPoleRegion,
+} from '../js/control/state-feedback.js';
+{
+  // 2nd-order SISO system: A 2×2, B 2×1, C 1×2
+  const A = [[-1, 1], [0, -2]];
+  const B = [[0], [1]];
+  const C = [[1, 0]];
+
+  const { Aaug, Baug, Caug, n, ni } = augmentWithIntegralAction(A, B, C);
+
+  ok('augment doubles state count for single output', Aaug.length === n + ni && n === 2 && ni === 1,
+    `Aaug size=${Aaug.length}, n=${n}, ni=${ni}`);
+  ok('Aaug top-left block equals A', Aaug[0][0] === A[0][0] && Aaug[1][1] === A[1][1]);
+  ok('Aaug bottom-left block equals -C', Aaug[2][0] === -C[0][0] && Aaug[2][1] === -C[0][1],
+    `Aaug[2][0]=${Aaug[2][0]}, Aaug[2][1]=${Aaug[2][1]}`);
+  ok('Aaug top-right block is zero', Aaug[0][2] === 0 && Aaug[1][2] === 0);
+  ok('Aaug bottom-right block is zero (integrator has no self-coupling)', Aaug[2][2] === 0);
+  ok('Baug top block equals B', Baug[0][0] === B[0][0] && Baug[1][0] === B[1][0]);
+  ok('Baug bottom block is zero', Baug[2][0] === 0);
+  ok('Caug left block equals C', Caug[0][0] === C[0][0] && Caug[0][1] === C[0][1]);
+  ok('Caug right block is zero', Caug[0][2] === 0);
+}
+
+// ============================================================
+// P17-11: designIntegralLQR
+// ============================================================
+console.log('\n=== P17-11: designIntegralLQR ===\n');
+{
+  // Double integrator: A=[[0,1],[0,0]], B=[[0],[1]], C=[[1,0]]
+  const A = [[0, 1], [0, 0]];
+  const B = [[0], [1]];
+  const C = [[1, 0]];
+
+  let result;
+  try {
+    result = designIntegralLQR(A, B, C, null, [[1]]);
+    ok('designIntegralLQR returns augCLStable', result.augCLStable === true,
+      `augCLStable=${result.augCLStable}`);
+    ok('designIntegralLQR Kx has shape 1×2', result.Kx.length === 1 && result.Kx[0].length === 2,
+      `Kx shape=${result.Kx.length}×${result.Kx[0].length}`);
+    ok('designIntegralLQR Ki has shape 1×1', result.Ki.length === 1 && result.Ki[0].length === 1,
+      `Ki shape=${result.Ki.length}×${result.Ki[0].length}`);
+    ok('all augmented CL poles have Re < 0',
+      result.poles.every(p => p.re < 0),
+      `poles=${result.poles.map(p => p.re.toFixed(3)).join(', ')}`);
+  } catch (e) {
+    ok('designIntegralLQR did not throw', false, e.message);
+  }
+}
+
+// ============================================================
+// P17-12: checkPoleRegion
+// ============================================================
+console.log('\n=== P17-12: checkPoleRegion ===\n');
+{
+  // Disc: pole at -2, disc centered at -1 (alpha=1) with radius=2 → |-2+1|=1 < 2 ✓
+  const poles1 = [{ re: -2, im: 0 }];
+  const disc = checkPoleRegion(poles1, { type: 'disc', alpha: 1, radius: 2 });
+  ok('disc: stable pole -2 inside disc(alpha=1, r=2)', disc.satisfied,
+    `margin=${disc.margins[0].toFixed(4)}`);
+
+  // Disc: pole at -3, disc centered at -1 (alpha=1) with radius=1.5 → |-3+1|=2 > 1.5 ✗
+  const poles2 = [{ re: -3, im: 0 }];
+  const discFail = checkPoleRegion(poles2, { type: 'disc', alpha: 1, radius: 1.5 });
+  ok('disc: pole -3 outside disc(alpha=1, r=1.5)', !discFail.satisfied,
+    `margin=${discFail.margins[0].toFixed(4)}`);
+
+  // Sector: pole at -1+j1, |s|=√2, ζ=-Re/|s|=1/√2≈0.707 ≥ zetaMin=0.5 ✓
+  const poles3 = [{ re: -1, im: 1 }];
+  const sector = checkPoleRegion(poles3, { type: 'sector', zetaMin: 0.5 });
+  ok('sector: pole -1+j1 has ζ≈0.707 ≥ zetaMin=0.5', sector.satisfied,
+    `margin=${sector.margins[0].toFixed(4)}`);
+
+  // Sector: pole at -1+j10, ζ=-1/√101≈0.0995 < zetaMin=0.5 ✗
+  const poles4 = [{ re: -1, im: 10 }];
+  const sectorFail = checkPoleRegion(poles4, { type: 'sector', zetaMin: 0.5 });
+  ok('sector: pole -1+j10 has low ζ, fails zetaMin=0.5', !sectorFail.satisfied,
+    `margin=${sectorFail.margins[0].toFixed(4)}`);
+
+  // Strip: pole at -2, strip sigmaMin=-5, sigmaMax=-0.5 → -5 < -2 < -0.5 ✓
+  const poles5 = [{ re: -2, im: 0 }];
+  const strip = checkPoleRegion(poles5, { type: 'strip', sigmaMin: -5, sigmaMax: -0.5 });
+  ok('strip: pole -2 inside strip(-5, -0.5)', strip.satisfied,
+    `margin=${strip.margins[0].toFixed(4)}`);
+
+  // Strip: pole at -6, outside strip sigmaMin=-5 ✗
+  const poles6 = [{ re: -6, im: 0 }];
+  const stripFail = checkPoleRegion(poles6, { type: 'strip', sigmaMin: -5, sigmaMax: -0.5 });
+  ok('strip: pole -6 outside strip(-5, -0.5)', !stripFail.satisfied,
+    `margin=${stripFail.margins[0].toFixed(4)}`);
+}
+
+// ============================================================
+// P17-13: lqrWithPoleRegion
+// ============================================================
+console.log('\n=== P17-13: lqrWithPoleRegion ===\n');
+{
+  // Simple 2nd-order system: spring-mass with marginal damping
+  const A = [[0, 1], [-1, -0.1]];
+  const B = [[0], [1]];
+  const Q = [[1, 0], [0, 1]];
+  const R = [[1]];
+
+  // Disc region: all poles inside |s + 1| < 3 (center -1, radius 3)
+  const region = { type: 'disc', alpha: 1, radius: 3 };
+  const result = lqrWithPoleRegion(A, B, Q, R, region, { maxIter: 15 });
+  ok('lqrWithPoleRegion returns a result', result !== null && result.K !== null);
+  ok('lqrWithPoleRegion finds K satisfying disc region', result.satisfied,
+    `satisfied=${result.satisfied}, iterations=${result.iterations}`);
+  ok('lqrWithPoleRegion all CL poles have Re < 0',
+    result.poles.every(p => p.re < 0),
+    `poles=${result.poles.map(p => p.re.toFixed(3)).join(', ')}`);
+  ok('K has correct shape 1×2', result.K.length === 1 && result.K[0].length === 2,
+    `K shape=${result.K.length}×${result.K[0].length}`);
+}
+
 console.log('');
 if (failed === 0) console.log('P17 advanced control: all checks passed');
 else {

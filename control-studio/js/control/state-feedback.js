@@ -1319,3 +1319,169 @@ export function observerPoles(A, C, L) {
   const Aobs = matSub(A, matMul(L, C));
   return matrixPoles(Aobs);
 }
+
+// ---------------------------------------------------------------------------
+// Phase 7 Extension: Integral-action state augmentation
+// ---------------------------------------------------------------------------
+
+/**
+ * Augment a state-space model with an integral action on tracking error (y - r).
+ * Enables zero steady-state error under constant references/disturbances with
+ * state feedback u = -[Kx, Ki] * [x; xi].
+ *
+ * @param {number[][]} A - n×n state matrix
+ * @param {number[][]} B - n×m input matrix
+ * @param {number[][]} C - p×n output matrix
+ * @returns {{ Aaug: number[][], Baug: number[][], Caug: number[][], n: number, ni: number }}
+ *   Aaug = [A, 0; -C, 0] (n+p × n+p)
+ *   Baug = [B; 0] (n+p × m)
+ *   Caug = [C, 0] (p × n+p)
+ *   n = original state count, ni = integral state count (= p = output count)
+ */
+export function augmentWithIntegralAction(A, B, C) {
+  const n = A.length;
+  const m = B[0].length;
+  const p = C.length;
+
+  // Aaug: [A | 0_{n×p}; -C | 0_{p×p}]
+  const Aaug = Array.from({ length: n + p }, (_, i) =>
+    Array.from({ length: n + p }, (_, j) => {
+      if (i < n && j < n) return A[i][j];
+      if (i < n && j >= n) return 0;
+      if (i >= n && j < n) return -C[i - n][j];
+      return 0;
+    })
+  );
+
+  // Baug: [B; 0_{p×m}]
+  const Baug = Array.from({ length: n + p }, (_, i) =>
+    Array.from({ length: m }, (_, j) => (i < n ? B[i][j] : 0))
+  );
+
+  // Caug: [C | 0_{p×p}]
+  const Caug = Array.from({ length: p }, (_, i) =>
+    Array.from({ length: n + p }, (_, j) => (j < n ? C[i][j] : 0))
+  );
+
+  return { Aaug, Baug, Caug, n, ni: p };
+}
+
+/**
+ * Design integral-action LQR: augment with integrator, then call solveLqr on augmented system.
+ * Returns K split into [Kx, Ki]: u = -Kx·x - Ki·xi
+ *
+ * @param {number[][]} A - original n×n state matrix
+ * @param {number[][]} B - original n×m input matrix
+ * @param {number[][]} C - original p×n output matrix
+ * @param {number[][]} Qaug - (n+p)×(n+p) augmented state cost (or null for identity)
+ * @param {number[][]} R - m×m control cost
+ * @returns {{ Kx, Ki, K, P, Aaug, Baug, Caug, augCLStable, poles }}
+ */
+export function designIntegralLQR(A, B, C, Qaug, R) {
+  const { Aaug, Baug, Caug, n, ni } = augmentWithIntegralAction(A, B, C);
+  if (!Qaug) Qaug = matIdentity(n + ni);
+  const result = solveLqr(Aaug, Baug, Qaug, R);
+  const K = result.K; // m×(n+ni)
+
+  // Split: Kx = K[:, 0:n], Ki = K[:, n:]
+  const Kx = K.map(row => row.slice(0, n));
+  const Ki = K.map(row => row.slice(n));
+
+  // Check closed-loop stability of augmented system
+  const Acl = matSub(Aaug, matMul(Baug, K));
+  const augPoles = matrixPoles(Acl);
+  const augCLStable = augPoles.every(p => p.re < 0);
+
+  return { Kx, Ki, K, P: result.P, Aaug, Baug, Caug, augCLStable, poles: augPoles };
+}
+
+// ---------------------------------------------------------------------------
+// Phase 7 Extension: Regional pole placement / D-stability
+// ---------------------------------------------------------------------------
+
+/**
+ * Check whether a set of eigenvalues satisfies a pole region constraint.
+ * @param {Array<{re:number, im:number}>} poles
+ * @param {{ type: 'disc'|'sector'|'strip', ...params }} region
+ *   disc:   { alpha, radius }     → |s + alpha| < radius
+ *   sector: { zetaMin }           → ζ = -Re(s)/|s| ≥ zetaMin
+ *   strip:  { sigmaMin, sigmaMax } → sigmaMin < Re(s) < sigmaMax (both negative)
+ * @returns {{ satisfied: boolean, violations: number[], margins: number[] }}
+ */
+export function checkPoleRegion(poles, region) {
+  const margins = [];
+  const violations = [];
+
+  for (let i = 0; i < poles.length; i++) {
+    const { re, im } = poles[i];
+    let margin;
+
+    if (region.type === 'disc') {
+      // |s + alpha| < radius  →  margin = radius - |s + alpha|
+      const dist = Math.sqrt((re + region.alpha) ** 2 + im ** 2);
+      margin = region.radius - dist;
+    } else if (region.type === 'sector') {
+      // ζ = -Re(s)/|s| ≥ zetaMin  →  margin = ζ - zetaMin
+      const mag = Math.sqrt(re ** 2 + im ** 2);
+      const zeta = mag > 1e-12 ? -re / mag : (re < 0 ? 1 : 0);
+      margin = zeta - region.zetaMin;
+    } else if (region.type === 'strip') {
+      // sigmaMin < Re(s) < sigmaMax
+      // margin = min distance to either boundary (positive = inside)
+      const marginMin = re - region.sigmaMin; // > 0 if Re(s) > sigmaMin
+      const marginMax = region.sigmaMax - re; // > 0 if Re(s) < sigmaMax
+      margin = Math.min(marginMin, marginMax);
+    } else {
+      throw new Error(`Unknown region type: ${region.type}`);
+    }
+
+    margins.push(margin);
+    if (margin < 0) violations.push(i);
+  }
+
+  return { satisfied: violations.length === 0, violations, margins };
+}
+
+/**
+ * Find LQR weights that keep closed-loop poles inside a region via iterative Q scaling.
+ * Starts from given Q, R and scales Q until all CL poles satisfy the region, up to maxIter.
+ *
+ * @param {number[][]} A
+ * @param {number[][]} B
+ * @param {number[][]} Q
+ * @param {number[][]} R
+ * @param {{ type: string, [key: string]: any }} region
+ * @param {{ maxIter?: number, qScale?: number }} options
+ * @returns {{ K, P, poles, satisfied, iterations }}
+ */
+export function lqrWithPoleRegion(A, B, Q, R, region, options = {}) {
+  const maxIter = options.maxIter ?? 20;
+  const qScale = options.qScale ?? 2;
+  let currentQ = Q.map(row => [...row]);
+  let bestResult = null;
+
+  for (let iter = 0; iter < maxIter; iter++) {
+    let lqrResult;
+    try {
+      lqrResult = solveLqr(A, B, currentQ, R);
+    } catch (_) {
+      // Scale up and retry
+      currentQ = currentQ.map(row => row.map(v => v * qScale));
+      continue;
+    }
+
+    const K = lqrResult.K;
+    const Acl = matSub(A, matMul(B, K));
+    const poles = matrixPoles(Acl);
+    const check = checkPoleRegion(poles, region);
+
+    bestResult = { K, P: lqrResult.P, poles, satisfied: check.satisfied, iterations: iter + 1 };
+
+    if (check.satisfied) return bestResult;
+
+    // Scale Q and retry
+    currentQ = currentQ.map(row => row.map(v => v * qScale));
+  }
+
+  return bestResult || { K: null, P: null, poles: [], satisfied: false, iterations: maxIter };
+}
