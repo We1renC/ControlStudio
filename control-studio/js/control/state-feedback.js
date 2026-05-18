@@ -1380,7 +1380,9 @@ export function augmentWithIntegralAction(A, B, C) {
 export function designIntegralLQR(A, B, C, Qaug, R) {
   const { Aaug, Baug, Caug, n, ni } = augmentWithIntegralAction(A, B, C);
   if (!Qaug) Qaug = matIdentity(n + ni);
-  const result = solveLqr(Aaug, Baug, Qaug, R);
+  // Use MIMO solver when m > 1, SISO solver otherwise
+  const m = B[0].length;
+  const result = m > 1 ? solveLqrMIMO(Aaug, Baug, Qaug, R) : solveLqr(Aaug, Baug, Qaug, R);
   const K = result.K; // m×(n+ni)
 
   // Split: Kx = K[:, 0:n], Ki = K[:, n:]
@@ -1482,13 +1484,12 @@ export function solveHinfFilter(A, C, Qw, Rv, gamma) {
   // So B̃·R̃⁻¹·B̃^T = S with B̃ = L, R̃ = I
   const L = _choleskyLower(S);
 
-  // Dual LQR: solveLqr(A^T, L, Qw, I_n) → solution P is the H∞ filter covariance
-  // LQR CARE: (A^T)^T·P + P·(A^T) - P·L·I⁻¹·L^T·P + Qw = 0
-  //         = A·P + P·A^T - P·L·L^T·P + Qw = 0
-  //         = A·P + P·A^T - P·S·P + Qw = 0  ✓
+  // Dual LQR: solve CARE for (A^T, L, Qw, I_n) → P is the H∞ filter covariance
+  // CARE: A·P + P·A^T - P·L·L^T·P + Qw = 0  ✓
+  // Use MIMO solver for n > 1; SISO solver for scalar systems.
   const I_n = matIdentity(n);
   const At = matTranspose(A);
-  const lqrResult = solveLqr(At, L, matSymmetrize(Qw), I_n);
+  const lqrResult = n > 1 ? solveLqrMIMO(At, L, matSymmetrize(Qw), I_n) : solveLqr(At, L, matSymmetrize(Qw), I_n);
   const P = lqrResult.P; // H∞ filter error covariance
 
   // Filter gain: K = P·C^T·Rv⁻¹

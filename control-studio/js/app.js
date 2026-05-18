@@ -770,8 +770,7 @@ function initEventListeners() {
   // H∞ filter
   document.getElementById('btn-hinf-filter')?.addEventListener('click', () => {
     try {
-      const model = resolveDesignStateSpace(state);
-      if (!model) throw new Error('請先建立 state-space 模型（MIMO 模式）');
+      const model = currentPhase7DesignModel();
       const gamma = parseFloat(document.getElementById('hinf-filter-gamma')?.value || '2');
       const qwVal = parseFloat(document.getElementById('hinf-filter-qw')?.value || '1');
       const rvVal = parseFloat(document.getElementById('hinf-filter-rv')?.value || '1');
@@ -793,8 +792,7 @@ function initEventListeners() {
   // Equilibrium detection
   document.getElementById('btn-find-eq')?.addEventListener('click', () => {
     try {
-      const model = resolveDesignStateSpace(state);
-      if (!model) throw new Error('請先建立 state-space 模型（MIMO 模式）');
+      const model = currentPhase7DesignModel();
       const n = model.A.length;
       if (n !== 2) throw new Error('Equilibrium scan 目前僅支援 n=2 系統');
       const r1 = parseFloat(document.getElementById('eq-range1')?.value || '3');
@@ -1926,7 +1924,9 @@ function runEkfUkf() {
       i === j ? (rDiag[i] ?? rDiag[rDiag.length - 1] ?? 1) : 0));
 
     const useUKF = document.getElementById('ekf-use-ukf')?.checked;
-    const uSeq = Array.from({ length: steps }, (_, k) => [k < 5 ? 0 : 1]); // step input
+    const m = Bd[0]?.length ?? 1; // number of inputs (SISO=1, MIMO=m)
+    const uSeq = Array.from({ length: steps }, (_, k) =>
+      Array.from({ length: m }, () => k < 5 ? 0 : 1)); // unit step on all inputs
 
     const result = runLinearEKF({ Ad, Bd, Cd }, uSeq, Q, R, { useUKF });
 
