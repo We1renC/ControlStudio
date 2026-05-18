@@ -8,8 +8,8 @@
 
 目前策略：
 - Block Diagram 暫時擱置，不在近期主線投入新功能。
-- Phase 0-9 全部完成：SISO 全鏈、State Feedback / Lyapunov / LQR、Observer / Kalman / LQG、MIMO 基礎與設計（RGA / SV Bode / Decoupler / MIMO LQR）。
-- 下一階段依 `CONTROL_SYSTEM_PHASE10_PLAN.md`：先完成 Schur / Hamiltonian CARE，再做 MPC baseline、Dynamic Decoupler、Robust Control scope。
+- Phase 0-16 已完成：SISO 全鏈、State Feedback / Lyapunov / LQR、Observer / Kalman / LQG、MIMO 基礎與設計（RGA / SV Bode / Decoupler / MIMO LQR）、MPC / Robust baseline、以及 P12~P16 的 usability / delay / identification / synthesis 擴充。
+- `CONTROL_SYSTEM_PHASE10_PLAN.md` 已屬歷史設計基線；目前主線已超過該文件。
 - 使用者已要求擱置：教學模式、Electron packaging、報告模板 / 報告自動化。
 - 每個功能必須有數學推導或 fixture 驗證，不只看 UI 是否可操作。
 - 控制理論新增功能需先有數學與驗證基線，避免直接擴大 UI 面。
@@ -30,9 +30,9 @@
 
 ## Current Baseline
 
-- Branch: `codex/control-system-latest`
-- Latest pre-Phase-10 synced commit: `b01f169 docs(control): mark all 9 Scenario 3+4 issues as resolved`
-- Current Phase 10+11 checkpoint: **All CS-P10 + CS-P11 items done**. MPC box-constraint QP + UI, gain/phase uncertainty envelope, matrix sign function CARE (n=8 100% reliable), DARE solver (P∞ terminal cost), MPC setpoint tracking, H∞ norm (grid+golden-section), dynamic RGA Λ(jω), state constraints + soft slack.
+- Branch: `main`
+- Latest synced commit: `84241c7 feat(p16): H∞ mixed-sensitivity synthesis, GA PID auto-tuner, phase portrait, describing functions`
+- Current checkpoint: **All CS-P0 ~ CS-P16 items done.** 主線現況已包含：Phase 10/11 的 CARE/DARE/MPC/robust/dynamic-RGA，Phase 12 的 H∞ 視覺化，Phase 13 的 UI/UX overhaul，Phase 14 的 delay/IMC/LaTeX/disk margin/seed control，Phase 15 的 ARX system ID / codegen / compare bode / root-locus animation，以及 Phase 16 的 mixed-sensitivity PID synthesis / GA PID auto-tuner / phase portrait / describing functions。
 - Scenario 5 browser walkthrough result: Phase 10 math + UI both operational.
 - Scenario 6 browser walkthrough result: SISO / MIMO core workflows are UI-operable.
 - Latest full-theory audit:
@@ -51,6 +51,12 @@
   - `node control-studio/scripts/verify_phase11_setpoint_and_state_constraints.mjs`
   - `node control-studio/scripts/verify_phase11_hinf.mjs`
   - `node control-studio/scripts/verify_phase11_dynamic_rga.mjs`
+  - `node control-studio/scripts/verify_p14_delay.mjs`
+  - `node control-studio/scripts/verify_p14_imc.mjs`
+  - `node control-studio/scripts/verify_p14_rng.mjs`
+  - `node control-studio/scripts/verify_p15_sysid.mjs`
+  - `node control-studio/scripts/verify_p16_hinf.mjs`
+  - `node control-studio/scripts/verify_p16_ga.mjs`
   - `node test_control.js`
   - `node control-studio/scripts/verify_control_cases.mjs`
   - `node control-studio/scripts/verify_control_api_contract.mjs`
@@ -258,11 +264,65 @@ Phase 10 + Phase 11 全部完成：
 - **CS-P11-04 Done**：Dynamic RGA Λ(jω) — 8/8
 - **CS-P11-05 Done**：State constraints + soft slack — 18/18
 
-**Total new tests added this session：50 cases (all passing)**
+### Phase 12: Robust Visualisation Upgrade (CS-P12)
+
+目標：把 robust analysis 從「有數字」提升成工程師可直接判讀的圖表。
+
+| ID | Priority | Status | Item | Verification |
+| --- | --- | --- | --- | --- |
+| CS-P12-01 | P1 | Done | Robust sensitivity dB scale + reference lines | Browser / UI regression；`5eb8e8f` |
+| CS-P12-02 | P1 | Done | Bandwidth metric + MIMO `||G||∞` visualisation | `hInfNorm()` + peak marker；`5eb8e8f` |
+
+### Phase 13: UI/UX Usability Overhaul (CS-P13)
+
+目標：整理可用性、可發現性、鍵盤操作與 accessibility，不改變數學核心。
+
+| ID | Priority | Status | Item | Verification |
+| --- | --- | --- | --- | --- |
+| CS-P13-01 | P1 | Done | Collapsible sections / quick-start presets / confirm modal | Manual browser walkthrough；`9763296` |
+| CS-P13-02 | P1 | Done | Live validation hints / loading states / keyboard shortcuts | Manual browser walkthrough；`9763296` |
+| CS-P13-03 | P1 | Done | Responsive + a11y cleanup | Manual browser walkthrough；`9763296` |
+
+### Phase 14: Delay / IMC / Formula / Robust Margin (CS-P14)
+
+目標：補工業控制常用 dead-time / tuning / formula 表示與 robust margin 指標。
+
+| ID | Priority | Status | Item | Verification |
+| --- | --- | --- | --- | --- |
+| CS-P14-01 | P1 | Done | Time delay / Padé / delay margin / Smith predictor | `node control-studio/scripts/verify_p14_delay.mjs` |
+| CS-P14-02 | P1 | Done | IMC / SIMC PID tuning | `node control-studio/scripts/verify_p14_imc.mjs` |
+| CS-P14-03 | P2 | Done | KaTeX LaTeX rendering | Browser regression；`e025a91` |
+| CS-P14-04 | P2 | Done | Preset library expansion (8 → 28) | Manual browser walkthrough；`e025a91` |
+| CS-P14-05 | P2 | Done | Disk margin + additive uncertainty | `test_control.js` + UI check；`e025a91` |
+| CS-P14-06 | P1 | Done | Seedable RNG / reproducible LQG randomness | `node control-studio/scripts/verify_p14_rng.mjs` |
+
+### Phase 15: Identification / Compare / Codegen / Animation (CS-P15)
+
+目標：補工程流程能力，讓 Studio 不只分析既有模型，也能從資料識別並導出外部工具腳本。
+
+| ID | Priority | Status | Item | Verification |
+| --- | --- | --- | --- | --- |
+| CS-P15-01 | P1 | Done | ARX system identification + auto order | `node control-studio/scripts/verify_p15_sysid.mjs` |
+| CS-P15-02 | P2 | Done | Controller A/B compare with open-loop Bode overlay | Browser regression；`c2cc25d` |
+| CS-P15-03 | P2 | Done | MATLAB / Python code generator | Generated script smoke；`c2cc25d` |
+| CS-P15-04 | P2 | Done | Root-locus K-sweep animation | Browser regression；`c2cc25d` |
+
+### Phase 16: Advanced Synthesis / Nonlinear Analysis (CS-P16)
+
+目標：補更高階的 controller search 與非線性分析入口，但仍維持現有工作台結構。
+
+| ID | Priority | Status | Item | Verification |
+| --- | --- | --- | --- | --- |
+| CS-P16-01 | P1 | Done | H∞ mixed-sensitivity PID synthesis helper | `node control-studio/scripts/verify_p16_hinf.mjs` |
+| CS-P16-02 | P2 | Done | Loop shaping workflow（由 H∞ weights 承擔） | `84241c7` |
+| CS-P16-03 | P2 | Done | Phase portrait + describing functions | Browser regression；`84241c7` |
+| CS-P16-04 | P1 | Done | GA-based PID auto-tuner | `node control-studio/scripts/verify_p16_ga.mjs` |
+
+**Validation aggregate status：`npm run verify:all` 現在涵蓋 phase11 / p14 / p15 / p16 / cases，多套件合計 100+ checks。**
 
 後續可選項目（非主線，視需求）：
 1. （P3）MPC MIMO setpoint tracking（多輸出追蹤，需 y=Cx 輸出空間 reference）
-2. （P3）H∞ synthesis（需 Riccati-based two-Riccati 路徑，複雜度高）
+2. （P3）完整 H∞ synthesis（two-Riccati / Glover-Doyle，而非目前的 mixed-sensitivity PID helper）
 3. （P3）擴大 uncertainty sweep：multiplicative output uncertainty、structured / parametric uncertainty
 
 ## Do Not Start Yet

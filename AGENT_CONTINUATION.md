@@ -8,12 +8,12 @@
 ## 目前狀態
 - 已建立獨立 git repo，避免被 `/Users/w.rc` 外層 git 混入。
 - 控制系統目前同步基線：
-  - Branch: `codex/control-system-latest`
-  - Latest active line: `2e2e576 feat(phase11): H∞ norm + dynamic RGA Λ(jω); update verify:all (CS-P11-03/04)`
+  - Branch: `main`
+  - Latest active line: `84241c7 feat(p16): H∞ mixed-sensitivity synthesis, GA PID auto-tuner, phase portrait, describing functions`
   - Full phase audit checkpoints:
     - `7a318b3 fix(control): harden phase 7-9 theory diagnostics`
     - `46e20da fix(control): harden phase 0-6 theory checks`
-  - 近期主線已接續完成 Phase 10 與 Phase 11 的數學核心補強；目前 codebase 已包含 matrix-sign CARE / DARE、MPC setpoint tracking / state constraints、H∞ norm 與 dynamic RGA。
+  - 近期主線已接續完成 Phase 12 ~ Phase 16；目前 codebase 已包含 H∞ 視覺化與 MIMO `||G||∞`、大幅 UI/UX 改版、time delay / IMC / disk margin / LaTeX、ARX system ID / A-B compare / codegen / root-locus animation、以及 H∞ mixed-sensitivity PID synthesis / GA PID auto-tuner / phase portrait / describing functions。
 - 已完成 NVIDIA Build Models 資料集中管理。
 - 已新增 agent 入口文件：
   - `AGENTS.md`：專案規則、標準流程、擴充規則與品質判準。
@@ -67,8 +67,32 @@
     - Done：Dynamic RGA `Λ(jω)`
     - Done：`verify:all` 納入 phase11 驗證
     - Paused：Teaching Mode / Electron / Report Template / Block Diagram expansion
+  - Phase 12：Done
+    - Done：Robust sensitivity 圖改為 dB 尺度與 reference lines
+    - Done：bandwidth 指標與 MIMO `||G||∞` 視覺化
+    - Done：`H∞ Norms` UI 區塊整併
+  - Phase 13：Done
+    - Done：sidebar / tab / section / modal / validation hint 的 UI/UX overhaul
+    - Done：Quick Start modal（8 presets）與 keyboard shortcuts
+    - Done：destructive action confirm、live field validation、accessibility / responsive cleanup
+  - Phase 14：Done
+    - Done：time delay / Padé / delay margin / Smith predictor baseline
+    - Done：IMC / SIMC PID tuning
+    - Done：KaTeX LaTeX rendering 與 28 個 industrial presets
+    - Done：disk margin / additive uncertainty
+    - Done：seedable RNG 與 LQG random-seed control
+  - Phase 15：Done
+    - Done：ARX system identification（含 auto order）
+    - Done：controller A/B compare（含 open-loop Bode overlay）
+    - Done：MATLAB / Python codegen
+    - Done：root locus K-sweep animation
+  - Phase 16：Done
+    - Done：H∞ mixed-sensitivity PID synthesis helper
+    - Done：GA-based PID auto-tuner
+    - Done：2D phase portrait
+    - Done：describing functions（saturation / relay / dead-zone）
   - Block Diagram expansion：Paused
-  - Phase 0 ~ Phase 11 已完成通盤數學理論完善度檢查。後續若修改數值核心，至少重跑 `npm run verify:math`、`npm run verify:all`、`node test_control.js`、`node control-studio/scripts/control_regression_dashboard.mjs`。
+  - Phase 0 ~ Phase 16 已完成通盤數學理論與產品流程檢查。後續若修改數值核心，至少重跑 `npm run verify:math`、`npm run verify:phase11`、`npm run verify:p14`、`npm run verify:p15`、`npm run verify:p16`、`npm run verify:all`、`node test_control.js`、`node control-studio/scripts/control_regression_dashboard.mjs`。
 - 已建立 symlink：
   - `/Users/w.rc/.config/agents/skills/nvidia-model-selector`
   - 指向 `/Users/w.rc/nvdiaOSsupport/skills/nvidia-model-selector`
@@ -197,20 +221,25 @@ git log --oneline -5
 - `control-studio/js/math/matrix.js` 已新增 matrix sign function；`control-studio/js/control/state-feedback.js` 已補 matrix-sign CARE 與 DARE solver，支援高階 CARE 與離散 terminal-cost 設計。
 - `control-studio/js/control/mpc.js` 已補 MPC setpoint tracking、steady-state target solver、state constraints / soft slack；`control-studio/js/control/robust.js` 已補 `hInfNorm()`；`control-studio/js/control/mimo.js` 已補 `dynamicRGA()`。
 - `control-studio/scripts/verify_phase11_dare.mjs`、`verify_phase11_setpoint_and_state_constraints.mjs`、`verify_phase11_hinf.mjs`、`verify_phase11_dynamic_rga.mjs` 已加入；`package.json` 現在可用 `npm run verify:math` / `npm run verify:all` 聚合驗證。
+- `control-studio` 已補 Phase 12：robust sensitivity dB scale、0 / 5.1 / 8 dB reference lines、bandwidth 指標、MIMO `||G||∞` 視覺化與 peak marker。
+- `control-studio` 已補 Phase 13：可折疊 section、Quick Start modal、confirm modal、live field validation、keyboard shortcuts、tablet / reduced-motion / a11y 整理。
+- `control-studio` 已補 Phase 14：time delay / Padé、delay margin、Smith predictor 包裝、IMC / SIMC tuning、KaTeX 公式、28 個 presets、disk margin / additive uncertainty、seedable RNG；`npm run verify:p14` 可重跑 3 組驗證。
+- `control-studio` 已補 Phase 15：ARX system ID（least squares + AIC auto order）、Compare Bode overlay、MATLAB / Python codegen、root-locus K-sweep animation；`npm run verify:p15` 可重跑驗證。
+- `control-studio` 已補 Phase 16：mixed-sensitivity H∞ PID synthesis helper、GA PID auto-tuner、phase portrait、describing functions；`npm run verify:p16` 可重跑驗證。
 
 ## 後續可做
-1. 控制系統主線已無 Phase 10 / 11 缺口；下一步若要擴充，應先定義 Phase 12 範圍，而不是繼續沿用 Phase 10 backlog。
-2. Robust Control 仍維持分析型工具，不直接做 H∞ / μ synthesis。
+1. 控制系統主線已推進到 Phase 16；下一步若要擴充，應以 `p17+` 的新文件或 backlog 區塊定義，不要再沿用舊的 Phase 10 / 11 next-step 描述。
+2. Robust Control 目前已有 mixed-sensitivity PID synthesis helper，但仍不是完整 Glover-Doyle H∞ / μ synthesis。
 3. Teaching Mode / Electron / Report Template 目前使用者要求擱置，不要開發。
 4. Block Diagram 目前維持 paused；不要新增 block diagram 功能，除非使用者重新明確恢復。
-5. 加 `agents/openai.yaml` UI metadata。
-6. 增強 evaluator：從 heuristic 檢查升級成 judge model + golden dataset。
-7. 若 NVIDIA Build Models 更新，先更新根目錄資料檔，再同步 `skills/nvidia-model-selector/references/`。
-8. 視需求把 `search_models.py` 加上 `--top-category-summary` 或 fuzzy ranking。
-9. 若要更實用，補上本地文件切 chunk / PDF 轉圖 / OCR 結果快取。
-10. 加 parallel runner 與 leaderboard，追蹤同任務多模型輸出品質。
-11. 將 OCR/RAG 的 endpoint source 也改成完整 registry-driven，而不只傳入 model id。
-12. Electron packaging 與教學模式已依使用者要求擱置，勿自行恢復。
+5. 若要再推控制理論主線，優先考慮完整 H∞ synthesis、MPC MIMO setpoint tracking、或更廣的 uncertainty framework，而不是回頭做 block diagram。
+6. 加 `agents/openai.yaml` UI metadata。
+7. 增強 evaluator：從 heuristic 檢查升級成 judge model + golden dataset。
+8. 若 NVIDIA Build Models 更新，先更新根目錄資料檔，再同步 `skills/nvidia-model-selector/references/`。
+9. 視需求把 `search_models.py` 加上 `--top-category-summary` 或 fuzzy ranking。
+10. 若要更實用，補上本地文件切 chunk / PDF 轉圖 / OCR 結果快取。
+11. 加 parallel runner 與 leaderboard，追蹤同任務多模型輸出品質。
+12. 將 OCR/RAG 的 endpoint source 也改成完整 registry-driven，而不只傳入 model id。
 
 ## 注意事項
 - 這個專案不需要 `.agent-handoff.md`。
