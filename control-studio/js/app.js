@@ -21,7 +21,10 @@ import { matTranspose, matSub, matMul } from './math/matrix.js?v=p5';
 import { BlockEditor } from './editor/editor.js';
 import { MIMOStateSpace, parseMIMOMatrices, rgaSteady, rgaDiagnosis, rgaInvariants, singularValueBode, staticDecoupler, applyDecoupler, dynamicDecouplerAtFrequency, evalAtJw, singularValues } from './control/mimo.js';
 import { simulateConstrainedMpc, simulateUnconstrainedMpc } from './control/mpc.js';
-import { sensitivityBode, robustPeaks, uncertaintyEnvelope, hInfNorm } from './control/robust.js';
+import { sensitivityBode, robustPeaks, uncertaintyEnvelope, hInfNorm, additiveUncertaintyEnvelope, diskMargin } from './control/robust.js';
+import { applyDelay, padeApprox, delayMargin, smithPredictor } from './control/delay.js';
+import { polyToLatex, tfToLatex, renderLatex, pidToLatex } from './utils/latex.js';
+import { setSeed, getSeed, resetSeed } from './math/rng.js';
 import { tfToControllableCanonical } from './control/state-space.js?v=p5';
 
 // ============================================================
@@ -203,6 +206,8 @@ function initEventListeners() {
 
   document.getElementById('tf-num')?.addEventListener('input', debounce(updateSystem, 300));
   document.getElementById('tf-den')?.addEventListener('input', debounce(updateSystem, 300));
+  document.getElementById('tf-delay')?.addEventListener('input', debounce(updateSystem, 300));
+  document.getElementById('tf-pade-order')?.addEventListener('change', updateSystem);
   ['ss-a', 'ss-b', 'ss-c', 'ss-d'].forEach((id) => {
     document.getElementById(id)?.addEventListener('input', debounce(updateSystem, 300));
   });
@@ -457,14 +462,22 @@ function renderTransferFunctionEquation(symbol, tf, note = '') {
       </div>
     `;
   }
+  const numEsc = escapeHtml(formatPolyText(tf.num));
+  const denEsc = escapeHtml(formatPolyText(tf.den));
+  const numTex = polyToLatex(tf.num, 's').replaceAll('"', '&quot;');
+  const denTex = polyToLatex(tf.den, 's').replaceAll('"', '&quot;');
+  const symbolEsc = escapeHtml(symbol);
   return `
     <div class="equation-stack">
       <div class="equation-line">
-        <div class="equation-symbol">${escapeHtml(symbol)}</div>
+        <div class="equation-symbol">${symbolEsc}</div>
         <div class="tf-fraction">
-          <div class="tf-num">${escapeHtml(formatPolyText(tf.num))}</div>
-          <div class="tf-bar"></div>
-          <div class="tf-den">${escapeHtml(formatPolyText(tf.den))}</div>
+          <div class="cs-tf-latex" data-symbol="${symbolEsc}" data-num="${numTex}" data-den="${denTex}" aria-hidden="true"></div>
+          <div class="cs-tf-fallback">
+            <div class="tf-num">${numEsc}</div>
+            <div class="tf-bar"></div>
+            <div class="tf-den">${denEsc}</div>
+          </div>
         </div>
       </div>
       ${note ? `<div class="equation-note">${escapeHtml(note)}</div>` : ''}
@@ -601,7 +614,17 @@ function applyPIDPreset() {
       setFieldError('preset-fopdt', '請輸入 tau, td，且都必須大於 0');
       throw new Error('FOPDT tau/td 必須大於 0');
     }
-    setPIDFromController(PIDController.cohenCoon(plantK, tau, td), 'cohen-coon');
+    if (preset === 'imc-pi' || preset === 'imc-pid') {
+      const lambda = parseFloat(document.getElementById('preset-lambda')?.value || tau);
+      if (!(lambda > 0)) { setFieldError('preset-lambda', 'λ 必須大於 0'); throw new Error('λ 必須大於 0'); }
+      const type = preset === 'imc-pi' ? 'PI' : 'PID';
+      setPIDFromController(PIDController.imc(plantK, tau, td, lambda, type), `imc-${type.toLowerCase()}`);
+    } else if (preset === 'simc') {
+      const tauC = parseFloat(document.getElementById('preset-lambda')?.value || td);
+      setPIDFromController(PIDController.simc(plantK, tau, td, Number.isFinite(tauC) ? tauC : null), 'simc');
+    } else {
+      setPIDFromController(PIDController.cohenCoon(plantK, tau, td), 'cohen-coon');
+    }
     clearError();
   } catch (err) {
     showError(err.message);
@@ -1591,6 +1614,33 @@ function clearSessionStorage() {
   showError('已清除本地 session autosave');
 }
 
+// P14-03: Replace text-based TF fractions with KaTeX-rendered LaTeX if available.
+function renderAllLatexFractions() {
+  const ready = typeof window !== 'undefined' && window.katex;
+  document.querySelectorAll('.cs-tf-latex').forEach((el) => {
+    const num = el.dataset.num || '0';
+    const den = el.dataset.den || '1';
+    const tex = `\\frac{${num}}{${den}}`;
+    if (ready) {
+      try {
+        window.katex.render(tex, el, { throwOnError: false, displayMode: true, output: 'html' });
+        el.setAttribute('aria-hidden', 'false');
+        const fallback = el.parentElement?.querySelector('.cs-tf-fallback');
+        if (fallback) fallback.style.display = 'none';
+      } catch { /* keep fallback visible */ }
+    }
+  });
+}
+// Re-render once KaTeX finishes loading from CDN
+if (typeof window !== 'undefined') {
+  let _ktxAttempts = 0;
+  const _ktxRetry = () => {
+    if (window.katex) { renderAllLatexFractions(); return; }
+    if (_ktxAttempts++ < 20) setTimeout(_ktxRetry, 150);
+  };
+  setTimeout(_ktxRetry, 200);
+}
+
 function updateSystemSetupCopy() {
   const modelCopy = document.getElementById('model-section-copy');
   const systemEquation = document.getElementById('system-equation');
@@ -1632,6 +1682,8 @@ function updateSystemSetupCopy() {
     renderTransferFunctionEquation('T(s) =', state.closedLoop, state.showClosedLoop ? 'Active view: closed-loop response' : 'Active view: plant / open-loop analysis'),
   ];
   loopEquation.innerHTML = loopParts.join('');
+  // P14-03: render LaTeX fractions if KaTeX is loaded
+  renderAllLatexFractions();
 }
 
 // ============================================================
@@ -1709,7 +1761,19 @@ function updateSystem() {
       if (!num) { setFieldError('tf-num', '請輸入有效的分子係數'); throw new Error('無效的分子係數'); }
       if (!den) { setFieldError('tf-den', '請輸入有效的分母係數'); throw new Error('無效的分母係數'); }
       if (isZeroPolynomial(den)) { setFieldError('tf-den', '分母係數不能全為 0'); throw new Error('分母係數不能全為 0'); }
-      state.plant = new TransferFunction(num, den);
+      let tf = new TransferFunction(num, den);
+      // P14-01: optional time delay via Padé approximation
+      const delayEl = document.getElementById('tf-delay');
+      const orderEl = document.getElementById('tf-pade-order');
+      const T = parseFloat(delayEl?.value || '0');
+      const order = parseInt(orderEl?.value || '2', 10);
+      if (Number.isFinite(T) && T > 0) {
+        tf = applyDelay(tf, T, Math.max(1, Math.min(6, order || 2)));
+        state.plantDelay = { T, order };
+      } else {
+        state.plantDelay = null;
+      }
+      state.plant = tf;
     }
     clearError();
     autoToggleOpenLoopForUnstablePlant();
@@ -1891,6 +1955,33 @@ function updateStabilityPanel() {
     } : stabilityMargins(ol);
     if (gmEl) gmEl.textContent = margins.gainMarginDB === Infinity ? '∞' : fmtDB(margins.gainMarginDB);
     if (pmEl) pmEl.textContent = isNaN(margins.phaseMargin) ? '—' : fmtDeg(margins.phaseMargin);
+
+    // P14: Delay Margin (sec) and Disk Margin (dimensionless)
+    const dmEl = document.getElementById('dm-value');
+    const dskmEl = document.getElementById('dskm-value');
+    if (dmEl) {
+      const dm = delayMargin(margins.phaseMargin, margins.gainCrossover);
+      dmEl.textContent = !Number.isFinite(dm) ? '—' : (dm < 1 ? `${(dm*1000).toFixed(1)} ms` : `${dm.toFixed(3)} s`);
+    }
+    if (dskmEl) {
+      try {
+        if (isDiscrete || !ol) {
+          dskmEl.textContent = '—';
+        } else {
+          // Auto-compute disk margin on demand with a default ω grid
+          const N = 80;
+          const omegas = Array.from({ length: N }, (_, i) => Math.pow(10, -2 + (4 * i) / (N - 1)));
+          const dm = diskMargin(ol, omegas, null);
+          if (Number.isFinite(dm.alpha)) {
+            const pm = Number.isFinite(dm.phaseDeg) ? `, ±${dm.phaseDeg.toFixed(1)}°` : '';
+            dskmEl.textContent = `α=${dm.alpha.toFixed(3)}${pm}`;
+            dskmEl.title = `Disk margin α=${dm.alpha.toFixed(4)}, equivalent ±${(dm.phaseDeg||0).toFixed(2)}° phase, ±${(dm.gainDB||0).toFixed(2)} dB gain`;
+          } else {
+            dskmEl.textContent = '—';
+          }
+        }
+      } catch { dskmEl.textContent = '—'; }
+    }
 
     const resp = isDiscrete
       ? discreteStepResponse(sys, {
@@ -4647,14 +4738,51 @@ const csUI = (() => {
 
   // -------- Quick Start presets --------
   const presets = {
-    'rc-circuit': { type: 'tf', num: '1', den: '1, 1', desc: 'RC low-pass G(s)=1/(s+1)' },
-    'dc-motor': { type: 'tf', num: '5', den: '1, 6, 5', desc: 'DC motor G(s)=5/(s²+6s+5)' },
-    'mass-spring': { type: 'tf', num: '1', den: '1, 0.4, 4', desc: 'Mass-spring G(s)=1/(s²+0.4s+4)' },
-    'inverted-pendulum': { type: 'tf', num: '1', den: '1, 0, -4', desc: 'Inverted pendulum (unstable)' },
-    'non-minimum': { type: 'tf', num: '-1, 2', den: '1, 3, 2', desc: 'Non-minimum phase' },
+    // Classical textbook examples
+    'rc-circuit': { type: 'tf', num: '1', den: '1, 1', desc: 'RC low-pass G=1/(s+1)' },
+    'rl-circuit': { type: 'tf', num: '10', den: '1, 10', desc: 'RL circuit G=10/(s+10)' },
+    'mass-spring': { type: 'tf', num: '1', den: '1, 0.4, 4', desc: 'Mass-spring-damper underdamped' },
+    'mass-spring-overdamped': { type: 'tf', num: '1', den: '1, 5, 4', desc: 'Mass-spring overdamped' },
     'high-order': { type: 'tf', num: '1', den: '1, 4, 6, 4, 1', desc: 'High-order (s+1)⁴' },
+    'integrator': { type: 'tf', num: '1', den: '1, 0', desc: 'Pure integrator G=1/s' },
+    'double-integrator': { type: 'tf', num: '1', den: '1, 0, 0', desc: 'Double integrator (e.g. position from force)' },
+
+    // Industrial / process control
+    'dc-motor': { type: 'tf', num: '5', den: '1, 6, 5', desc: 'DC motor (speed): K·a/(τs+1)(Js+b)' },
+    'dc-motor-position': { type: 'tf', num: '5', den: '1, 6, 5, 0', desc: 'DC motor (position) — adds integrator' },
+    'ball-beam': { type: 'tf', num: '-1.4', den: '1, 0, 0', desc: 'Ball-and-beam linearized model' },
+    'heat-exchanger': { type: 'tf', num: '2', den: '1, 0.5', delay: 3, desc: 'Heat exchanger 1st-order + dead time' },
+    'liquid-level': { type: 'tf', num: '1', den: '20, 1', desc: 'Liquid level tank τ=20s' },
+    'oven-temp': { type: 'tf', num: '5', den: '120, 1', delay: 15, desc: 'Industrial oven (FOPDT)' },
+    'distillation': { type: 'tf', num: '1', den: '10, 1', delay: 2, desc: 'Distillation column simplified' },
+
+    // Power / electronics
+    'buck-converter': { type: 'tf', num: '1', den: '1e-9, 1e-5, 1', desc: 'Buck converter LC filter' },
+    'rlc-resonant': { type: 'tf', num: '1', den: '1, 0.2, 1', desc: 'RLC resonator Q≈5' },
+
+    // Aerospace
+    'aircraft-pitch': { type: 'tf', num: '1.151, 0.1774', den: '1, 0.739, 0.921, 0', desc: 'Aircraft pitch dynamics (longitudinal)' },
+    'aircraft-bank': { type: 'tf', num: '4', den: '1, 4', desc: 'Aircraft roll/bank simplified' },
+    'satellite-attitude': { type: 'tf', num: '1', den: '1, 0, 0', desc: 'Satellite attitude (rigid body)' },
+
+    // Mechanical / robotics
+    'robot-joint': { type: 'tf', num: '100', den: '1, 20, 100', desc: 'Robot joint flexible drive' },
+    'cart-position': { type: 'tf', num: '1', den: '1, 2, 0', desc: 'Cart with viscous damping (position)' },
+    'inverted-pendulum': { type: 'tf', num: '1', den: '1, 0, -4', desc: 'Inverted pendulum (linearized, unstable)' },
+
+    // Non-minimum phase / pathological
+    'non-minimum': { type: 'tf', num: '-1, 2', den: '1, 3, 2', desc: 'Non-minimum phase (RHP zero)' },
+    'rhp-pole': { type: 'tf', num: '1', den: '1, -1', desc: 'Unstable plant 1/(s−1)' },
+    'all-pass': { type: 'tf', num: '-1, 1', den: '1, 1', desc: 'First-order all-pass filter' },
+    'lightly-damped': { type: 'tf', num: '1', den: '1, 0.05, 1', desc: 'Lightly damped ζ≈0.025' },
+
+    // Discrete
     'discrete-fir': { type: 'dtf', num: '0.5', den: '1, -0.5', desc: 'Discrete 1st-order H(z)' },
-    'mimo-2x2': { type: 'mimo', A: '-1 0.5\n0 -2', B: '1 0\n0 1', C: '1 0\n0 1', D: '0 0\n0 0', desc: '2×2 MIMO coupling' },
+    'discrete-fopdt': { type: 'dtf', num: '0.4', den: '1, -0.6', desc: 'Discrete FOPDT' },
+
+    // MIMO
+    'mimo-2x2': { type: 'mimo', A: '-1 0.5\n0 -2', B: '1 0\n0 1', C: '1 0\n0 1', D: '0 0\n0 0', desc: '2×2 MIMO coupled' },
+    'mimo-quadtank': { type: 'mimo', A: '-0.025 0 0.026 0\n0 -0.0166 0 0.018\n0 0 -0.0263 0\n0 0 0 -0.018', B: '0.083 0\n0 0.063\n0 0.05\n0.054 0', C: '0.5 0 0 0\n0 0.5 0 0', D: '0 0\n0 0', desc: 'Quadruple-tank process (4-state)' },
   };
   function loadPreset(name) {
     const p = presets[name];
@@ -4665,8 +4793,10 @@ const csUI = (() => {
       document.querySelector('.sys-tab[data-type="tf"]')?.click();
       const numEl = document.getElementById('tf-num');
       const denEl = document.getElementById('tf-den');
+      const delayEl = document.getElementById('tf-delay');
       if (numEl) numEl.value = p.num;
       if (denEl) denEl.value = p.den;
+      if (delayEl) delayEl.value = p.delay || 0;
       document.getElementById('btn-apply')?.click();
     } else if (p.type === 'dtf') {
       document.querySelector('.system-mode-btn[data-mode="siso"]')?.click();
@@ -4758,6 +4888,15 @@ const csUI = (() => {
     document.querySelectorAll('[data-preset]').forEach((btn) => {
       btn.addEventListener('click', () => loadPreset(btn.dataset.preset));
     });
+    document.querySelectorAll('.preset-filter').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.preset-filter').forEach((b) => b.classList.toggle('active', b === btn));
+        const cat = btn.dataset.filter;
+        document.querySelectorAll('.preset-card').forEach((card) => {
+          card.style.display = (cat === 'all' || card.dataset.cat === cat) ? '' : 'none';
+        });
+      });
+    });
     // Auto-open on first visit
     try {
       if (!localStorage.getItem('controlStudio.seenQuickStart')) {
@@ -4823,6 +4962,26 @@ const csUI = (() => {
     observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
   }
 
+  // -------- Random seed wiring --------
+  function initSeedControl() {
+    const seedEl = document.getElementById('random-seed');
+    const clearBtn = document.getElementById('btn-clear-seed');
+    if (seedEl) {
+      seedEl.addEventListener('change', () => {
+        const v = seedEl.value.trim();
+        if (v === '') setSeed(null);
+        else { const n = parseInt(v, 10); setSeed(Number.isFinite(n) ? n : null); }
+      });
+    }
+    if (clearBtn) {
+      clearBtn.addEventListener('click', () => { if (seedEl) seedEl.value = ''; setSeed(null); });
+    }
+    // Before any LQG/Kalman simulation, reset to the configured seed so reruns are reproducible
+    document.getElementById('btn-lqg-sim')?.addEventListener('click', () => resetSeed(), { capture: true });
+    document.getElementById('btn-phase8-simulate')?.addEventListener('click', () => resetSeed(), { capture: true });
+    document.getElementById('btn-dkf')?.addEventListener('click', () => resetSeed(), { capture: true });
+  }
+
   // -------- Init --------
   function init() {
     wrapSectionBodies();
@@ -4833,6 +4992,7 @@ const csUI = (() => {
     initShortcuts();
     wrapDestructiveButtons();
     watchThemeForCharts();
+    initSeedControl();
   }
 
   return { init, showModal, hideModal, confirm, setLoading, withLoading, collapseAll, expandAll, loadPreset };

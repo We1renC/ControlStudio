@@ -97,6 +97,99 @@ export function robustPeaks(loopTf, omegas, controllerTf = null) {
  *   grid: { gainFactors: number[], phaseShiftsDeg: number[] }
  * }}
  */
+/**
+ * Additive uncertainty: L_perturbed(jω) = L(jω) + ΔL(jω), where |ΔL(jω)| ≤ W_a(ω) at frequency ω.
+ * Returns worst-case |S|, |T|, |KS| over a disk perturbation of radius W_a sampled at `samples` angles.
+ *
+ * Use when the plant is poorly modeled in absolute terms (e.g. additive uncertainty Δ = G_real − G_model).
+ *
+ * @param {TransferFunction} loopTf
+ * @param {number[]} omegas
+ * @param {Object} options
+ * @param {number} options.radius - additive disk radius (single number) OR
+ * @param {Function} options.radiusFn - ω → radius for frequency-dependent weight
+ * @param {number} options.samples - number of angles on the disk (default 8)
+ * @param {TransferFunction} options.controllerTf
+ */
+export function additiveUncertaintyEnvelope(loopTf, omegas, options = {}) {
+  if (!Array.isArray(omegas) || !omegas.length) throw new Error('omegas must be a non-empty array');
+  const radius = options.radius ?? 0.1;
+  const radiusFn = options.radiusFn || (() => radius);
+  const samples = Math.max(2, options.samples ?? 8);
+  const controllerTf = options.controllerTf ?? null;
+
+  const nominalS = new Array(omegas.length);
+  const nominalT = new Array(omegas.length);
+  const worstS = new Array(omegas.length).fill(-Infinity);
+  const worstT = new Array(omegas.length).fill(-Infinity);
+  const worstKS = controllerTf ? new Array(omegas.length).fill(-Infinity) : null;
+
+  for (let k = 0; k < omegas.length; k++) {
+    const omega = omegas[k];
+    const s = new Complex(0, omega);
+    const Lnominal = loopTf.evalAt(s);
+    const Knominal = controllerTf ? controllerTf.evalAt(s) : null;
+    const w = Math.max(0, radiusFn(omega));
+
+    const Snom = new Complex(1, 0).div(onePlus(Lnominal));
+    const Tnom = Lnominal.div(onePlus(Lnominal));
+    nominalS[k] = Snom;
+    nominalT[k] = Tnom;
+
+    for (let j = 0; j < samples; j++) {
+      const ang = (2 * Math.PI * j) / samples;
+      const delta = new Complex(w * Math.cos(ang), w * Math.sin(ang));
+      const Lp = new Complex(Lnominal.re + delta.re, Lnominal.im + delta.im);
+      const denom = onePlus(Lp);
+      if (denom.magnitude < 1e-12) {
+        worstS[k] = Infinity; worstT[k] = Infinity;
+        if (worstKS) worstKS[k] = Infinity;
+        continue;
+      }
+      const Sp = new Complex(1, 0).div(denom);
+      const Tp = Lp.div(denom);
+      worstS[k] = Math.max(worstS[k], Sp.magnitude);
+      worstT[k] = Math.max(worstT[k], Tp.magnitude);
+      if (worstKS) {
+        const KSp = Knominal.mul(Sp);
+        worstKS[k] = Math.max(worstKS[k], KSp.magnitude);
+      }
+    }
+  }
+  return {
+    nominalS: nominalS.map((c) => ({ magnitude: c.magnitude })),
+    nominalT: nominalT.map((c) => ({ magnitude: c.magnitude })),
+    worstS, worstT, worstKS,
+    peaks: { S: Math.max(...worstS), T: Math.max(...worstT), KS: worstKS ? Math.max(...worstKS) : null },
+    radius,
+    samples,
+  };
+}
+
+/**
+ * Disk Margin α: largest disk (gain k ∈ [1/(1+α), 1+α], phase φ ∈ [−θ_α, θ_α])
+ * inside which closed-loop stability is preserved. Approximation via SISO sensitivity:
+ *   α ≈ 1 / max( ‖S‖∞ , ‖T‖∞ )
+ *
+ * Returns { alpha, phaseDeg, gainDB } where:
+ *   phaseDeg = 2·asin(α/2) (degrees) — equivalent phase margin
+ *   gainDB   = 20·log10((1+α/2)/(1−α/2)) — equivalent symmetric gain margin
+ *
+ * Reference: Seiler, Packard et al. (2020) "An Introduction to Disk Margins"
+ */
+export function diskMargin(loopTf, omegas, controllerTf = null) {
+  const peaks = robustPeaks(loopTf, omegas, controllerTf);
+  const Ms = peaks.Ms.peak;
+  const Mt = peaks.Mt.peak;
+  const maxPeak = Math.max(Ms, Mt);
+  if (!Number.isFinite(maxPeak) || maxPeak <= 0) return { alpha: NaN, phaseDeg: NaN, gainDB: NaN };
+  const alpha = 1 / maxPeak;
+  // Convert disk-margin α to equivalent classical margins
+  const phaseDeg = alpha < 2 ? (2 * Math.asin(alpha / 2) * 180) / Math.PI : NaN;
+  const gainDB = alpha < 2 ? 20 * Math.log10((1 + alpha / 2) / (1 - alpha / 2)) : NaN;
+  return { alpha, phaseDeg, gainDB, Ms, Mt };
+}
+
 export function uncertaintyEnvelope(loopTf, omegas, options = {}) {
   if (!Array.isArray(omegas) || !omegas.length) {
     throw new Error('omegas must be a non-empty array');

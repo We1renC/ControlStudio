@@ -8,6 +8,8 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;600;700&display=swap" rel="stylesheet">
   <script src="https://cdn.plot.ly/plotly-2.24.1.min.js"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" integrity="sha384-nB0miv6/jRmo5UMMR1wu3Gz6NLsoTkbqJghGIsx//Rlm+ZU03BU6SQNC66uf4l5+" crossorigin="anonymous">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js" integrity="sha384-7zkQWkzuo3B5mTepMUcHkMB5jZaolc2xDwL6VFqjFALcbeS9Ggm/Yr2r3Dy4lfFg" crossorigin="anonymous"></script>
   <style>
     :root {
       --bg-primary: #0f1117;
@@ -366,6 +368,21 @@
               <label>Denominator [a_n, ..., a_0]</label>
               <input type="text" id="tf-den" value="1, 3, 2" placeholder="e.g. 1, 3, 2">
             </div>
+            <div style="display:flex; gap:6px;">
+              <div class="input-group" style="flex:2; margin-bottom:0;">
+                <label>Time delay T (s) <span class="help-icon" title="Dead time (transport lag). Approximated by Padé">?</span></label>
+                <input type="number" id="tf-delay" value="0" min="0" step="0.05" placeholder="0 = no delay">
+              </div>
+              <div class="input-group" style="flex:1; margin-bottom:0;">
+                <label>Padé order</label>
+                <select id="tf-pade-order">
+                  <option value="1">1</option>
+                  <option value="2" selected>2</option>
+                  <option value="3">3</option>
+                  <option value="4">4</option>
+                </select>
+              </div>
+            </div>
           </div>
           <div id="sys-ss" class="sys-input-section" style="display:none;">
             <div class="input-group">
@@ -529,6 +546,9 @@
               <option value="zn-pi">Ziegler-Nichols PI</option>
               <option value="zn-p">Ziegler-Nichols P</option>
               <option value="cohen-coon">Cohen-Coon PID</option>
+              <option value="imc-pi">IMC PI (λ-tuning)</option>
+              <option value="imc-pid">IMC PID (λ-tuning)</option>
+              <option value="simc">Skogestad SIMC PI</option>
             </select>
           </div>
           <div class="summary-grid" style="margin-bottom:var(--space-2);">
@@ -545,8 +565,12 @@
               <input type="number" id="preset-plant-k" min="0.01" step="0.1" value="1">
             </div>
             <div class="input-group" style="margin-bottom:0;">
-              <label>tau / td</label>
+              <label>tau, td</label>
               <input type="text" id="preset-fopdt" value="5, 1">
+            </div>
+            <div class="input-group" style="margin-bottom:0;">
+              <label>λ (IMC/SIMC) <span class="help-icon" title="Closed-loop time constant for IMC. λ≈θ is balanced; λ=2-3θ is more robust">?</span></label>
+              <input type="number" id="preset-lambda" min="0.01" step="0.1" value="1">
             </div>
           </div>
           <button class="btn btn-sm" id="btn-apply-pid-preset" style="width:100%; justify-content:center;">Apply PID Preset</button>
@@ -622,6 +646,8 @@
           <div class="metric-grid">
             <div>Gain Margin<strong id="gm-value">∞</strong></div>
             <div>Phase Margin<strong id="pm-value">—</strong></div>
+            <div title="Delay Margin = PM(rad) / ω_gc — additional dead time tolerable before instability">Delay Margin<strong id="dm-value">—</strong></div>
+            <div title="Disk Margin α = 1 / max(‖S‖∞, ‖T‖∞) — single-number robustness metric">Disk Margin<strong id="dskm-value">—</strong></div>
             <div>Rise Time<strong id="rise-time">0s</strong></div>
             <div>Settling<strong id="settling-time">0s</strong></div>
             <div>Overshoot<strong id="overshoot">0%</strong></div>
@@ -963,6 +989,11 @@
                     <label>σ_w (Process Noise)</label>
                     <input type="number" id="lqg-noise-q" value="0" min="0" step="0.01">
                   </div>
+                </div>
+                <div style="display:flex;gap:8px;margin-bottom:8px;align-items:center;">
+                  <label style="font-size:11px;color:var(--text-muted);" title="Set a random seed for reproducible noise simulations. Leave blank to use Math.random.">Random Seed <span class="help-icon">?</span></label>
+                  <input type="number" id="random-seed" value="" placeholder="e.g. 42" step="1" style="width:100px;font-size:11px;">
+                  <button class="btn btn-sm" id="btn-clear-seed" type="button" title="Clear seed → use non-deterministic random">Clear</button>
                 </div>
                 <button class="btn btn-sm" id="btn-lqg-sim" style="width:100%;justify-content:center;margin-bottom:8px;">Simulate LQG</button>
                 <div id="lqg-out" style="font-size:11px;font-family:monospace;color:var(--text-secondary);background:rgba(15,17,23,.4);padding:8px;border-radius:6px;line-height:1.6;display:none;margin-bottom:8px;"></div>
@@ -1368,47 +1399,52 @@
       </div>
       <div class="modal-body">
         <p>選一個常見的控制系統範例，自動填入係數並計算。也可以隨時按 <kbd>Ctrl</kbd> + <kbd>/</kbd> 重新開啟。</p>
+        <div style="display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap;">
+          <button class="btn btn-sm preset-filter active" data-filter="all" type="button">All</button>
+          <button class="btn btn-sm preset-filter" data-filter="classical" type="button">Classical</button>
+          <button class="btn btn-sm preset-filter" data-filter="industrial" type="button">Industrial</button>
+          <button class="btn btn-sm preset-filter" data-filter="aerospace" type="button">Aerospace</button>
+          <button class="btn btn-sm preset-filter" data-filter="mechanical" type="button">Mechanical</button>
+          <button class="btn btn-sm preset-filter" data-filter="pathological" type="button">Edge cases</button>
+          <button class="btn btn-sm preset-filter" data-filter="discrete" type="button">Discrete</button>
+          <button class="btn btn-sm preset-filter" data-filter="mimo" type="button">MIMO</button>
+        </div>
         <div class="preset-grid" id="preset-grid">
-          <button class="preset-card" data-preset="rc-circuit" type="button">
-            <div class="preset-card-title">RC Low-pass Circuit</div>
-            <div class="preset-card-desc">一階低通電路（充放電動態）</div>
-            <div class="preset-card-formula">G(s) = 1 / (s + 1)</div>
-          </button>
-          <button class="preset-card" data-preset="dc-motor" type="button">
-            <div class="preset-card-title">DC Motor (Speed)</div>
-            <div class="preset-card-desc">電樞控制直流馬達（典型一階+遲滯）</div>
-            <div class="preset-card-formula">G(s) = 5 / (s² + 6s + 5)</div>
-          </button>
-          <button class="preset-card" data-preset="mass-spring" type="button">
-            <div class="preset-card-title">Mass-Spring-Damper</div>
-            <div class="preset-card-desc">二階震盪系統（欠阻尼）</div>
-            <div class="preset-card-formula">G(s) = 1 / (s² + 0.4s + 4)</div>
-          </button>
-          <button class="preset-card" data-preset="inverted-pendulum" type="button">
-            <div class="preset-card-title">Inverted Pendulum</div>
-            <div class="preset-card-desc">不穩定二階系統（右半平面極點）</div>
-            <div class="preset-card-formula">G(s) = 1 / (s² − 4)</div>
-          </button>
-          <button class="preset-card" data-preset="non-minimum" type="button">
-            <div class="preset-card-title">Non-minimum Phase</div>
-            <div class="preset-card-desc">含右半平面零點，inverse response</div>
-            <div class="preset-card-formula">G(s) = (−s+2)/(s²+3s+2)</div>
-          </button>
-          <button class="preset-card" data-preset="discrete-fir" type="button">
-            <div class="preset-card-title">Discrete First-order</div>
-            <div class="preset-card-desc">z-域一階遲滯，Ts=0.1 s</div>
-            <div class="preset-card-formula">H(z) = 0.5 / (1 − 0.5z⁻¹)</div>
-          </button>
-          <button class="preset-card" data-preset="mimo-2x2" type="button">
-            <div class="preset-card-title">2×2 MIMO Plant</div>
-            <div class="preset-card-desc">耦合雙輸入雙輸出系統，RGA 範例</div>
-            <div class="preset-card-formula">state-space, n=2, m=2, p=2</div>
-          </button>
-          <button class="preset-card" data-preset="high-order" type="button">
-            <div class="preset-card-title">High-order Plant</div>
-            <div class="preset-card-desc">四階加重力延遲，挑戰性 PID 調整</div>
-            <div class="preset-card-formula">G(s) = 1 / (s+1)⁴</div>
-          </button>
+          <button class="preset-card" data-preset="rc-circuit" data-cat="classical" type="button"><div class="preset-card-title">RC Low-pass</div><div class="preset-card-desc">一階低通電路</div><div class="preset-card-formula">G = 1/(s+1)</div></button>
+          <button class="preset-card" data-preset="rl-circuit" data-cat="classical" type="button"><div class="preset-card-title">RL Circuit</div><div class="preset-card-desc">電感電阻電路</div><div class="preset-card-formula">G = 10/(s+10)</div></button>
+          <button class="preset-card" data-preset="mass-spring" data-cat="classical" type="button"><div class="preset-card-title">Mass-Spring-Damper</div><div class="preset-card-desc">欠阻尼二階</div><div class="preset-card-formula">G = 1/(s²+0.4s+4)</div></button>
+          <button class="preset-card" data-preset="mass-spring-overdamped" data-cat="classical" type="button"><div class="preset-card-title">Mass-Spring (overdamped)</div><div class="preset-card-desc">過阻尼二階</div><div class="preset-card-formula">G = 1/(s²+5s+4)</div></button>
+          <button class="preset-card" data-preset="high-order" data-cat="classical" type="button"><div class="preset-card-title">High-order Plant</div><div class="preset-card-desc">四階堆疊極點</div><div class="preset-card-formula">G = 1/(s+1)⁴</div></button>
+          <button class="preset-card" data-preset="integrator" data-cat="classical" type="button"><div class="preset-card-title">Pure Integrator</div><div class="preset-card-desc">類型 1 系統</div><div class="preset-card-formula">G = 1/s</div></button>
+          <button class="preset-card" data-preset="double-integrator" data-cat="classical" type="button"><div class="preset-card-title">Double Integrator</div><div class="preset-card-desc">位置 ← 力</div><div class="preset-card-formula">G = 1/s²</div></button>
+
+          <button class="preset-card" data-preset="dc-motor" data-cat="industrial" type="button"><div class="preset-card-title">DC Motor (Speed)</div><div class="preset-card-desc">電樞控制速度</div><div class="preset-card-formula">G = 5/(s²+6s+5)</div></button>
+          <button class="preset-card" data-preset="dc-motor-position" data-cat="industrial" type="button"><div class="preset-card-title">DC Motor (Position)</div><div class="preset-card-desc">加位置積分</div><div class="preset-card-formula">G/s, type-1</div></button>
+          <button class="preset-card" data-preset="heat-exchanger" data-cat="industrial" type="button"><div class="preset-card-title">Heat Exchanger</div><div class="preset-card-desc">含死時間 θ=3s</div><div class="preset-card-formula">2·e⁻³ˢ/(s+0.5)</div></button>
+          <button class="preset-card" data-preset="liquid-level" data-cat="industrial" type="button"><div class="preset-card-title">Liquid Level Tank</div><div class="preset-card-desc">τ=20s 一階慢系統</div><div class="preset-card-formula">G = 1/(20s+1)</div></button>
+          <button class="preset-card" data-preset="oven-temp" data-cat="industrial" type="button"><div class="preset-card-title">Industrial Oven</div><div class="preset-card-desc">FOPDT 含 15s 死時間</div><div class="preset-card-formula">5·e⁻¹⁵ˢ/(120s+1)</div></button>
+          <button class="preset-card" data-preset="distillation" data-cat="industrial" type="button"><div class="preset-card-title">Distillation Column</div><div class="preset-card-desc">化學工業簡化模型</div><div class="preset-card-formula">e⁻²ˢ/(10s+1)</div></button>
+          <button class="preset-card" data-preset="buck-converter" data-cat="industrial" type="button"><div class="preset-card-title">Buck Converter</div><div class="preset-card-desc">DC-DC LC 濾波</div><div class="preset-card-formula">2nd-order LC</div></button>
+          <button class="preset-card" data-preset="rlc-resonant" data-cat="industrial" type="button"><div class="preset-card-title">RLC Resonator</div><div class="preset-card-desc">Q≈5 諧振</div><div class="preset-card-formula">1/(s²+0.2s+1)</div></button>
+
+          <button class="preset-card" data-preset="aircraft-pitch" data-cat="aerospace" type="button"><div class="preset-card-title">Aircraft Pitch</div><div class="preset-card-desc">縱向俯仰動態</div><div class="preset-card-formula">3rd-order longitudinal</div></button>
+          <button class="preset-card" data-preset="aircraft-bank" data-cat="aerospace" type="button"><div class="preset-card-title">Aircraft Bank (Roll)</div><div class="preset-card-desc">滾轉簡化</div><div class="preset-card-formula">G = 4/(s+4)</div></button>
+          <button class="preset-card" data-preset="satellite-attitude" data-cat="aerospace" type="button"><div class="preset-card-title">Satellite Attitude</div><div class="preset-card-desc">剛體姿態 J·θ̈</div><div class="preset-card-formula">G = 1/s²</div></button>
+
+          <button class="preset-card" data-preset="robot-joint" data-cat="mechanical" type="button"><div class="preset-card-title">Robot Joint</div><div class="preset-card-desc">柔性傳動關節</div><div class="preset-card-formula">100/(s²+20s+100)</div></button>
+          <button class="preset-card" data-preset="cart-position" data-cat="mechanical" type="button"><div class="preset-card-title">Cart with Damping</div><div class="preset-card-desc">小車位置控制</div><div class="preset-card-formula">G = 1/(s²+2s)</div></button>
+          <button class="preset-card" data-preset="inverted-pendulum" data-cat="mechanical" type="button"><div class="preset-card-title">Inverted Pendulum</div><div class="preset-card-desc">線性化 RHP 極點</div><div class="preset-card-formula">G = 1/(s²−4)</div></button>
+
+          <button class="preset-card" data-preset="non-minimum" data-cat="pathological" type="button"><div class="preset-card-title">Non-minimum Phase</div><div class="preset-card-desc">RHP zero、inverse</div><div class="preset-card-formula">(−s+2)/(s²+3s+2)</div></button>
+          <button class="preset-card" data-preset="rhp-pole" data-cat="pathological" type="button"><div class="preset-card-title">Unstable Plant</div><div class="preset-card-desc">RHP 極點</div><div class="preset-card-formula">G = 1/(s−1)</div></button>
+          <button class="preset-card" data-preset="all-pass" data-cat="pathological" type="button"><div class="preset-card-title">All-Pass Filter</div><div class="preset-card-desc">純相位失真</div><div class="preset-card-formula">(−s+1)/(s+1)</div></button>
+          <button class="preset-card" data-preset="lightly-damped" data-cat="pathological" type="button"><div class="preset-card-title">Lightly Damped</div><div class="preset-card-desc">ζ≈0.025 高 Q</div><div class="preset-card-formula">1/(s²+0.05s+1)</div></button>
+
+          <button class="preset-card" data-preset="discrete-fir" data-cat="discrete" type="button"><div class="preset-card-title">Discrete 1st-order</div><div class="preset-card-desc">z-域一階</div><div class="preset-card-formula">H = 0.5/(1−0.5z⁻¹)</div></button>
+          <button class="preset-card" data-preset="discrete-fopdt" data-cat="discrete" type="button"><div class="preset-card-title">Discrete FOPDT</div><div class="preset-card-desc">慢系統 z-域</div><div class="preset-card-formula">0.4/(1−0.6z⁻¹)</div></button>
+
+          <button class="preset-card" data-preset="mimo-2x2" data-cat="mimo" type="button"><div class="preset-card-title">2×2 MIMO</div><div class="preset-card-desc">RGA / 解耦範例</div><div class="preset-card-formula">n=m=p=2</div></button>
+          <button class="preset-card" data-preset="mimo-quadtank" data-cat="mimo" type="button"><div class="preset-card-title">Quadruple-tank</div><div class="preset-card-desc">經典 MIMO 過程</div><div class="preset-card-formula">n=4, m=p=2</div></button>
         </div>
         <p style="margin-top:14px;font-size:11px;color:var(--text-muted);">
           快捷鍵：<kbd>Ctrl</kbd>+<kbd>S</kbd> 儲存專案 · <kbd>Ctrl</kbd>+<kbd>E</kbd> 匯出 CSV · <kbd>Alt</kbd>+<kbd>S</kbd> 摺疊所有區塊 · <kbd>Esc</kbd> 關閉對話框

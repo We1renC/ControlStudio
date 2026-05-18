@@ -22,12 +22,11 @@ import {
 import { controllabilityMatrix, observabilityMatrix, stateSpaceToTransferFunction, tfToControllableCanonical } from './state-space.js';
 import { parseRootsString } from './zpk.js';
 import { polyroots } from '../math/polynomial.js';
+import { rand, randn as _randn } from '../math/rng.js';
 
 function randn() {
-  let u = 0, v = 0;
-  while (u === 0) u = Math.random();
-  while (v === 0) v = Math.random();
-  return Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v);
+  // Delegate to seedable generator; falls back to Math.random when no seed is set.
+  return _randn();
 }
 
 function toComplex(root) {

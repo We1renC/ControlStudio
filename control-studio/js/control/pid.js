@@ -69,6 +69,57 @@ export class PIDController {
     return new PIDController(Kp, Kp / Ti, Kp * Td);
   }
 
+  /**
+   * IMC (Internal Model Control) / λ-tuning for FOPDT models G(s) = K·e^{−θs}/(τs+1).
+   * Uses Rivera-Morari PI/PID closed-loop tuning rules with closed-loop time constant λ.
+   *
+   * PI:  Kp = τ / (K(λ+θ))           Ti = τ                     Td = 0
+   * PID (improved): Kp = (τ + θ/2) / (K(λ + θ/2))
+   *                 Ti = τ + θ/2     Td = τθ / (2τ + θ)
+   *
+   * Smaller λ → more aggressive (faster, less robust).
+   * Typical λ ≈ θ (balanced) or λ = 2θ–3θ (conservative/robust).
+   *
+   * Reference: Rivera, Morari, Skogestad (1986); Skogestad SIMC (2003).
+   *
+   * @param {number} K  process gain
+   * @param {number} tau dominant time constant
+   * @param {number} theta dead time (set to 0 for non-delay systems; small ε≈τ/10 recommended)
+   * @param {number} lambda desired closed-loop time constant
+   * @param {'PI'|'PID'} [type='PID']
+   * @returns {PIDController}
+   */
+  static imc(K, tau, theta, lambda, type = 'PID') {
+    if (!(K !== 0 && tau > 0 && lambda > 0 && theta >= 0)) {
+      throw new Error('IMC: require K≠0, τ>0, θ≥0, λ>0');
+    }
+    const t = type.toUpperCase();
+    if (t === 'PI') {
+      const Kp = tau / (K * (lambda + theta));
+      const Ti = tau;
+      return new PIDController(Kp, Kp / Ti, 0);
+    }
+    // PID (improved Rivera form)
+    const halfTheta = theta / 2;
+    const Kp = (tau + halfTheta) / (K * (lambda + halfTheta));
+    const Ti = tau + halfTheta;
+    const Td = (tau * theta) / (2 * tau + theta);
+    return new PIDController(Kp, Kp / Ti, Kp * Td);
+  }
+
+  /**
+   * Skogestad SIMC tuning (Sivanand/Skogestad Improved Modified Control) — robust λ-style.
+   * For FOPDT: Kp = τ / (K·(τc + θ))   Ti = min(τ, 4·(τc + θ))   Td = 0 (PI variant)
+   * τc is recommended = θ (default) for balanced robustness/performance.
+   */
+  static simc(K, tau, theta, tauC = null) {
+    if (!(K !== 0 && tau > 0 && theta >= 0)) throw new Error('SIMC: require K≠0, τ>0, θ≥0');
+    const tc = tauC == null ? Math.max(theta, 0.05 * tau) : tauC;
+    const Kp = tau / (K * (tc + theta));
+    const Ti = Math.min(tau, 4 * (tc + theta));
+    return new PIDController(Kp, Kp / Ti, 0);
+  }
+
   toString() {
     const parts = [];
     if (this.Kp !== 0) parts.push(`Kp=${this.Kp.toFixed(3)}`);
