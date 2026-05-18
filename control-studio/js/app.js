@@ -1860,10 +1860,10 @@ function updateSystemSetupCopy() {
     systemEquation.innerHTML = matrices
       ? renderStateSpaceEquationBlock(matrices)
       : '<div class="equation-note">請完成 A / B / C / D 矩陣後顯示狀態方程。</div>';
-    modelCopy.textContent = '直接輸入 A / B / C / D 矩陣；上方會同步顯示狀態方程與矩陣內容。';
+    modelCopy.textContent = '直接輸入 A / B / C / D 矩陣；下方會同步顯示狀態方程與矩陣內容。';
   } else {
     systemEquation.innerHTML = renderTransferFunctionEquation('G(s) =', plantTf, 'Plant transfer function');
-    modelCopy.textContent = '直接輸入 plant 的分子與分母係數；上方會同步更新成具體傳遞函數。';
+    modelCopy.textContent = '直接輸入 plant 的分子與分母係數；下方會同步更新成具體傳遞函數。';
   }
 
   controllerEquation.innerHTML = [
