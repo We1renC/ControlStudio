@@ -113,6 +113,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // P13: UI/UX layer — collapsibles, modals, shortcuts, presets, tooltips
   if (typeof csUI !== 'undefined') csUI.init();
+  syncAdvisorModeVisibility();
 });
 
 function initTheme() {
@@ -727,6 +728,23 @@ function clearSISOAdvisorOutputsForMIMO() {
     const el = document.getElementById(id);
     if (el) el.innerHTML = '';
   });
+}
+
+function syncAdvisorModeVisibility() {
+  const mode = state.systemMode === 'mimo' ? 'mimo' : 'siso';
+  document.querySelectorAll('[data-advisor-mode]').forEach((el) => {
+    el.style.display = el.dataset.advisorMode === mode ? '' : 'none';
+  });
+
+  const note = document.getElementById('phase-portrait-note');
+  const button = document.getElementById('btn-phase-portrait');
+  if (!note || !button) return;
+
+  const eligible = mode === 'mimo' && state.mimoPlant && state.mimoPlant.n === 2;
+  button.disabled = !eligible;
+  note.textContent = eligible
+    ? '使用目前 2-state MIMO model 繪製向量場與軌跡。'
+    : '僅 MIMO 模式且 n=2（2 個狀態變數）時可繪製。請先建立 2-state MIMO plant。';
 }
 
 function setPIDFromController(controller, source) {
@@ -3748,6 +3766,7 @@ function switchSystemMode(mode) {
   document.querySelectorAll('.system-mode-btn').forEach((b) => {
     b.classList.toggle('active', b.dataset.mode === mode);
   });
+  syncAdvisorModeVisibility();
 
   // M5: show/hide Phase 7/8 MIMO compatibility banners
   const p7Banner = document.getElementById('p7-mimo-banner');
@@ -3833,6 +3852,7 @@ function updateMIMOSystem() {
     renderMIMOChannelBar();
     applyMIMOChannel();
     autoResizePhase8MatricesForMIMO(mimoPlant);
+    syncAdvisorModeVisibility();
     clearError();
   } catch (err) {
     const statusEl = document.getElementById('mimo-status-out');
@@ -3840,6 +3860,7 @@ function updateMIMOSystem() {
       statusEl.style.display = 'block';
       statusEl.innerHTML = `<div style="color:var(--color-unstable);">${escapeHtml(err.message)}</div>`;
     }
+    syncAdvisorModeVisibility();
     showError(err.message);
   }
 }

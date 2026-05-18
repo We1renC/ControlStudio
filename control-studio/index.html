@@ -1031,7 +1031,7 @@
           </div>
         </section>
 
-        <section class="section-panel" id="mimo-analysis-panel" style="display:none;">
+        <section class="section-panel" id="mimo-analysis-panel" data-advisor-mode="mimo" style="display:none;">
           <div class="section-title">MIMO Analysis</div>
           <p style="font-size:11px;color:var(--text-muted);line-height:1.5;margin-bottom:10px;">
             RGA 與 Singular Value 分析。需在 MIMO 模式下使用。
@@ -1160,37 +1160,28 @@
           <div id="chart-mpc-constrained-u" style="height:130px;margin-top:4px;"></div>
         </section>
 
-        <section class="section-panel" id="robust-panel">
+        <section class="section-panel" id="robust-panel" data-advisor-mode="siso">
           <div class="section-title">Robust Sensitivity (S / T / KS)</div>
           <p style="font-size:11px;color:var(--text-muted);line-height:1.5;margin-bottom:10px;">
             計算 |S(jω)|, |T(jω)|, |KS(jω)| 三條 sensitivity Bode。Peak |S|, |T| 對應 robust margin：peak &lt; 1.8 = low risk，1.8-2.5 = medium，&gt; 2.5 = high。<br>
             Loop transfer L = C·G（current PID + plant）。SISO only。
           </p>
-          <div style="display:flex;gap:8px;margin-bottom:8px;">
-            <div class="input-group" style="flex:1;margin-bottom:0;">
-              <label>ω min (rad/s)</label>
-              <input type="number" id="robust-wmin" value="0.01" step="0.01">
+          <div data-advisor-mode="siso">
+            <div style="display:flex;gap:8px;margin-bottom:8px;">
+              <div class="input-group" style="flex:1;margin-bottom:0;">
+                <label>ω min (rad/s)</label>
+                <input type="number" id="robust-wmin" value="0.01" step="0.01">
+              </div>
+              <div class="input-group" style="flex:1;margin-bottom:0;">
+                <label>ω max (rad/s)</label>
+                <input type="number" id="robust-wmax" value="100" step="1">
+              </div>
             </div>
-            <div class="input-group" style="flex:1;margin-bottom:0;">
-              <label>ω max (rad/s)</label>
-              <input type="number" id="robust-wmax" value="100" step="1">
-            </div>
-          </div>
-          <button class="btn btn-sm" id="btn-robust" style="width:100%;justify-content:center;margin-bottom:8px;">Compute Sensitivity Bode</button>
-          <div id="robust-out" style="font-size:11px;font-family:monospace;color:var(--text-secondary);background:rgba(15,17,23,.4);padding:8px;border-radius:6px;line-height:1.6;display:none;margin-bottom:8px;"></div>
-          <div id="chart-robust" style="height:200px;"></div>
+            <button class="btn btn-sm" id="btn-robust" style="width:100%;justify-content:center;margin-bottom:8px;">Compute Sensitivity Bode</button>
+            <div id="robust-out" style="font-size:11px;font-family:monospace;color:var(--text-secondary);background:rgba(15,17,23,.4);padding:8px;border-radius:6px;line-height:1.6;display:none;margin-bottom:8px;"></div>
+            <div id="chart-robust" style="height:200px;"></div>
 
-          <div style="margin-top:14px;padding-top:10px;border-top:1px dashed rgba(255,255,255,0.08);">
-            <div style="font-size:11px;font-weight:600;color:var(--text-secondary);margin-bottom:4px;">MIMO H∞ Norm  ‖G‖∞</div>
-            <p style="font-size:10px;color:var(--text-muted);line-height:1.5;margin-bottom:8px;">
-              MIMO 模式下計算 plant 傳遞矩陣的 H∞ 範數（最大奇異值頻率曲線峰值）。反映最壞輸入方向的最大增益。
-            </p>
-            <button class="btn btn-sm" id="btn-mimo-hinf" style="width:100%;justify-content:center;margin-bottom:8px;">Compute ‖G‖∞ (MIMO)</button>
-            <div id="mimo-hinf-out" style="font-size:11px;font-family:monospace;color:var(--text-secondary);background:rgba(15,17,23,.4);padding:8px;border-radius:6px;line-height:1.6;display:none;margin-bottom:8px;"></div>
-            <div id="chart-mimo-hinf" style="height:160px;"></div>
-          </div>
-
-          <div style="margin-top:14px;padding-top:10px;border-top:1px dashed rgba(255,255,255,0.08);">
+            <div style="margin-top:14px;padding-top:10px;border-top:1px dashed rgba(255,255,255,0.08);">
             <div style="font-size:11px;font-weight:600;color:var(--text-secondary);margin-bottom:4px;">Gain / Phase Uncertainty Sweep</div>
             <p style="font-size:10px;color:var(--text-muted);line-height:1.5;margin-bottom:8px;">
               對 L(jω) 套 multiplicative 不確定性 k·e^(−jθ)，計算最壞情況 |S|/|T|/|KS| envelope。輸入 gain 範圍 ±% 與 phase 範圍 ±°；samples 為每邊取樣數（含 0）。
@@ -1213,6 +1204,17 @@
             <div id="uncertainty-out" style="font-size:11px;font-family:monospace;color:var(--text-secondary);background:rgba(15,17,23,.4);padding:8px;border-radius:6px;line-height:1.6;display:none;margin-bottom:8px;"></div>
             <div id="chart-uncertainty" style="height:200px;display:none;"></div>
           </div>
+          </div>
+        </section>
+
+        <section class="section-panel" id="mimo-hinf-panel" data-advisor-mode="mimo" style="display:none;">
+          <div class="section-title">MIMO H∞ Norm</div>
+          <p style="font-size:11px;color:var(--text-muted);line-height:1.5;margin-bottom:10px;">
+            計算 MIMO plant 傳遞矩陣的 `‖G‖∞`（最大奇異值頻率曲線峰值），用來看最壞輸入方向的最大增益。
+          </p>
+          <button class="btn btn-sm" id="btn-mimo-hinf" style="width:100%;justify-content:center;margin-bottom:8px;">Compute ‖G‖∞ (MIMO)</button>
+          <div id="mimo-hinf-out" style="font-size:11px;font-family:monospace;color:var(--text-secondary);background:rgba(15,17,23,.4);padding:8px;border-radius:6px;line-height:1.6;display:none;margin-bottom:8px;"></div>
+          <div id="chart-mimo-hinf" style="height:160px;"></div>
         </section>
 
         <section class="section-panel" id="hinf-panel">
@@ -1250,9 +1252,9 @@
           <div id="chart-ga" style="height:140px;"></div>
         </section>
 
-        <section class="section-panel" id="phase-portrait-panel">
+        <section class="section-panel" id="phase-portrait-panel" data-advisor-mode="mimo" style="display:none;">
           <div class="section-title">Phase Portrait (2D)</div>
-          <p style="font-size:11px;color:var(--text-muted);line-height:1.5;margin-bottom:10px;">
+          <p id="phase-portrait-note" style="font-size:11px;color:var(--text-muted);line-height:1.5;margin-bottom:10px;">
             僅 MIMO 模式且 n=2（2 個狀態變數）時可繪製。顯示向量場與軌跡。
           </p>
           <div style="display:flex;gap:6px;margin-bottom:6px;">
