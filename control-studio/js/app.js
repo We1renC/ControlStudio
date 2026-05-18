@@ -19,9 +19,9 @@ import { Complex } from './math/complex.js';
 import { analyzeLyapunov, brysonsRule, closedLoopTransferFromStateFeedback, discretizeZOH, innovationStats, observerPoles, placeObserver, placeStateFeedback, resolveDesignStateSpace, simulateLqg, simulateObserver, solveDiscreteKalman, solveLqe, solveLqr, solveLqrMIMO } from './control/state-feedback.js?v=p8c';
 import { matTranspose, matSub, matMul } from './math/matrix.js?v=p5';
 import { BlockEditor } from './editor/editor.js';
-import { MIMOStateSpace, parseMIMOMatrices, rgaSteady, rgaDiagnosis, rgaInvariants, singularValueBode, staticDecoupler, applyDecoupler, dynamicDecouplerAtFrequency } from './control/mimo.js';
+import { MIMOStateSpace, parseMIMOMatrices, rgaSteady, rgaDiagnosis, rgaInvariants, singularValueBode, staticDecoupler, applyDecoupler, dynamicDecouplerAtFrequency, evalAtJw, singularValues } from './control/mimo.js';
 import { simulateConstrainedMpc, simulateUnconstrainedMpc } from './control/mpc.js';
-import { sensitivityBode, robustPeaks, uncertaintyEnvelope } from './control/robust.js';
+import { sensitivityBode, robustPeaks, uncertaintyEnvelope, hInfNorm } from './control/robust.js';
 import { tfToControllableCanonical } from './control/state-space.js?v=p5';
 
 // ============================================================
@@ -151,6 +151,7 @@ function initEventListeners() {
   document.getElementById('btn-mpc-constrained')?.addEventListener('click', computeConstrainedMpc);
   document.getElementById('btn-robust')?.addEventListener('click', computeRobustSensitivity);
   document.getElementById('btn-uncertainty')?.addEventListener('click', computeUncertaintyEnvelope);
+  document.getElementById('btn-mimo-hinf')?.addEventListener('click', computeMIMOHinfNorm);
 
   document.querySelectorAll('.sys-tab').forEach(tab => {
     tab.addEventListener('click', (e) => {
@@ -4048,32 +4049,95 @@ function computeRobustSensitivity() {
     state.phase10 = state.phase10 || {};
     state.phase10.robust = { sb, peaks };
 
+    // compute bandwidth: highest ω where |T| ≥ peakT / √2
+    const tMags = sb.T.map((c) => (c && Number.isFinite(c.magnitude) ? c.magnitude : 0));
+    const peakT = Math.max(...tMags);
+    let bwOmega = null;
+    for (let i = tMags.length - 1; i >= 0; i--) {
+      if (tMags[i] >= peakT / Math.SQRT2) { bwOmega = omegas[i]; break; }
+    }
+
     const riskColor = peaks.risk === 'low' ? 'var(--color-stable)' : peaks.risk === 'medium' ? '#f59e0b' : 'var(--color-unstable)';
     setPhase7Output('robust-out', [
-      `<div style="color:${riskColor};font-weight:700;">Robust Peaks (Risk: ${peaks.risk.toUpperCase()})</div>`,
+      `<div style="color:${riskColor};font-weight:700;">H∞ Norms (Risk: ${peaks.risk.toUpperCase()})</div>`,
       `<div>‖S‖∞ = ${fmtNum(peaks.Ms.peak, 4)} (${fmtNum(peaks.Ms.peakDB, 2)} dB) @ ω=${fmtNum(peaks.Ms.peakOmega, 3)} rad/s</div>`,
       `<div>‖T‖∞ = ${fmtNum(peaks.Mt.peak, 4)} (${fmtNum(peaks.Mt.peakDB, 2)} dB) @ ω=${fmtNum(peaks.Mt.peakOmega, 3)} rad/s</div>`,
       peaks.MKs ? `<div>‖KS‖∞ = ${fmtNum(peaks.MKs.peak, 4)} (${fmtNum(peaks.MKs.peakDB, 2)} dB) @ ω=${fmtNum(peaks.MKs.peakOmega, 3)} rad/s</div>` : '',
-      `<div style="font-size:10px;color:var(--text-muted);margin-top:4px;">peak &lt;1.8: low risk；1.8-2.5: medium；&gt;2.5: high</div>`,
+      bwOmega != null ? `<div>BW(-3 dB) = ${fmtNum(bwOmega, 3)} rad/s</div>` : '',
+      `<div style="font-size:10px;color:var(--text-muted);margin-top:4px;">‖S‖∞ &lt;1.8 (5.1 dB): low；1.8-2.5: medium；&gt;2.5 (8 dB): high</div>`,
     ].join(''));
 
     if (typeof Plotly !== 'undefined') {
-      const safe = (arr) => arr.map((c) => (c && Number.isFinite(c.magnitude) && c.magnitude > 0 ? c.magnitude : null));
+      const toDBArr = (arr) => arr.map((c) => (c && Number.isFinite(c.magnitude) && c.magnitude > 0 ? 20 * Math.log10(c.magnitude) : null));
       Plotly.newPlot('chart-robust', [
-        { x: omegas, y: safe(sb.S), mode: 'lines', name: '|S|', line: { color: '#6366f1', width: 1.5 } },
-        { x: omegas, y: safe(sb.T), mode: 'lines', name: '|T|', line: { color: '#10b981', width: 1.5 } },
-        { x: omegas, y: safe(sb.KS), mode: 'lines', name: '|KS|', line: { color: '#ec4899', width: 1.5, dash: 'dot' } },
+        { x: omegas, y: toDBArr(sb.S), mode: 'lines', name: '|S| (dB)', line: { color: '#6366f1', width: 1.5 } },
+        { x: omegas, y: toDBArr(sb.T), mode: 'lines', name: '|T| (dB)', line: { color: '#10b981', width: 1.5 } },
+        { x: omegas, y: toDBArr(sb.KS), mode: 'lines', name: '|KS| (dB)', line: { color: '#ec4899', width: 1.5, dash: 'dot' } },
       ], {
         ...PLOTLY_LAYOUT_BASE(),
-        margin: { t: 10, r: 20, b: 30, l: 50 },
+        margin: { t: 10, r: 20, b: 35, l: 50 },
         legend: { font: { size: 9 }, orientation: 'h', y: 1.15 },
         xaxis: { title: 'ω (rad/s)', type: 'log', gridcolor: 'rgba(255,255,255,0.06)' },
-        yaxis: { title: 'magnitude', type: 'log', gridcolor: 'rgba(255,255,255,0.06)' },
+        yaxis: { title: 'dB', gridcolor: 'rgba(255,255,255,0.06)' },
+        shapes: [
+          { type: 'line', x0: 0, x1: 1, xref: 'paper', y0: 0, y1: 0, yref: 'y', line: { color: 'rgba(255,255,255,0.25)', width: 1, dash: 'dot' } },
+          { type: 'line', x0: 0, x1: 1, xref: 'paper', y0: 20 * Math.log10(1.8), y1: 20 * Math.log10(1.8), yref: 'y', line: { color: 'rgba(245,158,11,0.5)', width: 1, dash: 'dash' } },
+          { type: 'line', x0: 0, x1: 1, xref: 'paper', y0: 20 * Math.log10(2.5), y1: 20 * Math.log10(2.5), yref: 'y', line: { color: 'rgba(239,68,68,0.5)', width: 1, dash: 'dash' } },
+        ],
+        annotations: [
+          { x: 1, xref: 'paper', y: 0, yref: 'y', text: '0 dB', showarrow: false, font: { size: 8, color: 'rgba(255,255,255,0.35)' }, xanchor: 'right', yanchor: 'bottom' },
+          { x: 1, xref: 'paper', y: 20 * Math.log10(1.8), yref: 'y', text: '5.1 dB', showarrow: false, font: { size: 8, color: 'rgba(245,158,11,0.8)' }, xanchor: 'right', yanchor: 'bottom' },
+          { x: 1, xref: 'paper', y: 20 * Math.log10(2.5), yref: 'y', text: '8 dB', showarrow: false, font: { size: 8, color: 'rgba(239,68,68,0.8)' }, xanchor: 'right', yanchor: 'bottom' },
+        ],
       }, { responsive: true, displayModeBar: false });
     }
     clearError();
   } catch (err) {
     setPhase7Output('robust-out', escapeHtml(err.message), true);
+    showError(err.message);
+  }
+}
+
+function computeMIMOHinfNorm() {
+  try {
+    clearFieldErrors();
+    if (state.systemMode !== 'mimo') throw new Error('請切換至 MIMO 模式並建立 plant');
+    if (!state.mimoPlant) throw new Error('請先在 MIMO 模式下建立 plant');
+
+    const mimoSys = state.mimoPlant;
+    const wmin = 1e-3, wmax = 1e3;
+    const norm = hInfNorm(mimoSys, { omegaLo: wmin, omegaHi: wmax, gridPoints: 300, goldenIter: 50 });
+
+    setPhase7Output('mimo-hinf-out', [
+      `<div style="font-weight:700;color:var(--color-accent);">‖G‖∞ = ${fmtNum(norm.norm, 6)} (${fmtNum(20 * Math.log10(norm.norm), 2)} dB)</div>`,
+      `<div>Peak σ_max @ ω = ${fmtNum(norm.peakOmega, 4)} rad/s</div>`,
+      `<div style="font-size:10px;color:var(--text-muted);margin-top:4px;">Grid: [${wmin}, ${wmax}] rad/s，300 點 + Golden-section 精化</div>`,
+    ].join(''));
+
+    if (typeof Plotly !== 'undefined') {
+      const N = 200;
+      const omegas = Array.from({ length: N }, (_, i) => Math.pow(10, Math.log10(wmin) + (Math.log10(wmax) - Math.log10(wmin)) * i / (N - 1)));
+      const sigMaxArr = omegas.map((w) => {
+        const G = evalAtJw(mimoSys, w);
+        const svs = singularValues(G);
+        return svs.length > 0 ? Math.max(...svs) : null;
+      });
+      const sigMaxDB = sigMaxArr.map((v) => (v != null && v > 0 ? 20 * Math.log10(v) : null));
+
+      Plotly.newPlot('chart-mimo-hinf', [
+        { x: omegas, y: sigMaxDB, mode: 'lines', name: 'σ_max(G) (dB)', line: { color: '#6366f1', width: 1.5 } },
+        { x: [norm.peakOmega], y: [20 * Math.log10(norm.norm)], mode: 'markers', name: '‖G‖∞', marker: { color: '#ec4899', size: 7, symbol: 'diamond' } },
+      ], {
+        ...PLOTLY_LAYOUT_BASE(),
+        margin: { t: 10, r: 20, b: 35, l: 50 },
+        legend: { font: { size: 9 }, orientation: 'h', y: 1.15 },
+        xaxis: { title: 'ω (rad/s)', type: 'log', gridcolor: 'rgba(255,255,255,0.06)' },
+        yaxis: { title: 'σ_max (dB)', gridcolor: 'rgba(255,255,255,0.06)' },
+      }, { responsive: true, displayModeBar: false });
+    }
+    clearError();
+  } catch (err) {
+    setPhase7Output('mimo-hinf-out', escapeHtml(err.message), true);
     showError(err.message);
   }
 }

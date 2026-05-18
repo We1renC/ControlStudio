@@ -1008,6 +1008,17 @@
           <button class="btn btn-sm" id="btn-robust" style="width:100%;justify-content:center;margin-bottom:8px;">Compute Sensitivity Bode</button>
           <div id="robust-out" style="font-size:11px;font-family:monospace;color:var(--text-secondary);background:rgba(15,17,23,.4);padding:8px;border-radius:6px;line-height:1.6;display:none;margin-bottom:8px;"></div>
           <div id="chart-robust" style="height:200px;"></div>
+
+          <div style="margin-top:14px;padding-top:10px;border-top:1px dashed rgba(255,255,255,0.08);">
+            <div style="font-size:11px;font-weight:600;color:var(--text-secondary);margin-bottom:4px;">MIMO H∞ Norm  ‖G‖∞</div>
+            <p style="font-size:10px;color:var(--text-muted);line-height:1.5;margin-bottom:8px;">
+              MIMO 模式下計算 plant 傳遞矩陣的 H∞ 範數（最大奇異值頻率曲線峰值）。反映最壞輸入方向的最大增益。
+            </p>
+            <button class="btn btn-sm" id="btn-mimo-hinf" style="width:100%;justify-content:center;margin-bottom:8px;">Compute ‖G‖∞ (MIMO)</button>
+            <div id="mimo-hinf-out" style="font-size:11px;font-family:monospace;color:var(--text-secondary);background:rgba(15,17,23,.4);padding:8px;border-radius:6px;line-height:1.6;display:none;margin-bottom:8px;"></div>
+            <div id="chart-mimo-hinf" style="height:160px;"></div>
+          </div>
+
           <div style="margin-top:14px;padding-top:10px;border-top:1px dashed rgba(255,255,255,0.08);">
             <div style="font-size:11px;font-weight:600;color:var(--text-secondary);margin-bottom:4px;">Gain / Phase Uncertainty Sweep</div>
             <p style="font-size:10px;color:var(--text-muted);line-height:1.5;margin-bottom:8px;">
