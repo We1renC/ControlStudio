@@ -29,6 +29,7 @@ import { identifyARX, autoARXOrder } from './control/sysid.js';
 import { toMatlabScript, toPythonScript, downloadScript } from './utils/codegen.js';
 import { mixedSensitivityCost, tunePIDForMixedSensitivity, defaultMixedSensitivityWeights } from './control/hinf_synth.js';
 import { gaTunePID } from './control/ga_tuner.js';
+import { runLinearEKF } from './control/ekf.js';
 import { phasePortrait, linearVelocityField } from './analysis/phase-portrait.js';
 import { tfToControllableCanonical } from './control/state-space.js?v=p5';
 
@@ -372,6 +373,7 @@ function initEventListeners() {
   document.getElementById('btn-bryson')?.addEventListener('click', computeBrysonQR);
   document.getElementById('btn-dkf')?.addEventListener('click', computeDiscreteKalman);
   document.getElementById('btn-lqg-sim')?.addEventListener('click', computeLqgSimulation);
+  document.getElementById('btn-run-ekf')?.addEventListener('click', runEkfUkf);
   document.getElementById('qr-sensitivity-slider')?.addEventListener('input', updateQRSensitivity);
   document.getElementById('btn-apply-rlocus-k')?.addEventListener('click', applyRlocusKToController);
   document.getElementById('btn-apply-poles-k')?.addEventListener('click', applyPolesKToController);
@@ -1539,6 +1541,71 @@ function computeDiscreteKalman() {
     state.phase8.discreteKalman = null;
     setPhase7Output('dkf-out', escapeHtml(err.message), true);
     showError(err.message);
+  }
+}
+
+function runEkfUkf() {
+  try {
+    const model = currentPhase7DesignModel();
+    const { Ad, Bd } = discretizeZOH(model.A, model.B, 0.1); // Ts=0.1
+    const Cd = model.C;
+    const n = Ad.length;
+    const steps = parseInt(document.getElementById('ekf-steps')?.value || '80', 10);
+
+    // Parse Q diagonal
+    const qDiag = (document.getElementById('ekf-qdiag')?.value || '0.1')
+      .split(',').map(Number).filter(Number.isFinite);
+    const Q = Array.from({ length: n }, (_, i) => Array.from({ length: n }, (_, j) =>
+      i === j ? (qDiag[i] ?? qDiag[qDiag.length - 1] ?? 0.1) : 0));
+
+    // Parse R diagonal (p×p)
+    const p = Cd.length;
+    const rDiag = (document.getElementById('ekf-rdiag')?.value || '1')
+      .split(',').map(Number).filter(Number.isFinite);
+    const R = Array.from({ length: p }, (_, i) => Array.from({ length: p }, (_, j) =>
+      i === j ? (rDiag[i] ?? rDiag[rDiag.length - 1] ?? 1) : 0));
+
+    const useUKF = document.getElementById('ekf-use-ukf')?.checked;
+    const uSeq = Array.from({ length: steps }, (_, k) => [k < 5 ? 0 : 1]); // step input
+
+    const result = runLinearEKF({ Ad, Bd, Cd }, uSeq, Q, R, { useUKF });
+
+    const out = document.getElementById('ekf-out');
+    if (out) {
+      out.style.display = 'block';
+      const finalErr = result.xhat[result.xhat.length - 1]
+        .map((v, i) => Math.abs(v - result.xTrue[result.xTrue.length - 1][i]).toFixed(4))
+        .join(', ');
+      out.innerHTML = `<div style="color:var(--color-accent);font-weight:700;">${useUKF ? 'UKF' : 'EKF'} completed (${steps} steps)</div>
+        <div>Final estimation error: ${finalErr}</div>`;
+    }
+
+    if (window.Plotly) {
+      const t = result.t;
+      const traces = [];
+      traces.push({ x: t, y: result.xTrue.map(x => x[0]), mode: 'lines', name: 'x₁ true', line: { color: '#6366f1', width: 2 } });
+      traces.push({ x: t, y: result.xhat.map(x => x[0]), mode: 'lines', name: 'x₁ EKF', line: { color: '#10b981', width: 2, dash: 'dash' } });
+      if (n > 1) {
+        traces.push({ x: t, y: result.xTrue.map(x => x[1]), mode: 'lines', name: 'x₂ true', line: { color: '#a855f7', width: 1.5 } });
+        traces.push({ x: t, y: result.xhat.map(x => x[1]), mode: 'lines', name: 'x₂ EKF', line: { color: '#ec4899', width: 1.5, dash: 'dash' } });
+      }
+      window.Plotly.newPlot('chart-ekf', traces, {
+        ...PLOTLY_LAYOUT_BASE(),
+        margin: { t: 8, r: 10, b: 28, l: 40 },
+        xaxis: { title: 'step', gridcolor: 'rgba(255,255,255,0.06)' },
+        yaxis: { title: 'state', gridcolor: 'rgba(255,255,255,0.06)' },
+        showlegend: true,
+        legend: { font: { size: 9 }, orientation: 'h', y: 1.15 },
+      }, { responsive: true, displayModeBar: false });
+    }
+    clearError();
+  } catch (err) {
+    showError(err.message);
+    const out = document.getElementById('ekf-out');
+    if (out) {
+      out.style.display = 'block';
+      out.innerHTML = `<span style="color:var(--color-unstable);">${escapeHtml(err.message)}</span>`;
+    }
   }
 }
 

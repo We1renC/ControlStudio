@@ -1069,6 +1069,34 @@
                 <div id="dkf-out" style="font-size:11px;font-family:monospace;color:var(--text-secondary);background:rgba(15,17,23,.4);padding:8px;border-radius:6px;line-height:1.6;display:none;"></div>
               </div>
 
+              <!-- EKF / UKF Panel -->
+              <div style="border-top:1px solid var(--border-primary); margin-top:var(--space-4); padding-top:var(--space-3);">
+                <div style="font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase;margin-bottom:8px;">Extended / Unscented Kalman Filter</div>
+                <div class="summary-grid">
+                  <div class="input-group" style="margin-bottom:0;">
+                    <label>Q diag (process noise)</label>
+                    <input type="text" id="ekf-qdiag" value="0.1, 0.1" placeholder="e.g. 0.1, 0.1">
+                  </div>
+                  <div class="input-group" style="margin-bottom:0;">
+                    <label>R diag (meas. noise)</label>
+                    <input type="text" id="ekf-rdiag" value="1" placeholder="e.g. 1">
+                  </div>
+                </div>
+                <div class="input-group" style="margin-top:var(--space-2);">
+                  <label>Steps N</label>
+                  <input type="number" id="ekf-steps" min="10" max="500" step="10" value="80">
+                </div>
+                <div class="input-group">
+                  <label style="display:flex;align-items:center;gap:8px;">
+                    <input type="checkbox" id="ekf-use-ukf" style="margin:0;">
+                    Use UKF (sigma-point, no Jacobians)
+                  </label>
+                </div>
+                <button class="btn btn-sm" id="btn-run-ekf" style="width:100%;justify-content:center;">Run EKF/UKF</button>
+                <div id="ekf-out" style="display:none;margin-top:var(--space-2);font-size:11px;"></div>
+                <div id="chart-ekf" style="height:200px;margin-top:var(--space-2);"></div>
+              </div>
+
               <!-- LQG Simulation -->
               <div style="margin-top:12px;border-top:1px solid var(--border-primary);padding-top:12px;">
                 <div style="font-size:10px;font-weight:700;color:var(--color-accent);text-transform:uppercase;margin-bottom:6px;">LQG = LQR + Kalman</div>
