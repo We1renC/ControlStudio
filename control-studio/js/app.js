@@ -25,6 +25,8 @@ import { sensitivityBode, robustPeaks, uncertaintyEnvelope, hInfNorm, additiveUn
 import { applyDelay, padeApprox, delayMargin, smithPredictor } from './control/delay.js';
 import { polyToLatex, tfToLatex, renderLatex, pidToLatex } from './utils/latex.js';
 import { setSeed, getSeed, resetSeed } from './math/rng.js';
+import { identifyARX, autoARXOrder } from './control/sysid.js';
+import { toMatlabScript, toPythonScript, downloadScript } from './utils/codegen.js';
 import { tfToControllableCanonical } from './control/state-space.js?v=p5';
 
 // ============================================================
@@ -331,6 +333,36 @@ function initEventListeners() {
   document.getElementById('btn-export-csv')?.addEventListener('click', () => exportCurrentResult('csv'));
   document.getElementById('btn-export-report')?.addEventListener('click', exportMarkdownReport);
   document.getElementById('btn-export-png')?.addEventListener('click', exportChartPNG);
+  document.getElementById('btn-export-matlab')?.addEventListener('click', () => {
+    const design = buildCodegenPayload();
+    const script = toMatlabScript(design);
+    downloadScript(script, `controlstudio-${new Date().toISOString().slice(0,19).replace(/[:.]/g,'-')}.m`, 'text/x-matlab');
+  });
+  document.getElementById('btn-export-python')?.addEventListener('click', () => {
+    const design = buildCodegenPayload();
+    const script = toPythonScript(design);
+    downloadScript(script, `controlstudio-${new Date().toISOString().slice(0,19).replace(/[:.]/g,'-')}.py`, 'text/x-python');
+  });
+
+  // P15-04: Root locus K-sweep animation
+  let _rlPlayInterval = null;
+  document.getElementById('btn-rl-play')?.addEventListener('click', () => {
+    const slider = document.getElementById('rl-k-slider');
+    const btn = document.getElementById('btn-rl-play');
+    if (!slider || !btn) return;
+    if (_rlPlayInterval) { clearInterval(_rlPlayInterval); _rlPlayInterval = null; btn.textContent = '▶ Play K-Sweep'; return; }
+    btn.textContent = '⏸ Pause';
+    let v = 0;
+    const max = parseFloat(slider.max);
+    const step = max / 60; // 60 frames over the range
+    _rlPlayInterval = setInterval(() => {
+      v += step;
+      if (v > max) { v = 0; }
+      slider.value = v;
+      slider.dispatchEvent(new Event('input'));
+      if (v === 0) { /* loop */ }
+    }, 80);
+  });
   document.getElementById('project-file-input')?.addEventListener('change', loadProjectFile);
   document.getElementById('btn-save-snapshot')?.addEventListener('click', saveComparisonSnapshot);
   document.getElementById('btn-clear-snapshots')?.addEventListener('click', clearSnapshots);
@@ -1612,6 +1644,27 @@ function restoreSessionFromStorage(showMessage = false) {
 function clearSessionStorage() {
   localStorage.removeItem(SESSION_STORAGE_KEY);
   showError('已清除本地 session autosave');
+}
+
+// P15-03: Build code-generation payload from current state.
+function buildCodegenPayload() {
+  const tf = state.plant;
+  const num = tf?.num ? Array.from(tf.num).map((v) => Number(v.toFixed(6))) : null;
+  const den = tf?.den ? Array.from(tf.den).map((v) => Number(v.toFixed(6))) : null;
+  return {
+    plant: tf ? { num, den } : null,
+    controller: {
+      Kp: state.pidParams.Kp,
+      Ki: state.pidParams.Ki,
+      Kd: state.pidParams.Kd,
+      N: state.pidParams.N,
+    },
+    delay: state.plantDelay ? { T: state.plantDelay.T, order: state.plantDelay.order } : null,
+    domain: state.domain || 's',
+    Ts: state.domain === 'z' ? (tf?.Ts ?? 0.1) : null,
+    responseType: state.responseType || 'step',
+    closedLoop: !!state.showClosedLoop,
+  };
 }
 
 // P14-03: Replace text-based TF fractions with KaTeX-rendered LaTeX if available.
@@ -2929,7 +2982,64 @@ function renderComparisonChart() {
     return;
   }
   Plotly.react('chart-compare', traces, layout, { responsive: true, displayModeBar: false });
+
+  // P15-02: Bode overlay + metrics matrix
+  renderComparisonBodeAndMetrics();
   scheduleSmokeDiagnostics();
+}
+
+function renderComparisonBodeAndMetrics() {
+  const bodeEl = document.getElementById('chart-compare-bode');
+  const metricsEl = document.getElementById('compare-metrics-table');
+  const palette = ['#6366f1', '#ec4899', '#10b981', '#f59e0b', '#22c55e', '#38bdf8'];
+  if (bodeEl && typeof Plotly !== 'undefined') {
+    const snaps = state.comparisonSnapshots.filter((s) => s.bode);
+    if (snaps.length === 0) {
+      Plotly.purge('chart-compare-bode');
+    } else {
+      const traces = snaps.map((s, idx) => ({
+        x: s.bode.omega,
+        y: s.bode.magDB,
+        mode: 'lines',
+        name: `|L| ${s.name}`,
+        line: { color: palette[idx % palette.length], width: 1.6 },
+      }));
+      Plotly.react('chart-compare-bode', traces, {
+        ...PLOTLY_LAYOUT_BASE(),
+        margin: { t: 10, r: 10, b: 30, l: 50 },
+        showlegend: true,
+        legend: { font: { size: 9 }, orientation: 'h', y: 1.15 },
+        xaxis: { title: 'ω (rad/s)', type: 'log', gridcolor: 'rgba(255,255,255,0.06)' },
+        yaxis: { title: '|L| (dB)', gridcolor: 'rgba(255,255,255,0.06)' },
+      }, { responsive: true, displayModeBar: false });
+    }
+  }
+  if (metricsEl) {
+    if (state.comparisonSnapshots.length === 0) {
+      metricsEl.innerHTML = '';
+      return;
+    }
+    const rows = state.comparisonSnapshots.map((s) => `
+      <tr>
+        <td><strong>${escapeHtml(s.name.slice(0, 40))}</strong></td>
+        <td>${Number.isFinite(s.metrics.gainMarginDB) ? (s.metrics.gainMarginDB === Infinity ? '∞' : s.metrics.gainMarginDB.toFixed(2) + ' dB') : '—'}</td>
+        <td>${Number.isFinite(s.metrics.phaseMargin) ? s.metrics.phaseMargin.toFixed(1) + '°' : '—'}</td>
+        <td>${Number.isFinite(s.metrics.riseTime) ? s.metrics.riseTime.toFixed(3) + ' s' : '—'}</td>
+        <td>${Number.isFinite(s.metrics.settlingTime) ? s.metrics.settlingTime.toFixed(3) + ' s' : '—'}</td>
+        <td>${Number.isFinite(s.metrics.overshoot) ? (s.metrics.overshoot * 100).toFixed(1) + '%' : '—'}</td>
+      </tr>
+    `).join('');
+    metricsEl.innerHTML = `
+      <div class="comparison-table-wrap">
+        <table class="comparison-table">
+          <thead><tr>
+            <th>Snapshot</th><th>GM</th><th>PM</th><th>Rise</th><th>Settle</th><th>Overshoot</th>
+          </tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
+    `;
+  }
 }
 
 function renderComparisonSummary() {
@@ -3103,8 +3213,17 @@ function saveComparisonSnapshot() {
       settlingTime: info.settlingTime,
       overshoot: info.overshoot,
       steadyStateError: info.steadyStateError ?? null,
+      gainCrossover: margins.gainCrossover,
     },
     response,
+    // P15-02: capture Bode of the open-loop for A/B frequency-domain comparison
+    bode: (() => {
+      try {
+        if (state.domain === 'z' || sys instanceof DiscreteTransferFunction) return null;
+        const ol = state.openLoop || state.plant;
+        return bodeData(ol, 1e-2, 1e3, 200);
+      } catch { return null; }
+    })(),
   };
   state.comparisonSnapshots = [...state.comparisonSnapshots, snapshot];
   renderSnapshotList();
@@ -4982,6 +5101,123 @@ const csUI = (() => {
     document.getElementById('btn-dkf')?.addEventListener('click', () => resetSeed(), { capture: true });
   }
 
+  // -------- System Identification UI --------
+  let _lastSysIdModel = null;
+
+  function parseCSVtoUY(text) {
+    if (!text || !text.trim()) throw new Error('CSV 是空的');
+    const lines = text.trim().split(/\r?\n/);
+    const u = [], y = [];
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i].trim();
+      if (!line) continue;
+      const parts = line.split(/[,;\s\t]+/).map((p) => parseFloat(p));
+      if (i === 0 && parts.some((v) => !Number.isFinite(v))) continue; // skip header row
+      if (parts.length < 2 || !Number.isFinite(parts[0]) || !Number.isFinite(parts[1])) continue;
+      u.push(parts[0]);
+      y.push(parts[1]);
+    }
+    if (u.length < 20) throw new Error(`CSV 樣本太少：${u.length}（最少 20）`);
+    return { u, y };
+  }
+
+  function exampleSysIdData() {
+    // True plant: y[k] = 0.7 y[k-1] + 0.3 u[k-1], step input at k=10, T=300 samples
+    const N = 300;
+    const u = Array.from({ length: N }, (_, k) => (k < 10 ? 0 : 1));
+    const y = new Array(N).fill(0);
+    for (let k = 1; k < N; k++) y[k] = 0.7 * y[k - 1] + 0.3 * u[k - 1];
+    return u.map((ui, i) => `${ui},${y[i].toFixed(5)}`).join('\n');
+  }
+
+  function fitSysID(autoOrder = false) {
+    const out = document.getElementById('sysid-out');
+    try {
+      const text = document.getElementById('sysid-csv')?.value || '';
+      const { u, y } = parseCSVtoUY(text);
+      const Ts = parseFloat(document.getElementById('sysid-ts')?.value || '0.1');
+      let model;
+      if (autoOrder) {
+        const { best, candidates } = autoARXOrder(u, y, { naMax: 4, nbMax: 4, Ts });
+        if (!best) throw new Error('Auto-order failed');
+        model = best;
+        document.getElementById('sysid-na').value = best.order.na;
+        document.getElementById('sysid-nb').value = best.order.nb;
+      } else {
+        const na = parseInt(document.getElementById('sysid-na').value, 10);
+        const nb = parseInt(document.getElementById('sysid-nb').value, 10);
+        const nk = parseInt(document.getElementById('sysid-nk').value, 10);
+        model = identifyARX(u, y, na, nb, nk, Ts);
+      }
+      _lastSysIdModel = model;
+      const aStr = model.a.map((v) => v.toFixed(4)).join(', ');
+      const bStr = model.b.map((v) => v.toFixed(4)).join(', ');
+      out.style.display = 'block';
+      out.innerHTML = [
+        `<div style="color:var(--color-accent);font-weight:700;">ARX(${model.order.na}, ${model.order.nb}, nk=${model.order.nk})</div>`,
+        `<div>A(z⁻¹) = [${aStr}]</div>`,
+        `<div>B(z⁻¹) = [${bStr}]</div>`,
+        `<div>Fit: ${model.fitPercent.toFixed(2)}% · MSE: ${model.mse.toExponential(3)} · AIC: ${model.aic.toFixed(1)}</div>`,
+      ].join('');
+
+      // Plot measured y vs predicted yhat
+      if (window.Plotly) {
+        const t = u.map((_, k) => k);
+        window.Plotly.newPlot('chart-sysid', [
+          { x: t, y: y, mode: 'lines', name: 'measured', line: { color: '#10b981', width: 1.4 } },
+          { x: t, y: model.yhat, mode: 'lines', name: 'ARX predicted', line: { color: '#ec4899', width: 1.4, dash: 'dot' } },
+        ], {
+          paper_bgcolor: 'rgba(0,0,0,0)', plot_bgcolor: 'rgba(0,0,0,0)',
+          font: { color: '#94a3b8', size: 10 },
+          margin: { t: 10, r: 10, b: 28, l: 40 },
+          legend: { font: { size: 9 }, orientation: 'h', y: 1.15 },
+          xaxis: { title: 'sample', gridcolor: 'rgba(255,255,255,0.06)' },
+          yaxis: { title: 'y', gridcolor: 'rgba(255,255,255,0.06)' },
+        }, { responsive: true, displayModeBar: false });
+      }
+    } catch (err) {
+      out.style.display = 'block';
+      out.innerHTML = `<span style="color:var(--color-unstable);">${err.message}</span>`;
+    }
+  }
+
+  function applySysIdModel() {
+    if (!_lastSysIdModel) {
+      showError('請先 Fit ARX 取得模型');
+      return;
+    }
+    // Switch to discrete TF view
+    document.querySelector('.system-mode-btn[data-mode="siso"]')?.click();
+    document.querySelector('.sys-tab[data-type="dtf"]')?.click();
+    document.getElementById('dtf-num').value = _lastSysIdModel.b.map((v) => v.toFixed(6)).join(', ');
+    document.getElementById('dtf-den').value = _lastSysIdModel.a.map((v) => v.toFixed(6)).join(', ');
+    document.getElementById('btn-apply')?.click();
+  }
+
+  function initSysID() {
+    document.getElementById('btn-sysid-fit')?.addEventListener('click', () => fitSysID(false));
+    document.getElementById('btn-sysid-auto')?.addEventListener('click', () => fitSysID(true));
+    document.getElementById('btn-sysid-apply')?.addEventListener('click', applySysIdModel);
+    document.getElementById('btn-sysid-example')?.addEventListener('click', () => {
+      document.getElementById('sysid-csv').value = exampleSysIdData();
+    });
+    document.getElementById('btn-sysid-upload')?.addEventListener('click', () => {
+      document.getElementById('sysid-file')?.click();
+    });
+    document.getElementById('sysid-file')?.addEventListener('change', async (e) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      try {
+        const text = await file.text();
+        document.getElementById('sysid-csv').value = text;
+      } catch (err) {
+        showError(`CSV 讀取失敗：${err.message}`);
+      } finally {
+        e.target.value = '';
+      }
+    });
+  }
+
   // -------- Init --------
   function init() {
     wrapSectionBodies();
@@ -4993,6 +5229,7 @@ const csUI = (() => {
     wrapDestructiveButtons();
     watchThemeForCharts();
     initSeedControl();
+    initSysID();
   }
 
   return { init, showModal, hideModal, confirm, setLoading, withLoading, collapseAll, expandAll, loadPreset };

@@ -481,6 +481,31 @@
           </div>
 
           <button class="btn btn-primary btn-sm" id="btn-mimo-update" style="width:100%;justify-content:center;">Update MIMO System</button>
+        </section>
+
+        <section class="section-panel" id="sysid-panel">
+          <div class="section-title">System Identification (ARX)</div>
+          <p class="section-copy">從輸入-輸出資料估計離散傳遞函數。可貼上 CSV（每列：u, y）或用按鈕載入範例。</p>
+          <div style="display:flex;gap:6px;margin-bottom:8px;">
+            <div class="input-group" style="flex:1;margin-bottom:0;"><label>na</label><input type="number" id="sysid-na" min="1" max="8" value="2"></div>
+            <div class="input-group" style="flex:1;margin-bottom:0;"><label>nb</label><input type="number" id="sysid-nb" min="1" max="8" value="2"></div>
+            <div class="input-group" style="flex:1;margin-bottom:0;"><label>nk (delay)</label><input type="number" id="sysid-nk" min="0" max="10" value="1"></div>
+            <div class="input-group" style="flex:1;margin-bottom:0;"><label>Ts (s)</label><input type="number" id="sysid-ts" step="0.01" value="0.1"></div>
+          </div>
+          <label style="font-size:11px;color:var(--text-muted);">CSV 資料（u,y 每列；標題列可省略）</label>
+          <textarea id="sysid-csv" rows="6" placeholder="0,0&#10;1,0.4&#10;1,0.68&#10;..." style="font-family:ui-monospace,monospace;font-size:11px;"></textarea>
+          <div style="display:flex;gap:6px;margin-bottom:8px;">
+            <input type="file" id="sysid-file" accept=".csv,text/csv" style="display:none;">
+            <button class="btn btn-sm" id="btn-sysid-upload" type="button" style="flex:1;justify-content:center;">Upload CSV</button>
+            <button class="btn btn-sm" id="btn-sysid-example" type="button" style="flex:1;justify-content:center;">Load Example</button>
+          </div>
+          <div style="display:flex;gap:6px;margin-bottom:8px;">
+            <button class="btn btn-primary btn-sm" id="btn-sysid-fit" type="button" style="flex:2;justify-content:center;">Fit ARX</button>
+            <button class="btn btn-sm" id="btn-sysid-auto" type="button" style="flex:1;justify-content:center;" title="Sweep orders 1..4 and pick minimum AIC">Auto Order</button>
+            <button class="btn btn-sm" id="btn-sysid-apply" type="button" style="flex:1;justify-content:center;" title="Replace current plant with the identified model">Apply →</button>
+          </div>
+          <div id="sysid-out" style="font-size:11px;font-family:monospace;color:var(--text-secondary);background:rgba(15,17,23,.4);padding:8px;border-radius:6px;line-height:1.6;display:none;margin-bottom:8px;"></div>
+          <div id="chart-sysid" style="height:170px;"></div>
 
           <div id="mimo-status-out" style="font-size:11px;font-family:monospace;color:var(--text-secondary);background:rgba(15,17,23,.4);padding:8px;border-radius:6px;line-height:1.6;margin-top:8px;display:none;"></div>
         </section>
@@ -756,6 +781,8 @@
             <button class="btn btn-sm" id="btn-export-csv" style="justify-content:center;">Export CSV</button>
             <button class="btn btn-sm" id="btn-export-report" style="justify-content:center;">Export Report MD</button>
             <button class="btn btn-sm" id="btn-export-png" style="justify-content:center;">Export PNG</button>
+            <button class="btn btn-sm" id="btn-export-matlab" style="justify-content:center;" title="Reproduce design in MATLAB Control Toolbox">Export MATLAB</button>
+            <button class="btn btn-sm" id="btn-export-python" style="justify-content:center;" title="Reproduce design in python-control">Export Python</button>
             <button class="btn btn-sm" id="btn-restore-session" style="justify-content:center;">Restore Session</button>
             <button class="btn btn-sm" id="btn-clear-session" style="justify-content:center;">Clear Session</button>
           </div>
@@ -1304,6 +1331,7 @@
                 <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text-muted);">
                   <span>K=0</span><span id="rl-k-max-label">K=100</span>
                 </div>
+                <button class="btn btn-sm" id="btn-rl-play" type="button" style="width:100%;justify-content:center;margin-top:6px;" title="Animate K sweep 0 → K_max">▶ Play K-Sweep</button>
               </div>
               <div style="flex:1;min-width:200px;">
                 <div style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;">Closed-loop poles</div>
@@ -1357,6 +1385,8 @@
       <div class="chart-cell compare-wide compare-shell" id="compare-section">
         <div class="chart-header"><span>Comparison Chart</span><span>Snapshot Overlay</span></div>
         <div class="chart-body" id="chart-compare"></div>
+        <div id="chart-compare-bode" style="height:200px;margin-top:8px;"></div>
+        <div id="compare-metrics-table" style="margin-top:8px;font-size:11px;"></div>
       </div>
     </div>
 
