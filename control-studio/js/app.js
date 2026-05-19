@@ -11,8 +11,8 @@ import { discreteBodeData } from './analysis/discrete-frequency-response.js?v=p5
 import { rootLocusData, rootLocusAsymptotes, rootLocusBreakPoints, rootLocusJwCrossings, sortRootLocusBranches } from './analysis/root-locus.js?v=p4';
 import { stabilityMargins, stepInfo, routhTable, analyzeStability } from './control/stability.js';
 import { parsePolyString, fmtNum, fmtDeg, fmtDB, fmtTime, fmtPercent } from './utils/format.js';
-import { zpkToTransferFunction, parseRootsString } from './control/zpk.js';
-import { c2dMatchedZ, c2dTustin, c2dTustinPrewarp, c2dZOH } from './control/c2d.js?v=p5';
+import { zpkToTransferFunction, tfToZPK, ZPK, parseRootsString } from './control/zpk.js';
+import { c2dMatchedZ, c2dTustin, c2dTustinPrewarp, c2dZOH, c2dImpulseInvariant, d2cTustin } from './control/c2d.js?v=p5';
 import { specsToTargetPoles, designLeadForPM, deadbeatGain, autoTunePIDToSpec } from './control/design.js?v=pid-p1';
 import { polyadd, polyscale, polyroots } from './math/polynomial.js?v=p4';
 import { Complex } from './math/complex.js';
@@ -359,10 +359,36 @@ function initEventListeners() {
   });
 
   document.getElementById('btn-c2d')?.addEventListener('click', () => {
-    if (!state.plant || state.domain !== 's') return;
-    const Ts = Number(document.getElementById('c2d-ts')?.value);
     const method = document.getElementById('c2d-method')?.value || 'tustin';
+    const analysisEl = document.getElementById('c2d-analysis');
     try {
+      // D→C (Inverse Tustin): converts discrete plant back to continuous
+      if (method === 'd2c-tustin') {
+        if (!state.plant || state.domain !== 'z') {
+          throw new Error('D→C: 請先切換到 z-domain（離散 TF）再執行逆轉換');
+        }
+        const ctf = d2cTustin(state.plant);
+        state.plant = ctf;
+        state.domain = 's';
+        state.systemType = 'tf';
+        document.getElementById('tf-num').value = ctf.num.map(c => parseFloat(c.toFixed(6))).join(', ');
+        document.getElementById('tf-den').value = ctf.den.map(c => parseFloat(c.toFixed(6))).join(', ');
+        document.querySelectorAll('.sys-tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.sys-tab').forEach(t => { if (t.dataset.type === 'tf') t.classList.add('active'); });
+        document.querySelectorAll('.sys-input-section').forEach(s => { s.style.display = 'none'; });
+        document.getElementById('sys-tf').style.display = 'block';
+        updateDomainUI(); refreshAllCharts(); clearError();
+        if (analysisEl) {
+          analysisEl.innerHTML = `<b>D→C 完成</b><br>DC Gain = ${fmtNum(ctf.dcGain())}&emsp;Stable: ${ctf.isStable() ? '✓' : '✗'}&emsp;Order: ${ctf.order}`;
+          analysisEl.style.display = 'block';
+        }
+        return;
+      }
+
+      if (!state.plant || state.domain !== 's') {
+        throw new Error('C→D: 請先在 s-domain 設定連續 Plant');
+      }
+      const Ts = Number(document.getElementById('c2d-ts')?.value);
       let disc;
       if (method === 'zoh') {
         disc = c2dZOH(state.plant, Ts);
@@ -371,6 +397,11 @@ function initEventListeners() {
         disc = c2dTustinPrewarp(state.plant, Ts, omegaW);
       } else if (method === 'matched-z') {
         disc = c2dMatchedZ(state.plant, Ts);
+        if (!disc._gainNormalized) {
+          showError('⚠ Matched-Z: 積分器系統增益無法正規化，DC 增益可能不正確。建議改用 ZOH 或 Tustin。');
+        }
+      } else if (method === 'impulse-invariant') {
+        disc = c2dImpulseInvariant(state.plant, Ts);
       } else {
         disc = c2dTustin(state.plant, Ts);
       }
@@ -388,8 +419,32 @@ function initEventListeners() {
       updateDomainUI();
       refreshAllCharts();
       clearError();
+      // Show discrete TF analysis
+      if (analysisEl) {
+        const poles = disc.poles();
+        const zeros = disc.zeros();
+        const dcG = disc.dcGain();
+        const stable = disc.isStable();
+        const poleStr = poles.map(p => {
+          const r = Math.hypot(p.re, p.im).toFixed(4);
+          if (Math.abs(p.im) < 1e-8) return `${p.re.toFixed(4)}`;
+          return `${p.re.toFixed(3)}${p.im >= 0 ? '+' : ''}${p.im.toFixed(3)}j`;
+        }).join(', ');
+        const zeroStr = zeros.length ? zeros.map(z => {
+          if (Math.abs(z.im) < 1e-8) return `${z.re.toFixed(4)}`;
+          return `${z.re.toFixed(3)}${z.im >= 0 ? '+' : ''}${z.im.toFixed(3)}j`;
+        }).join(', ') : '—';
+        analysisEl.innerHTML =
+          `<b>Discrete TF Analysis (${method})</b><br>` +
+          `DC Gain G(1) = ${Number.isFinite(dcG) ? dcG.toFixed(4) : '∞'}&emsp;` +
+          `Stable: <span style="color:${stable ? 'var(--color-stable)' : 'var(--color-unstable)'}">${stable ? '✓' : '✗'}</span><br>` +
+          `Poles: ${poleStr}<br>` +
+          (zeros.length ? `Zeros: ${zeroStr}` : '');
+        analysisEl.style.display = 'block';
+      }
     } catch (err) {
       showError(err.message);
+      if (analysisEl) { analysisEl.textContent = '✗ ' + err.message; analysisEl.style.display = 'block'; }
     }
   });
 
