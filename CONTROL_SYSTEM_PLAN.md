@@ -138,6 +138,10 @@
 - Polynomial regression contract：保留 unpaired complex root error message 中的 `conjugate pairs` 關鍵字，避免既有 regression / doctor 對錯誤分類失效。
 - Hamiltonian Schur：移除未使用且轉置錯誤的 dead computation，降低 CARE stable-subspace 維護風險。
 - Real Schur reorder：修正 `swap1x1Blocks()` Givens rotation 公式、右乘與 Q accumulation 符號，並確保 reordered eigenvalues 反映 post-reordering 順序。
+- Full math-core audit：`Complex.div()` 改為 scaled Smith division，避免極端尺度複數除法產生 NaN 或誤判 division by zero。
+- Full math-core audit：二階 `polyroots()` 改用 stable quadratic formula，避免 separated roots 因 cancellation 掉成 0。
+- Full math-core audit：`matInverse()` / `matSolve()` / `matRank()` / `matIsPositiveDefinite()` 改用相對矩陣尺度 tolerance，避免縮放很小但條件良好的矩陣被誤判 singular、rank deficient 或非正定。
+- Full math-core audit：discrete Bode evaluation 改走共用 robust complex division path。
 - Verification：最新節點已通過 TF / SS / ZPK / C2D 與 PID regression（commit message 記錄 `36/36` 與 `21/21`）。
 
 ### 尚未完成能力
@@ -406,6 +410,7 @@
 - Done：Phase 16 advanced synthesis / nonlinear entry points — mixed-sensitivity PID tuning、GA PID auto-tuner、2D phase portrait、describing functions。
 - Done：Phase 17 advanced robust / MIMO / MPC extensions — plant-order dynamic H∞ mixed-sensitivity synthesis、structured μ D-scaling upper-bound、DK-style static gain surrogate、characteristic loci、Gershgorin bands、inverse Nyquist array、MIMO output-space MPC tracking。
 - Done：Post Phase 17 math hardening — complex magnitude robustness、ill-conditioned polynomial conjugate pairing、Hamiltonian stable-subspace cleanup、real Schur block reorder correctness。
+- Done：Full math-core audit hardening — robust complex division、stable quadratic roots、scale-aware matrix inverse/solve/rank/PD checks、discrete frequency response division unification。
 - Verification：
   - `npm run verify:p14`
   - `npm run verify:p15`

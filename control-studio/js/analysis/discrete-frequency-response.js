@@ -4,6 +4,7 @@
  * Evaluates G(z) at z = e^{j ω Ts} for ω in [omegaMin, π/Ts].
  * Returns magnitude (linear + dB) and phase (deg, unwrapped).
  */
+import { Complex } from '../math/complex.js';
 
 function evalDtfAt(sys, theta) {
   // theta = -ω·Ts so that z⁻¹ = e^{jθ}
@@ -18,11 +19,9 @@ function evalDtfAt(sys, theta) {
     dRe += c * Math.cos(k * theta);
     dIm += c * Math.sin(k * theta);
   }
-  // (N) / (D) using complex division
-  const dMag2 = dRe * dRe + dIm * dIm;
-  const re = (nRe * dRe + nIm * dIm) / dMag2;
-  const im = (nIm * dRe - nRe * dIm) / dMag2;
-  return { re, im };
+  // (N) / (D) using the shared robust complex division path.
+  const value = new Complex(nRe, nIm).div(new Complex(dRe, dIm));
+  return { re: value.re, im: value.im };
 }
 
 /**

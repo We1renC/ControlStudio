@@ -101,8 +101,12 @@
     - Done：MPC MIMO output-space setpoint tracking
   - Post Phase 17 Math Core Hardening：Done
     - Done：`Complex.abs()` 使用 `Math.hypot()` 避免極端尺度 overflow / underflow。
+    - Done：`Complex.div()` 使用 scaled Smith division，避免極大尺度除法 NaN 與極小尺度 divisor 被誤判 zero。
     - Done：`rootsToRealPoly()` 改為 best-match + relative tolerance，改善重根與 ill-conditioned roots。
     - Done：`rootsToRealPoly()` unpaired complex root error 保留 `conjugate pairs` wording，維持 regression 相容性。
+    - Done：二階 `polyroots()` 改為 stable quadratic formula，保留 separated roots 的小根。
+    - Done：`matInverse()` / `matSolve()` / `matRank()` / `matIsPositiveDefinite()` 改用相對尺度 tolerance，避免縮放很小但條件良好的矩陣被誤判。
+    - Done：discrete frequency response 改用共用 robust complex division。
     - Done：Hamiltonian stable subspace 清除未使用且轉置錯誤的 dead computation。
     - Done：real Schur 1x1 block swap 修正 Givens rotation 公式、乘法方向 / 符號與 reordered eigenvalue 回傳順序。
   - Block Diagram expansion：Paused
@@ -246,6 +250,7 @@ git log --oneline -5
 - 本輪補上 unpaired complex root error wording 相容性後，`node test_control.js` / `./nv-agent doctor` 不應再因錯誤訊息分類失敗。
 - 本輪同步 `scripts/validate_nvidia_model_selector.sh` 的 Phase 10 math-core 預期值為 `16/16`，避免標準 `doctor` workflow 停留在舊 `12/12` 基線。
 - `workflows/cuopt_demo_workflow.py` 已新增 `--local-validate`，`./nv-agent doctor` 改用本地 cuOpt payload validator，不再因外部 cuOpt API timeout 讓本地健康檢查失敗。
+- 本輪完成 math-core audit hardening，新增 regression 覆蓋 extreme complex division、separated quadratic roots、tiny-scale inverse / solve / rank / positive-definite checks；`npm run verify:all`、`node test_control.js`、`node control-studio/scripts/control_regression_dashboard.mjs`、`./nv-agent doctor` 均已通過。
 
 ## 後續可做
 1. 控制系統主線已推進到 Phase 17；下一步若要擴充，應以 `p18+` 的新文件或 backlog 區塊定義，不要再沿用舊的 Phase 10 / 11 next-step 描述。

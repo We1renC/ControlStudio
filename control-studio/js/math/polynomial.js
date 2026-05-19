@@ -123,13 +123,22 @@ export function polyroots(poly) {
   if (n === 1) return [new Complex(-p[1] / p[0], 0)];
   if (n === 2) {
     const [a, b, c] = p;
-    const disc = b * b - 4 * a * c;
+    const scale = Math.max(Math.abs(a), Math.abs(b), Math.abs(c));
+    const as = a / scale;
+    const bs = b / scale;
+    const cs = c / scale;
+    const disc = bs * bs - 4 * as * cs;
     if (disc >= 0) {
       const sq = Math.sqrt(disc);
-      return [new Complex((-b + sq) / (2 * a), 0), new Complex((-b - sq) / (2 * a), 0)];
+      if (sq === 0) return [new Complex(-bs / (2 * as), 0), new Complex(-bs / (2 * as), 0)];
+      // Stable quadratic formula: compute the large-magnitude root with
+      // subtraction-free q, then use x1*x2 = c/a for the other root.
+      const signB = bs >= 0 ? 1 : -1;
+      const q = -0.5 * (bs + signB * sq);
+      return [new Complex(q / as, 0), new Complex(cs / q, 0)];
     }
     const sq = Math.sqrt(-disc);
-    return [new Complex(-b / (2 * a), sq / (2 * a)), new Complex(-b / (2 * a), -sq / (2 * a))];
+    return [new Complex(-bs / (2 * as), sq / (2 * as)), new Complex(-bs / (2 * as), -sq / (2 * as))];
   }
   const trailingZeros = countTrailingZeros(p);
   if (trailingZeros > 0) {

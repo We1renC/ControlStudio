@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { Complex, polyval } from '../js/math/complex.js';
-import { matExp, matIdentity, matInverse, matMul, matSolve } from '../js/math/matrix.js';
+import { matExp, matIdentity, matInverse, matIsPositiveDefinite, matMul, matRank, matSolve } from '../js/math/matrix.js';
 import { polyadd, polydiv, polymul, polyroots, rootsToRealPoly } from '../js/math/polynomial.js';
 import { rk4, rk45, interpolateUniform } from '../js/math/ode.js';
 import { TransferFunction } from '../js/control/transfer-function.js';
@@ -14,6 +14,13 @@ const checks = [];
 
 function assertNear(name, actual, expected, tolerance = 1e-9) {
   if (!Number.isFinite(actual) || Math.abs(actual - expected) > tolerance) {
+    throw new Error(`${name}: expected ${expected}, got ${actual}`);
+  }
+}
+
+function assertRelNear(name, actual, expected, relTolerance = 1e-9, absTolerance = 1e-12) {
+  const scale = Math.max(1, Math.abs(expected));
+  if (!Number.isFinite(actual) || Math.abs(actual - expected) > Math.max(absTolerance, relTolerance * scale)) {
     throw new Error(`${name}: expected ${expected}, got ${actual}`);
   }
 }
@@ -43,6 +50,12 @@ record('Complex arithmetic invariants', () => {
   const q = z.mul(new Complex(1, -2)).div(new Complex(1, -2));
   assertNear('complex roundtrip re', q.re, 3);
   assertNear('complex roundtrip im', q.im, 4);
+  const hugeDiv = new Complex(1e308, 1e308).div(new Complex(1e308, -1e308));
+  assertNear('huge complex division re', hugeDiv.re, 0);
+  assertNear('huge complex division im', hugeDiv.im, 1);
+  const tinyDiv = new Complex(1e-308, 1e-308).div(new Complex(1e-308, -1e-308));
+  assertNear('tiny complex division re', tinyDiv.re, 0);
+  assertNear('tiny complex division im', tinyDiv.im, 1);
   const p = polyval([1, 0, 1], new Complex(0, 1));
   assertNear('polyval(j) for s^2+1 re', p.re, 0);
   assertNear('polyval(j) for s^2+1 im', p.im, 0);
@@ -69,6 +82,13 @@ record('Polynomial algebra and roots', () => {
     assertTrue(`quartic root ${re}+j${im}`, hasRoot(quartic, re, im));
   }
 
+  const separatedPositive = polyroots([1, -1e16, 1]).map((root) => root.re).sort((a, b) => a - b);
+  assertRelNear('separated quadratic small positive root', separatedPositive[0], 1e-16, 1e-12, 1e-20);
+  assertRelNear('separated quadratic large positive root', separatedPositive[1], 1e16, 1e-12);
+  const separatedNegative = polyroots([1, 1e16, 1]).map((root) => root.re).sort((a, b) => a - b);
+  assertRelNear('separated quadratic large negative root', separatedNegative[0], -1e16, 1e-12);
+  assertRelNear('separated quadratic small negative root', separatedNegative[1], -1e-16, 1e-12, 1e-20);
+
   const realPoly = rootsToRealPoly([{ re: -1, im: 2 }, { re: -1, im: -2 }]);
   assertNear('conjugate pair coefficient s', realPoly[1], 2);
   assertNear('conjugate pair constant', realPoly[2], 5);
@@ -88,6 +108,17 @@ record('Matrix solve, inverse, and exponential', () => {
   const x = matSolve(A, [5, 11]);
   assertNear('matSolve x0', x[0], 1);
   assertNear('matSolve x1', x[1], 2);
+  const tinyA = [[1e-20, 0], [0, 2e-20]];
+  const tinyInv = matInverse(tinyA);
+  assertRelNear('tiny-scale inverse 00', tinyInv[0][0], 1e20, 1e-12);
+  assertRelNear('tiny-scale inverse 11', tinyInv[1][1], 5e19, 1e-12);
+  const tinyX = matSolve(tinyA, [1e-20, 4e-20]);
+  assertNear('tiny-scale solve x0', tinyX[0], 1);
+  assertNear('tiny-scale solve x1', tinyX[1], 2);
+  assertTrue('tiny full-rank matrix rank', matRank(tinyA) === 2);
+  assertTrue('tiny positive-definite matrix accepted', matIsPositiveDefinite(tinyA));
+  assertTrue('tiny negative matrix rejected as PD', !matIsPositiveDefinite([[-1e-20, 0], [0, 2e-20]]));
+  assertTrue('zero matrix rank', matRank([[0, 0], [0, 0]]) === 0);
   const expZero = matExp([[0, 0], [0, 0]]);
   assertTrue('exp(0)=I', JSON.stringify(expZero) === JSON.stringify(matIdentity(2)));
   const rot = matExp([[0, 1], [-1, 0]]);

@@ -83,9 +83,23 @@ export function matDet(A) {
   return det;
 }
 
+function matMaxAbs(A) {
+  let max = 0;
+  for (const row of A) {
+    for (const value of row) max = Math.max(max, Math.abs(value));
+  }
+  return max;
+}
+
+function relativePivotTolerance(A, base = 1e-14) {
+  const scale = matMaxAbs(A);
+  return scale === 0 ? base : base * scale;
+}
+
 /** Matrix inverse via Gauss-Jordan (for small matrices) */
 export function matInverse(A) {
   const n = A.length;
+  const pivotTolerance = relativePivotTolerance(A);
   const aug = A.map((row, i) => {
     const id = new Array(n).fill(0);
     id[i] = 1;
@@ -97,7 +111,7 @@ export function matInverse(A) {
       if (Math.abs(aug[k][i]) > Math.abs(aug[maxRow][i])) maxRow = k;
     [aug[i], aug[maxRow]] = [aug[maxRow], aug[i]];
     const pivot = aug[i][i];
-    if (Math.abs(pivot) < 1e-14) throw new SingularMatrixError('Singular matrix');
+    if (Math.abs(pivot) < pivotTolerance) throw new SingularMatrixError('Singular matrix');
     for (let j = 0; j < 2 * n; j++) aug[i][j] /= pivot;
     for (let k = 0; k < n; k++) {
       if (k === i) continue;
@@ -111,6 +125,7 @@ export function matInverse(A) {
 /** Solve AX=B via Gauss-Jordan elimination (small dense systems). */
 export function matSolve(A, B) {
   const n = A.length;
+  const pivotTolerance = relativePivotTolerance(A);
   const rhs = Array.isArray(B[0]) ? B : B.map((value) => [value]);
   const m = rhs[0].length;
   const aug = A.map((row, i) => [...row, ...rhs[i]]);
@@ -122,7 +137,7 @@ export function matSolve(A, B) {
     }
     [aug[i], aug[maxRow]] = [aug[maxRow], aug[i]];
     const pivot = aug[i][i];
-    if (Math.abs(pivot) < 1e-14) throw new SingularMatrixError('Singular matrix');
+    if (Math.abs(pivot) < pivotTolerance) throw new SingularMatrixError('Singular matrix');
     for (let j = i; j < n + m; j++) aug[i][j] /= pivot;
     for (let k = 0; k < n; k++) {
       if (k === i) continue;
@@ -192,18 +207,20 @@ export function matExp(A) {
 }
 
 /** Calculate the rank of a matrix using Gaussian elimination */
-export function matRank(A) {
+export function matRank(A, tolerance = 1e-12) {
   if (!A || !A.length) return 0;
   const m = A.length, n = A[0].length;
   let rank = 0;
   const mat = A.map(row => [...row]);
+  const scale = matMaxAbs(mat);
+  const pivotTolerance = scale === 0 ? tolerance : tolerance * scale;
   
   for (let c = 0; c < n; c++) {
     let pivot = rank;
     for (let i = rank + 1; i < m; i++) {
       if (Math.abs(mat[i][c]) > Math.abs(mat[pivot][c])) pivot = i;
     }
-    if (Math.abs(mat[pivot][c]) < 1e-12) continue;
+    if (Math.abs(mat[pivot][c]) < pivotTolerance) continue;
     
     [mat[rank], mat[pivot]] = [mat[pivot], mat[rank]];
     
@@ -264,5 +281,7 @@ export function matEigenvaluesSymmetric(A, tolerance = 1e-12, maxSweeps = 100) {
 
 export function matIsPositiveDefinite(A, tolerance = 1e-10) {
   const eigenvalues = matEigenvaluesSymmetric(A);
-  return eigenvalues.every((value) => value > tolerance);
+  const scale = matMaxAbs(A);
+  const threshold = scale === 0 ? tolerance : tolerance * scale;
+  return eigenvalues.every((value) => value > threshold);
 }

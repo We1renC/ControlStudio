@@ -77,11 +77,30 @@ export class Complex {
 
   div(other) {
     const c = Complex._ensure(other);
-    const denom = c.re * c.re + c.im * c.im;
-    if (denom === 0) throw new Error('Division by zero');
+    if (c.re === 0 && c.im === 0) throw new Error('Division by zero');
+    const absRe = Math.abs(c.re);
+    const absIm = Math.abs(c.im);
+
+    // Smith-style scaled complex division. This avoids overflow in
+    // c.re²+c.im² and underflow for subnormal-scale divisors.
+    if (absRe >= absIm) {
+      const ratio = c.im / c.re;
+      const denom = 1 + ratio * ratio;
+      const ar = this.re / c.re;
+      const ai = this.im / c.re;
+      return new Complex(
+        (ar + ai * ratio) / denom,
+        (ai - ar * ratio) / denom
+      );
+    }
+
+    const ratio = c.re / c.im;
+    const denom = 1 + ratio * ratio;
+    const ar = this.re / c.im;
+    const ai = this.im / c.im;
     return new Complex(
-      (this.re * c.re + this.im * c.im) / denom,
-      (this.im * c.re - this.re * c.im) / denom
+      (ar * ratio + ai) / denom,
+      (ai * ratio - ar) / denom
     );
   }
 
