@@ -9,6 +9,7 @@
 - 進入專案後先跑 `git status --short`，確認工作樹狀態。
 - 修改前先讀相關檔案全文；手動改檔使用 `apply_patch`。
 - 若新增 workflow，必須同步更新 `README.md`、`RUNNABLE_WORKFLOWS.md`、`AGENT_CONTINUATION.md`、`scripts/validate_nvidia_model_selector.sh`。
+- 若修改控制系統功能、數學核心、UI 行為或驗證案例，完成後必須同步相關文件，再 commit；文件同步範圍至少檢查 `CONTROL_SYSTEM_PLAN.md`、`CONTROL_SYSTEM_BACKLOG.md`、`CONTROL_SYSTEM_VERIFICATION_CASES.md`、`CONTROL_SYSTEM_SCENARIOS.md`、`AGENT_CONTINUATION.md`。
 
 ## 主要入口
 - `./nv-agent`：agent 開發用 CLI。
@@ -24,6 +25,7 @@
 - 控制系統功能開發先以 `CONTROL_SYSTEM_PLAN.md` 的 MVP 範圍為主，不要直接跳做高複雜度進階控制功能。
 - 控制系統每次完成功能、修正理論/數值錯誤、或補驗證案例後，都要立即用 git 留下明確 checkpoint；不要累積多輪未提交的控制系統變更。
 - 控制系統相關 commit message 需明確標示 phase / scope，例如 `feat(phase9): ...`、`fix(phase9): ...`、`test(phase9): ...`、`docs(control): ...`。
+- 控制系統 checkpoint 前要先做文件同步判斷：若實作狀態、驗證狀態、開發順序、已知限制或 agent 接手資訊有變，必須更新對應文件，避免 code 與文件脫節。
 
 ## 標準流程
 1. 查狀態：
@@ -58,6 +60,14 @@
    ```bash
    ./nv-agent eval --run outputs/runs/rag-YYYYMMDD-HHMMSS
    ```
+6. 控制系統變更收尾：
+   ```bash
+   git status --short
+   npm run verify:all
+   node test_control.js
+   node control-studio/scripts/control_regression_dashboard.mjs
+   ```
+   再同步相關文件與建立 git checkpoint。
 
 ## 現有 Workflow
 - `rag`：文字知識庫檢索問答。

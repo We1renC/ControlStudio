@@ -9,11 +9,13 @@
 - 已建立獨立 git repo，避免被 `/Users/w.rc` 外層 git 混入。
 - 控制系統目前同步基線：
   - Branch: `main`
-  - Latest active line: `main HEAD`（Phase 17 advanced robust / MIMO / MPC extensions）
+  - Latest active line: `main HEAD` / `origin/main` at `a2a89d3 fix(math): 4 defects in complex / polynomial / realschur`
   - Full phase audit checkpoints:
     - `7a318b3 fix(control): harden phase 7-9 theory diagnostics`
     - `46e20da fix(control): harden phase 0-6 theory checks`
   - 近期主線已接續完成 Phase 12 ~ Phase 17；目前 codebase 已包含 H∞ 視覺化與 MIMO `||G||∞`、大幅 UI/UX 改版、time delay / IMC / disk margin / LaTeX、ARX system ID / A-B compare / codegen / root-locus animation、H∞ mixed-sensitivity PID synthesis / GA PID auto-tuner / phase portrait / describing functions，以及 Phase 17 的 plant-order dynamic H∞、structured μ、MIMO frequency-domain diagnostics、MPC MIMO output tracking。
+  - Post Phase 17 最新數學核心 hardening：`a2a89d3` 修正 `complex.js` magnitude overflow/underflow 風險、`polynomial.js` ill-conditioned conjugate root pairing、`realschur.js` Hamiltonian dead computation 與 real Schur 1x1 block swap / eigenvalue order 問題。
+  - 本輪文件同步時同步修正 `rootsToRealPoly()` unpaired complex root error message，保留 `conjugate pairs` regression contract，讓 `./nv-agent doctor` / `test_control.js` 可正確分類錯誤。
 - 已完成 NVIDIA Build Models 資料集中管理。
 - 已新增 agent 入口文件：
   - `AGENTS.md`：專案規則、標準流程、擴充規則與品質判準。
@@ -97,6 +99,12 @@
     - Done：DK-style static gain robust design surrogate
     - Done：MIMO characteristic loci / Gershgorin bands / inverse Nyquist array
     - Done：MPC MIMO output-space setpoint tracking
+  - Post Phase 17 Math Core Hardening：Done
+    - Done：`Complex.abs()` 使用 `Math.hypot()` 避免極端尺度 overflow / underflow。
+    - Done：`rootsToRealPoly()` 改為 best-match + relative tolerance，改善重根與 ill-conditioned roots。
+    - Done：`rootsToRealPoly()` unpaired complex root error 保留 `conjugate pairs` wording，維持 regression 相容性。
+    - Done：Hamiltonian stable subspace 清除未使用且轉置錯誤的 dead computation。
+    - Done：real Schur 1x1 block swap 修正 Givens rotation 公式、乘法方向 / 符號與 reordered eigenvalue 回傳順序。
   - Block Diagram expansion：Paused
   - Phase 0 ~ Phase 17 已完成通盤數學理論與產品流程檢查。後續若修改數值核心，至少重跑 `npm run verify:math`、`npm run verify:phase11`、`npm run verify:p14`、`npm run verify:p15`、`npm run verify:p16`、`npm run verify:p17`、`npm run verify:all`、`node test_control.js`、`node control-studio/scripts/control_regression_dashboard.mjs`。
 - 已建立 symlink：
@@ -145,6 +153,7 @@ git log --oneline -5
 ## Git 維護提醒
 - 控制系統開發必須持續用 git 維護；每完成一批功能、修正、或驗證補強，就立刻 commit，不要讓 `control-studio/` 與 `test_control.js` 長時間停留在未提交狀態。
 - 控制系統 commit 請帶 phase / scope，例如 `feat(phase9): ...`、`fix(phase9): ...`、`test(phase9): ...`、`docs(control): ...`。
+- 控制系統 checkpoint 前必須同步文件：若本輪改到功能範圍、數學核心、UI 行為、驗證覆蓋或已知限制，先更新 `CONTROL_SYSTEM_PLAN.md` / backlog / scenarios / verification cases / 本文件中相符項目，再 commit。
 - 在切換 agent 前，若本輪有控制系統改動，先確認至少有一個可回溯的 git checkpoint。
 
 ## 已驗證
@@ -233,6 +242,9 @@ git log --oneline -5
 - `control-studio` 已補 Phase 15：ARX system ID（least squares + AIC auto order）、Compare Bode overlay、MATLAB / Python codegen、root-locus K-sweep animation；`npm run verify:p15` 可重跑驗證。
 - `control-studio` 已補 Phase 16：mixed-sensitivity H∞ PID synthesis helper、GA PID auto-tuner、phase portrait、describing functions；`npm run verify:p16` 可重跑驗證。
 - `control-studio` 已補 Phase 17：plant-order dynamic H∞ mixed-sensitivity synthesis、structured μ D-scaling upper-bound / DK-style static gain surrogate、MIMO characteristic loci / Gershgorin bands / inverse Nyquist array、MPC MIMO output-space setpoint tracking；`npm run verify:p17` 可重跑驗證。
+- `a2a89d3 fix(math): 4 defects in complex / polynomial / realschur` 已完成 post Phase 17 數學核心修復；commit 記錄 TF/SS/ZPK/C2D `36/36` 與 PID `21/21` 通過。
+- 本輪補上 unpaired complex root error wording 相容性後，`node test_control.js` / `./nv-agent doctor` 不應再因錯誤訊息分類失敗。
+- 本輪同步 `scripts/validate_nvidia_model_selector.sh` 的 Phase 10 math-core 預期值為 `16/16`，避免標準 `doctor` workflow 停留在舊 `12/12` 基線。
 
 ## 後續可做
 1. 控制系統主線已推進到 Phase 17；下一步若要擴充，應以 `p18+` 的新文件或 backlog 區塊定義，不要再沿用舊的 Phase 10 / 11 next-step 描述。

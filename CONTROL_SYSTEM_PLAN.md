@@ -131,6 +131,15 @@
 - Phase 16：H∞ mixed-sensitivity PID synthesis helper、GA PID auto-tuner、phase portrait、describing functions
 - Phase 17：plant-order dynamic H∞ mixed-sensitivity synthesis、structured μ D-scaling upper-bound / DK-style static gain surrogate、MIMO characteristic loci / Gershgorin bands / inverse Nyquist array、MPC MIMO output-space setpoint tracking
 
+### Math Core Hardening 已完成（Post Phase 17）
+- `a2a89d3 fix(math): 4 defects in complex / polynomial / realschur`
+- Complex magnitude：`Complex.abs()` 改用 `Math.hypot()`，避免極大 / 極小複數 magnitude overflow / underflow。
+- Polynomial roots：`rootsToRealPoly()` 由固定 absolute tolerance 改為 best-match + relative tolerance，改善重根與 ill-conditioned complex conjugate pairing。
+- Polynomial regression contract：保留 unpaired complex root error message 中的 `conjugate pairs` 關鍵字，避免既有 regression / doctor 對錯誤分類失效。
+- Hamiltonian Schur：移除未使用且轉置錯誤的 dead computation，降低 CARE stable-subspace 維護風險。
+- Real Schur reorder：修正 `swap1x1Blocks()` Givens rotation 公式、右乘與 Q accumulation 符號，並確保 reordered eigenvalues 反映 post-reordering 順序。
+- Verification：最新節點已通過 TF / SS / ZPK / C2D 與 PID regression（commit message 記錄 `36/36` 與 `21/21`）。
+
 ### 尚未完成能力
 - 自動產生報告 / 報告模板
 - 前端分析流程預設全面切到統一 API
@@ -396,6 +405,7 @@
 - Done：Phase 15 workflow tooling — ARX identification、open-loop A/B Bode compare、MATLAB / Python code export、root-locus K-sweep animation。
 - Done：Phase 16 advanced synthesis / nonlinear entry points — mixed-sensitivity PID tuning、GA PID auto-tuner、2D phase portrait、describing functions。
 - Done：Phase 17 advanced robust / MIMO / MPC extensions — plant-order dynamic H∞ mixed-sensitivity synthesis、structured μ D-scaling upper-bound、DK-style static gain surrogate、characteristic loci、Gershgorin bands、inverse Nyquist array、MIMO output-space MPC tracking。
+- Done：Post Phase 17 math hardening — complex magnitude robustness、ill-conditioned polynomial conjugate pairing、Hamiltonian stable-subspace cleanup、real Schur block reorder correctness。
 - Verification：
   - `npm run verify:p14`
   - `npm run verify:p15`
@@ -430,9 +440,10 @@
    - 至少一個 smoke test 或驗證流程
    - UI 對應入口（若屬使用者可見功能）
 6. 若引入新模型類型或新控制器類型，先更新資料模型與輸入格式，再補 UI。
-7. 若新增 workflow 或控制系統相關 CLI 能力，需同步更新：
+7. 每次完成控制系統功能、數學核心修復、UI 行為調整或驗證補強後，必須同步文件狀態，再做 git checkpoint；至少檢查 `CONTROL_SYSTEM_PLAN.md`、`CONTROL_SYSTEM_BACKLOG.md`、`CONTROL_SYSTEM_VERIFICATION_CASES.md`、`CONTROL_SYSTEM_SCENARIOS.md`、`AGENT_CONTINUATION.md` 是否需要更新。
+8. 若新增 workflow 或控制系統相關 CLI 能力，需同步更新：
    - `README.md`
    - `RUNNABLE_WORKFLOWS.md`
    - `AGENT_CONTINUATION.md`
    - `scripts/validate_nvidia_model_selector.sh`
-8. 若要從靜態前端遷移到 React/FastAPI，不要一次重寫全部；用增量替換策略。
+9. 若要從靜態前端遷移到 React/FastAPI，不要一次重寫全部；用增量替換策略。

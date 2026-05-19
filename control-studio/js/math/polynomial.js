@@ -96,7 +96,8 @@ export function rootsToRealPoly(roots) {
       if (bestJ === -1 || bestDist > tol) {
         throw new Error(
           `Complex root (${re.toExponential(3)}+${im.toExponential(3)}j) ` +
-          `has no conjugate pair within tolerance ${tol.toExponential(2)} ` +
+          `has no conjugate pair within tolerance ${tol.toExponential(2)}; ` +
+          `complex roots must appear in conjugate pairs to form a real polynomial ` +
           `(closest distance: ${bestDist.toExponential(2)})`
         );
       }
