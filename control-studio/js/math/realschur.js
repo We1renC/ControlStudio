@@ -493,14 +493,35 @@ export function hamiltonianStableSubspace(H_nested, n, options = {}) {
   const Ps = Z.map((row, i) => row.map((val, j) => (i === j ? (1 - val) : -val) / 2));
 
   // Extract orthonormal basis for range(Ps) via Gram-Schmidt on Ps's columns.
-  // The first n columns with largest norms form the stable subspace basis.
-  const colNorms = Array.from({ length: N }, (_, j) => {
-    let s = 0;
-    for (let i = 0; i < N; i++) s += Ps[i][j] * Ps[i][j];
-    return { j, norm: Math.sqrt(s) };
-  });
-  colNorms.sort((a, b) => b.norm - a.norm);
-  const topCols = colNorms.slice(0, n).map((c) => c.j).sort((a, b) => a - b);
+  // Select n columns that best represent the stable subspace.
+  let topCols;
+  if (options.useSignDiagonal) {
+    // Use sign(H) diagonal: Z[j][j] < 0 indicates a stable direction.
+    const stableCols = [];
+    for (let j = 0; j < N; j++) {
+      if (Z[j][j] < -0.5) stableCols.push(j);
+    }
+    if (stableCols.length >= n) {
+      topCols = stableCols.slice(0, n);
+    } else {
+      // Fall back to norm-based if not enough stable diagonals
+      const colNorms = Array.from({ length: N }, (_, j) => {
+        let s = 0;
+        for (let i = 0; i < N; i++) s += Ps[i][j] * Ps[i][j];
+        return { j, norm: Math.sqrt(s) };
+      });
+      colNorms.sort((a, b) => b.norm - a.norm);
+      topCols = colNorms.slice(0, n).map((c) => c.j).sort((a, b) => a - b);
+    }
+  } else {
+    const colNorms = Array.from({ length: N }, (_, j) => {
+      let s = 0;
+      for (let i = 0; i < N; i++) s += Ps[i][j] * Ps[i][j];
+      return { j, norm: Math.sqrt(s) };
+    });
+    colNorms.sort((a, b) => b.norm - a.norm);
+    topCols = colNorms.slice(0, n).map((c) => c.j).sort((a, b) => a - b);
+  }
 
   // Build V from the selected columns of Ps
   const Vraw = Array.from({ length: N }, (_, i) => topCols.map((j) => Ps[i][j]));
