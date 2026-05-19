@@ -21,7 +21,7 @@
 
 | Phase | Priority | Status | Theme | Goal | Primary Verification |
 | --- | --- | --- | --- | --- | --- |
-| Phase 18 | P1 | In progress | Uncertainty + Monte Carlo robust validation | 將 robust analysis 從 nominal 指標推進到不確定性族群驗證 | deterministic uncertainty fixtures、worst-case replay、`verify:p18` |
+| Phase 18 | P1 | Done | Uncertainty + Monte Carlo robust validation | 將 robust analysis 從 nominal 指標推進到不確定性族群驗證 | deterministic uncertainty fixtures、worst-case replay、`verify:p18` |
 | Phase 19 | P2 | Planned | Full H-infinity / mu backend | 補 Riccati/LMI H-infinity synthesis 與完整 DK-iteration | CARE/LMI residual、closed-loop H-infinity norm、mu upper/lower consistency |
 | Phase 20 | P1 | Planned | MIMO MPC engineering workflow | 完成多輸出 tracking、constraints、offset-free disturbance rejection | constrained MIMO tracking fixtures、infeasibility handling |
 | Phase 21 | P2 | Planned | Research-grade system identification | 從 ARX 擴展到 ARMAX/OE/BJ/subspace ID 與 uncertainty model | residual whiteness、fit/cross-validation、known-plant recovery |
@@ -185,7 +185,6 @@ Skill 必須遵守：
 
 ## Recommended Next Step
 
-1. 繼續 Phase 18：Robust Validation UI，接上已完成的 uncertainty schema、deterministic Monte Carlo、worst-case metrics 與 robust pass/fail core。
-2. `control-studio-robust-validator` baseline 已建立；後續使用時依 `skills/control-studio-robust-validator/SKILL.md` 執行。
-3. Phase 18 UI 完成後，再建立 `control-studio-system-auditor` 與 `control-studio-benchmark-author`，把審查與驗證案例產生流程標準化。
-4. 等 Phase 20 / 21 啟動後，再建立 `control-studio-mpc-designer` 與 `control-studio-sysid-planner`。
+1. Phase 18 已完成；後續使用 `skills/control-studio-robust-validator/SKILL.md` 做 robust validation workflow。
+2. 下一批優先建立 `control-studio-system-auditor` 與 `control-studio-benchmark-author`，把審查與驗證案例產生流程標準化。
+3. 等 Phase 20 / 21 啟動後，再建立 `control-studio-mpc-designer` 與 `control-studio-sysid-planner`。

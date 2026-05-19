@@ -1507,6 +1507,51 @@
             <div id="uncertainty-out" style="font-size:11px;font-family:monospace;color:var(--text-secondary);background:rgba(15,17,23,.4);padding:8px;border-radius:6px;line-height:1.6;display:none;margin-bottom:8px;"></div>
             <div id="chart-uncertainty" style="height:200px;display:none;"></div>
           </div>
+
+            <div style="margin-top:14px;padding-top:10px;border-top:1px dashed rgba(255,255,255,0.08);">
+              <div style="font-size:11px;font-weight:600;color:var(--text-secondary);margin-bottom:4px;">Monte Carlo Robust Validation</div>
+              <div style="display:flex;gap:6px;margin-bottom:6px;">
+                <div class="input-group" style="flex:1;margin-bottom:0;">
+                  <label>seed</label>
+                  <input type="number" id="rv-seed" value="7" step="1">
+                </div>
+                <div class="input-group" style="flex:1;margin-bottom:0;">
+                  <label>samples</label>
+                  <input type="number" id="rv-samples" value="24" step="1" min="1" max="200">
+                </div>
+                <div class="input-group" style="flex:1;margin-bottom:0;">
+                  <label>den ±%</label>
+                  <input type="number" id="rv-den-pct" value="30" step="5" min="0">
+                </div>
+              </div>
+              <div style="display:flex;gap:6px;margin-bottom:6px;">
+                <div class="input-group" style="flex:1;margin-bottom:0;">
+                  <label>gain ±%</label>
+                  <input type="number" id="rv-gain-pct" value="20" step="5" min="0">
+                </div>
+                <div class="input-group" style="flex:1;margin-bottom:0;">
+                  <label>additive radius</label>
+                  <input type="number" id="rv-add-radius" value="0.02" step="0.01" min="0">
+                </div>
+              </div>
+              <div style="display:flex;gap:6px;margin-bottom:6px;">
+                <div class="input-group" style="flex:1;margin-bottom:0;">
+                  <label>max OS %</label>
+                  <input type="number" id="rv-max-os" value="20" step="1" min="0">
+                </div>
+                <div class="input-group" style="flex:1;margin-bottom:0;">
+                  <label>max settle s</label>
+                  <input type="number" id="rv-max-ts" value="8" step="0.5" min="0">
+                </div>
+                <div class="input-group" style="flex:1;margin-bottom:0;">
+                  <label>min PM °</label>
+                  <input type="number" id="rv-min-pm" value="45" step="1">
+                </div>
+              </div>
+              <button class="btn btn-sm" id="btn-robust-validation" style="width:100%;justify-content:center;margin-bottom:8px;">Run Robust Validation</button>
+              <div id="robust-validation-out" style="font-size:11px;font-family:monospace;color:var(--text-secondary);background:rgba(15,17,23,.4);padding:8px;border-radius:6px;line-height:1.6;display:none;margin-bottom:8px;"></div>
+              <div id="chart-robust-validation" style="height:200px;display:none;"></div>
+            </div>
           </div>
         </section>
 

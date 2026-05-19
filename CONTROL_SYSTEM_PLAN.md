@@ -428,7 +428,7 @@
   - `npm run verify:all`
 
 ### Phase 18+ Research / Engineering Extension Track
-- In progress：Phase 18 uncertainty + Monte Carlo robust validation — Done：uncertainty schema、deterministic Monte Carlo sampling、worst-case metrics、robust pass/fail、`verify:p18` regression、`control-studio-robust-validator` skill baseline；Planned：Robust Validation UI。
+- Done：Phase 18 uncertainty + Monte Carlo robust validation — uncertainty schema、deterministic Monte Carlo sampling、worst-case metrics、robust pass/fail、`verify:p18` regression、Robust Validation UI、`control-studio-robust-validator` skill baseline。
 - Planned：Phase 19 full H∞ / μ backend — Riccati/LMI Glover-Doyle synthesis、full DK-iteration、dynamic D-scaling。
 - Planned：Phase 20 MIMO MPC engineering workflow — multi-output constraints、move suppression、offset-free disturbance rejection、feasibility diagnostics。
 - Planned：Phase 21 research-grade system identification — ARMAX / OE / BJ / subspace ID、experiment design、residual validation、uncertainty export。

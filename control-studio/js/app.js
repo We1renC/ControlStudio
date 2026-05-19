@@ -21,7 +21,7 @@ import { matIdentity, matTranspose, matSub, matMul } from './math/matrix.js?v=p5
 import { BlockEditor } from './editor/editor.js';
 import { MIMOStateSpace, parseMIMOMatrices, rgaSteady, rgaDiagnosis, rgaInvariants, singularValueBode, staticDecoupler, applyDecoupler, dynamicDecouplerAtFrequency, evalAtJw, singularValues } from './control/mimo.js';
 import { simulateConstrainedMpc, simulateUnconstrainedMpc } from './control/mpc.js';
-import { sensitivityBode, robustPeaks, uncertaintyEnvelope, hInfNorm, additiveUncertaintyEnvelope, diskMargin } from './control/robust.js';
+import { sensitivityBode, robustPeaks, uncertaintyEnvelope, hInfNorm, additiveUncertaintyEnvelope, diskMargin, monteCarloRobustValidation } from './control/robust.js';
 import { applyDelay, padeApprox, delayMargin, smithPredictor } from './control/delay.js';
 import { polyToLatex, tfToLatex, renderLatex, pidToLatex } from './utils/latex.js';
 import { setSeed, getSeed, resetSeed } from './math/rng.js';
@@ -331,6 +331,7 @@ function initEventListeners() {
   document.getElementById('btn-mpc-constrained')?.addEventListener('click', computeConstrainedMpc);
   document.getElementById('btn-robust')?.addEventListener('click', computeRobustSensitivity);
   document.getElementById('btn-uncertainty')?.addEventListener('click', computeUncertaintyEnvelope);
+  document.getElementById('btn-robust-validation')?.addEventListener('click', computeRobustValidation);
   document.getElementById('btn-mimo-hinf')?.addEventListener('click', computeMIMOHinfNorm);
 
   document.querySelectorAll('.sys-tab').forEach(tab => {
@@ -5603,6 +5604,96 @@ function computeUncertaintyEnvelope() {
     clearError();
   } catch (err) {
     setPhase7Output('uncertainty-out', escapeHtml(err.message), true);
+    showError(err.message);
+  }
+}
+
+function readNonnegativeNumber(id, label) {
+  const value = parseFloat(document.getElementById(id)?.value ?? '0');
+  if (!Number.isFinite(value) || value < 0) throw new Error(`${label} 必須是非負數`);
+  return value;
+}
+
+function computeRobustValidation() {
+  try {
+    clearFieldErrors();
+    if (!state.plant) throw new Error('請先建立 plant');
+    if (state.systemMode === 'mimo') throw new Error('Monte Carlo robust validation 目前先支援 SISO 模式');
+    updateController();
+    const controllerTf = state.controller?.toTransferFunction?.();
+    if (!controllerTf) throw new Error('無法取得 controller transfer function（請先設定 PID/compensator）');
+
+    const seed = parseInt(document.getElementById('rv-seed')?.value ?? '1', 10);
+    const sampleCount = parseInt(document.getElementById('rv-samples')?.value ?? '24', 10);
+    if (!Number.isInteger(seed)) throw new Error('seed 必須是整數');
+    if (!Number.isInteger(sampleCount) || sampleCount < 1 || sampleCount > 500) throw new Error('samples 必須是 1~500 的整數');
+
+    const gainPct = readNonnegativeNumber('rv-gain-pct', 'gain ±%');
+    const denPct = readNonnegativeNumber('rv-den-pct', 'den ±%');
+    const additiveRadius = readNonnegativeNumber('rv-add-radius', 'additive radius');
+    const maxOvershoot = readNonnegativeNumber('rv-max-os', 'max OS');
+    const maxSettlingTime = readNonnegativeNumber('rv-max-ts', 'max settle');
+    const minPhaseMargin = parseFloat(document.getElementById('rv-min-pm')?.value ?? '45');
+    if (!Number.isFinite(minPhaseMargin)) throw new Error('min PM 必須是有限數值');
+
+    const wmin = parseFloat(document.getElementById('robust-wmin').value);
+    const wmax = parseFloat(document.getElementById('robust-wmax').value);
+    if (!(wmin > 0 && wmax > wmin)) throw new Error('ω 範圍無效（請先在 Sensitivity Bode 設定）');
+    const omegas = Array.from({ length: 80 }, (_, i) => Math.pow(10, Math.log10(wmin) + ((Math.log10(wmax) - Math.log10(wmin)) * i) / 79));
+
+    const uncertainty = {
+      gain: gainPct / 100,
+      denominator: state.plant.den.map((_, idx) => (idx === 0 ? 0 : denPct / 100)),
+      additive: { radius: additiveRadius },
+    };
+    const result = monteCarloRobustValidation(state.plant, uncertainty, {
+      controllerTf,
+      seed,
+      sampleCount,
+      omegas,
+      responseSampleCount: 500,
+      specs: {
+        maxOvershoot,
+        maxSettlingTime,
+        minPhaseMargin,
+        maxPeakSensitivity: 2,
+      },
+    });
+    state.phase18 = state.phase18 || {};
+    state.phase18.robustValidation = result;
+
+    const worst = result.worstCase;
+    const failedNames = worst.passFail.checks.filter((check) => !check.pass).map((check) => check.name);
+    const statusColor = result.pass ? 'var(--color-stable)' : 'var(--color-unstable)';
+    setPhase7Output('robust-validation-out', [
+      `<div style="color:${statusColor};font-weight:700;">Robust validation: ${result.pass ? 'PASS' : 'FAIL'} (${result.failureCount}/${result.sampleCount} failed)</div>`,
+      `<div>seed = ${seed}, samples = ${sampleCount}, gain ±${fmtNum(gainPct, 3)}%, denominator ±${fmtNum(denPct, 3)}%, additive radius = ${fmtNum(additiveRadius, 4)}</div>`,
+      `<div style="margin-top:6px;color:var(--color-accent);">Worst-case sample #${worst.sample.index}</div>`,
+      `<div>stable = ${worst.metrics.stable ? 'yes' : 'no'} | OS = ${fmtNum(worst.metrics.overshoot, 3)}% | settling = ${fmtTime(worst.metrics.settlingTime)} | PM = ${fmtDeg(worst.metrics.phaseMargin)} | ‖S‖∞ = ${fmtNum(worst.metrics.peakSensitivity, 4)}</div>`,
+      `<div>sample gain = ${fmtNum(worst.sample.gain, 4)} | den factors = ${(worst.sample.denominator || []).map((v) => fmtNum(v, 4)).join(', ') || 'n/a'}</div>`,
+      failedNames.length ? `<div style="color:#f87171;">failed checks: ${failedNames.map(escapeHtml).join(', ')}</div>` : '<div>failed checks: none</div>',
+    ].join(''));
+
+    const chartEl = document.getElementById('chart-robust-validation');
+    if (chartEl) chartEl.style.display = 'block';
+    if (typeof Plotly !== 'undefined') {
+      const xs = result.results.map((r) => r.sample.index);
+      const markerColors = result.results.map((r) => (r.passFail.pass && r.metrics.stable ? '#10b981' : '#ef4444'));
+      Plotly.newPlot('chart-robust-validation', [
+        { x: xs, y: result.results.map((r) => r.metrics.overshoot), type: 'bar', name: 'Overshoot %', marker: { color: markerColors } },
+        { x: xs, y: result.results.map((r) => r.metrics.peakSensitivity), type: 'scatter', mode: 'lines+markers', name: '‖S‖∞', yaxis: 'y2', line: { color: '#6366f1', width: 1.5 } },
+      ], {
+        ...PLOTLY_LAYOUT_BASE(),
+        margin: { t: 10, r: 45, b: 35, l: 45 },
+        legend: { font: { size: 9 }, orientation: 'h', y: 1.15 },
+        xaxis: { title: 'sample', gridcolor: 'rgba(255,255,255,0.06)' },
+        yaxis: { title: 'OS %', gridcolor: 'rgba(255,255,255,0.06)' },
+        yaxis2: { title: '‖S‖∞', overlaying: 'y', side: 'right', gridcolor: 'rgba(255,255,255,0)' },
+      }, { responsive: true, displayModeBar: false });
+    }
+    clearError();
+  } catch (err) {
+    setPhase7Output('robust-validation-out', escapeHtml(err.message), true);
     showError(err.message);
   }
 }
