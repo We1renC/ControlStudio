@@ -19,7 +19,7 @@ import {
   matSymmetrize,
   matTranspose,
 } from '../math/matrix.js';
-import { solveDAREHamiltonianSign } from './state-feedback.js';
+import { solveDAREHamiltonianSign, solveDiscreteKalman } from './state-feedback.js';
 
 function assertMatrixShape(name, M, rows, cols) {
   if (!Array.isArray(M) || M.length !== rows || M.some((row) => !Array.isArray(row) || row.length !== cols)) {
@@ -1031,4 +1031,151 @@ export function mpcTrackingError(reference, output) {
     throw new Error('reference and output must have the same length');
   }
   return subtractColumn(reference, output);
+}
+
+// ---------------------------------------------------------------------------
+// CS-P20-01: Offset-Free Tracking (Disturbance Model + Observer)
+// ---------------------------------------------------------------------------
+
+/**
+ * Build augmented state-space model for offset-free tracking.
+ * Assumes output disturbances (d is added to y).
+ * x_aug = [x; d]
+ * d_{k+1} = d_k (random walk)
+ * y_k = C x_k + d_k
+ */
+export function buildDisturbanceModel(Ad, Bd, C, nd = null) {
+  const n = Ad.length;
+  const m = Bd[0].length;
+  const p = C.length;
+  const numDist = nd ?? p; // Default to output disturbance
+  if (numDist !== p) {
+    throw new Error('Only output disturbances (nd = p) are currently supported for offset-free tracking');
+  }
+
+  // A_aug = [Ad   0 ]
+  //         [ 0   I ]
+  const A_aug = [];
+  for (let i = 0; i < n; i++) A_aug.push([...Ad[i], ...Array(p).fill(0)]);
+  for (let i = 0; i < p; i++) {
+    const row = Array(n + p).fill(0);
+    row[n + i] = 1;
+    A_aug.push(row);
+  }
+
+  // B_aug = [Bd ]
+  //         [ 0 ]
+  const B_aug = [];
+  for (let i = 0; i < n; i++) B_aug.push([...Bd[i]]);
+  for (let i = 0; i < p; i++) B_aug.push(Array(m).fill(0));
+
+  // C_aug = [C   I ]
+  const C_aug = [];
+  for (let i = 0; i < p; i++) {
+    const row = [...C[i], ...Array(p).fill(0)];
+    row[n + i] = 1;
+    C_aug.push(row);
+  }
+
+  return { A_aug, B_aug, C_aug, n, m, p, nd: numDist };
+}
+
+/**
+ * Design Kalman observer for the augmented offset-free tracking model.
+ */
+export function designDisturbanceObserver(A_aug, C_aug, Qw, Rv) {
+  const { L, Pe, Aobs } = solveDiscreteKalman(A_aug, C_aug, Qw, Rv);
+  return { L, P: Pe, Aobs };
+}
+
+/**
+ * Simulate MPC with offset-free tracking (augmented observer in the loop).
+ */
+export function simulateOffsetFreeMpc(
+  Ad, Bd, C, Q, R, horizon, x0, yRef, constraints = {}, options = {}
+) {
+  const { n, m, p } = buildDisturbanceModel(Ad, Bd, C, C.length);
+  const steps = options.steps ?? 30;
+  if (!options.Qw || !options.Rv) {
+    throw new Error('Qw and Rv are required for offset-free observer design');
+  }
+
+  const { A_aug, B_aug, C_aug } = buildDisturbanceModel(Ad, Bd, C, p);
+  const obs = designDisturbanceObserver(A_aug, C_aug, options.Qw, options.Rv);
+
+  // Initial augmented state estimate [x0; 0]
+  let xHat = [...cloneMatrix(x0), ...Array.from({ length: p }, () => [0])];
+  const xTrue = [cloneMatrix(x0)];
+  const u = [];
+  const y = [];
+  const xHatLog = [cloneMatrix(xHat)];
+  const trackingErrors = [];
+  let totalCost = 0;
+
+  // Plant disturbance (unknown to observer)
+  const d_plant = options.disturbance ?? Array.from({ length: p }, () => [0]);
+  let uPrev = options.uPrev ?? Array.from({ length: m }, () => [0]);
+
+  for (let k = 0; k < steps; k++) {
+    // 1. Plant measurement
+    const xk = xTrue[k];
+    const yk = matAdd(matMul(C, xk), d_plant);
+    y.push(yk);
+
+    // 2. Current state estimate update (Measurement Update)
+    // For MPC action without delay, we compute current estimate:
+    // xHat_current = xHat_pred + M * (yk - C_aug * xHat_pred)
+    // S = C_aug * P * C_aug' + Rv
+    const S = matAdd(matMul(matMul(C_aug, obs.P), matTranspose(C_aug)), options.Rv);
+    const M = matMul(matMul(obs.P, matTranspose(C_aug)), matInverse(S));
+    const innov = matSub(yk, matMul(C_aug, xHat));
+    const xHat_current = matAdd(xHat, matMul(M, innov));
+
+    // Extract state and disturbance estimate
+    const xHat_k = xHat_current.slice(0, n);
+    const dHat_k = xHat_current.slice(n, n + p);
+
+    // 3. MPC Action on estimated state
+    // To reject dHat_k, we offset yRef by dHat_k
+    const yRef_adjusted = matSub(yRef, dHat_k);
+    const actionOptions = { ...options, uPrev };
+    
+    // Pass empty D matrix (zeros) to output tracking
+    const Dmat = Array.from({ length: p }, () => Array(m).fill(0));
+    const action = firstMpcActionOutputTracking(
+      Ad, Bd, C, Dmat, Q, R, horizon, xHat_k, yRef_adjusted, constraints, options.Qf || null, actionOptions,
+    );
+    
+    const uk = action.u;
+    const xNext = addColumn(matMul(Ad, xk), matMul(Bd, uk));
+    
+    let cost = quadraticForm(action.stateTrackingError, Q) + quadraticForm(action.v, R);
+    if (options.S) {
+      const du = matSub(uk, uPrev);
+      cost += quadraticForm(du, options.S);
+    }
+    
+    // 4. Observer Time Update
+    // xHat_pred(k+1) = A_aug * xHat_current + B_aug * uk
+    xHat = matAdd(matMul(A_aug, xHat_current), matMul(B_aug, uk));
+    
+    u.push(uk);
+    xTrue.push(xNext);
+    xHatLog.push(cloneMatrix(xHat));
+    trackingErrors.push(mpcTrackingError(yRef, yk));
+    totalCost += cost;
+    uPrev = uk;
+  }
+
+  return {
+    x: xTrue,
+    xHat: xHatLog,
+    u,
+    y,
+    trackingErrors,
+    totalCost,
+    finalTrackingErrorNormInf: maxAbsMatrix(trackingErrors[trackingErrors.length - 1]),
+    steps,
+    horizon,
+  };
 }

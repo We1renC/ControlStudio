@@ -2,7 +2,8 @@ import assert from 'assert';
 import {
   simulateConstrainedMpc,
   simulateMpcTracking,
-  firstMpcActionConstrained
+  firstMpcActionConstrained,
+  simulateOffsetFreeMpc
 } from '../js/control/mpc.js';
 
 let failed = 0;
@@ -64,6 +65,46 @@ console.log('=== Phase 20: MPC Move Suppression ===\n');
     assert(errBase < 1e-3, 'Base tracking converges');
     assert(errSuppressed < 1e-3, 'Suppressed tracking converges to same steady-state');
     console.log('[PASS] Move suppression does not affect steady-state tracking target');
+  } catch(e) {
+    console.error(`[FAIL] ${e.message}`);
+    failed++;
+  }
+}
+
+console.log('\n=== Phase 20: MPC Offset-Free Tracking ===\n');
+
+{
+  const Ad = [[0.8]];
+  const Bd = [[2.0]];
+  const C = [[1.0]];
+  const Q = [[1.0]];
+  const R = [[0.1]];
+  const horizon = 10;
+  const x0 = [[0]];
+  const yRef = [[5]];
+  const Qw = [[1, 0], [0, 1]]; // Process + disturbance noise
+  const Rv = [[0.1]]; // Measurement noise
+  
+  // 1. Without disturbance, should act like standard MPC
+  const simNoDist = simulateOffsetFreeMpc(Ad, Bd, C, Q, R, horizon, x0, yRef, {}, { Qw, Rv, steps: 20 });
+  
+  // 2. With constant unmeasured output disturbance
+  const d_plant = [[2.0]]; 
+  const simDist = simulateOffsetFreeMpc(Ad, Bd, C, Q, R, horizon, x0, yRef, {}, { Qw, Rv, steps: 40, disturbance: d_plant });
+
+  try {
+    assert(simNoDist.finalTrackingErrorNormInf < 1e-3, 'Converges without disturbance');
+    console.log('[PASS] Offset-free MPC converges without disturbance');
+    
+    // Check if the observer correctly estimates the disturbance
+    const finalDHat = simDist.xHat[40][1][0];
+    assert(Math.abs(finalDHat - 2.0) < 1e-2, `Disturbance estimated correctly (got ${finalDHat.toFixed(3)})`);
+    console.log('[PASS] Observer correctly estimates step disturbance');
+    
+    // Check if tracking error converges to zero despite disturbance
+    const finalErr = simDist.finalTrackingErrorNormInf;
+    assert(finalErr < 1e-3, `Tracking error rejected disturbance (err=${finalErr.toExponential(2)})`);
+    console.log('[PASS] MPC offsets tracking target to reject disturbance');
   } catch(e) {
     console.error(`[FAIL] ${e.message}`);
     failed++;
