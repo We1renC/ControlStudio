@@ -134,6 +134,13 @@ cd /Users/w.rc/nvdiaOSsupport
 ./.venv/bin/python workflows/cuopt_demo_workflow.py --action cuOpt_OptimizedRouting
 ```
 
+本地健康檢查或 payload 格式檢查使用離線 validator，不呼叫 NVIDIA API：
+
+```bash
+cd /Users/w.rc/nvdiaOSsupport
+./.venv/bin/python workflows/cuopt_demo_workflow.py --action cuOpt_RoutingValidator --local-validate
+```
+
 Control Advisor：
 
 ```bash

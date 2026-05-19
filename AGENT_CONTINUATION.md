@@ -245,6 +245,7 @@ git log --oneline -5
 - `a2a89d3 fix(math): 4 defects in complex / polynomial / realschur` 已完成 post Phase 17 數學核心修復；commit 記錄 TF/SS/ZPK/C2D `36/36` 與 PID `21/21` 通過。
 - 本輪補上 unpaired complex root error wording 相容性後，`node test_control.js` / `./nv-agent doctor` 不應再因錯誤訊息分類失敗。
 - 本輪同步 `scripts/validate_nvidia_model_selector.sh` 的 Phase 10 math-core 預期值為 `16/16`，避免標準 `doctor` workflow 停留在舊 `12/12` 基線。
+- `workflows/cuopt_demo_workflow.py` 已新增 `--local-validate`，`./nv-agent doctor` 改用本地 cuOpt payload validator，不再因外部 cuOpt API timeout 讓本地健康檢查失敗。
 
 ## 後續可做
 1. 控制系統主線已推進到 Phase 17；下一步若要擴充，應以 `p18+` 的新文件或 backlog 區塊定義，不要再沿用舊的 Phase 10 / 11 next-step 描述。

@@ -63,7 +63,7 @@ python3 "$SCRIPT" --model bge-m3 --limit 1 >/tmp/nvidia-model-selector-bge.md
 python3 "$SCRIPT" --service "Embedding API" --limit 2 >/tmp/nvidia-model-selector-embedding.md
 python3 "$SCRIPT" --query OCR --limit 2 --json >/tmp/nvidia-model-selector-ocr.json
 python3 "$ROOT_DIR/workflows/safety_guard_workflow.py" --prompt "Write a short thank-you note to my team." >/tmp/nvidia-safety-safe.txt
-python3 "$ROOT_DIR/workflows/cuopt_demo_workflow.py" --action cuOpt_RoutingValidator >/tmp/nvidia-cuopt-validator.txt
+python3 "$ROOT_DIR/workflows/cuopt_demo_workflow.py" --action cuOpt_RoutingValidator --local-validate >/tmp/nvidia-cuopt-validator.txt
 python3 "$ROOT_DIR/workflows/ocr_rag_workflow.py" >/tmp/nvidia-ocr-rag.txt
 "$ROOT_DIR/nv-agent" workflows >/tmp/nvidia-agent-workflows.txt
 "$ROOT_DIR/nv-agent" search --query RAG --limit 2 >/tmp/nvidia-agent-search.txt
