@@ -119,6 +119,12 @@ export function finiteHorizonLqr(Ad, Bd, Q = null, R = null, horizon = 10, Qf = 
 }
 
 export function firstMpcAction(Ad, Bd, Q, R, horizon, x, Qf = null, options = {}) {
+  // If Move Suppression is requested, fall back to condensed QP 
+  // since the Riccati recursion would require state augmentation.
+  if (options.S) {
+    return firstMpcActionConstrained(Ad, Bd, Q, R, horizon, x, {}, Qf, options);
+  }
+
   const n = Ad.length;
   assertMatrixShape('x', x, n, 1);
   const result = finiteHorizonLqr(Ad, Bd, Q, R, horizon, Qf, options);
@@ -143,15 +149,25 @@ export function simulateUnconstrainedMpc(Ad, Bd, Q, R, horizon, x0, options = {}
   const stageCost = [];
   let totalCost = 0;
 
+  let uPrev = options.uPrev ?? Array.from({ length: m }, () => [0]);
+
   for (let k = 0; k < steps; k++) {
-    const action = firstMpcAction(Ad, Bd, Qmat, Rmat, horizon, x[k], options.Qf || null, { autoTerminalCost: options.autoTerminalCost });
+    const actionOptions = { ...options, uPrev };
+    const action = firstMpcAction(Ad, Bd, Qmat, Rmat, horizon, x[k], options.Qf || null, actionOptions);
     const uk = action.u;
     const xNext = addColumn(matMul(Ad, x[k]), matMul(Bd, uk));
-    const cost = quadraticForm(x[k], Qmat) + quadraticForm(uk, Rmat);
+    
+    let cost = quadraticForm(x[k], Qmat) + quadraticForm(uk, Rmat);
+    if (options.S) {
+      const du = matSub(uk, uPrev);
+      cost += quadraticForm(du, options.S);
+    }
+    
     u.push(uk);
     x.push(xNext);
     stageCost.push(cost);
     totalCost += cost;
+    uPrev = uk;
   }
 
   return {
@@ -217,7 +233,7 @@ export function solveSetpointSteadyState(Ad, Bd, r) {
  * uConstraints on the increment v are automatically offset from u constraints:
  *   v_min = uMin − u_ss,  v_max = uMax − u_ss
  */
-export function firstMpcActionTracking(Ad, Bd, Q, R, horizon, x, reference, constraints = {}, Qf = null) {
+export function firstMpcActionTracking(Ad, Bd, Q, R, horizon, x, reference, constraints = {}, Qf = null, options = {}) {
   const n = Ad.length;
   const m = Bd[0].length;
   assertMatrixShape('x', x, n, 1);
@@ -234,7 +250,14 @@ export function firstMpcActionTracking(Ad, Bd, Q, R, horizon, x, reference, cons
   const vMin = uMinAbs.map((b, j) => Number.isFinite(b) ? b - u_ss[j][0] : b);
   const vMax = uMaxAbs.map((b, j) => Number.isFinite(b) ? b - u_ss[j][0] : b);
 
-  const vResult = firstMpcActionConstrained(Ad, Bd, Q, R, horizon, e0, { uMin: vMin, uMax: vMax }, Qf);
+  // If move suppression is used, shift uPrev to vPrev
+  let vOptions = { ...options };
+  if (options.S) {
+    const uPrev = options.uPrev ?? Array.from({ length: m }, () => [0]);
+    vOptions.uPrev = uPrev.map((row, j) => [row[0] - u_ss[j][0]]);
+  }
+
+  const vResult = firstMpcActionConstrained(Ad, Bd, Q, R, horizon, e0, { uMin: vMin, uMax: vMax }, Qf, vOptions);
   const u = vResult.u.map((row, j) => [row[0] + u_ss[j][0]]);
   return { u, v: vResult.u, u_ss, trackingError: e0, anyActive: vResult.anyActive, riccati: vResult };
 }
@@ -263,17 +286,27 @@ export function simulateMpcTracking(Ad, Bd, Q, R, horizon, x0, reference, constr
   const trackingErrors = [];
   let totalCost = 0;
 
+  let uPrev = options.uPrev ?? Array.from({ length: m }, () => [0]);
+
   for (let k = 0; k < steps; k++) {
     const ref = getRef(k);
-    const action = firstMpcActionTracking(Ad, Bd, Qmat, Rmat, horizon, x[k], ref, constraints, options.Qf || null);
+    const actionOptions = { ...options, uPrev };
+    const action = firstMpcActionTracking(Ad, Bd, Qmat, Rmat, horizon, x[k], ref, constraints, options.Qf || null, actionOptions);
     const uk = action.u;
     const ek = action.trackingError;
     const xNext = addColumn(matMul(Ad, x[k]), matMul(Bd, uk));
-    const cost = quadraticForm(ek, Qmat) + quadraticForm(action.v, Rmat);
+    
+    let cost = quadraticForm(ek, Qmat) + quadraticForm(action.v, Rmat);
+    if (options.S) {
+      const du = matSub(uk, uPrev);
+      cost += quadraticForm(du, options.S);
+    }
+    
     u.push(uk);
     x.push(xNext);
     trackingErrors.push(ek);
     totalCost += cost;
+    uPrev = uk;
   }
 
   const finalRef = getRef(steps - 1);
@@ -388,7 +421,13 @@ export function firstMpcActionOutputTracking(
   const vMin = uMinAbs.map((b, j) => Number.isFinite(b) ? b - steady.u_ss[j][0] : b);
   const vMax = uMaxAbs.map((b, j) => Number.isFinite(b) ? b - steady.u_ss[j][0] : b);
 
-  const vResult = firstMpcActionConstrained(Ad, Bd, Q, R, horizon, e0, { uMin: vMin, uMax: vMax }, Qf);
+  let vOptions = { ...options };
+  if (options.S) {
+    const uPrev = options.uPrev ?? Array.from({ length: m }, () => [0]);
+    vOptions.uPrev = uPrev.map((row, j) => [row[0] - steady.u_ss[j][0]]);
+  }
+
+  const vResult = firstMpcActionConstrained(Ad, Bd, Q, R, horizon, e0, { uMin: vMin, uMax: vMax }, Qf, vOptions);
   const u = vResult.u.map((row, j) => [row[0] + steady.u_ss[j][0]]);
   return {
     u,
@@ -430,21 +469,31 @@ export function simulateMpcOutputTracking(
   const steadyStates = [];
   let totalCost = 0;
 
+  let uPrev = options.uPrev ?? Array.from({ length: m }, () => [0]);
+
   for (let k = 0; k < steps; k++) {
     const ref = getRef(k);
+    const actionOptions = { ...options, uPrev };
     const action = firstMpcActionOutputTracking(
-      Ad, Bd, C, D, Qmat, Rmat, horizon, x[k], ref, constraints, options.Qf || null, options,
+      Ad, Bd, C, D, Qmat, Rmat, horizon, x[k], ref, constraints, options.Qf || null, actionOptions,
     );
     const uk = action.u;
     const yk = outputAt(C, D, x[k], uk);
     const xNext = addColumn(matMul(Ad, x[k]), matMul(Bd, uk));
-    const cost = quadraticForm(action.stateTrackingError, Qmat) + quadraticForm(action.v, Rmat);
+    
+    let cost = quadraticForm(action.stateTrackingError, Qmat) + quadraticForm(action.v, Rmat);
+    if (options.S) {
+      const du = matSub(uk, uPrev);
+      cost += quadraticForm(du, options.S);
+    }
+    
     u.push(uk);
     y.push(yk);
     x.push(xNext);
     outputErrors.push(mpcTrackingError(ref, yk));
     steadyStates.push(action.steady);
     totalCost += cost;
+    uPrev = uk;
   }
 
   const finalRef = getRef(steps - 1);
@@ -588,7 +637,7 @@ function boxQPHildreth(H, f, uMin, uMax, maxIter = 400, tol = 1e-10) {
  *   - scalar means the same bound for all inputs
  *   - array of length m means per-input bounds
  */
-export function firstMpcActionConstrained(Ad, Bd, Q, R, horizon, x, constraints = {}, Qf = null) {
+export function firstMpcActionConstrained(Ad, Bd, Q, R, horizon, x, constraints = {}, Qf = null, options = {}) {
   const { n, m } = validateMpcModel(Ad, Bd, Q, R, horizon);
   assertMatrixShape('x', x, n, 1);
   const Qmat = matSymmetrize(cloneMatrix(Q));
@@ -596,8 +645,44 @@ export function firstMpcActionConstrained(Ad, Bd, Q, R, horizon, x, constraints 
   const Qfmat = Qf ? matSymmetrize(cloneMatrix(Qf)) : cloneMatrix(Qmat);
 
   const condensed = buildCondensedMpc(Ad, Bd, Qmat, Rmat, horizon, Qfmat);
-  const f = condensedGradient(condensed, x);
+  let H = condensed.H;
+  let f = condensedGradient(condensed, x);
   const Nm = horizon * m;
+
+  if (options.S) {
+    const Smat = matSymmetrize(cloneMatrix(options.S));
+    assertMatrixShape('S', Smat, m, m);
+    const uPrev = options.uPrev ?? Array.from({ length: m }, () => [0]);
+    
+    // Add block tridiagonal Delta-U penalty to H
+    const dH = Array.from({ length: Nm }, () => new Array(Nm).fill(0));
+    for (let k = 0; k < horizon; k++) {
+      for (let i = 0; i < m; i++) {
+        for (let j = 0; j < m; j++) {
+          const val = Smat[i][j];
+          dH[k * m + i][k * m + j] += val;
+          if (k > 0) {
+            dH[(k - 1) * m + i][(k - 1) * m + j] += val;
+            dH[(k - 1) * m + i][k * m + j] -= val;
+            dH[k * m + i][(k - 1) * m + j] -= val;
+          }
+        }
+      }
+    }
+    
+    // Linear penalty term from uPrev
+    const df = new Array(Nm).fill(0);
+    for (let i = 0; i < m; i++) {
+      let sum = 0;
+      for (let j = 0; j < m; j++) {
+        sum += Smat[i][j] * uPrev[j][0];
+      }
+      df[i] = -sum;
+    }
+    
+    H = matAdd(H, dH);
+    f = f.map((val, i) => val + df[i]);
+  }
 
   const rawMin = constraints.uMin ?? -Infinity;
   const rawMax = constraints.uMax ?? Infinity;
@@ -610,7 +695,7 @@ export function firstMpcActionConstrained(Ad, Bd, Q, R, horizon, x, constraints 
     }
   }
 
-  const U = boxQPHildreth(condensed.H, f, uMin, uMax);
+  const U = boxQPHildreth(H, f, uMin, uMax);
   const u = Array.from({ length: m }, (_, j) => [U[j]]);
   const activeAt = U.map((val, i) => {
     if (Math.abs(val - uMin[i]) < 1e-7 && Number.isFinite(uMin[i])) return 'lower';
@@ -648,16 +733,27 @@ export function simulateConstrainedMpc(Ad, Bd, Q, R, horizon, x0, constraints = 
   const activeConstraintsLog = [];
   let totalCost = 0;
 
+  let uPrev = options.uPrev ?? Array.from({ length: m }, () => [0]);
+
   for (let k = 0; k < steps; k++) {
-    const action = firstMpcActionConstrained(Ad, Bd, Qmat, Rmat, horizon, x[k], constraints, Qfmat);
+    const actionOptions = { ...options, uPrev };
+    const action = firstMpcActionConstrained(Ad, Bd, Qmat, Rmat, horizon, x[k], constraints, Qfmat, actionOptions);
     const uk = action.u;
     const xNext = addColumn(matMul(Ad, x[k]), matMul(Bd, uk));
-    const cost = quadraticForm(x[k], Qmat) + quadraticForm(uk, Rmat);
+    
+    // True stage cost including delta-U if S is provided
+    let cost = quadraticForm(x[k], Qmat) + quadraticForm(uk, Rmat);
+    if (options.S) {
+      const du = matSub(uk, uPrev);
+      cost += quadraticForm(du, options.S);
+    }
+    
     u.push(uk);
     x.push(xNext);
     stageCost.push(cost);
     totalCost += cost;
     activeConstraintsLog.push(action.anyActive);
+    uPrev = uk;
   }
 
   return {
@@ -772,7 +868,7 @@ function computeStateViolations(X_pred, xMin, xMax, n, N) {
  *   penalty (ρ) defaults to 1e4.
  */
 export function firstMpcActionStateConstrained(
-  Ad, Bd, Q, R, horizon, x, uConstraints = {}, xConstraints = {}, Qf = null,
+  Ad, Bd, Q, R, horizon, x, uConstraints = {}, xConstraints = {}, Qf = null, options = {}
 ) {
   const { n, m } = validateMpcModel(Ad, Bd, Q, R, horizon);
   assertMatrixShape('x', x, n, 1);
@@ -781,8 +877,39 @@ export function firstMpcActionStateConstrained(
   const Qfmat = Qf ? matSymmetrize(cloneMatrix(Qf)) : cloneMatrix(Qmat);
 
   const condensed = buildCondensedMpc(Ad, Bd, Qmat, Rmat, horizon, Qfmat);
-  const f_base = condensedGradient(condensed, x);
+  let f_base = condensedGradient(condensed, x);
   const Nm = horizon * m;
+
+  let dH = null;
+  let df = null;
+  if (options.S) {
+    const Smat = matSymmetrize(cloneMatrix(options.S));
+    const uPrev = options.uPrev ?? Array.from({ length: m }, () => [0]);
+    
+    dH = Array.from({ length: Nm }, () => new Array(Nm).fill(0));
+    for (let k = 0; k < horizon; k++) {
+      for (let i = 0; i < m; i++) {
+        for (let j = 0; j < m; j++) {
+          const val = Smat[i][j];
+          dH[k * m + i][k * m + j] += val;
+          if (k > 0) {
+            dH[(k - 1) * m + i][(k - 1) * m + j] += val;
+            dH[(k - 1) * m + i][k * m + j] -= val;
+            dH[k * m + i][(k - 1) * m + j] -= val;
+          }
+        }
+      }
+    }
+    
+    df = new Array(Nm).fill(0);
+    for (let i = 0; i < m; i++) {
+      let sum = 0;
+      for (let j = 0; j < m; j++) {
+        sum += Smat[i][j] * uPrev[j][0];
+      }
+      df[i] = -sum;
+    }
+  }
 
   const rawMin = uConstraints.uMin ?? -Infinity;
   const rawMax = uConstraints.uMax ?? Infinity;
@@ -807,10 +934,15 @@ export function firstMpcActionStateConstrained(
     condensed, x, xMin, xMax, penalty,
   );
 
-  // Merge base gradient into augmented gradient
-  const f_total = f_aug.map((v, i) => v + f_base[i]);
+  let H_total = H_aug;
+  let f_total = f_aug.map((v, i) => v + f_base[i]);
 
-  const U = boxQPHildreth(H_aug, f_total, uMin, uMax);
+  if (options.S) {
+    H_total = matAdd(H_total, dH);
+    f_total = f_total.map((v, i) => v + df[i]);
+  }
+
+  const U = boxQPHildreth(H_total, f_total, uMin, uMax);
   const u = Array.from({ length: m }, (_, j) => [U[j]]);
 
   // Compute predicted trajectory to report violations
@@ -852,21 +984,33 @@ export function simulateStateConstrainedMpc(
   const x = [cloneMatrix(x0)];
   const u = [];
   const stageCost = [];
+  const activeConstraintsLog = [];
   const violationsLog = [];
   let totalCost = 0;
 
+  let uPrev = options.uPrev ?? Array.from({ length: m }, () => [0]);
+
   for (let k = 0; k < steps; k++) {
+    const actionOptions = { ...options, uPrev };
     const action = firstMpcActionStateConstrained(
-      Ad, Bd, Qmat, Rmat, horizon, x[k], uConstraints, xConstraints, Qfmat,
+      Ad, Bd, Qmat, Rmat, horizon, x[k], uConstraints, xConstraints, Qfmat, actionOptions,
     );
     const uk = action.u;
     const xNext = addColumn(matMul(Ad, x[k]), matMul(Bd, uk));
-    const cost = quadraticForm(x[k], Qmat) + quadraticForm(uk, Rmat);
+    
+    let cost = quadraticForm(x[k], Qmat) + quadraticForm(uk, Rmat);
+    if (options.S) {
+      const du = matSub(uk, uPrev);
+      cost += quadraticForm(du, options.S);
+    }
+    
     u.push(uk);
     x.push(xNext);
     stageCost.push(cost);
     totalCost += cost;
+    activeConstraintsLog.push(action.anyActive);
     violationsLog.push({ slackNormInf: action.slackNormInf, feasible: action.feasible });
+    uPrev = uk;
   }
 
   return {
