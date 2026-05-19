@@ -9,7 +9,7 @@
 - 已建立獨立 git repo，避免被 `/Users/w.rc` 外層 git 混入。
 - 控制系統目前同步基線：
   - Branch: `main`
-  - Latest active line: `main HEAD` / `origin/main` at `a2a89d3 fix(math): 4 defects in complex / polynomial / realschur`
+  - Latest active line: `main HEAD`（Post Phase 17 math-core hardening + Phase 18+ / skill planning docs）
   - Full phase audit checkpoints:
     - `7a318b3 fix(control): harden phase 7-9 theory diagnostics`
     - `46e20da fix(control): harden phase 0-6 theory checks`
@@ -48,6 +48,7 @@
   - `CONTROL_SYSTEM_BACKLOG.md`
   - `CONTROL_SYSTEM_SCENARIOS.md`
   - `CONTROL_SYSTEM_PHASE10_PLAN.md`
+  - `CONTROL_SYSTEM_SKILLS_PLAN.md`
 - 控制系統目前 phase 狀態：
   - Phase 0 ~ Phase 9：Done
   - Phase 10：Done
@@ -109,6 +110,14 @@
     - Done：discrete frequency response 改用共用 robust complex division。
     - Done：Hamiltonian stable subspace 清除未使用且轉置錯誤的 dead computation。
     - Done：real Schur 1x1 block swap 修正 Givens rotation 公式、乘法方向 / 符號與 reordered eigenvalue 回傳順序。
+  - Phase 18+ Research / Engineering Extension：Planned
+    - Next：Phase 18 uncertainty + Monte Carlo robust validation。
+    - Planned：Phase 19 full H∞ / μ backend。
+    - Planned：Phase 20 MIMO MPC constraints / offset-free tracking。
+    - Planned：Phase 21 research-grade system identification。
+    - Planned：Phase 22 benchmark + cross-tool validation。
+    - Planned：Phase 23 structured agentic design review。
+    - Skill plan：`CONTROL_SYSTEM_SKILLS_PLAN.md` 已規劃 `control-studio-robust-validator`、`control-studio-system-auditor`、`control-studio-benchmark-author`、`control-studio-mpc-designer`、`control-studio-sysid-planner` 等候選 skill。
   - Block Diagram expansion：Paused
   - Phase 0 ~ Phase 17 已完成通盤數學理論與產品流程檢查。後續若修改數值核心，至少重跑 `npm run verify:math`、`npm run verify:phase11`、`npm run verify:p14`、`npm run verify:p15`、`npm run verify:p16`、`npm run verify:p17`、`npm run verify:all`、`node test_control.js`、`node control-studio/scripts/control_regression_dashboard.mjs`。
 - 已建立 symlink：
@@ -179,7 +188,8 @@ git log --oneline -5
 - `control_advisor_workflow.py --help` 可正常執行。
 - `CONTROL_SYSTEM_PLAN.md` 已整理控制系統盤點、MVP 範圍與後續 roadmap。
 - `CONTROL_SYSTEM_VERIFICATION_CASES.md` 已定義五個具數學推導的控制系統驗證案例，涵蓋一階、二階欠阻尼、初始不穩定/pole-zero/低 PM、RHP zero、State-Space 等價。
-- `CONTROL_SYSTEM_BACKLOG.md` 已規劃後續開發順序，近期先做 fixture-based verification、API contract tests、PID/Lead/Lag design presets 與 comparison table。
+- `CONTROL_SYSTEM_BACKLOG.md` 已規劃後續開發順序，目前 Phase 0~17 已完成，下一主線為 Phase 18 uncertainty + Monte Carlo robust validation。
+- `CONTROL_SYSTEM_SKILLS_PLAN.md` 已新增 Phase 18+ research roadmap 與 skill candidates，定義哪些控制工程流程適合拆成 agent skill。
 - `control-studio` 已補上 State Space（SISO）輸入、Step/Impulse/Ramp 切換、Nyquist Plot、project save/load 與 JSON/CSV 匯出。
 - `control-studio` UI 已改成 sidebar workspace tabs（Model / Sim / Advisor / Compare），並支援 comparison snapshots 疊圖比較。
 - `control-studio/scripts/serve_studio.py` 已提供固定的本地前端啟動入口（預設 `http://127.0.0.1:8765`）。
@@ -253,18 +263,20 @@ git log --oneline -5
 - 本輪完成 math-core audit hardening，新增 regression 覆蓋 extreme complex division、separated quadratic roots、tiny-scale inverse / solve / rank / positive-definite checks；`npm run verify:all`、`node test_control.js`、`node control-studio/scripts/control_regression_dashboard.mjs`、`./nv-agent doctor` 均已通過。
 
 ## 後續可做
-1. 控制系統主線已推進到 Phase 17；下一步若要擴充，應以 `p18+` 的新文件或 backlog 區塊定義，不要再沿用舊的 Phase 10 / 11 next-step 描述。
-2. Robust Control 已有 browser-side plant-order dynamic H∞ 與 structured μ/D-scaling baseline；若要 MATLAB Robust Control Toolbox 等級，下一步才是 Riccati/LMI Glover-Doyle backend 與 full DK-iteration。
-3. Teaching Mode / Electron / Report Template 目前使用者要求擱置，不要開發。
-4. Block Diagram 目前維持 paused；不要新增 block diagram 功能，除非使用者重新明確恢復。
-5. 若要再推控制理論主線，優先考慮 Riccati/LMI H∞ backend、full DK-iteration、或 parametric uncertainty / Monte-Carlo robust validation，而不是回頭做 block diagram。
-6. 加 `agents/openai.yaml` UI metadata。
-7. 增強 evaluator：從 heuristic 檢查升級成 judge model + golden dataset。
-8. 若 NVIDIA Build Models 更新，先更新根目錄資料檔，再同步 `skills/nvidia-model-selector/references/`。
-9. 視需求把 `search_models.py` 加上 `--top-category-summary` 或 fuzzy ranking。
-10. 若要更實用，補上本地文件切 chunk / PDF 轉圖 / OCR 結果快取。
-11. 加 parallel runner 與 leaderboard，追蹤同任務多模型輸出品質。
-12. 將 OCR/RAG 的 endpoint source 也改成完整 registry-driven，而不只傳入 model id。
+1. 先開 Phase 18：uncertainty + Monte Carlo robust validation，並同步建立 `control-studio-robust-validator` skill baseline。
+2. Phase 18 完成後，優先建立 `control-studio-system-auditor` 與 `control-studio-benchmark-author`，把審查與驗證案例產生流程標準化。
+3. Phase 19 再做 Riccati/LMI Glover-Doyle H∞ backend 與 full DK-iteration，不要直接擴大目前 static surrogate。
+4. Phase 20 再做 MIMO MPC constraints / offset-free tracking，搭配 `control-studio-mpc-designer` skill。
+5. Phase 21 再做 research-grade system identification，搭配 `control-studio-sysid-planner` skill。
+6. Teaching Mode / Electron / Report Template 目前使用者要求擱置，不要開發。
+7. Block Diagram 目前維持 paused；不要新增 block diagram 功能，除非使用者重新明確恢復。
+8. 加 `agents/openai.yaml` UI metadata。
+9. 增強 evaluator：從 heuristic 檢查升級成 judge model + golden dataset。
+10. 若 NVIDIA Build Models 更新，先更新根目錄資料檔，再同步 `skills/nvidia-model-selector/references/`。
+11. 視需求把 `search_models.py` 加上 `--top-category-summary` 或 fuzzy ranking。
+12. 若要更實用，補上本地文件切 chunk / PDF 轉圖 / OCR 結果快取。
+13. 加 parallel runner 與 leaderboard，追蹤同任務多模型輸出品質。
+14. 將 OCR/RAG 的 endpoint source 也改成完整 registry-driven，而不只傳入 model id。
 
 ## 注意事項
 - 這個專案不需要 `.agent-handoff.md`。

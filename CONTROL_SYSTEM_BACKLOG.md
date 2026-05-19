@@ -5,10 +5,12 @@
 1. `CONTROL_SYSTEM_PLAN.md`
 2. `CONTROL_SYSTEM_VERIFICATION_CASES.md`
 3. `CONTROL_SYSTEM_BACKLOG.md`
+4. `CONTROL_SYSTEM_SKILLS_PLAN.md`
 
 目前策略：
 - Block Diagram 暫時擱置，不在近期主線投入新功能。
-- Phase 0-16 已完成：SISO 全鏈、State Feedback / Lyapunov / LQR、Observer / Kalman / LQG、MIMO 基礎與設計（RGA / SV Bode / Decoupler / MIMO LQR）、MPC / Robust baseline、以及 P12~P16 的 usability / delay / identification / synthesis 擴充。
+- Phase 0-17 已完成：SISO 全鏈、State Feedback / Lyapunov / LQR、Observer / Kalman / LQG、MIMO 基礎與設計（RGA / SV Bode / Decoupler / MIMO LQR）、MPC / Robust baseline、以及 P12~P17 的 usability / delay / identification / synthesis / advanced robust / MIMO / MPC 擴充。
+- Phase 18+ 已進入規劃：下一主線是 uncertainty + Monte Carlo robust validation，技能化規劃見 `CONTROL_SYSTEM_SKILLS_PLAN.md`。
 - `CONTROL_SYSTEM_PHASE10_PLAN.md` 已屬歷史設計基線；目前主線已超過該文件。
 - 使用者已要求擱置：教學模式、Electron packaging、報告模板 / 報告自動化。
 - 每個功能必須有數學推導或 fixture 驗證，不只看 UI 是否可操作。
@@ -32,7 +34,7 @@
 
 - Branch: `main`
 - Latest synced commit: `main HEAD`（Phase 17 advanced robust / MIMO / MPC extensions）
-- Current checkpoint: **All CS-P0 ~ CS-P17 items done.** 主線現況已包含：Phase 10/11 的 CARE/DARE/MPC/robust/dynamic-RGA，Phase 12 的 H∞ 視覺化，Phase 13 的 UI/UX overhaul，Phase 14 的 delay/IMC/LaTeX/disk margin/seed control，Phase 15 的 ARX system ID / codegen / compare bode / root-locus animation，Phase 16 的 mixed-sensitivity PID synthesis / GA PID auto-tuner / phase portrait / describing functions，以及 Phase 17 的 plant-order dynamic H∞ / structured μ / advanced MIMO frequency-domain diagnostics / MIMO output MPC tracking。
+- Current checkpoint: **All CS-P0 ~ CS-P17 items done.** 主線現況已包含：Phase 10/11 的 CARE/DARE/MPC/robust/dynamic-RGA，Phase 12 的 H∞ 視覺化，Phase 13 的 UI/UX overhaul，Phase 14 的 delay/IMC/LaTeX/disk margin/seed control，Phase 15 的 ARX system ID / codegen / compare bode / root-locus animation，Phase 16 的 mixed-sensitivity PID synthesis / GA PID auto-tuner / phase portrait / describing functions，以及 Phase 17 的 plant-order dynamic H∞ / structured μ / advanced MIMO frequency-domain diagnostics / MIMO output MPC tracking。Phase 18+ 與 skill candidates 已由 `CONTROL_SYSTEM_SKILLS_PLAN.md` 定義。
 - Scenario 5 browser walkthrough result: Phase 10 math + UI both operational.
 - Scenario 6 browser walkthrough result: SISO / MIMO core workflows are UI-operable.
 - Latest full-theory audit:
@@ -254,7 +256,7 @@ Exit criteria: 已達成。
 | CS-P11-04 | P2 | Done | 動態 RGA Λ(jω) | `dynamicRGA(mimoSys, omegas)`、`dynamicRGAMagnitude`、`dynamicRGADiagonal`；ω→0 收斂靜態 RGA；欄和 = 1 恆等式；non-square throws | CS-P9-05 static RGA | `verify_phase11_dynamic_rga.mjs` 8/8 |
 | CS-P11-05 | P2 | Done | State constraints + soft slack | condensed QP 加 x_min/x_max 行（free-response active-set + 二次罰函數）；`firstMpcActionStateConstrained` + `simulateStateConstrainedMpc`；violation log 回報 | CS-P10-14 Hildreth QP | `verify_phase11_setpoint_and_state_constraints.mjs` 18/18：soft constraint 抑制速度超限、violation log 正確 |
 
-## Immediate Next Commits
+## Completed Phase 10/11 Checkpoint
 
 Phase 10 + Phase 11 全部完成：
 - **CS-P10（全數）Done**：CARE/MPC/Robust/MIMO/Constraints 完整
@@ -331,10 +333,68 @@ Phase 10 + Phase 11 全部完成：
 
 **Validation aggregate status：`npm run verify:all` 現在涵蓋 phase11 / p14 / p15 / p16 / p17 / cases，多套件合計 120+ checks。**
 
-後續可選項目（非主線，視需求）：
-1. （P3）Riccati / LMI based Glover-Doyle H∞ backend（取代目前 browser-side dynamic optimizer）
-2. （P3）完整 DK-iteration with dynamic D/K fitting（取代目前 static gain surrogate）
-3. （P3）parametric uncertainty 與 Monte-Carlo robust validation
+## Immediate Next Development: Phase 18+ Research / Engineering Extension
+
+Phase 18+ 必須先維持三個邊界：
+- 每個控制理論功能先補數學定義與 fixture，再補 UI。
+- 若功能可拆成 agent workflow，需同步評估是否建立 skill。
+- Teaching Mode / Electron / Report Template / Block Diagram expansion 持續 paused。
+
+### Phase 18: Uncertainty + Monte Carlo Robust Validation (CS-P18)
+
+目標：把 robust analysis 從 nominal sensitivity 指標推進到 uncertainty family 驗證，讓工程師能看到 worst-case response 與 robust pass/fail。
+
+| ID | Priority | Status | Item | Rationale | Dependencies | Verification |
+| --- | --- | --- | --- | --- | --- | --- |
+| CS-P18-01 | P1 | Next | Uncertainty model schema | 支援 parametric / additive / multiplicative uncertainty，且 payload 可序列化 | robust.js / project model | schema fixtures + invalid input tests |
+| CS-P18-02 | P1 | Next | Deterministic Monte Carlo sampling | 固定 seed、sample count、sample replay，避免驗證不可重現 | seedable RNG | `verify:p18` deterministic replay |
+| CS-P18-03 | P1 | Next | Worst-case robust metrics | 擷取 worst PM/GM、peak \|S\|、settling、overshoot、control effort | frequency/time response core | known boundary fixtures |
+| CS-P18-04 | P1 | Next | Robust pass/fail specs | 以設計規格判斷 sample family 是否通過 | stability + metrics | nominal-pass / uncertainty-fail case |
+| CS-P18-05 | P2 | Planned | Robust validation UI | 顯示 envelope、distribution、worst-case replay | CS-P18-01~04 | browser regression walkthrough |
+| CS-P18-06 | P1 | Next | `control-studio-robust-validator` skill baseline | 將 uncertainty validation workflow 抽成 agent 可重用流程 | `CONTROL_SYSTEM_SKILLS_PLAN.md` | skill checklist + sample output |
+
+### Phase 19: Full H-infinity / Mu Backend (CS-P19)
+
+| ID | Priority | Status | Item | Rationale | Dependencies | Verification |
+| --- | --- | --- | --- | --- | --- | --- |
+| CS-P19-01 | P2 | Planned | Riccati/LMI H∞ synthesis backend decision | 決定使用 Python backend、WASM 或 JS baseline | Phase 17 robust baseline | design doc + numeric spike |
+| CS-P19-02 | P2 | Planned | Glover-Doyle H∞ synthesis | 取代 browser-side heuristic optimizer 的 full-order path | CS-P19-01 | residual + gamma golden cases |
+| CS-P19-03 | P2 | Planned | Full DK-iteration | dynamic D scaling / K fitting，取代 static surrogate | CS-P19-02 | mu upper-bound non-worsening fixtures |
+
+### Phase 20: MIMO MPC Engineering Workflow (CS-P20)
+
+| ID | Priority | Status | Item | Rationale | Dependencies | Verification |
+| --- | --- | --- | --- | --- | --- | --- |
+| CS-P20-01 | P1 | Planned | Offset-free MIMO tracking | 擾動存在時仍能消除 steady-state error | Phase 17 MPC MIMO tracking | step disturbance fixture |
+| CS-P20-02 | P1 | Planned | Output / delta-u constraints | 工程 MPC 需要輸出限制與 move suppression | Phase 11 state/input constraints | constrained MIMO tracking fixture |
+| CS-P20-03 | P2 | Planned | Feasibility diagnostics | 不可行時指出 constraint conflict | QP solver | infeasible setpoint fixture |
+| CS-P20-04 | P1 | Planned | `control-studio-mpc-designer` skill | 將 MPC 建模、權重、constraint 設計流程標準化 | `CONTROL_SYSTEM_SKILLS_PLAN.md` | sample MPC design checklist |
+
+### Phase 21: Research-Grade System Identification (CS-P21)
+
+| ID | Priority | Status | Item | Rationale | Dependencies | Verification |
+| --- | --- | --- | --- | --- | --- | --- |
+| CS-P21-01 | P2 | Planned | Experiment signal design | PRBS / chirp / multi-sine，改善識別資料品質 | Phase 15 ARX | known signal spectrum fixtures |
+| CS-P21-02 | P2 | Planned | ARMAX / OE / BJ candidates | 補 ARX 以外常用模型族 | sysid core | synthetic plant recovery |
+| CS-P21-03 | P2 | Planned | Subspace state-space ID | 支援 MIMO 與狀態空間研究流程 | matrix core | low-order MIMO recovery |
+| CS-P21-04 | P1 | Planned | Residual validation + uncertainty export | 讓 sysid 結果可接 Phase 18 robust validation | CS-P18 | whiteness + uncertainty fixtures |
+| CS-P21-05 | P2 | Planned | `control-studio-sysid-planner` skill | 將實驗設計與模型選型流程抽成 agent skill | `CONTROL_SYSTEM_SKILLS_PLAN.md` | sample sysid plan |
+
+### Phase 22: Benchmark + Cross-Tool Validation (CS-P22)
+
+| ID | Priority | Status | Item | Rationale | Dependencies | Verification |
+| --- | --- | --- | --- | --- | --- | --- |
+| CS-P22-01 | P1 | Planned | Benchmark suite expansion | 將 SISO/MIMO/MPC/robust/sysid 案例統一成 benchmark library | verification cases | golden fixture manifest |
+| CS-P22-02 | P1 | Planned | MATLAB / Python Control comparison | 建立 cross-tool tolerance 與 drift detection | codegen + external scripts | comparison artifacts |
+| CS-P22-03 | P1 | Planned | `control-studio-benchmark-author` skill | 標準化新控制案例的推導與 fixture 產生 | `CONTROL_SYSTEM_SKILLS_PLAN.md` | generated benchmark skeleton |
+
+### Phase 23: Agentic Design Review (CS-P23)
+
+| ID | Priority | Status | Item | Rationale | Dependencies | Verification |
+| --- | --- | --- | --- | --- | --- | --- |
+| CS-P23-01 | P1 | Planned | Structured design review schema | Advisor 建議需綁定數值證據與適用條件 | existing advisor | golden review cases |
+| CS-P23-02 | P1 | Planned | `control-studio-system-auditor` skill | 讓 agent 能先做 plant/controller 審查再開發 | `CONTROL_SYSTEM_SKILLS_PLAN.md` | audit checklist examples |
+| CS-P23-03 | P2 | Planned | `control-studio-ui-verifier` skill | 將 browser UI walkthrough 標準化 | browser smoke | UI issue report example |
 
 ## Do Not Start Yet
 

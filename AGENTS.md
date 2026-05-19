@@ -17,12 +17,14 @@
 - `RUNNABLE_WORKFLOWS.md`：workflow 與 API key 使用說明。
 - `AGENT_CONTINUATION.md`：接手狀態與後續建議。
 - `CONTROL_SYSTEM_PLAN.md`：控制系統工作台的正式盤點與開發計畫。
+- `CONTROL_SYSTEM_SKILLS_PLAN.md`：ControlStudio Phase 18+ 研究路線與可拆成 agent skill 的規劃。
 - `configs/model_registry.json`：模型能力、角色、endpoint、實測狀態。
 - `configs/task_profiles.json`：任務 profile、階段拆解、rubric。
 
 ## 控制系統開發規則
 - 若修改 `control-studio/`、`workflows/control_advisor_workflow.py`、`test_control.js`，先讀 `CONTROL_SYSTEM_PLAN.md`。
 - 控制系統功能開發先以 `CONTROL_SYSTEM_PLAN.md` 的 MVP 範圍為主，不要直接跳做高複雜度進階控制功能。
+- 若啟動 Phase 18+ 或把控制流程拆成 skill，先讀 `CONTROL_SYSTEM_SKILLS_PLAN.md`，並確認技能邊界、驗證基線與暫停項目。
 - 控制系統每次完成功能、修正理論/數值錯誤、或補驗證案例後，都要立即用 git 留下明確 checkpoint；不要累積多輪未提交的控制系統變更。
 - 控制系統相關 commit message 需明確標示 phase / scope，例如 `feat(phase9): ...`、`fix(phase9): ...`、`test(phase9): ...`、`docs(control): ...`。
 - 控制系統 checkpoint 前要先做文件同步判斷：若實作狀態、驗證狀態、開發順序、已知限制或 agent 接手資訊有變，必須更新對應文件，避免 code 與文件脫節。

@@ -1,6 +1,6 @@
 # Control System Development Plan
 
-此文件是控制系統工作台的正式開發計畫。後續 agent 若要修改 `control-studio/`、`workflows/control_advisor_workflow.py`、`test_control.js`，或擴充 `control-advisor` 任務，應先閱讀本文件、`CONTROL_SYSTEM_VERIFICATION_CASES.md`、`CONTROL_SYSTEM_BACKLOG.md` 並依此執行。
+此文件是控制系統工作台的正式開發計畫。後續 agent 若要修改 `control-studio/`、`workflows/control_advisor_workflow.py`、`test_control.js`，或擴充 `control-advisor` 任務，應先閱讀本文件、`CONTROL_SYSTEM_VERIFICATION_CASES.md`、`CONTROL_SYSTEM_BACKLOG.md`、`CONTROL_SYSTEM_SKILLS_PLAN.md` 並依此執行。
 
 ## 1. Product Vision
 
@@ -48,6 +48,8 @@
   - `CONTROL_SYSTEM_VERIFICATION_CASES.md`
 - 開發順序：
   - `CONTROL_SYSTEM_BACKLOG.md`
+- Phase 18+ 與技能化規劃：
+  - `CONTROL_SYSTEM_SKILLS_PLAN.md`
 
 ### 已完成能力
 - SISO 傳遞函數輸入
@@ -145,6 +147,13 @@
 - Verification：最新節點已通過 TF / SS / ZPK / C2D 與 PID regression（commit message 記錄 `36/36` 與 `21/21`）。
 
 ### 尚未完成能力
+- Phase 18+ engineering / research extensions：
+  - uncertainty + Monte Carlo robust validation
+  - full H∞ / μ backend
+  - MIMO MPC constraints / offset-free tracking
+  - research-grade system identification
+  - benchmark + cross-tool validation
+  - structured agentic design review
 - 自動產生報告 / 報告模板
 - 前端分析流程預設全面切到統一 API
 - Electron packaging / 教學模式
@@ -418,6 +427,15 @@
   - `npm run verify:p17`
   - `npm run verify:all`
 
+### Phase 18+ Research / Engineering Extension Track
+- Planned：Phase 18 uncertainty + Monte Carlo robust validation — parametric / additive / multiplicative uncertainty、deterministic sampling、worst-case replay、robust pass/fail。
+- Planned：Phase 19 full H∞ / μ backend — Riccati/LMI Glover-Doyle synthesis、full DK-iteration、dynamic D-scaling。
+- Planned：Phase 20 MIMO MPC engineering workflow — multi-output constraints、move suppression、offset-free disturbance rejection、feasibility diagnostics。
+- Planned：Phase 21 research-grade system identification — ARMAX / OE / BJ / subspace ID、experiment design、residual validation、uncertainty export。
+- Planned：Phase 22 benchmark + cross-tool validation — golden derivations、MATLAB / Python Control comparison、machine-readable manifest。
+- Planned：Phase 23 agentic design review — structured controller review schema、numeric evidence binding、golden review cases。
+- Skill planning：`CONTROL_SYSTEM_SKILLS_PLAN.md` 定義可抽成 agent skill 的項目，優先順序為 `control-studio-robust-validator`、`control-studio-system-auditor`、`control-studio-benchmark-author`。
+
 ### Stage 4: Productization
 - Paused：Electron desktop packaging
 - Planned：Cloud deployment option（待核心功能凍結後再評估）
@@ -439,7 +457,7 @@
 1. 先讀本文件，再動手修改控制系統相關檔案。
 2. 若修改數值核心、API 分析輸出或穩定性指標，需對照 `CONTROL_SYSTEM_VERIFICATION_CASES.md` 的案例與數學推導。
 3. 後續開發順序以 `CONTROL_SYSTEM_BACKLOG.md` 為準。
-4. Phase 17 已完成；若啟動下一階段，先在 `CONTROL_SYSTEM_BACKLOG.md` 定義新的 `p18+` 範圍與驗證基線，再做後續擴充。
+4. Phase 17 已完成；若啟動下一階段，先在 `CONTROL_SYSTEM_BACKLOG.md` 與 `CONTROL_SYSTEM_SKILLS_PLAN.md` 定義新的 `p18+` 範圍、技能邊界與驗證基線，再做後續擴充。
 5. 若新增控制系統分析功能，必須補：
    - 文件
    - 至少一個 smoke test 或驗證流程
