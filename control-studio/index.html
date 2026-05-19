@@ -287,6 +287,59 @@
     /* Keyboard shortcut hint */
     kbd { display: inline-block; background: var(--bg-tertiary); border: 1px solid var(--border-primary); border-bottom-width: 2px; border-radius: 4px; padding: 1px 6px; font-family: ui-monospace, monospace; font-size: 10px; color: var(--text-secondary); }
 
+    /* ==================================================================
+       P-UX — UI/UX polish: metric groups, empty-state, section accents
+       ================================================================== */
+
+    /* Metric domain section dividers */
+    .metric-section-label {
+      font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px;
+      color: var(--text-muted); margin-top: 10px; margin-bottom: 6px;
+      display: flex; align-items: center; gap: 6px;
+    }
+    .metric-section-label::after { content:''; flex:1; height:1px; background:var(--border-primary); }
+    .metric-section-label:first-child { margin-top: 0; }
+
+    /* Visual empty state — icon + headline + body centered */
+    .empty-state-visual {
+      display: flex; flex-direction: column; align-items: center; text-align: center;
+      padding: 28px 16px; gap: 6px;
+      border: 1px dashed var(--border-primary); border-radius: var(--radius-md);
+      background: rgba(99,102,241,0.02);
+    }
+    .empty-state-visual svg { color: var(--text-muted); margin-bottom: 2px; }
+    .empty-state-visual strong { font-size: 13px; color: var(--text-secondary); font-weight: 600; }
+    .empty-state-visual p { font-size: 11px; color: var(--text-muted); line-height: 1.6; margin: 0; }
+
+    /* Section panel left accent */
+    .section-panel { box-shadow: inset 3px 0 0 rgba(99,102,241,0.22); }
+
+    /* Metric grid — improved value size for scanability */
+    .metric-grid strong { font-size: 14px !important; font-weight: 700 !important; }
+
+    /* Plot tabs — boost inactive contrast */
+    .plot-tab:not(.active) { opacity: 0.72; }
+    .plot-tab:not(.active):hover { opacity: 0.92; background: rgba(99,102,241,0.08); }
+    .plot-tab.active { opacity: 1; }
+
+    /* Mini chart context badge (replaces plain "Mini" text) */
+    .mini-context {
+      font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;
+      color: var(--text-muted); background: var(--bg-tertiary);
+      border: 1px solid var(--border-primary); border-radius: 4px; padding: 1px 6px;
+      white-space: nowrap;
+    }
+
+    /* Sidebar tab — slightly wider active glow */
+    .sidebar-tab.active {
+      box-shadow: inset 3px 0 0 var(--color-accent);
+      color: var(--text-primary);
+      background: rgba(99,102,241,0.07);
+    }
+
+    /* Stability snapshot footer note — de-emphasise */
+    .snapshot-footnote { font-size: 10px; color: var(--text-muted); margin-top: 6px; line-height: 1.4; opacity: 0.75; }
+
     /* Tablet breakpoint — 768–1024px (iPad range) */
     @media (max-width: 1024px) and (min-width: 761px) {
       aside { width: 280px; }
@@ -436,6 +489,7 @@
             </div>
           </div>
           <button class="btn btn-primary" style="width:100%; margin-top:var(--space-2);" id="btn-apply">Update Plant</button>
+          <div id="plant-formula-chip" style="display:none; margin-top:10px; background:var(--bg-tertiary); border:1px solid var(--border-primary); border-radius:var(--radius-sm); padding:8px 12px; font-family:ui-monospace,monospace; font-size:11px; color:var(--text-secondary); text-align:center; overflow-x:auto; white-space:nowrap;"></div>
         </section>
 
         <section class="section-panel" id="mimo-input-panel" style="display:none;">
@@ -751,11 +805,15 @@
       <div class="sidebar-panel" id="panel-simulate">
         <section class="section-panel" id="stability-snapshot-panel">
           <div class="section-title">Stability Snapshot</div>
+          <div class="metric-section-label">Frequency Domain</div>
           <div class="metric-grid">
             <div>Gain Margin<strong id="gm-value">∞</strong></div>
             <div>Phase Margin<strong id="pm-value">—</strong></div>
             <div title="Delay Margin = PM(rad) / ω_gc — additional dead time tolerable before instability">Delay Margin<strong id="dm-value">—</strong></div>
             <div title="Disk Margin α = 1 / max(‖S‖∞, ‖T‖∞) — single-number robustness metric">Disk Margin<strong id="dskm-value">—</strong></div>
+          </div>
+          <div class="metric-section-label">Time Domain</div>
+          <div class="metric-grid">
             <div>Rise Time<strong id="rise-time">0s</strong></div>
             <div>Settling<strong id="settling-time">0s</strong></div>
             <div>Overshoot<strong id="overshoot">0%</strong></div>
@@ -789,7 +847,7 @@
               <tbody id="routh-table-body"><tr><td colspan="4">—</td></tr></tbody>
             </table>
           </details>
-          <p style="font-size:10px;color:var(--text-muted);margin-top:6px;">數值來自閉迴路 step response 模擬，與 Compare 快照採用同一公式。</p>
+          <p class="snapshot-footnote">數值來自閉迴路 step response 模擬，與 Compare 快照採用同一公式。</p>
         </section>
 
         <section class="section-panel">
@@ -1486,11 +1544,15 @@
             <div class="summary-item"><span>Best Rise</span><strong id="compare-best-rise">—</strong></div>
             <div class="summary-item"><span>Lowest Overshoot</span><strong id="compare-best-overshoot">—</strong></div>
           </div>
-          <p style="font-size:12px; color:var(--text-muted); line-height:1.5; margin-bottom:var(--space-4);">
-            保存目前控制器參數與響應，之後可以套用、刪除，並在 comparison chart 中疊圖比較。
+          <p style="font-size:11px; color:var(--text-muted); line-height:1.5; margin-bottom:var(--space-3);">
+            每個快照保存當下的控制器與響應，可套用或刪除，並在圖表中疊加比較。
           </p>
           <div id="snapshot-list" class="snapshot-list">
-            <div class="empty-state" id="snapshot-empty">還沒有保存任何比較快照。先調整參數後按下 Save Snapshot。</div>
+            <div class="empty-state empty-state-visual" id="snapshot-empty">
+              <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M3 3v18h18M7 16l4-4 4 4 4-7"/></svg>
+              <strong>尚無快照</strong>
+              <p>調整控制器後按 <kbd>Save Snapshot</kbd><br>可在圖表中疊加多曲線比較</p>
+            </div>
           </div>
           <div class="comparison-table-wrap">
             <table class="comparison-table">
@@ -1608,11 +1670,11 @@
 
           <div class="plot-side">
             <div class="chart-cell mini-chart">
-              <div class="chart-header"><span>Root Locus</span><span>Mini</span></div>
+              <div class="chart-header"><span>Root Locus</span><span class="mini-context" title="Open-loop root locus — shows where closed-loop poles move as K increases">Open-Loop</span></div>
               <div class="chart-body" id="chart-rlocus"></div>
             </div>
             <div class="chart-cell mini-chart">
-              <div class="chart-header"><span>Pole-Zero Map</span><span>Mini</span></div>
+              <div class="chart-header"><span>Pole-Zero Map</span><span class="mini-context" title="Closed-loop pole-zero map — current controller applied">Closed-Loop</span></div>
               <div class="chart-body" id="chart-pzmap"></div>
             </div>
           </div>
@@ -1739,6 +1801,6 @@
     </div>
   </div>
 
-  <script type="module" src="js/app.js?v=p13-uiux"></script>
+  <script type="module" src="js/app.js?v=pux5"></script>
 </body>
 </html>

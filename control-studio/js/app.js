@@ -2372,6 +2372,18 @@ function updateSystemSetupCopy() {
     modelCopy.textContent = '直接輸入 plant 的分子與分母係數；下方會同步更新成具體傳遞函數。';
   }
 
+  // Update inline G(s) chip in Plant tab
+  const chip = document.getElementById('plant-formula-chip');
+  if (chip && plantTf) {
+    const numStr = formatPolyText(plantTf.num);
+    const denStr = formatPolyText(plantTf.den);
+    const varName = state.domain === 'z' ? 'z' : 's';
+    chip.textContent = `G(${varName}) = ( ${numStr} ) / ( ${denStr} )`;
+    chip.style.display = 'block';
+  } else if (chip) {
+    chip.style.display = 'none';
+  }
+
   const compTfForDisplay = (state.compensator.mode === 'notch' && state.notch)
     ? notchFilter(state.notch.wn, state.notch.zetaZ, state.notch.zetaP)
     : leadLagTransferFunction(state.compensator);
@@ -3184,10 +3196,50 @@ function renderNyquistPlot(sys, targetId = 'chart-active') {
   layout.showlegend = true;
   layout.legend = compactLegend();
   layout.xaxis.zeroline = true;
-  layout.yaxis.scaleanchor = 'x';
-  if (encirclements !== 0) {
-    layout.annotations = [{ x: -1, y: 0.3, text: `N=${encirclements}`, showarrow: false, font: { size: 12, color: getCSS('--color-unstable') } }];
+
+  // Smart auto-zoom: Tukey-fence (Q±3·IQR) outlier rejection, square viewport.
+  // Nyquist curves have ±∞ tails for integrating / resonant systems; the IQR
+  // fence robustly clips them while preserving the interesting mid-band region.
+  // We always ensure the critical -1+j0 point is visible.
+  const pctile = (arr, p) => {
+    const s = [...arr].sort((a, b) => a - b);
+    const i = (p / 100) * (s.length - 1);
+    return s[Math.floor(i)] + (s[Math.ceil(i)] - s[Math.floor(i)]) * (i - Math.floor(i));
+  };
+  const coreRe = [...(data.re || []), ...(data.reNeg || [])].filter(Number.isFinite);
+  const coreIm = [...(data.im || []), ...(data.imNeg || [])].filter(Number.isFinite);
+  if (coreRe.length > 2 && coreIm.length > 2) {
+    // Tukey fence: clip at Q1/Q3 ± 3·IQR (more aggressive than 1.5× to keep resonances)
+    const q1Re = pctile(coreRe, 25), q3Re = pctile(coreRe, 75);
+    const q1Im = pctile(coreIm, 25), q3Im = pctile(coreIm, 75);
+    const iqrRe = q3Re - q1Re || 1, iqrIm = q3Im - q1Im || 1;
+    const k = 3;
+    let xMin = Math.max(Math.min(...coreRe), q1Re - k * iqrRe);
+    let xMax = Math.min(Math.max(...coreRe), q3Re + k * iqrRe);
+    let yMin = Math.max(Math.min(...coreIm), q1Im - k * iqrIm);
+    let yMax = Math.min(Math.max(...coreIm), q3Im + k * iqrIm);
+    // Always include the critical point -1+j0
+    xMin = Math.min(xMin, -1.1);
+    xMax = Math.max(xMax, -0.9);
+    yMin = Math.min(yMin, -0.1);
+    yMax = Math.max(yMax, 0.1);
+    // Square viewport: center + equal half-span on both axes (no distortion)
+    const cx = (xMin + xMax) / 2, cy = (yMin + yMax) / 2;
+    const halfSpan = Math.max(xMax - xMin, yMax - yMin) / 2 * 1.2 + 0.15;
+    layout.xaxis.autorange = false;
+    layout.yaxis.autorange = false;
+    layout.xaxis.range = [cx - halfSpan, cx + halfSpan];
+    layout.yaxis.range = [cy - halfSpan, cy + halfSpan];
   }
+
+  const annotList = [];
+  // Always label the -1+j0 critical point
+  annotList.push({ x: -1, y: 0, xshift: 8, yshift: -14, text: '−1+j0', showarrow: false, font: { size: 10, color: getCSS('--color-unstable') } });
+  if (encirclements !== 0) {
+    annotList.push({ x: -1, y: 0.3, text: `N=${encirclements}`, showarrow: false, font: { size: 12, color: getCSS('--color-unstable') } });
+  }
+  layout.annotations = annotList;
+
   Plotly.react(targetId, traces, layout, { responsive: true, displayModeBar: false });
 }
 
@@ -3470,7 +3522,7 @@ function renderRootLocus(sys, targetId = 'chart-rlocus') {
     layout.annotations = [{
       xref: 'paper', yref: 'paper', x: 0.01, y: 0.99,
       xanchor: 'left', yanchor: 'top',
-      text: '💡 Click a branch or drag the K-slider below to pick a gain',
+      text: '💡 Click a branch to pick a gain — K-slider & step preview appear below the chart',
       showarrow: false,
       font: { size: 10, color: getCSS('--text-muted') },
       bgcolor: 'rgba(15,17,23,.6)', borderpad: 4,
