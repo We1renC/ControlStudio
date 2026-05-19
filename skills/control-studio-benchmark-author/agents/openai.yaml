@@ -1,0 +1,3 @@
+display_name: ControlStudio Benchmark Author
+short_description: Create verified control benchmarks.
+default_prompt: Create a ControlStudio benchmark with mathematical derivation, expected numeric values, tolerances, and regression fixture guidance.

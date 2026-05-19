@@ -115,6 +115,7 @@
     - Done：Phase 18 core API in `control-studio/js/control/robust.js`，包含 uncertainty schema、deterministic Monte Carlo sampling、worst-case metrics、robust pass/fail 與 unstable sample classification。
     - Done：`control-studio/scripts/verify_p18_robust_validation.mjs` 與 `npm run verify:p18`。
     - Done：`skills/control-studio-robust-validator/` skill baseline。
+    - Done：`skills/control-studio-system-auditor/` 與 `skills/control-studio-benchmark-author/` skill baseline。
     - Done：Robust Validation UI panel，接上 Phase 18 core；Playwright/Chrome walkthrough 已確認 button/output/chart。
     - Planned：Phase 19 full H∞ / μ backend。
     - Planned：Phase 20 MIMO MPC constraints / offset-free tracking。
@@ -193,7 +194,7 @@ git log --oneline -5
 - `CONTROL_SYSTEM_PLAN.md` 已整理控制系統盤點、MVP 範圍與後續 roadmap。
 - `CONTROL_SYSTEM_VERIFICATION_CASES.md` 已定義五個具數學推導的控制系統驗證案例，涵蓋一階、二階欠阻尼、初始不穩定/pole-zero/低 PM、RHP zero、State-Space 等價。
 - `CONTROL_SYSTEM_BACKLOG.md` 已規劃後續開發順序，目前 Phase 0~18 已完成，下一步是 `control-studio-system-auditor` 與 `control-studio-benchmark-author`。
-- `CONTROL_SYSTEM_SKILLS_PLAN.md` 已新增 Phase 18+ research roadmap 與 skill candidates，且 `control-studio-robust-validator` baseline 已建立。
+- `CONTROL_SYSTEM_SKILLS_PLAN.md` 已新增 Phase 18+ research roadmap 與 skill candidates，且 `control-studio-robust-validator`、`control-studio-system-auditor`、`control-studio-benchmark-author` baseline 已建立。
 - `control-studio` 已補上 State Space（SISO）輸入、Step/Impulse/Ramp 切換、Nyquist Plot、project save/load 與 JSON/CSV 匯出。
 - `control-studio` UI 已改成 sidebar workspace tabs（Model / Sim / Advisor / Compare），並支援 comparison snapshots 疊圖比較。
 - `control-studio/scripts/serve_studio.py` 已提供固定的本地前端啟動入口（預設 `http://127.0.0.1:8765`）。
@@ -267,11 +268,10 @@ git log --oneline -5
 - 本輪完成 math-core audit hardening，新增 regression 覆蓋 extreme complex division、separated quadratic roots、tiny-scale inverse / solve / rank / positive-definite checks；`npm run verify:all`、`node test_control.js`、`node control-studio/scripts/control_regression_dashboard.mjs`、`./nv-agent doctor` 均已通過。
 
 ## 後續可做
-1. 先開 Phase 18：uncertainty + Monte Carlo robust validation，並同步建立 `control-studio-robust-validator` skill baseline。
-2. Phase 18 完成後，優先建立 `control-studio-system-auditor` 與 `control-studio-benchmark-author`，把審查與驗證案例產生流程標準化。
-3. Phase 19 再做 Riccati/LMI Glover-Doyle H∞ backend 與 full DK-iteration，不要直接擴大目前 static surrogate。
-4. Phase 20 再做 MIMO MPC constraints / offset-free tracking，搭配 `control-studio-mpc-designer` skill。
-5. Phase 21 再做 research-grade system identification，搭配 `control-studio-sysid-planner` skill。
+1. 使用 `control-studio-system-auditor` 審查下一個控制設計缺口，並用 `control-studio-benchmark-author` 補 benchmark fixture。
+2. Phase 19 再做 Riccati/LMI Glover-Doyle H∞ backend 與 full DK-iteration，不要直接擴大目前 static surrogate。
+3. Phase 20 再做 MIMO MPC constraints / offset-free tracking，搭配 `control-studio-mpc-designer` skill。
+4. Phase 21 再做 research-grade system identification，搭配 `control-studio-sysid-planner` skill。
 6. Teaching Mode / Electron / Report Template 目前使用者要求擱置，不要開發。
 7. Block Diagram 目前維持 paused；不要新增 block diagram 功能，除非使用者重新明確恢復。
 8. 加 `agents/openai.yaml` UI metadata。

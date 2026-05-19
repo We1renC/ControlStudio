@@ -1,0 +1,3 @@
+display_name: ControlStudio System Auditor
+short_description: Audit control-system design readiness.
+default_prompt: Audit a ControlStudio plant and controller for stability, margins, controllability, observability, robust risk, and implementation readiness.

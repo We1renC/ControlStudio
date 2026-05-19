@@ -186,5 +186,5 @@ Skill 必須遵守：
 ## Recommended Next Step
 
 1. Phase 18 已完成；後續使用 `skills/control-studio-robust-validator/SKILL.md` 做 robust validation workflow。
-2. 下一批優先建立 `control-studio-system-auditor` 與 `control-studio-benchmark-author`，把審查與驗證案例產生流程標準化。
+2. `control-studio-system-auditor` 與 `control-studio-benchmark-author` baseline 已建立，下一步可用它們來審查新設計與產生 benchmark。
 3. 等 Phase 20 / 21 啟動後，再建立 `control-studio-mpc-designer` 與 `control-studio-sysid-planner`。
