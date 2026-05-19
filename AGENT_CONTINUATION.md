@@ -111,7 +111,11 @@
     - Done：Hamiltonian stable subspace 清除未使用且轉置錯誤的 dead computation。
     - Done：real Schur 1x1 block swap 修正 Givens rotation 公式、乘法方向 / 符號與 reordered eigenvalue 回傳順序。
   - Phase 18+ Research / Engineering Extension：Planned
-    - Next：Phase 18 uncertainty + Monte Carlo robust validation。
+    - In progress：Phase 18 uncertainty + Monte Carlo robust validation。
+    - Done：Phase 18 core API in `control-studio/js/control/robust.js`，包含 uncertainty schema、deterministic Monte Carlo sampling、worst-case metrics、robust pass/fail 與 unstable sample classification。
+    - Done：`control-studio/scripts/verify_p18_robust_validation.mjs` 與 `npm run verify:p18`。
+    - Done：`skills/control-studio-robust-validator/` skill baseline。
+    - Next：Robust Validation UI panel，接上 Phase 18 core。
     - Planned：Phase 19 full H∞ / μ backend。
     - Planned：Phase 20 MIMO MPC constraints / offset-free tracking。
     - Planned：Phase 21 research-grade system identification。
@@ -188,8 +192,8 @@ git log --oneline -5
 - `control_advisor_workflow.py --help` 可正常執行。
 - `CONTROL_SYSTEM_PLAN.md` 已整理控制系統盤點、MVP 範圍與後續 roadmap。
 - `CONTROL_SYSTEM_VERIFICATION_CASES.md` 已定義五個具數學推導的控制系統驗證案例，涵蓋一階、二階欠阻尼、初始不穩定/pole-zero/低 PM、RHP zero、State-Space 等價。
-- `CONTROL_SYSTEM_BACKLOG.md` 已規劃後續開發順序，目前 Phase 0~17 已完成，下一主線為 Phase 18 uncertainty + Monte Carlo robust validation。
-- `CONTROL_SYSTEM_SKILLS_PLAN.md` 已新增 Phase 18+ research roadmap 與 skill candidates，定義哪些控制工程流程適合拆成 agent skill。
+- `CONTROL_SYSTEM_BACKLOG.md` 已規劃後續開發順序，目前 Phase 0~17 已完成，Phase 18 core 已開始落地，下一步是 Robust Validation UI。
+- `CONTROL_SYSTEM_SKILLS_PLAN.md` 已新增 Phase 18+ research roadmap 與 skill candidates，且 `control-studio-robust-validator` baseline 已建立。
 - `control-studio` 已補上 State Space（SISO）輸入、Step/Impulse/Ramp 切換、Nyquist Plot、project save/load 與 JSON/CSV 匯出。
 - `control-studio` UI 已改成 sidebar workspace tabs（Model / Sim / Advisor / Compare），並支援 comparison snapshots 疊圖比較。
 - `control-studio/scripts/serve_studio.py` 已提供固定的本地前端啟動入口（預設 `http://127.0.0.1:8765`）。

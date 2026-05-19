@@ -1,0 +1,3 @@
+display_name: ControlStudio Robust Validator
+short_description: Validate robust-control uncertainty cases.
+default_prompt: Use ControlStudio robust validation to define uncertainty ranges, Monte Carlo checks, worst-case samples, and verification fixtures.

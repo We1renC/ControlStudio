@@ -6,7 +6,11 @@
  */
 
 import { Complex } from '../math/complex.js';
+import { stepResponse } from '../analysis/time-response.js';
+import { stepInfo, stabilityMargins } from './stability.js';
+import { TransferFunction } from './transfer-function.js';
 import { evalAtJw, singularValues } from './mimo.js';
+import { mulberry32 } from '../math/rng.js';
 
 function onePlus(value) {
   return new Complex(1, 0).add(value);
@@ -571,5 +575,226 @@ export function structuredMuSynthesisSurrogate(mimoSys, omegas, options = {}) {
     peakOmega: best.peakOmega,
     candidates,
     method: 'static-gain-DK-surrogate',
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Phase 18: uncertainty + Monte Carlo robust validation
+// ---------------------------------------------------------------------------
+
+function assertFiniteNumber(value, label) {
+  if (!Number.isFinite(value)) throw new Error(`${label} must be a finite number`);
+}
+
+function parseRelativeRange(range, label) {
+  if (range == null) return null;
+  if (Array.isArray(range)) {
+    if (range.length !== 2) throw new Error(`${label} range must have [min, max]`);
+    const min = Number(range[0]);
+    const max = Number(range[1]);
+    assertFiniteNumber(min, `${label}.min`);
+    assertFiniteNumber(max, `${label}.max`);
+    if (min > max) throw new Error(`${label} min must be <= max`);
+    return [min, max];
+  }
+  const spread = Number(range);
+  assertFiniteNumber(spread, label);
+  if (spread < 0) throw new Error(`${label} spread must be >= 0`);
+  return [1 - spread, 1 + spread];
+}
+
+function sampleUniform(rng, min, max) {
+  return min + (max - min) * rng();
+}
+
+function defaultOmegas() {
+  return Array.from({ length: 80 }, (_, i) => Math.pow(10, -3 + (5 * i) / 79));
+}
+
+function evaluatePassFail(metrics, specs = {}) {
+  const checks = [];
+  const addCheck = (name, actual, limit, pass) => {
+    if (limit == null || !Number.isFinite(limit)) return;
+    checks.push({ name, actual, limit, pass });
+  };
+  addCheck('maxOvershoot', metrics.overshoot, specs.maxOvershoot, Number.isFinite(metrics.overshoot) && metrics.overshoot <= specs.maxOvershoot);
+  addCheck('maxSettlingTime', metrics.settlingTime, specs.maxSettlingTime, Number.isFinite(metrics.settlingTime) && metrics.settlingTime <= specs.maxSettlingTime);
+  addCheck('minPhaseMargin', metrics.phaseMargin, specs.minPhaseMargin, Number.isFinite(metrics.phaseMargin) && metrics.phaseMargin >= specs.minPhaseMargin);
+  addCheck('minGainMarginDB', metrics.gainMarginDB, specs.minGainMarginDB, Number.isFinite(metrics.gainMarginDB) && metrics.gainMarginDB >= specs.minGainMarginDB);
+  addCheck('maxPeakSensitivity', metrics.peakSensitivity, specs.maxPeakSensitivity, Number.isFinite(metrics.peakSensitivity) && metrics.peakSensitivity <= specs.maxPeakSensitivity);
+  return { pass: checks.every((check) => check.pass), checks };
+}
+
+function scoreMetricForWorstCase(metrics, specs = {}) {
+  const candidates = [];
+  if (Number.isFinite(specs.maxOvershoot) && Number.isFinite(metrics.overshoot)) {
+    candidates.push(metrics.overshoot / Math.max(specs.maxOvershoot, 1e-12));
+  }
+  if (Number.isFinite(specs.maxSettlingTime) && Number.isFinite(metrics.settlingTime)) {
+    candidates.push(metrics.settlingTime / Math.max(specs.maxSettlingTime, 1e-12));
+  }
+  if (Number.isFinite(specs.minPhaseMargin) && Number.isFinite(metrics.phaseMargin)) {
+    candidates.push(specs.minPhaseMargin / Math.max(metrics.phaseMargin, 1e-12));
+  }
+  if (Number.isFinite(specs.minGainMarginDB) && Number.isFinite(metrics.gainMarginDB)) {
+    candidates.push(specs.minGainMarginDB / Math.max(metrics.gainMarginDB, 1e-12));
+  }
+  if (Number.isFinite(specs.maxPeakSensitivity) && Number.isFinite(metrics.peakSensitivity)) {
+    candidates.push(metrics.peakSensitivity / Math.max(specs.maxPeakSensitivity, 1e-12));
+  }
+  return candidates.length ? Math.max(...candidates) : metrics.peakSensitivity;
+}
+
+/**
+ * Validate and normalize a SISO transfer-function uncertainty model.
+ *
+ * Supported fields:
+ *   - gain: relative range, e.g. 0.2 => [0.8, 1.2] or [0.8, 1.2]
+ *   - numerator: per-coefficient relative ranges
+ *   - denominator: per-coefficient relative ranges; leading coefficient is kept normalized
+ *   - additive: additive loop uncertainty radius used by robust envelopes
+ *   - multiplicative: multiplicative uncertainty spread metadata
+ */
+export function validateUncertaintyModel(model = {}, nominalTf = null) {
+  if (!model || typeof model !== 'object') throw new Error('uncertainty model must be an object');
+  const nominalNumLength = nominalTf?.num?.length ?? null;
+  const nominalDenLength = nominalTf?.den?.length ?? null;
+  const normalized = {
+    gain: parseRelativeRange(model.gain ?? 0, 'gain'),
+    numerator: null,
+    denominator: null,
+    additive: null,
+    multiplicative: null,
+  };
+  if (Array.isArray(model.numerator)) {
+    if (nominalNumLength != null && model.numerator.length !== nominalNumLength) {
+      throw new Error('numerator uncertainty length must match plant numerator length');
+    }
+    normalized.numerator = model.numerator.map((range, idx) => parseRelativeRange(range, `numerator[${idx}]`));
+  }
+  if (Array.isArray(model.denominator)) {
+    if (nominalDenLength != null && model.denominator.length !== nominalDenLength) {
+      throw new Error('denominator uncertainty length must match plant denominator length');
+    }
+    normalized.denominator = model.denominator.map((range, idx) => parseRelativeRange(range, `denominator[${idx}]`));
+  }
+  if (model.additive != null) {
+    const radius = Number(model.additive.radius ?? model.additive);
+    assertFiniteNumber(radius, 'additive.radius');
+    if (radius < 0) throw new Error('additive.radius must be >= 0');
+    normalized.additive = { radius };
+  }
+  if (model.multiplicative != null) {
+    const gain = parseRelativeRange(model.multiplicative.gain ?? model.multiplicative.gainSpread ?? 0, 'multiplicative.gain');
+    const phaseDeg = Number(model.multiplicative.phaseDeg ?? 0);
+    assertFiniteNumber(phaseDeg, 'multiplicative.phaseDeg');
+    if (phaseDeg < 0) throw new Error('multiplicative.phaseDeg must be >= 0');
+    normalized.multiplicative = { gain, phaseDeg };
+  }
+  return normalized;
+}
+
+export function sampleUncertaintyModel(model, options = {}) {
+  const sampleCount = Math.max(1, Math.floor(options.sampleCount ?? 1));
+  const seed = options.seed ?? 1;
+  const rng = mulberry32(seed);
+  const normalized = validateUncertaintyModel(model, options.nominalTf ?? null);
+  const samples = [];
+  for (let i = 0; i < sampleCount; i++) {
+    const sampleRange = (range) => range ? sampleUniform(rng, range[0], range[1]) : 1;
+    samples.push({
+      index: i,
+      seed,
+      gain: sampleRange(normalized.gain),
+      numerator: normalized.numerator ? normalized.numerator.map(sampleRange) : null,
+      denominator: normalized.denominator ? normalized.denominator.map(sampleRange) : null,
+      additiveRadius: normalized.additive?.radius ?? 0,
+      multiplicativeGain: normalized.multiplicative ? sampleRange(normalized.multiplicative.gain) : 1,
+      multiplicativePhaseDeg: normalized.multiplicative
+        ? sampleUniform(rng, -normalized.multiplicative.phaseDeg, normalized.multiplicative.phaseDeg)
+        : 0,
+    });
+  }
+  return { seed, normalized, samples };
+}
+
+export function applyUncertaintySample(nominalTf, sample) {
+  if (!(nominalTf instanceof TransferFunction)) {
+    throw new Error('nominalTf must be a TransferFunction');
+  }
+  const num = nominalTf.num.map((value, idx) => value * (sample.numerator?.[idx] ?? 1) * (sample.gain ?? 1));
+  const den = nominalTf.den.map((value, idx) => value * (sample.denominator?.[idx] ?? 1));
+  return new TransferFunction(num, den);
+}
+
+export function evaluateRobustSample(nominalTf, sample, options = {}) {
+  const plant = applyUncertaintySample(nominalTf, sample);
+  const controllerTf = options.controllerTf ?? null;
+  const loopTf = controllerTf ? controllerTf.series(plant) : plant;
+  const closedLoopTf = loopTf.feedback();
+  const response = stepResponse(closedLoopTf, {
+    duration: options.duration ?? null,
+    sampleCount: options.responseSampleCount ?? 600,
+    amplitude: options.reference ?? 1,
+  });
+  const info = stepInfo(response.t, response.y, null, options.reference ?? 1);
+  const margins = stabilityMargins(loopTf);
+  const omegas = options.omegas ?? defaultOmegas();
+  const peaks = robustPeaks(loopTf, omegas, controllerTf);
+  const additive = sample.additiveRadius > 0
+    ? additiveUncertaintyEnvelope(loopTf, omegas, { radius: sample.additiveRadius, samples: options.additiveSamples ?? 12, controllerTf })
+    : null;
+  const multiplicative = (sample.multiplicativeGain !== 1 || sample.multiplicativePhaseDeg !== 0)
+    ? uncertaintyEnvelope(loopTf, omegas, {
+      gainFactors: [sample.multiplicativeGain],
+      phaseShiftsDeg: [sample.multiplicativePhaseDeg],
+      controllerTf,
+    })
+    : null;
+  const metrics = {
+    stable: closedLoopTf.isStable(),
+    riseTime: info.riseTime,
+    settlingTime: info.settlingTime,
+    overshoot: info.overshoot,
+    steadyStateError: info.steadyStateError,
+    gainMarginDB: margins.gainMarginDB,
+    phaseMargin: margins.phaseMargin,
+    peakSensitivity: peaks.Ms.peak,
+    peakComplementarySensitivity: peaks.Mt.peak,
+    additivePeakSensitivity: additive?.peaks?.S ?? null,
+    multiplicativePeakSensitivity: multiplicative?.peaks?.S?.peak ?? null,
+  };
+  const passFail = evaluatePassFail(metrics, options.specs ?? {});
+  return {
+    sample,
+    plant,
+    metrics,
+    passFail,
+    score: scoreMetricForWorstCase(metrics, options.specs ?? {}),
+  };
+}
+
+export function monteCarloRobustValidation(nominalTf, uncertaintyModel, options = {}) {
+  const { seed, normalized, samples } = sampleUncertaintyModel(uncertaintyModel, {
+    seed: options.seed ?? 1,
+    sampleCount: options.sampleCount ?? 20,
+    nominalTf,
+  });
+  const results = samples.map((sample) => evaluateRobustSample(nominalTf, sample, options));
+  const failures = results.filter((result) => !result.passFail.pass || !result.metrics.stable);
+  const worstCase = results.reduce((best, result) => {
+    if (!best) return result;
+    if (!result.metrics.stable && best.metrics.stable) return result;
+    if (result.score > best.score) return result;
+    return best;
+  }, null);
+  return {
+    seed,
+    sampleCount: samples.length,
+    normalizedUncertainty: normalized,
+    pass: failures.length === 0,
+    failureCount: failures.length,
+    worstCase,
+    results,
   };
 }

@@ -346,12 +346,12 @@ Phase 18+ 必須先維持三個邊界：
 
 | ID | Priority | Status | Item | Rationale | Dependencies | Verification |
 | --- | --- | --- | --- | --- | --- | --- |
-| CS-P18-01 | P1 | Next | Uncertainty model schema | 支援 parametric / additive / multiplicative uncertainty，且 payload 可序列化 | robust.js / project model | schema fixtures + invalid input tests |
-| CS-P18-02 | P1 | Next | Deterministic Monte Carlo sampling | 固定 seed、sample count、sample replay，避免驗證不可重現 | seedable RNG | `verify:p18` deterministic replay |
-| CS-P18-03 | P1 | Next | Worst-case robust metrics | 擷取 worst PM/GM、peak \|S\|、settling、overshoot、control effort | frequency/time response core | known boundary fixtures |
-| CS-P18-04 | P1 | Next | Robust pass/fail specs | 以設計規格判斷 sample family 是否通過 | stability + metrics | nominal-pass / uncertainty-fail case |
+| CS-P18-01 | P1 | Done | Uncertainty model schema | 支援 parametric / additive / multiplicative uncertainty，且 payload 可序列化 | robust.js / project model | `verify:p18` schema fixtures |
+| CS-P18-02 | P1 | Done | Deterministic Monte Carlo sampling | 固定 seed、sample count、sample replay，避免驗證不可重現 | seedable RNG | `verify:p18` deterministic replay |
+| CS-P18-03 | P1 | Done | Worst-case robust metrics | 擷取 worst PM/GM、peak \|S\|、settling、overshoot、control effort | frequency/time response core | `verify:p18` worst-case extraction |
+| CS-P18-04 | P1 | Done | Robust pass/fail specs | 以設計規格判斷 sample family 是否通過 | stability + metrics | `verify:p18` nominal-pass / uncertainty-fail case |
 | CS-P18-05 | P2 | Planned | Robust validation UI | 顯示 envelope、distribution、worst-case replay | CS-P18-01~04 | browser regression walkthrough |
-| CS-P18-06 | P1 | Next | `control-studio-robust-validator` skill baseline | 將 uncertainty validation workflow 抽成 agent 可重用流程 | `CONTROL_SYSTEM_SKILLS_PLAN.md` | skill checklist + sample output |
+| CS-P18-06 | P1 | Done | `control-studio-robust-validator` skill baseline | 將 uncertainty validation workflow 抽成 agent 可重用流程 | `CONTROL_SYSTEM_SKILLS_PLAN.md` | skill checklist + sample output |
 
 ### Phase 19: Full H-infinity / Mu Backend (CS-P19)
 

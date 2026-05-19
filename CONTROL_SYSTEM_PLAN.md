@@ -428,13 +428,13 @@
   - `npm run verify:all`
 
 ### Phase 18+ Research / Engineering Extension Track
-- Planned：Phase 18 uncertainty + Monte Carlo robust validation — parametric / additive / multiplicative uncertainty、deterministic sampling、worst-case replay、robust pass/fail。
+- In progress：Phase 18 uncertainty + Monte Carlo robust validation — Done：uncertainty schema、deterministic Monte Carlo sampling、worst-case metrics、robust pass/fail、`verify:p18` regression、`control-studio-robust-validator` skill baseline；Planned：Robust Validation UI。
 - Planned：Phase 19 full H∞ / μ backend — Riccati/LMI Glover-Doyle synthesis、full DK-iteration、dynamic D-scaling。
 - Planned：Phase 20 MIMO MPC engineering workflow — multi-output constraints、move suppression、offset-free disturbance rejection、feasibility diagnostics。
 - Planned：Phase 21 research-grade system identification — ARMAX / OE / BJ / subspace ID、experiment design、residual validation、uncertainty export。
 - Planned：Phase 22 benchmark + cross-tool validation — golden derivations、MATLAB / Python Control comparison、machine-readable manifest。
 - Planned：Phase 23 agentic design review — structured controller review schema、numeric evidence binding、golden review cases。
-- Skill planning：`CONTROL_SYSTEM_SKILLS_PLAN.md` 定義可抽成 agent skill 的項目，優先順序為 `control-studio-robust-validator`、`control-studio-system-auditor`、`control-studio-benchmark-author`。
+- Skill planning：`CONTROL_SYSTEM_SKILLS_PLAN.md` 定義可抽成 agent skill 的項目；`control-studio-robust-validator` baseline 已建立，後續優先為 `control-studio-system-auditor`、`control-studio-benchmark-author`。
 
 ### Stage 4: Productization
 - Paused：Electron desktop packaging
