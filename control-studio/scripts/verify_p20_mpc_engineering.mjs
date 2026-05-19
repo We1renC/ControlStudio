@@ -3,7 +3,8 @@ import {
   simulateConstrainedMpc,
   simulateMpcTracking,
   firstMpcActionConstrained,
-  simulateOffsetFreeMpc
+  simulateOffsetFreeMpc,
+  checkMpcFeasibility
 } from '../js/control/mpc.js';
 
 let failed = 0;
@@ -105,6 +106,29 @@ console.log('\n=== Phase 20: MPC Offset-Free Tracking ===\n');
     const finalErr = simDist.finalTrackingErrorNormInf;
     assert(finalErr < 1e-3, `Tracking error rejected disturbance (err=${finalErr.toExponential(2)})`);
     console.log('[PASS] MPC offsets tracking target to reject disturbance');
+  } catch(e) {
+    console.error(`[FAIL] ${e.message}`);
+    failed++;
+  }
+}
+
+console.log('\n=== Phase 20: MPC Infeasibility Handling ===\n');
+
+{
+  const Ad = [[1, 1], [0, 1]];
+  const Bd = [[0], [1]];
+  const C = [[1, 0]];
+  const x0 = [[0], [0]];
+  const constraints = { uMin: -1, uMax: 1, xMax: [10, 10], yMax: [-5] };
+  
+  try {
+    const diag = checkMpcFeasibility(Ad, Bd, C, 5, x0, constraints);
+    assert(diag.feasible === false, 'Diagnostic detects infeasibility');
+    console.log('[PASS] Diagnostics properly detects constraint conflict');
+    
+    assert(diag.violatedConstraints.length > 0, 'Diagnostic lists violated constraints');
+    assert(diag.violatedConstraints[0].type === 'yMax', 'Diagnostic identifies output bound conflict');
+    console.log('[PASS] Diagnostics correctly categorizes unreachable constraints');
   } catch(e) {
     console.error(`[FAIL] ${e.message}`);
     failed++;

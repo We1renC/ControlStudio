@@ -614,7 +614,8 @@ function boxQPHildreth(H, f, uMin, uMax, maxIter = 400, tol = 1e-10) {
   for (let i = 0; i < N; i++) {
     U[i] = Math.max(uMin[i], Math.min(uMax[i], H[i][i] > 0 ? -f[i] / H[i][i] : 0));
   }
-  for (let iter = 0; iter < maxIter; iter++) {
+  let iter;
+  for (iter = 0; iter < maxIter; iter++) {
     let maxChange = 0;
     for (let i = 0; i < N; i++) {
       let sum = f[i];
@@ -627,7 +628,7 @@ function boxQPHildreth(H, f, uMin, uMax, maxIter = 400, tol = 1e-10) {
     }
     if (maxChange < tol) break;
   }
-  return U;
+  return { U, converged: iter < maxIter, iterations: iter + 1 };
 }
 
 /**
@@ -695,7 +696,7 @@ export function firstMpcActionConstrained(Ad, Bd, Q, R, horizon, x, constraints 
     }
   }
 
-  const U = boxQPHildreth(H, f, uMin, uMax);
+  const { U, converged, iterations } = boxQPHildreth(H, f, uMin, uMax);
   const u = Array.from({ length: m }, (_, j) => [U[j]]);
   const activeAt = U.map((val, i) => {
     if (Math.abs(val - uMin[i]) < 1e-7 && Number.isFinite(uMin[i])) return 'lower';
@@ -709,6 +710,8 @@ export function firstMpcActionConstrained(Ad, Bd, Q, R, horizon, x, constraints 
     activeAt,
     anyActive: activeAt.some((c) => c !== null),
     condensed,
+    converged,
+    iterations,
   };
 }
 
@@ -942,7 +945,7 @@ export function firstMpcActionStateConstrained(
     f_total = f_total.map((v, i) => v + df[i]);
   }
 
-  const U = boxQPHildreth(H_total, f_total, uMin, uMax);
+  const { U, converged, iterations } = boxQPHildreth(H_total, f_total, uMin, uMax);
   const u = Array.from({ length: m }, (_, j) => [U[j]]);
 
   // Compute predicted trajectory to report violations
@@ -964,6 +967,8 @@ export function firstMpcActionStateConstrained(
     activatedLower,
     ...violations,
     condensed,
+    converged,
+    iterations,
   };
 }
 
@@ -1178,4 +1183,95 @@ export function simulateOffsetFreeMpc(
     steps,
     horizon,
   };
+}
+
+// ---------------------------------------------------------------------------
+// CS-P20-03: MPC Feasibility Diagnostics
+// ---------------------------------------------------------------------------
+
+/**
+ * Predict bounds of reachable state/output trajectory under input constraints,
+ * and check for hard conflicts with state/output constraints.
+ * This is a pessimistic box-reachability diagnostic tool.
+ */
+export function checkMpcFeasibility(Ad, Bd, C, horizon, x0, constraints = {}) {
+  const n = Ad.length;
+  const m = Bd[0].length;
+  const p = C ? C.length : 0;
+  
+  const rawMin = constraints.uMin ?? -Infinity;
+  const rawMax = constraints.uMax ?? Infinity;
+  const uMin = Array.isArray(rawMin) ? rawMin : Array(m).fill(rawMin);
+  const uMax = Array.isArray(rawMax) ? rawMax : Array(m).fill(rawMax);
+  
+  let currentMin = x0.map(r => r[0]);
+  let currentMax = x0.map(r => r[0]);
+  
+  const diagnostics = { feasible: true, violatedConstraints: [] };
+  
+  for (let k = 1; k <= horizon; k++) {
+    const nextMin = Array(n).fill(0);
+    const nextMax = Array(n).fill(0);
+    
+    for (let i = 0; i < n; i++) {
+      let term1Min = 0, term1Max = 0;
+      for (let j = 0; j < n; j++) {
+        const v1 = Ad[i][j] * currentMin[j];
+        const v2 = Ad[i][j] * currentMax[j];
+        term1Min += Math.min(v1, v2);
+        term1Max += Math.max(v1, v2);
+      }
+      let term2Min = 0, term2Max = 0;
+      for (let j = 0; j < m; j++) {
+        const v1 = Bd[i][j] * uMin[j];
+        const v2 = Bd[i][j] * uMax[j];
+        term2Min += Math.min(v1, v2);
+        term2Max += Math.max(v1, v2);
+      }
+      nextMin[i] = term1Min + term2Min;
+      nextMax[i] = term1Max + term2Max;
+    }
+    
+    currentMin = nextMin;
+    currentMax = nextMax;
+    
+    if (constraints.xMin) {
+      for (let i = 0; i < n; i++) {
+        if (constraints.xMin[i] !== undefined && constraints.xMin[i] !== -Infinity && currentMax[i] < constraints.xMin[i] - 1e-6) {
+          diagnostics.feasible = false;
+          diagnostics.violatedConstraints.push({ type: 'xMin', step: k, stateIndex: i, reachableMax: currentMax[i], limit: constraints.xMin[i] });
+        }
+      }
+    }
+    if (constraints.xMax) {
+      for (let i = 0; i < n; i++) {
+        if (constraints.xMax[i] !== undefined && constraints.xMax[i] !== Infinity && currentMin[i] > constraints.xMax[i] + 1e-6) {
+          diagnostics.feasible = false;
+          diagnostics.violatedConstraints.push({ type: 'xMax', step: k, stateIndex: i, reachableMin: currentMin[i], limit: constraints.xMax[i] });
+        }
+      }
+    }
+    
+    if (C && (constraints.yMin || constraints.yMax)) {
+      for (let i = 0; i < p; i++) {
+        let yMin_reach = 0, yMax_reach = 0;
+        for (let j = 0; j < n; j++) {
+          const v1 = C[i][j] * currentMin[j];
+          const v2 = C[i][j] * currentMax[j];
+          yMin_reach += Math.min(v1, v2);
+          yMax_reach += Math.max(v1, v2);
+        }
+        
+        if (constraints.yMin && constraints.yMin[i] !== undefined && constraints.yMin[i] !== -Infinity && yMax_reach < constraints.yMin[i] - 1e-6) {
+          diagnostics.feasible = false;
+          diagnostics.violatedConstraints.push({ type: 'yMin', step: k, outputIndex: i, reachableMax: yMax_reach, limit: constraints.yMin[i] });
+        }
+        if (constraints.yMax && constraints.yMax[i] !== undefined && constraints.yMax[i] !== Infinity && yMin_reach > constraints.yMax[i] + 1e-6) {
+          diagnostics.feasible = false;
+          diagnostics.violatedConstraints.push({ type: 'yMax', step: k, outputIndex: i, reachableMin: yMin_reach, limit: constraints.yMax[i] });
+        }
+      }
+    }
+  }
+  return diagnostics;
 }
