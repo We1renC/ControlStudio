@@ -74,7 +74,7 @@ console.log('\n=== Phase 19: SISO 1st-order H∞ synthesis ===\n');
     assert(result.gamma > 0, '1st-order: γ* > 0');
     assert(result.gamma < 20, '1st-order: γ* < gammaHi');
     assert(result.xResidual < 1e-6, `1st-order: X∞ CARE residual < 1e-6 (got ${result.xResidual.toExponential(2)})`);
-    assert(result.yResidual < 2, `1st-order: Y∞ CARE residual < 2 (got ${result.yResidual.toExponential(2)})`);
+    assert(result.yResidual < 1e-6, `1st-order: Y∞ CARE residual < 1e-6 (got ${result.yResidual.toExponential(2)})`);
     assert(result.rhoXY < result.gamma * result.gamma, '1st-order: ρ(X∞Y∞) < γ²');
     assert(result.method === 'glover-doyle-riccati', '1st-order: method correct');
     assert(result.iterations > 0, '1st-order: iterations > 0');
@@ -86,9 +86,8 @@ console.log('\n=== Phase 19: SISO 1st-order H∞ synthesis ===\n');
     }
 
     if (result.closedLoopNorm !== null) {
-      // Sub-optimal γ* is expected without full D-scaling; verify norm is finite
-      assert(Number.isFinite(result.closedLoopNorm),
-        `1st-order: ‖Tzw‖∞ is finite (norm=${result.closedLoopNorm.toFixed(3)}, γ=${result.gamma.toFixed(3)})`);
+      assert(result.closedLoopNorm <= result.gamma * 1.1,
+        `1st-order: ‖Tzw‖∞ ≤ γ*·1.1 (norm=${result.closedLoopNorm.toFixed(3)}, γ=${result.gamma.toFixed(3)})`);
     }
 
     console.log(`  γ* = ${result.gamma.toFixed(4)}, ‖Tzw‖∞ = ${result.closedLoopNorm?.toFixed(4) ?? 'N/A'}, iters = ${result.iterations}`);

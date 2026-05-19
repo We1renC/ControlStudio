@@ -139,10 +139,15 @@ function solveGeneralizedCARE(A, Q, Rx, options = {}) {
     } catch (_) { /* keep previous result */ }
   }
 
-  if (stableCount < n && resNorm > 1e-3) {
+  // Relative residual threshold: scale by problem norms
+  const problemScale = Math.max(maxAbs(Q), maxAbs(A), 1);
+  const relResThreshold = 1e-4 * problemScale;
+
+  if (resNorm > relResThreshold) {
     throw new Error(
-      `H∞ CARE: found ${stableCount} stable modes, need ${n}. ` +
-      `System may not be stabilizable or γ is too small.`
+      `H∞ CARE: residual ${resNorm.toExponential(2)} exceeds threshold ` +
+      `${relResThreshold.toExponential(2)} (stableCount=${stableCount}/${n}). ` +
+      `Hamiltonian may have imaginary-axis eigenvalues — γ is infeasible.`
     );
   }
 
@@ -395,20 +400,37 @@ export function gammaIteration(genPlant, options = {}) {
   const maxBisect = options.maxBisect ?? 40;
   const tol = options.gammaTol ?? 1e-3;
 
-  // Use original matrices directly. The standard Glover-Doyle formulas
-  // assume D12'D12=I, D21D21'=I. When these don't hold exactly, the
-  // synthesis produces a sub-optimal γ* but the controller is still
-  // stabilizing. For the SISO mixed-sensitivity case this is acceptable.
+  // ── D12 / D21 correction (ZDG Theorem 17.3) ─────────────────────────
+  // When D12'D12 ≠ I or D21 D21' ≠ I, the CARE R-matrices and gains
+  // must absorb these terms. Specifically:
+  //   Rx = B2·(D12'D12)⁻¹·B2' − γ⁻²·B1·B1'
+  //   Ry = C2'·(D21D21')⁻¹·C2 − γ⁻²·C1'·C1
+  //   F  = −(D12'D12)⁻¹·B2'·X∞
+  //   L  = −Y∞·C2'·(D21D21')⁻¹
+
   const B1 = B1raw, B2 = B2raw, C1 = C1raw, C2 = C2raw;
 
+  const D12t = matTranspose(D12raw);
+  const D12tD12 = matMul(D12t, D12raw);
+  const D21t = matTranspose(D21raw);
+  const D21D21t = matMul(D21raw, D21t);
+  let D12tD12inv, D21D21tinv;
+  try { D12tD12inv = matInverse(D12tD12); } catch (_) {
+    throw new Error('H∞: D12 has no full column rank');
+  }
+  try { D21D21tinv = matInverse(D21D21t); } catch (_) {
+    throw new Error('H∞: D21 has no full row rank');
+  }
+
   const At = matTranspose(A);
-  const B1t = matTranspose(B1);
   const B2t = matTranspose(B2);
   const C1t = matTranspose(C1);
   const C2t = matTranspose(C2);
 
-  const Qx = matMul(C1t, C1);    // C1'C1
-  const Qy = matMul(B1, B1t);    // B1 B1'
+  const Qx = matMul(C1t, C1);                          // C1'C1
+  const Qy = matMul(B1, matTranspose(B1));              // B1 B1'
+  const B2RinvB2t = matMul(matMul(B2, D12tD12inv), B2t); // B2·(D12'D12)⁻¹·B2'
+  const C2tRinvC2 = matMul(matMul(C2t, D21D21tinv), C2); // C2'·(D21D21')⁻¹·C2
 
   let lo = gammaLo, hi = gammaHi;
   let bestResult = null;
@@ -420,19 +442,19 @@ export function gammaIteration(genPlant, options = {}) {
     try {
       const g2 = gamma * gamma;
 
-      // Rx = B2 B2' - γ⁻² B1 B1'
-      const Rx = matSub(matMul(B2, B2t), matScale(Qy, 1 / g2));
-      // Ry = C2'C2 - γ⁻² C1'C1
-      const Ry = matSub(matMul(C2t, C2), matScale(Qx, 1 / g2));
+      // Rx = B2·(D12'D12)⁻¹·B2' − γ⁻²·B1·B1'
+      const Rx = matSub(B2RinvB2t, matScale(Qy, 1 / g2));
+      // Ry = C2'·(D21D21')⁻¹·C2 − γ⁻²·C1'·C1
+      const Ry = matSub(C2tRinvC2, matScale(Qx, 1 / g2));
 
-      // Solve X∞: A'X + XA + C1'C1 - X·Rx·X = 0
+      // Solve X∞: A'X + XA + C1'C1 − X·Rx·X = 0
       const xResult = solveGeneralizedCARE(A, Qx, Rx, { tol: 1e-11 });
       const Xinf = xResult.P;
 
       const xEigs = matEigenvaluesSymmetric(matSymmetrize(Xinf));
       if (xEigs[0] < -1e-8) { lo = gamma; continue; }
 
-      // Solve Y∞: A Y + Y A' + B1 B1' - Y·Ry·Y = 0
+      // Solve Y∞: A·Y + Y·A' + B1·B1' − Y·Ry·Y = 0
       const yResult = solveGeneralizedCARE(At, Qy, Ry, { tol: 1e-11 });
       const Yinf = yResult.P;
 
@@ -444,16 +466,16 @@ export function gammaIteration(genPlant, options = {}) {
       const rho = spectralRadius(XY);
       if (rho >= g2) { lo = gamma; continue; }
 
-      // Build controller: F = -B2'X∞, L = -Y∞C2'
-      const F = matScale(matMul(B2t, Xinf), -1);
-      const L = matScale(matMul(Yinf, C2t), -1);
+      // Controller gains with D12/D21 correction
+      const F = matScale(matMul(matMul(D12tD12inv, B2t), Xinf), -1);
+      const L = matScale(matMul(matMul(Yinf, C2t), D21D21tinv), -1);
 
-      // Z∞ = (I - γ⁻² Y∞ X∞)⁻¹
+      // Z∞ = (I − γ⁻² Y∞ X∞)⁻¹
       const Zinv = matSub(matIdentity(n), matScale(XY, 1 / g2));
       let Zinf;
       try { Zinf = matInverse(Zinv); } catch (_) { lo = gamma; continue; }
 
-      // Ak = A + γ⁻²B1B1'X∞ + B2F + Z∞LC2
+      // Ak = A + γ⁻²·B1·B1'·X∞ + B2·F + Z∞·L·C2
       const Ak = matAdd(
         matAdd(A, matScale(matMul(Qy, Xinf), 1 / g2)),
         matAdd(matMul(B2, F), matMul(matMul(Zinf, L), C2))

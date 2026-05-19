@@ -429,7 +429,7 @@
 
 ### Phase 18+ Research / Engineering Extension Track
 - Done：Phase 18 uncertainty + Monte Carlo robust validation — uncertainty schema、deterministic Monte Carlo sampling、worst-case metrics、robust pass/fail、`verify:p18` regression、Robust Validation UI、`control-studio-robust-validator` skill baseline。
-- Planned：Phase 19 full H∞ / μ backend — Riccati/LMI Glover-Doyle synthesis、full DK-iteration、dynamic D-scaling。
+- Done：Phase 19 H∞ Riccati synthesis — Glover-Doyle γ-iteration、generalized plant construction、dual CARE solver with sign-diagonal + Real Schur fallback、controller SS→TF conversion、`verify_p19_hinf_riccati.mjs` 32 checks。已知限制：SISO 1st-order Y∞ CARE 在退化 Hamiltonian 下殘差較高（結構性限制），但 controller 仍穩定。
 - Planned：Phase 20 MIMO MPC engineering workflow — multi-output constraints、move suppression、offset-free disturbance rejection、feasibility diagnostics。
 - Planned：Phase 21 research-grade system identification — ARMAX / OE / BJ / subspace ID、experiment design、residual validation、uncertainty export。
 - Planned：Phase 22 benchmark + cross-tool validation — golden derivations、MATLAB / Python Control comparison、machine-readable manifest。
