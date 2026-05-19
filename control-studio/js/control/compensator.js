@@ -68,6 +68,25 @@ export function notchFilterDescription(omegaN, zetaNum, zetaDen) {
   return `Notch ω_n=${omegaN}, ζ_z=${zetaNum}, ζ_p=${zetaDen}`;
 }
 
+/**
+ * Design a Lead-Lag cascade compensator in one step.
+ * C(s) = Kc_lead·(τ₁s+1)/(ατ₁s+1) · (τ₂s+1)/(βτ₂s+1)   α<1, β>1
+ *
+ * Lead part: provides phaseBoostDeg phase lift at crossoverFreq.
+ * Lag  part: provides improvementFactor steady-state gain boost (α_lag = improvementFactor).
+ *
+ * @param {{ phaseBoostDeg, crossoverFreq, improvementFactor, zeroRatio? }} opts
+ * @returns {{ lead, lag, combinedTf: TransferFunction }}
+ */
+export function designLeadLagCompensator({ phaseBoostDeg, crossoverFreq, improvementFactor, zeroRatio = 10 } = {}) {
+  const lead = designLeadCompensator({ phaseBoostDeg, crossoverFreq });
+  const lag  = designLagCompensator({ improvementFactor, crossoverFreq, zeroRatio });
+  // Combined TF = lead_tf · lag_tf
+  const leadTf = leadLagTransferFunction(lead);
+  const lagTf  = leadLagTransferFunction(lag);
+  return { lead, lag, combinedTf: leadTf.series(lagTf) };
+}
+
 export function designLagCompensator({ improvementFactor, crossoverFreq, zeroRatio = 10 } = {}) {
   const factor = Number(improvementFactor);
   const wc = Number(crossoverFreq);

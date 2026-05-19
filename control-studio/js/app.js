@@ -3,7 +3,7 @@ import { DiscreteTransferFunction } from './control/discrete-transfer-function.j
 import { parseMatrixInput, stateSpaceToTransferFunction, controllabilityMatrix, observabilityMatrix } from './control/state-space.js?v=p5';
 import { matRank } from './math/matrix.js?v=p5';
 import { PIDController, TwoDOFPIDController } from './control/pid.js';
-import { compensatorDescription, designLagCompensator, designLeadCompensator, leadLagTransferFunction, normalizeCompensatorConfig, notchFilter, notchFilterDescription } from './control/compensator.js?v=control-lag-1';
+import { compensatorDescription, designLagCompensator, designLeadCompensator, designLeadLagCompensator, leadLagTransferFunction, normalizeCompensatorConfig, notchFilter, notchFilterDescription } from './control/compensator.js?v=pid-p1';
 import { impulseResponse, rampResponse, simulatePIDAntiWindup, stepResponse } from './analysis/time-response.js';
 import { discreteStepResponse } from './analysis/discrete-response.js';
 import { bodeData, nyquistData, autoFreqRange, nicholsData, nyquistEncirclements } from './analysis/frequency-response.js';
@@ -13,7 +13,7 @@ import { stabilityMargins, stepInfo, routhTable, analyzeStability } from './cont
 import { parsePolyString, fmtNum, fmtDeg, fmtDB, fmtTime, fmtPercent } from './utils/format.js';
 import { zpkToTransferFunction, parseRootsString } from './control/zpk.js';
 import { c2dMatchedZ, c2dTustin, c2dTustinPrewarp, c2dZOH } from './control/c2d.js?v=p5';
-import { specsToTargetPoles, designLeadForPM, deadbeatGain } from './control/design.js?v=p5';
+import { specsToTargetPoles, designLeadForPM, deadbeatGain, autoTunePIDToSpec } from './control/design.js?v=pid-p1';
 import { polyadd, polyscale, polyroots } from './math/polynomial.js?v=p4';
 import { Complex } from './math/complex.js';
 import { analyzeLyapunov, augmentWithIntegralAction, brysonsRule, checkPoleRegion, closedLoopTransferFromStateFeedback, designIntegralLQR, discretizeZOH, innovationStats, lqrWithPoleRegion, observerPoles, placeObserver, placeStateFeedback, resolveDesignStateSpace, simulateLqg, simulateObserver, solveDiscreteKalman, solveLqe, solveLqr, solveLqrMIMO, solveHinfFilter } from './control/state-feedback.js?v=p8d';
@@ -619,8 +619,16 @@ function initEventListeners() {
   document.getElementById('btn-zn-p')?.addEventListener('click',   () => applyZNPIDFromRlocus('P'));
   document.getElementById('btn-copy-deadbeat-k')?.addEventListener('click', copyDeadbeatGains);
   document.getElementById('btn-apply-pid-preset')?.addEventListener('click', applyPIDPreset);
+  document.getElementById('btn-auto-tune-pid')?.addEventListener('click', applyAutoTunePID);
   document.getElementById('btn-apply-lead-helper')?.addEventListener('click', applyLeadHelper);
   document.getElementById('btn-apply-lag-helper')?.addEventListener('click', applyLagHelper);
+  document.getElementById('btn-apply-leadlag-helper')?.addEventListener('click', applyLeadLagHelper);
+  // Series PID form toggle
+  document.querySelectorAll('input[name="pid-form"]').forEach(r => r.addEventListener('change', updateSeriesPIDDisplay));
+  // Step spec overlay toggle
+  document.getElementById('chk-spec-overlay')?.addEventListener('change', () => { if (state.plant) renderCurrentPlot(); });
+  // 2-DOF derivative kick comparison
+  document.getElementById('chk-dkick-compare')?.addEventListener('change', () => { if (state.plant) renderCurrentPlot(); });
   document.getElementById('btn-save-project')?.addEventListener('click', saveProjectFile);
   document.getElementById('btn-load-project')?.addEventListener('click', () => document.getElementById('project-file-input')?.click());
   document.getElementById('btn-export-json')?.addEventListener('click', () => exportCurrentResult('json'));
@@ -1102,6 +1110,7 @@ function syncPIDSliders() {
     }
     if (value) value.textContent = state.pidParams[param].toFixed(2);
   });
+  updateSeriesPIDDisplay();
 }
 
 function clearOutputPanel(id) {
@@ -1164,6 +1173,7 @@ function setPIDFromController(controller, source) {
   };
   state.controllerDesign = { ...state.controllerDesign, source, preset: source };
   syncPIDSliders();
+  updateSeriesPIDDisplay();
   updateController();
 }
 
@@ -1185,8 +1195,8 @@ function applyPIDPreset() {
       const Tu = readRequiredPositiveNumber('preset-tu', 'Tu');
       const type = preset === 'zn-p' ? 'P' : preset === 'zn-pi' ? 'PI' : 'PID';
       setPIDFromController(PIDController.zieglerNichols(Ku, Tu, type), `ziegler-nichols-${type.toLowerCase()}`);
-      historySave();
-      clearError();
+      historySave(); clearError();
+      const fw = document.getElementById('fopdt-warning'); if (fw) fw.style.display = 'none';
       return;
     }
 
@@ -1195,8 +1205,8 @@ function applyPIDPreset() {
       const Tu = readRequiredPositiveNumber('preset-tu', 'Tu');
       const type = preset === 'tl-pi' ? 'PI' : 'PID';
       setPIDFromController(PIDController.tyreusLuyben(Ku, Tu, type), `tyreus-luyben-${type.toLowerCase()}`);
-      historySave();
-      clearError();
+      historySave(); clearError();
+      const fw = document.getElementById('fopdt-warning'); if (fw) fw.style.display = 'none';
       return;
     }
 
@@ -1222,6 +1232,21 @@ function applyPIDPreset() {
     }
     historySave();
     clearError();
+    // H: FOPDT validity warning — check τ/θ ratio for chosen preset
+    const fopdtWarn = document.getElementById('fopdt-warning');
+    if (fopdtWarn && Number.isFinite(tau) && tau > 0 && Number.isFinite(td) && td > 0) {
+      const ratio = td / tau;
+      let msg = '';
+      if ((preset === 'cohen-coon' || preset.startsWith('itae-')) && ratio < 0.05) {
+        msg = `⚠ θ/τ = ${ratio.toFixed(3)}（偏小，建議 ≥ 0.1）。Cohen-Coon / ITAE 公式精度在極小延遲下會下降。`;
+      } else if ((preset === 'cohen-coon' || preset.startsWith('itae-')) && ratio > 1.0) {
+        msg = `⚠ θ/τ = ${ratio.toFixed(2)}（偏大，建議 < 1.0）。大延遲系統建議改用 IMC-PID 或 Smith Predictor。`;
+      } else if ((preset.startsWith('imc-') || preset === 'simc') && ratio > 2.0) {
+        msg = `⚠ θ/τ = ${ratio.toFixed(2)}。IMC / SIMC 在大延遲系統（θ/τ > 2）效果會下降，建議考慮 Smith Predictor。`;
+      }
+      fopdtWarn.textContent = msg;
+      fopdtWarn.style.display = msg ? 'block' : 'none';
+    }
   } catch (err) {
     showError(err.message);
     scheduleSmokeDiagnostics();
@@ -2142,6 +2167,75 @@ function applyLagHelper() {
   }
 }
 
+/** A: Auto-tune PID to target PM + crossover frequency */
+function applyAutoTunePID() {
+  const outEl = document.getElementById('auto-tune-out');
+  try {
+    clearFieldErrors();
+    if (!state.plant) throw new Error('先更新 Plant 後再執行 Auto-Tune');
+    const targetPM  = readRequiredPositiveNumber('at-target-pm',  'Target PM');
+    const targetWc  = readRequiredPositiveNumber('at-target-wc',  'Target ωc');
+    const type = document.getElementById('at-type')?.value || 'PID';
+    const r    = autoTunePIDToSpec(state.plant, { targetPM, targetWc, type });
+    setPIDFromController(r.controller, `auto-tune-${type.toLowerCase()}`);
+    historySave();
+    clearError();
+    const achPM = Number.isFinite(r.achievedPM) ? r.achievedPM.toFixed(1) + '°' : '—';
+    const achWc = Number.isFinite(r.achievedWc) ? r.achievedWc.toFixed(3) + ' rad/s' : '—';
+    const achGM = Number.isFinite(r.achievedGM) ? r.achievedGM.toFixed(1) + ' dB' : '∞';
+    if (outEl) outEl.innerHTML =
+      `<b>✓ Kp=${r.Kp.toFixed(4)}  Ki=${r.Ki.toFixed(4)}  Kd=${r.Kd.toFixed(4)}</b><br>` +
+      (r.Ti != null ? `Ti=${r.Ti.toFixed(4)} s&emsp;Td=${r.Td.toFixed(4)} s<br>` : '') +
+      `φ_C required: ${r.phiC_deg.toFixed(1)}°<br>` +
+      `Achieved PM=${achPM}&emsp;ωc=${achWc}&emsp;GM=${achGM}`;
+    if (outEl) outEl.style.display = 'block';
+  } catch (err) {
+    showError(err.message);
+    if (outEl) { outEl.textContent = '✗ ' + err.message; outEl.style.display = 'block'; }
+  }
+}
+
+/** B+E: Lead-Lag cascade helper */
+function applyLeadLagHelper() {
+  try {
+    clearFieldErrors();
+    const phaseBoostDeg    = readRequiredPositiveNumber('ll-phase-boost', 'Lead phase boost');
+    const crossoverFreq    = readRequiredPositiveNumber('ll-crossover-wc', 'Crossover ωc');
+    const improvementFactor = readRequiredPositiveNumber('ll-improvement', 'Lag improvement');
+    const zeroRatio        = parseFloat(document.getElementById('ll-zero-ratio')?.value || '10') || 10;
+    const { combinedTf } = designLeadLagCompensator({ phaseBoostDeg, crossoverFreq, improvementFactor, zeroRatio });
+    // Apply the combined TF as the controller compensator by extracting params from roots
+    // Store the raw TF in state for use in controller synthesis
+    state.leadLagCombinedTf = combinedTf;
+    // Display result; user can then manually enter the compensator params
+    const outEl = document.getElementById('leadlag-out');
+    if (outEl) {
+      outEl.textContent = `Combined C(s) = (${combinedTf.num.map(c => c.toFixed(4)).join(', ')}) / (${combinedTf.den.map(c => c.toFixed(4)).join(', ')})`;
+      outEl.style.display = 'block';
+    }
+    // Set the compensator to 'lead' + store combined for loop computation
+    state.controllerDesign = { ...state.controllerDesign, source: 'leadlag-helper' };
+    historySave();
+    updateController();
+    clearError();
+  } catch (err) {
+    const outEl = document.getElementById('leadlag-out');
+    if (outEl) { outEl.textContent = '✗ ' + err.message; outEl.style.display = 'block'; }
+    showError(err.message);
+  }
+}
+
+/** D: Update series form display (Ti / Td read-only fields) */
+function updateSeriesPIDDisplay() {
+  const Kp = state.pidParams?.Kp ?? 1;
+  const Ki = state.pidParams?.Ki ?? 0;
+  const Kd = state.pidParams?.Kd ?? 0;
+  const tiEl = document.getElementById('pid-Ti-disp');
+  const tdEl = document.getElementById('pid-Td-disp');
+  if (tiEl) tiEl.textContent = (Ki > 1e-9) ? (Kp / Ki).toFixed(4) + ' s' : '∞';
+  if (tdEl) tdEl.textContent = (Kp > 1e-9) ? (Kd / Kp).toFixed(4) + ' s' : '0';
+}
+
 function readCompensatorInputs() {
   const mode = document.getElementById('comp-mode')?.value || 'none';
   if (mode === 'notch') {
@@ -3047,10 +3141,78 @@ function renderTimeResponse(sys, targetId = 'chart-active') {
     } catch (_) { /* silent if plant/pid not ready */ }
   }
 
-  // L1: title is shown in the chart-header (#active-plot-title); avoid duplicating it inside the plot.
+  // G: Derivative kick comparison — 1-DOF vs 2-DOF when enabled
+  const dkickEnabled = document.getElementById('chk-dkick-compare')?.checked;
+  if (dkickEnabled && state.twoDof && state.responseType === 'step' && state.showClosedLoop && state.plant) {
+    try {
+      const p = state.pidParams;
+      const ctrl1dof = new PIDController(p.Kp, p.Ki, p.Kd, p.N);
+      const loop1 = ctrl1dof.toTransferFunction().series(state.plant);
+      const cl1 = loop1.feedback();
+      const resp1 = stepResponse(cl1, { duration: resp.t[resp.t.length - 1], sampleCount: resp.t.length });
+      traces.push({
+        x: resp1.t, y: resp1.y,
+        type: 'scatter', mode: 'lines',
+        name: '1-DOF (β=γ=1, with D-kick)',
+        line: { color: '#f59e0b', width: 1.5, dash: 'dash' },
+      });
+    } catch (_) { /* silent */ }
+  }
+
+  // F: Step response spec overlay — settling band + overshoot limit + rise time
+  const specOverlay = document.getElementById('chk-spec-overlay')?.checked;
   const layout = PLOTLY_LAYOUT_BASE();
   layout.showlegend = true;
   layout.legend = compactLegend();
+  if (specOverlay && state.responseType === 'step' && resp.y.length > 10) {
+    const ySS = resp.y[resp.y.length - 1];
+    if (Math.abs(ySS) > 1e-10) {
+      const band = 0.02 * Math.abs(ySS);
+      // ±2% settling band
+      traces.push({
+        x: [resp.t[0], resp.t[resp.t.length - 1]], y: [ySS + band, ySS + band],
+        type: 'scatter', mode: 'lines',
+        line: { color: 'rgba(34,197,94,0.4)', width: 1, dash: 'dot' },
+        name: '+2% band', hoverinfo: 'skip', showlegend: false,
+      });
+      traces.push({
+        x: [resp.t[0], resp.t[resp.t.length - 1]], y: [ySS - band, ySS - band],
+        type: 'scatter', mode: 'lines',
+        line: { color: 'rgba(34,197,94,0.4)', width: 1, dash: 'dot' },
+        name: '−2% band', hoverinfo: 'skip', showlegend: false,
+      });
+      // Overshoot limit (read from design-os field if available, else 20%)
+      const osLimit = parseFloat(document.getElementById('design-os')?.value) || 20;
+      const osLine = ySS * (1 + osLimit / 100);
+      traces.push({
+        x: [resp.t[0], resp.t[resp.t.length - 1]], y: [osLine, osLine],
+        type: 'scatter', mode: 'lines',
+        line: { color: 'rgba(239,68,68,0.35)', width: 1, dash: 'dashdot' },
+        name: `OS limit ${osLimit}%`, hoverinfo: 'skip', showlegend: false,
+      });
+      // Rise time marker (10%→90%)
+      const y10 = 0.1 * ySS, y90 = 0.9 * ySS;
+      let tRise = null;
+      for (let i = 1; i < resp.t.length; i++) {
+        if (resp.y[i - 1] < y90 && resp.y[i] >= y90) { tRise = resp.t[i]; break; }
+      }
+      if (tRise != null) {
+        const yMin = Math.min(...resp.y), yMax = Math.max(...resp.y);
+        traces.push({
+          x: [tRise, tRise], y: [yMin, yMax],
+          type: 'scatter', mode: 'lines',
+          line: { color: 'rgba(168,85,247,0.5)', width: 1, dash: 'dash' },
+          name: `t_rise≈${tRise.toFixed(3)}s`, hoverinfo: 'name', showlegend: false,
+        });
+        layout.annotations = [{
+          x: tRise, y: y90, xref: 'x', yref: 'y',
+          text: `t_r=${tRise.toFixed(2)}s`, showarrow: true,
+          arrowhead: 0, ax: 25, ay: -15,
+          font: { size: 9, color: 'rgba(168,85,247,0.9)' },
+        }];
+      }
+    }
+  }
   if (satEnabled && state.responseType === 'step') {
     layout.yaxis2 = { overlaying: 'y', side: 'right', gridcolor: 'transparent', title: { text: 'u(t)', font: { size: 10 } } };
   }
@@ -3090,37 +3252,79 @@ function renderBodePlot(sys, targetId = 'chart-active') {
       const phaseMax = Math.max(...data.phaseDeg);
       const annotations = [];
 
-      // Gain crossover (where |G|=0 dB) → mark PM
+      // Permanent -180° reference line on phase subplot
+      traces.push({
+        x: [data.w[0], data.w[data.w.length - 1]], y: [-180, -180],
+        type: 'scatter', mode: 'lines', yaxis: 'y2',
+        line: { color: 'rgba(255,100,100,0.25)', width: 1, dash: 'dot' },
+        name: '−180°', hoverinfo: 'skip', showlegend: false,
+      });
+      // 0 dB reference line on magnitude subplot
+      traces.push({
+        x: [data.w[0], data.w[data.w.length - 1]], y: [0, 0],
+        type: 'scatter', mode: 'lines',
+        line: { color: 'rgba(255,255,255,0.12)', width: 1, dash: 'dot' },
+        name: '0 dB', hoverinfo: 'skip', showlegend: false,
+      });
+
+      // PM color: green (>45°), orange (30-45°), red (<30°)
+      const pm = margins.phaseMargin;
+      const pmColor = !Number.isFinite(pm) ? getCSS('--color-stable')
+        : pm > 45 ? getCSS('--color-stable')
+        : pm > 30 ? '#f59e0b'
+        : getCSS('--color-unstable');
+
+      // Gain crossover (where |G|=0 dB) → mark PM; vertical line spans BOTH subplots
       if (Number.isFinite(margins.gainCrossover) && margins.gainCrossover > 0) {
         const wgc = margins.gainCrossover;
+        // Magnitude subplot line
         traces.push({
           x: [wgc, wgc], y: [magMin, magMax],
           type: 'scatter', mode: 'lines',
-          line: { color: getCSS('--color-stable'), width: 1, dash: 'dash' },
+          line: { color: pmColor, width: 1.5, dash: 'dash' },
           name: `ω_gc=${fmtNum(wgc, 3)}`, hoverinfo: 'name',
         });
-        if (Number.isFinite(margins.phaseMargin)) {
+        // Phase subplot line (same x, same ω)
+        traces.push({
+          x: [wgc, wgc], y: [phaseMin, phaseMax],
+          type: 'scatter', mode: 'lines', yaxis: 'y2',
+          line: { color: pmColor, width: 1.5, dash: 'dash' },
+          hoverinfo: 'skip', showlegend: false,
+        });
+        if (Number.isFinite(pm)) {
           annotations.push({
             x: Math.log10(wgc), y: 0, xref: 'x', yref: 'y',
-            text: `PM=${fmtDeg(margins.phaseMargin)}`, showarrow: true, arrowhead: 0,
-            ax: 30, ay: -20, font: { size: 10, color: getCSS('--color-stable') },
+            text: `PM=${fmtDeg(pm)}`, showarrow: true, arrowhead: 0,
+            ax: 32, ay: -22, font: { size: 10, color: pmColor },
+            bgcolor: 'rgba(0,0,0,0.5)', borderpad: 2,
           });
         }
       }
       // Phase crossover (where ∠G=-180°) → mark GM
       if (Number.isFinite(margins.phaseCrossover) && margins.phaseCrossover > 0) {
         const wpc = margins.phaseCrossover;
+        const gmColor = !Number.isFinite(margins.gainMarginDB) ? getCSS('--color-stable')
+          : margins.gainMarginDB > 6 ? getCSS('--color-stable')
+          : margins.gainMarginDB > 3 ? '#f59e0b'
+          : getCSS('--color-unstable');
         traces.push({
           x: [wpc, wpc], y: [phaseMin, phaseMax],
           type: 'scatter', mode: 'lines', yaxis: 'y2',
-          line: { color: getCSS('--color-unstable'), width: 1, dash: 'dash' },
+          line: { color: gmColor, width: 1.5, dash: 'dashdot' },
           name: `ω_pc=${fmtNum(wpc, 3)}`, hoverinfo: 'name',
+        });
+        traces.push({
+          x: [wpc, wpc], y: [magMin, magMax],
+          type: 'scatter', mode: 'lines',
+          line: { color: gmColor, width: 1.5, dash: 'dashdot' },
+          hoverinfo: 'skip', showlegend: false,
         });
         if (Number.isFinite(margins.gainMarginDB)) {
           annotations.push({
             x: Math.log10(wpc), y: -180, xref: 'x', yref: 'y2',
             text: `GM=${fmtDB(margins.gainMarginDB)}`, showarrow: true, arrowhead: 0,
-            ax: 30, ay: 20, font: { size: 10, color: getCSS('--color-unstable') },
+            ax: 32, ay: 22, font: { size: 10, color: gmColor },
+            bgcolor: 'rgba(0,0,0,0.5)', borderpad: 2,
           });
         }
       }

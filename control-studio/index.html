@@ -639,6 +639,17 @@
             <input type="number" id="pid-N" min="1" max="100000" step="1" value="100">
             <p style="font-size:10px;color:var(--text-muted);margin:4px 0 0;">N 越大越接近理想 PID；N 越小濾波越強（建議 10–1000）。</p>
           </div>
+          <!-- D: Series PID form — Ti / Td read-only display -->
+          <div class="summary-grid" style="margin-top:var(--space-3); margin-bottom:0;">
+            <div class="input-group" style="margin-bottom:0;">
+              <label style="font-size:11px;">Ti = Kp/Ki <span class="help-icon" title="Integral time (series PID). Ti = Kp/Ki. ∞ when Ki=0.">?</span></label>
+              <div id="pid-Ti-disp" style="font-size:12px; color:var(--text-secondary); padding:4px 0 0;">∞</div>
+            </div>
+            <div class="input-group" style="margin-bottom:0;">
+              <label style="font-size:11px;">Td = Kd/Kp <span class="help-icon" title="Derivative time (series PID). Td = Kd/Kp. 0 when Kd=0.">?</span></label>
+              <div id="pid-Td-disp" style="font-size:12px; color:var(--text-secondary); padding:4px 0 0;">0</div>
+            </div>
+          </div>
           <div class="input-group" style="margin-top:var(--space-4);">
             <label>PID Preset</label>
             <select id="pid-preset" style="background:var(--bg-tertiary); color:var(--text-primary); border:1px solid var(--border-primary); border-radius:var(--radius-sm); padding:8px 12px; font-size:12px;">
@@ -678,6 +689,34 @@
             </div>
           </div>
           <button class="btn btn-sm" id="btn-apply-pid-preset" style="width:100%; justify-content:center;">Apply PID Preset</button>
+          <!-- H: FOPDT validity warning -->
+          <div id="fopdt-warning" style="display:none; margin-top:var(--space-2); padding:6px 10px; background:rgba(234,179,8,0.1); border-left:3px solid #eab308; border-radius:var(--radius-sm); font-size:11px; color:var(--text-secondary);"></div>
+
+          <!-- A: Auto-Tune PID to Spec -->
+          <div style="margin-top:var(--space-4); border-top:1px solid var(--border-primary); padding-top:var(--space-3);">
+            <div class="metric-section-label">Auto-Tune to Spec</div>
+            <div class="summary-grid" style="margin-bottom:var(--space-2);">
+              <div class="input-group" style="margin-bottom:0;">
+                <label>Target PM (°)</label>
+                <input type="number" id="at-target-pm" min="5" max="89" step="1" value="45">
+              </div>
+              <div class="input-group" style="margin-bottom:0;">
+                <label>Target ωc (rad/s)</label>
+                <input type="number" id="at-target-wc" min="0.01" step="0.1" value="1">
+              </div>
+            </div>
+            <div class="input-group" style="margin-bottom:var(--space-2);">
+              <label>Controller Type</label>
+              <select id="at-type" style="background:var(--bg-tertiary); color:var(--text-primary); border:1px solid var(--border-primary); border-radius:var(--radius-sm); padding:6px 10px; font-size:12px;">
+                <option value="PID">PID</option>
+                <option value="PI">PI</option>
+                <option value="P">P</option>
+              </select>
+            </div>
+            <button class="btn btn-sm" id="btn-auto-tune-pid" style="width:100%; justify-content:center;">Auto-Tune PID →</button>
+            <div id="auto-tune-out" style="display:none; margin-top:var(--space-2); padding:8px 10px; background:var(--bg-tertiary); border-radius:var(--radius-sm); font-size:11px; color:var(--text-secondary); line-height:1.6;"></div>
+          </div>
+
           <div class="input-group" style="margin-top:var(--space-4); border-top:1px solid var(--border-primary); padding-top:var(--space-3);">
             <label style="display:flex;align-items:center;gap:8px;">
               <input type="checkbox" id="enable-2dof" style="margin:0;">
@@ -780,6 +819,32 @@
             </div>
           </div>
           <button class="btn btn-sm" id="btn-apply-lag-helper" style="width:100%; justify-content:center;">Apply Lag Helper</button>
+
+          <!-- B+E: Lead-Lag Cascade Helper -->
+          <div style="margin-top:var(--space-4); border-top:1px solid var(--border-primary); padding-top:var(--space-3);">
+            <div class="metric-section-label">Lead-Lag Cascade</div>
+            <p style="font-size:10px; color:var(--text-muted); margin:2px 0 var(--space-2);">C(s) = Lead · Lag — phase boost + steady-state gain improvement in one step.</p>
+            <div class="summary-grid" style="margin-bottom:var(--space-2);">
+              <div class="input-group" style="margin-bottom:0;">
+                <label>Phase Boost (°)</label>
+                <input type="number" id="ll-phase-boost" min="1" max="70" step="1" value="35">
+              </div>
+              <div class="input-group" style="margin-bottom:0;">
+                <label>ωc (rad/s)</label>
+                <input type="number" id="ll-crossover-wc" min="0.01" step="0.1" value="1">
+              </div>
+              <div class="input-group" style="margin-bottom:0;">
+                <label>Lag factor β <span class="help-icon" title="Steady-state gain improvement factor. β>1, e.g. 5 = 5× better SS accuracy.">?</span></label>
+                <input type="number" id="ll-improvement" min="1.1" step="0.5" value="5">
+              </div>
+              <div class="input-group" style="margin-bottom:0;">
+                <label>Zero ratio <span class="help-icon" title="Lag zero frequency = ωc/ratio. Larger = less phase drag at crossover. Typical: 5–20.">?</span></label>
+                <input type="number" id="ll-zero-ratio" min="2" step="1" value="10">
+              </div>
+            </div>
+            <button class="btn btn-sm" id="btn-apply-leadlag-helper" style="width:100%; justify-content:center;">Apply Lead-Lag Cascade</button>
+            <div id="leadlag-out" style="display:none; margin-top:var(--space-2); padding:8px 10px; background:var(--bg-tertiary); border-radius:var(--radius-sm); font-size:11px; color:var(--text-secondary); word-break:break-all; line-height:1.6;"></div>
+          </div>
         </section>
 
         <section class="section-panel">
@@ -874,6 +939,17 @@
           <div class="input-group">
             <label>Input Amplitude</label>
             <input type="number" id="sim-amplitude" step="0.1" value="1">
+          </div>
+          <!-- F + G: Step response overlays -->
+          <div style="border-top:1px solid var(--border-primary); padding-top:var(--space-3); margin-bottom:var(--space-2);">
+            <label style="display:flex;align-items:center;gap:8px; margin-bottom:6px; font-size:12px;">
+              <input type="checkbox" id="chk-spec-overlay" style="margin:0;">
+              Step Spec Overlay <span style="font-size:10px; color:var(--text-muted);">(±2% band · OS limit · t_rise)</span>
+            </label>
+            <label style="display:flex;align-items:center;gap:8px; font-size:12px;">
+              <input type="checkbox" id="chk-dkick-compare" style="margin:0;">
+              D-Kick Comparison <span style="font-size:10px; color:var(--text-muted);">(1-DOF vs 2-DOF step)</span>
+            </label>
           </div>
           <div class="input-group">
             <label>Signal Frequency (Hz)</label>
@@ -1801,6 +1877,6 @@
     </div>
   </div>
 
-  <script type="module" src="js/app.js?v=pux5"></script>
+  <script type="module" src="js/app.js?v=pid-p2"></script>
 </body>
 </html>

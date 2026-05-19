@@ -10,6 +10,8 @@ import { matCreate, matMul, matIdentity, matInverse } from '../math/matrix.js?v=
 import { controllabilityMatrix } from './state-space.js?v=p5';
 import { c2dZOH } from './c2d.js?v=p5';
 import { DiscreteTransferFunction } from './discrete-transfer-function.js';
+import { Complex } from '../math/complex.js';
+import { PIDController } from './pid.js';
 
 /**
  * Map (%OS, Ts) specifications to a 2nd-order dominant pole pair.
@@ -91,6 +93,94 @@ export function designLeadForPM(plant, { targetPM, safetyMargin = 5 } = {}) {
     newCrossover: newMargins.gainCrossover,
     leadTf,
     params,
+  };
+}
+
+/**
+ * Auto-tune PID to meet a frequency-domain specification:
+ *   target phase margin PM_target at target crossover frequency ωc.
+ *
+ * Algorithm (loop-shaping):
+ *   1. Evaluate G(jωc) → magnitude |G|, phase φ_G
+ *   2. Required controller phase: φ_C = PM_target − 180° − φ_G
+ *   3. Solve for (Kp, Ki, Kd) from the two constraints:
+ *        |C(jωc)| · |G(jωc)| = 1   (gain crossover at ωc)
+ *        ∠C(jωc) = φ_C             (phase matches target PM)
+ *      with one free parameter fixed by tiTdRatio = Ti/Td (default 4).
+ *
+ * For P:   Kp = 1/|G|   (note: only works if plant phase = PM − 180°)
+ * For PI:  Kp = cos(φ_C)/|G|,  Ki = −Kp·ωc·tan(φ_C)
+ * For PID: solve quadratic for x = ωc·Td with Ti = tiTdRatio·Td:
+ *   tiTdRatio·x² − tiTdRatio·tan(φ_C)·x − 1 = 0
+ *   x = [tan(φ_C) + √(tan²(φ_C) + 4/tiTdRatio)] / 2
+ *   Kp = |cos(φ_C)|/|G|,  Ki = Kp/Ti,  Kd = Kp·Td
+ *
+ * @param {TransferFunction} plant
+ * @param {{ targetPM, targetWc, type?, tiTdRatio? }} options
+ * @returns {{ Kp, Ki, Kd, Ti?, Td?, controller, achievedPM, achievedWc, achievedGM }}
+ */
+export function autoTunePIDToSpec(plant, { targetPM, targetWc, type = 'PID', tiTdRatio = 4 } = {}) {
+  if (!plant) throw new Error('plant required');
+  if (!Number.isFinite(targetPM) || targetPM <= 0 || targetPM >= 180) {
+    throw new Error('targetPM must be between 0° and 180°');
+  }
+  if (!Number.isFinite(targetWc) || targetWc <= 0) {
+    throw new Error('targetWc must be a positive number (rad/s)');
+  }
+
+  // Step 1: evaluate plant at target crossover frequency
+  const Gjw = plant.evalAt(new Complex(0, targetWc));
+  const magG = Gjw.magnitude;
+  const phiG = Gjw.angleDeg; // degrees
+  if (magG < 1e-15) throw new Error('Plant magnitude at ωc is near zero; choose a different ωc');
+
+  // Step 2: required controller phase
+  const phiC_deg = targetPM - 180 - phiG;
+  const phiC_rad = phiC_deg * Math.PI / 180;
+  const t = type.toUpperCase();
+
+  let Kp, Ki = 0, Kd = 0, Ti, Td;
+
+  if (t === 'P') {
+    // C = Kp (real), no phase contribution
+    Kp = 1 / magG;
+  } else if (t === 'PI') {
+    // C(jωc) = Kp − j·Ki/ωc;  phase ∈ (−90°, 0°]
+    if (phiC_deg < -89 || phiC_deg > 1) {
+      throw new Error(
+        `PI cannot provide φ_C=${phiC_deg.toFixed(1)}° at this ωc. ` +
+        'Try a lower target PM or use PID.',
+      );
+    }
+    Kp = Math.cos(phiC_rad) / magG;
+    Ki = -Kp * targetWc * Math.tan(phiC_rad); // positive when phiC < 0
+    if (Ki < 0) throw new Error('Computed Ki < 0; plant phase may already exceed target PM');
+  } else {
+    // PID — fix Ti = tiTdRatio·Td, solve quadratic for x = ωc·Td
+    const tanPhi = Math.tan(phiC_rad);
+    const disc = tanPhi * tanPhi + 4 / tiTdRatio;
+    if (disc < 0) throw new Error('No real solution for PID parameters at this PM/ωc combination');
+    const x = (tanPhi + Math.sqrt(disc)) / 2;
+    if (x <= 0) throw new Error('PID auto-tune: no positive Td solution; try increasing target PM');
+    Td = x / targetWc;
+    Ti = tiTdRatio * Td;
+    Kp = Math.abs(Math.cos(phiC_rad)) / magG;
+    Ki = Kp / Ti;
+    Kd = Kp * Td;
+    if (Kp <= 1e-15 || Ki <= 1e-15) throw new Error('Computed PID gains are degenerate; check target PM');
+  }
+
+  const controller = new PIDController(Kp, Ki, Kd);
+  // Verification: compute achieved margins
+  const loopTF = controller.toTransferFunction().series(plant);
+  const margins = stabilityMargins(loopTF);
+  return {
+    Kp, Ki, Kd, Ti, Td,
+    controller,
+    phiC_deg,
+    achievedPM: margins.phaseMargin,
+    achievedWc: margins.gainCrossover,
+    achievedGM: margins.gainMarginDB,
   };
 }
 
