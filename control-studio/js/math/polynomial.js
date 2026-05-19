@@ -61,7 +61,12 @@ function rootParts(root) {
   return { re: Number(root), im: 0 };
 }
 
-/** Convert roots to real polynomial coefficients */
+/**
+ * Convert roots to real polynomial coefficients.
+ * Complex roots must form conjugate pairs. Pair matching uses a best-match
+ * strategy with relative tolerance to handle numerical drift from root finders
+ * (Durand-Kerner can drift ~1e-5 for ill-conditioned / repeated roots).
+ */
 export function rootsToRealPoly(roots) {
   if (!roots.length) return [1];
   let poly = [1];
@@ -70,27 +75,37 @@ export function rootsToRealPoly(roots) {
     if (used[i]) continue;
     const { re, im } = rootParts(roots[i]);
     if (Math.abs(im) < 1e-12) {
+      // Real root
       poly = polymul(poly, [1, -re]);
+      used[i] = true;
     } else {
-      // Find conjugate pair
-      let foundConjugate = false;
+      // Complex root: find best conjugate match among remaining roots.
+      // Tolerance is relative to root magnitude so large-magnitude roots
+      // (e.g. from high-gain systems) are handled correctly.
+      const mag = Math.hypot(re, im);
+      const tol = Math.max(1e-6, 1e-4 * mag);
+      let bestJ = -1, bestDist = Infinity;
       for (let j = i + 1; j < roots.length; j++) {
         if (used[j]) continue;
         const { re: rej, im: imj } = rootParts(roots[j]);
-        if (Math.abs(re - rej) < 1e-10 && Math.abs(im + imj) < 1e-10) {
-          used[j] = true;
-          foundConjugate = true;
-          break;
-        }
+        if (Math.abs(imj) < 1e-12) continue; // skip real roots
+        // Distance to ideal conjugate (re, -im)
+        const dist = Math.hypot(re - rej, im + imj);
+        if (dist < bestDist) { bestDist = dist; bestJ = j; }
       }
-      if (!foundConjugate) {
-        throw new Error('Complex roots must appear in conjugate pairs to form a real polynomial');
+      if (bestJ === -1 || bestDist > tol) {
+        throw new Error(
+          `Complex root (${re.toExponential(3)}+${im.toExponential(3)}j) ` +
+          `has no conjugate pair within tolerance ${tol.toExponential(2)} ` +
+          `(closest distance: ${bestDist.toExponential(2)})`
+        );
       }
+      used[bestJ] = true;
+      used[i] = true;
       poly = polymul(poly, [1, -2 * re, re * re + im * im]);
     }
-    used[i] = true;
   }
-  return poly;
+  return trimPoly(poly);
 }
 
 export function zpkToTF(zeros, poles, gain) {

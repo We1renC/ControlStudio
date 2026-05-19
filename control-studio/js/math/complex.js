@@ -24,8 +24,12 @@ export class Complex {
   }
 
   // --- Basic properties ---
+  /**
+   * Euclidean magnitude using Math.hypot to avoid overflow/underflow.
+   * Math.sqrt(re²+im²) overflows when |re/im| > ~1e154, underflows < ~1e-154.
+   */
   get magnitude() {
-    return Math.sqrt(this.re * this.re + this.im * this.im);
+    return Math.hypot(this.re, this.im);
   }
 
   get magnitudeSquared() {

@@ -249,48 +249,51 @@ function extractSchurEigenvalues(T, n) {
 
 // ---------------------------------------------------------------------------
 // Swap adjacent 1×1 or 2×2 diagonal blocks in quasi-triangular T, updating Q.
-// Block at position `pos` of size `s1` swapped with block at `pos+s1` of size `s2`.
-// Uses the method of Bai & Demmel (1993) via a Sylvester equation for 1×1 swaps.
-// For simplicity here: 1×1 ↔ 1×1 only (sufficient for real eigenvalue sorting).
-// Complex pairs are moved as a unit.
 // ---------------------------------------------------------------------------
+/**
+ * Swap 1×1 Schur blocks at positions pos and pos+1 using a Givens rotation.
+ *
+ * Given upper-triangular 2×2 block [[a,b],[0,d]] we build G = [[cos,−sin],[sin,cos]]
+ * whose first column is the normalised eigenvector [b, d−a]ᵀ/r of eigenvalue d.
+ * Then G' * [[a,b],[0,d]] * G = [[d,b'],[0,a]]  (eigenvalues swapped).
+ *
+ * Key convention:
+ *   Left  (G' applied to rows): row₀ = cos·row₀ + sin·row₁
+ *   Right (G  applied to cols): col₀ = cos·col₀ + sin·col₁   ← note +sin on right
+ *   Q accumulation (Q←Q·G):   same as right convention
+ *
+ * The original code had the wrong formula for cos/sin AND applied G' (not G)
+ * to the right — both bugs are fixed here.
+ */
 function swap1x1Blocks(T, Q, n, pos) {
-  // Swap scalar eigenvalues at (pos, pos) and (pos+1, pos+1)
   const a = T[pos * n + pos];
   const b = T[pos * n + (pos + 1)];
-  const c = T[(pos + 1) * n + pos]; // should be 0 in Schur form, but just in case
   const d = T[(pos + 1) * n + (pos + 1)];
+  const diff = d - a;                           // d − a
+  const r = Math.sqrt(b * b + diff * diff);     // r = √(b²+(d−a)²)
+  if (r < 1e-14) return;                        // equal eigenvalues — nothing to do
+  const cos = b / r;                            // normalised eigenvector component
+  const sin = diff / r;
 
-  // Build Givens rotation to swap. Standard approach:
-  // We need orthogonal G s.t. G' [[a,b],[0,d]] G has swapped diagonal.
-  // For 1×1 blocks (c=0), use: G = [[cos, -sin],[sin, cos]]
-  // s.t. G'[[a,b],[0,d]]G is quasi-triangular with d first.
-  const diff = d - a;
-  const norm2 = Math.sqrt(diff * diff + 4 * b * b);
-  if (norm2 < 1e-14) return; // already equal eigenvalues, no swap needed
-  const cos = diff / norm2;
-  const sin = 2 * b / norm2;
-
-  // Apply Givens from left: T[[pos,pos+1], :] = G' T[[pos,pos+1], :]
+  // Left: G' applied to rows → T = G' T
   for (let j = 0; j < n; j++) {
     const t0 = T[pos * n + j], t1 = T[(pos + 1) * n + j];
-    T[pos * n + j] = cos * t0 + sin * t1;
+    T[pos * n + j]       =  cos * t0 + sin * t1;
     T[(pos + 1) * n + j] = -sin * t0 + cos * t1;
   }
-  // Apply Givens from right: T[:, [pos,pos+1]] *= G
+  // Right: G applied to cols → T = T G  (note +sin, not −sin)
   for (let i = 0; i < n; i++) {
     const t0 = T[i * n + pos], t1 = T[i * n + (pos + 1)];
-    T[i * n + pos] = cos * t0 - sin * t1;
-    T[i * n + (pos + 1)] = sin * t0 + cos * t1;
+    T[i * n + pos]       =  cos * t0 + sin * t1;
+    T[i * n + (pos + 1)] = -sin * t0 + cos * t1;
   }
-  // Accumulate into Q
+  // Q ← Q G  (same sign convention as right application above)
   for (let i = 0; i < n; i++) {
     const q0 = Q[i * n + pos], q1 = Q[i * n + (pos + 1)];
-    Q[i * n + pos] = cos * q0 - sin * q1;
-    Q[i * n + (pos + 1)] = sin * q0 + cos * q1;
+    Q[i * n + pos]       =  cos * q0 + sin * q1;
+    Q[i * n + (pos + 1)] = -sin * q0 + cos * q1;
   }
-  // Zero out the sub-diagonal element
-  T[(pos + 1) * n + pos] = 0;
+  T[(pos + 1) * n + pos] = 0; // zero sub-diagonal numerical noise
 }
 
 // ---------------------------------------------------------------------------
@@ -329,15 +332,12 @@ function reorderSchurStable(T, Q, n) {
         if (s1 === 1 && s2 === 1) {
           swap1x1Blocks(T, Q, n, i);
           swapped = true;
-        } else if (s1 === 1 && s2 === 2) {
-          // Move 2×2 stable block before 1×1 unstable: swap in two 1×1 steps
-          // Step 1: swap (i, i+1) — works only if the 2×2 block sub-diag is real
-          // For robustness, skip and leave as-is (the extraction will still work
-          // by scanning for n stable eigenvalues regardless of position).
-        } else if (s1 === 2 && s2 === 1) {
-          // Similar — skip complex pair reordering for now
         }
-        i += s1; // don't advance past both, retry at i
+        // Note: 1×1 ↔ 2×2 and 2×2 ↔ 2×2 block swaps require a full
+        // Sylvester-equation + QR orthogonalization (LAPACK dtrexc-level).
+        // Skipped here — the hamiltonianStableSubspace caller uses matrix sign
+        // and does not rely on this ordering.
+        i += s1;
       } else {
         i += s1;
       }
@@ -367,8 +367,9 @@ export function realSchur(A_nested) {
 
   const { H, Q } = hessenbergReduction(A_flat, n);
   francisQR(H, Q, n);
-  const eigenvalues = extractSchurEigenvalues(H, n);
+  // Reorder BEFORE extracting eigenvalues so the returned array reflects ordering.
   reorderSchurStable(H, Q, n);
+  const eigenvalues = extractSchurEigenvalues(H, n);
 
   // Convert back to nested arrays
   const T = Array.from({ length: n }, (_, i) => Array.from({ length: n }, (_, j) => H[i * n + j]));
@@ -508,13 +509,9 @@ export function hamiltonianStableSubspace(H_nested, n, options = {}) {
   const X = V.slice(0, n);
   const Y = V.slice(n);
 
-  // Count how many Rayleigh quotients of H are stable (sanity check)
+  // Sanity check: count columns of V whose Rayleigh quotient v'Hv < 0
+  // (stable invariant subspace columns should give negative Rayleigh quotients).
   const HV = denseMul(H_nested, V);
-  const VtHV = denseMul(
-    V.map((row) => [...row]).reduce((acc, row, i) => { acc.push(row); return acc; }, []).map((row, i) => V.map((_, j) => V[i][j])),
-    HV,
-  );
-  // Simplified: just count diagonal of V' H V
   const stableCount = Array.from({ length: n }, (_, j) => {
     let rq = 0;
     for (let i = 0; i < N; i++) rq += V[i][j] * HV[i][j];
