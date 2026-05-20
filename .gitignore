@@ -7,5 +7,12 @@ __pycache__/
 .venv/
 outputs/
 
+# Node dependencies and local package-manager logs
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
 # Claude Code internal files (may contain API keys / session data)
 .claude/
