@@ -637,3 +637,189 @@ export function synthesizeHinfRiccati(plant, weights, options = {}) {
     method: 'glover-doyle-riccati',
   };
 }
+
+// ── Loop Shaping H∞ (McFarlane-Glover) ──────────────────────────────────────
+
+/**
+ * Loop Shaping H∞ synthesis via normalized coprime factor robust stabilization.
+ * (McFarlane & Glover, 1992)
+ *
+ * Procedure:
+ *   1. Form shaped plant Gs = W2 · G · W1  (default W1=W2=1)
+ *   2. Solve two CAREs for the normalized LCF of Gs:
+ *        X∞ CARE: As'X + XAs + Qs_x − X·Rs_x·X = 0
+ *        Y∞ CARE: As·Y + Y·As' + Qs_y − Y·Rs_y·Y = 0
+ *   3. Compute ε_max = 1/√(1+ρ(X∞Y∞))  and  γ_opt = 1/ε_max
+ *   4. Build the central H∞ controller for γ = γ_opt·(1+margin):
+ *        Z  = γ²·(γ²I − Y∞·X∞)⁻¹
+ *        F  = −B_s'·X∞      (state feedback)
+ *        H  = −Y∞·C_s'      (observer gain)
+ *        Ak = As + B_s·F + γ²·Z·(−H)·Cs  =  As + BsF − γ²ZHCs
+ *        Bk = γ²·Z·(−H)      =  −γ²ZH
+ *        Ck = −B_s'·X∞       =  F
+ *        Dk = 0
+ *
+ * @param {TransferFunction} G     - Plant (continuous-time, SISO or MIMO TF)
+ * @param {TransferFunction|null} W1 - Pre-compensator (input shaping); null = 1
+ * @param {TransferFunction|null} W2 - Post-compensator (output shaping); null = 1
+ * @param {object} [options]
+ * @param {number} [options.margin=0.05]  - γ margin above γ_opt (e.g. 0.05 = 5%)
+ * @param {number} [options.gammaMax=100] - Upper bound for γ_opt sanity check
+ * @returns {{
+ *   epsilon:       number,      // maximum stability margin ε_max
+ *   gamma:         number,      // optimal γ* = 1/ε_max
+ *   gammaUsed:     number,      // γ used to build the controller (γ_opt*(1+margin))
+ *   controllerSS:  {A,B,C,D},  // controller state-space (same order as shaped plant)
+ *   shapedPlantSS: {A,B,C,D},  // shaped plant state-space
+ *   X:             number[][],  // X∞ CARE solution
+ *   Y:             number[][],  // Y∞ CARE solution
+ *   rhoXY:         number,      // spectral radius ρ(X∞·Y∞)
+ *   method:        string,
+ * }}
+ */
+export function loopShapingHinf(G, W1 = null, W2 = null, options = {}) {
+  const margin   = options.margin   ?? 0.05;
+  const gammaMax = options.gammaMax ?? 100;
+
+  // ── 1. Form shaped plant ────────────────────────────────────────────────
+  let Gs = G;
+  if (W1) Gs = Gs.series(W1);   // G·W1 (input shaping applied first)
+  if (W2) Gs = W2.series(Gs);   // W2·(G·W1)
+
+  // ── 2. Convert to state-space ───────────────────────────────────────────
+  const ss = tfToSS(Gs);
+  if (!ss) throw new Error('loopShapingHinf: shaped plant has no dynamics (static gain)');
+
+  const { A: As, B: Bs, C: Cs, D: Ds } = ss;
+  const n = As.length;
+  const m = Bs[0].length;
+  const p = Cs.length;
+
+  const At = matTranspose(As);
+  const Bt = matTranspose(Bs);
+  const Ct = matTranspose(Cs);
+  const Dt = matTranspose(Ds);
+
+  // ── 3. Handle general D term ─────────────────────────────────────────────
+  // Ru = I_m + D'D  (m×m),  Ry_mat = I_p + D·D'  (p×p)
+  const Im = matIdentity(m);
+  const Ip = matIdentity(p);
+  const In = matIdentity(n);
+
+  const DtD = matMul(Dt, Ds);
+  const DDt = matMul(Ds, Dt);
+  const Ru  = matAdd(Im, DtD);    // m×m
+  const Ry  = matAdd(Ip, DDt);    // p×p
+
+  let RuInv, RyInv;
+  try { RuInv = matInverse(Ru); } catch (_) {
+    throw new Error('loopShapingHinf: Ru = I+D\'D is singular');
+  }
+  try { RyInv = matInverse(Ry); } catch (_) {
+    throw new Error('loopShapingHinf: Ry = I+DD\' is singular');
+  }
+
+  // Pre-compensated A matrices for the two CAREs
+  // A_x = As - Bs·Ru⁻¹·Ds'·Cs   (n×n)
+  const Ax = matSub(As, matMul(matMul(Bs, RuInv), matMul(Dt, Cs)));
+  // A_y = (As - Bs·Ds'·Ry⁻¹·Cs)  (n×n)
+  const Ay = matSub(As, matMul(matMul(Bs, matMul(Dt, RyInv)), Cs));
+
+  // Q and R terms
+  // X CARE: Ax'X + XAx + Qx - X·Rx·X = 0
+  //   Qx = Cs'·Ry⁻¹·Cs   (n×n, PSD)
+  //   Rx = Bs·Ru⁻¹·Bs'   (n×n, PD)
+  const Qx = matMul(matMul(Ct, RyInv), Cs);
+  const Rx = matMul(matMul(Bs, RuInv), Bt);
+
+  // Y CARE: Ay·Y + Y·Ay' + Qy - Y·Ry_y·Y = 0  →  call with transposed A
+  //   Qy = Bs·Ru⁻¹·Bs'   (n×n)
+  //   Ry_y = Cs'·Ry⁻¹·Cs  (n×n)
+  const Qy = matMul(matMul(Bs, RuInv), Bt);
+  const Ry_y = matMul(matMul(Ct, RyInv), Cs);
+
+  // ── 4. Solve CAREs ───────────────────────────────────────────────────────
+  let X, Y, xResidual, yResidual;
+  try {
+    const xResult = solveGeneralizedCARE(Ax, Qx, Rx, { tol: 1e-10 });
+    X = xResult.P; xResidual = xResult.residualNorm;
+  } catch (e) {
+    throw new Error(`loopShapingHinf: X∞ CARE failed — ${e.message}`);
+  }
+  try {
+    const yResult = solveGeneralizedCARE(matTranspose(Ay), Qy, Ry_y, { tol: 1e-10 });
+    Y = yResult.P; yResidual = yResult.residualNorm;
+  } catch (e) {
+    throw new Error(`loopShapingHinf: Y∞ CARE failed — ${e.message}`);
+  }
+
+  // ── 5. Stability margin & optimal γ ─────────────────────────────────────
+  const XY = matMul(X, Y);
+  const rhoXY = spectralRadius(XY);
+
+  if (!Number.isFinite(rhoXY) || rhoXY < 0) {
+    throw new Error(`loopShapingHinf: ρ(XY) = ${rhoXY} — ill-conditioned problem`);
+  }
+
+  const epsilon = 1 / Math.sqrt(1 + rhoXY);
+  const gamma_opt = Math.sqrt(1 + rhoXY);
+
+  if (gamma_opt > gammaMax) {
+    throw new Error(
+      `loopShapingHinf: γ_opt=${gamma_opt.toFixed(2)} exceeds gammaMax=${gammaMax}. ` +
+      `The shaped plant may be unstable or have poor stability margin. ` +
+      `Try different shaping weights.`
+    );
+  }
+
+  // ── 6. Build central controller at γ = γ_opt*(1+margin) ─────────────────
+  const gammaUsed = gamma_opt * (1 + margin);
+  const g2 = gammaUsed * gammaUsed;
+
+  // Z = γ²·(γ²·I − Y·X)⁻¹  (n×n)
+  const g2I_minus_YX = matSub(matScale(In, g2), matMul(Y, X));
+  let g2I_minus_YX_inv;
+  try { g2I_minus_YX_inv = matInverse(g2I_minus_YX); }
+  catch (_) { throw new Error('loopShapingHinf: (γ²I−YX) is singular — γ too close to γ_opt'); }
+  const Z = matScale(g2I_minus_YX_inv, g2);  // n×n
+
+  // State feedback and observer gains
+  // F = −Ru⁻¹·(Ds'·Cs + Bs'·X)   (m×n)
+  const F = matScale(matAdd(matMul(Dt, Cs), matMul(Bt, X)), -1);
+  const Fm = matMul(RuInv, F);   // Ru⁻¹·F:  m×n
+
+  // H = −(Y·Cs' + Bs·Ds')·Ry⁻¹   (n×p)
+  const YCt_plus_BsDt = matAdd(matMul(Y, Ct), matMul(Bs, Dt));
+  const H = matScale(matMul(YCt_plus_BsDt, RyInv), -1);  // n×p
+
+  // Controller state-space:
+  // Ak = As + Bs·Fm + γ²·Z·(−H)·Cs
+  //    = As + Bs·Fm − γ²·Z·H·Cs
+  const BsFm = matMul(Bs, Fm);                    // n×n
+  const ZH   = matMul(Z, H);                      // n×p
+  const ZHCs = matMul(ZH, Cs);                    // n×n
+  const Ak   = matSub(matAdd(As, BsFm), matScale(ZHCs, g2));  // n×n
+
+  // Bk = γ²·Z·(−H) = −γ²·Z·H   (n×p)
+  const Bk = matScale(ZH, -g2);   // n×p
+
+  // Ck = Fm  (m×n)
+  const Ck = Fm;
+
+  // Dk = 0  (m×p)
+  const Dk = matCreate(m, p, 0);
+
+  return {
+    epsilon,
+    gamma: gamma_opt,
+    gammaUsed,
+    rhoXY,
+    xResidual,
+    yResidual,
+    X,
+    Y,
+    controllerSS: { A: Ak, B: Bk, C: Ck, D: Dk },
+    shapedPlantSS: ss,
+    method: 'mcfarlane-glover',
+  };
+}
