@@ -91,6 +91,7 @@ run_script "P27 MIMO H∞"                  "node scripts/verify_p27_mimo_hinf.m
 run_script "P27 Loop Shaping H∞"          "node scripts/verify_p27_loop_shaping.mjs"
 run_script "P29 QP solver"                "node scripts/verify_p29_qp.mjs"
 run_script "P29 LP solver"                "node scripts/verify_p29_lp.mjs"
+run_script "P29 SDP/LMI solver"           "node scripts/verify_p29_sdp.mjs"
 echo ""
 
 # ── General Math & PID ───────────────────────────────────────────────────────

@@ -378,3 +378,217 @@ export function solveLP(c, opts = {}) {
     method: 'lp-regularized-ip',
   };
 }
+
+// ---------------------------------------------------------------------------
+// Symmetric eigendecomposition (Jacobi, with eigenvectors) — for PSD cone
+// ---------------------------------------------------------------------------
+
+/**
+ * Cyclic Jacobi eigendecomposition of a symmetric matrix.
+ * @returns {{ values:number[], vectors:number[][] }} where A = V·diag(values)·Vᵀ
+ *          and vectors[:,k] is the k-th eigenvector (columns of V).
+ */
+export function symmetricEig(A, tol = 1e-12, maxSweeps = 100) {
+  const n = A.length;
+  const M = A.map(row => [...row]);
+  // symmetrize
+  for (let i = 0; i < n; i++) for (let j = i + 1; j < n; j++) {
+    const avg = 0.5 * (M[i][j] + M[j][i]); M[i][j] = avg; M[j][i] = avg;
+  }
+  const V = Array.from({ length: n }, (_, i) =>
+    Array.from({ length: n }, (_, j) => (i === j ? 1 : 0)));
+
+  for (let sweep = 0; sweep < maxSweeps; sweep++) {
+    // off-diagonal norm
+    let off = 0;
+    for (let i = 0; i < n; i++) for (let j = i + 1; j < n; j++) off += M[i][j] * M[i][j];
+    if (Math.sqrt(off) < tol) break;
+
+    for (let p = 0; p < n; p++) {
+      for (let q = p + 1; q < n; q++) {
+        if (Math.abs(M[p][q]) < 1e-300) continue;
+        const theta = 0.5 * Math.atan2(2 * M[p][q], M[q][q] - M[p][p]);
+        const c = Math.cos(theta), s = Math.sin(theta);
+        const app = c*c*M[p][p] - 2*s*c*M[p][q] + s*s*M[q][q];
+        const aqq = s*s*M[p][p] + 2*s*c*M[p][q] + c*c*M[q][q];
+        M[p][p] = app; M[q][q] = aqq; M[p][q] = 0; M[q][p] = 0;
+        for (let k = 0; k < n; k++) {
+          if (k === p || k === q) continue;
+          const mkp = M[k][p], mkq = M[k][q];
+          M[k][p] = c*mkp - s*mkq; M[p][k] = M[k][p];
+          M[k][q] = s*mkp + c*mkq; M[q][k] = M[k][q];
+        }
+        for (let k = 0; k < n; k++) {
+          const vkp = V[k][p], vkq = V[k][q];
+          V[k][p] = c*vkp - s*vkq;
+          V[k][q] = s*vkp + c*vkq;
+        }
+      }
+    }
+  }
+  const values = M.map((row, i) => row[i]);
+  return { values, vectors: V };
+}
+
+/** Project a symmetric matrix onto the PSD cone: clamp negative eigenvalues to 0. */
+function projectPSD(A) {
+  const { values, vectors } = symmetricEig(A);
+  const n = A.length;
+  const out = Array.from({ length: n }, () => new Array(n).fill(0));
+  for (let k = 0; k < n; k++) {
+    const lam = Math.max(values[k], 0);
+    if (lam === 0) continue;
+    for (let i = 0; i < n; i++) {
+      const vik = vectors[i][k];
+      if (vik === 0) continue;
+      for (let j = 0; j < n; j++) out[i][j] += lam * vik * vectors[j][k];
+    }
+  }
+  return out;
+}
+
+/** Frobenius inner product ⟨A,B⟩ = Σ A_ij B_ij for symmetric matrices. */
+function symInner(A, B) {
+  let s = 0;
+  for (let i = 0; i < A.length; i++) for (let j = 0; j < A.length; j++) s += A[i][j] * B[i][j];
+  return s;
+}
+
+/** Minimum eigenvalue of a symmetric matrix. */
+function minEig(A) { return Math.min(...symmetricEig(A).values); }
+
+// ---------------------------------------------------------------------------
+// Semidefinite Program / LMI via ADMM (P29-03)
+// ---------------------------------------------------------------------------
+
+/**
+ * Solve a standard-form SDP / LMI:
+ *
+ *   minimize    cᵀ x
+ *   subject to  F(x) = F0 + Σ x_i F_i  ⪰  0      (linear matrix inequality)
+ *
+ * Method: ADMM splitting with F(x) − S = 0, S ⪰ 0.
+ *   • x-update: least-squares solve using the Gram matrix ⟨F_i, F_j⟩
+ *   • S-update: projection onto the PSD cone (eigenvalue clamp)
+ *   • Y-update: scaled dual ascent
+ *
+ * Suitable for small/medium control LMIs: Lyapunov feasibility, eigenvalue
+ * minimization (min λ_max), LPV vertex synthesis, etc.
+ *
+ * @param {number[][]}   F0    - Constant symmetric term (m×m)
+ * @param {number[][][]} Flist - Basis matrices [F_1,…,F_n] (each m×m symmetric)
+ * @param {number[]|null}[c]   - Linear objective (length n); null/zeros → feasibility
+ * @param {object} [opts]
+ * @param {number} [opts.rho=1]      - ADMM penalty parameter
+ * @param {number} [opts.maxIter=800]
+ * @param {number} [opts.tol=1e-7]   - Primal/dual residual tolerance
+ * @param {number} [opts.reg=1e-9]   - Gram-matrix regularization
+ * @returns {{
+ *   x:number[], F:number[][], eigmin:number, objective:number,
+ *   feasible:boolean, iterations:number, converged:boolean, method:string
+ * }}
+ */
+export function solveSDP(F0, Flist, c = null, opts = {}) {
+  const nx = Flist.length;
+  const m  = F0.length;
+  const rho = opts.rho ?? 1;
+  const maxIter = opts.maxIter ?? 800;
+  const tol = opts.tol ?? 1e-7;
+  const reg = opts.reg ?? 1e-9;
+  const cv = c ?? new Array(nx).fill(0);
+
+  // No free variables → the LMI is a fixed constant matrix; just test it.
+  if (nx === 0) {
+    const F = F0.map(row => [...row]);
+    const eigmin = minEig(F);
+    return { x: [], F, eigmin, objective: 0, feasible: eigmin > -1e-5,
+             iterations: 0, converged: true, method: 'sdp-admm' };
+  }
+
+  // Precompute Gram matrix G_ij = ⟨F_i, F_j⟩  (nx×nx, SPD if F_i independent)
+  const Gram = Array.from({ length: nx }, () => new Array(nx).fill(0));
+  for (let i = 0; i < nx; i++) {
+    for (let j = i; j < nx; j++) {
+      const v = symInner(Flist[i], Flist[j]);
+      Gram[i][j] = v + (i === j ? reg : 0);
+      Gram[j][i] = Gram[i][j];
+    }
+  }
+
+  // F(x) builder
+  const Fofx = (x) => {
+    const F = F0.map(row => [...row]);
+    for (let k = 0; k < nx; k++) {
+      const xk = x[k]; if (xk === 0) continue;
+      const Fk = Flist[k];
+      for (let i = 0; i < m; i++) for (let j = 0; j < m; j++) F[i][j] += xk * Fk[i][j];
+    }
+    return F;
+  };
+
+  // Initialize
+  let x = new Array(nx).fill(0);
+  let S = Fofx(x);                       // S = F(0)
+  S = projectPSD(S);
+  let Y = Array.from({ length: m }, () => new Array(m).fill(0));  // scaled dual
+
+  let iterations = 0, converged = false;
+
+  for (let iter = 0; iter < maxIter; iter++) {
+    iterations = iter + 1;
+
+    // x-update: solve Gram·x = rhs, rhs_k = −c_k/ρ − ⟨F_k, F0 − S + Y⟩
+    const Ydiv = Y;  // already scaled (Y/ρ stored directly)
+    const rhs = new Array(nx).fill(0);
+    for (let k = 0; k < nx; k++) {
+      // ⟨F_k, F0 − S + Y⟩
+      let inner = 0;
+      const Fk = Flist[k];
+      for (let i = 0; i < m; i++) for (let j = 0; j < m; j++)
+        inner += Fk[i][j] * (F0[i][j] - S[i][j] + Ydiv[i][j]);
+      rhs[k] = -cv[k] / rho - inner;
+    }
+    x = matSolve(Gram, rhs);
+
+    // S-update: S = Proj_PSD( F(x) + Y )
+    const Fx = Fofx(x);
+    const Sprev = S;
+    const arg = Fx.map((row, i) => row.map((v, j) => v + Ydiv[i][j]));
+    S = projectPSD(arg);
+
+    // Y-update: Y += F(x) − S
+    let primalRes = 0, dualRes = 0;
+    for (let i = 0; i < m; i++) for (let j = 0; j < m; j++) {
+      const r = Fx[i][j] - S[i][j];
+      Y[i][j] += r;
+      primalRes += r * r;
+      const d = rho * (S[i][j] - Sprev[i][j]);
+      dualRes += d * d;
+    }
+    primalRes = Math.sqrt(primalRes);
+    dualRes = Math.sqrt(dualRes);
+
+    if (primalRes < tol && dualRes < tol) { converged = true; break; }
+  }
+
+  const F = Fofx(x);
+  const eigmin = minEig(F);
+  return {
+    x,
+    F,
+    eigmin,
+    objective: dot(cv, x),
+    feasible: eigmin > -1e-5,
+    iterations,
+    converged,
+    method: 'sdp-admm',
+  };
+}
+
+/**
+ * Convenience: pure LMI feasibility — find x s.t. F0 + Σ x_i F_i ⪰ 0.
+ * @returns same shape as solveSDP (objective is 0).
+ */
+export function solveLMIFeasibility(F0, Flist, opts = {}) {
+  return solveSDP(F0, Flist, null, opts);
+}
