@@ -1,218 +1,148 @@
-# Control Studio — Development Roadmap
+# ControlStudio Development Roadmap
 
-> 最後更新：2026-05-20  
-> 基準狀態：Phase 9–21 完成，25 支驗證腳本，全數 0 FAIL，核心代碼 ~11,200 行
+> Last updated: 2026-05-20
+> Current committed baseline: `1259565 feat(p27-p28): loop shaping H∞ + TypeScript type definitions`
+> Scope: this is the canonical execution roadmap for ControlStudio implementation status.
+> Do not use this file for product vision, proof derivations, or handoff notes; see the document workflow below.
 
----
+## Document Workflow
 
-## 進度總覽
+| Document | Role | Update when |
+| --- | --- | --- |
+| `control-studio/ROADMAP.md` | Canonical execution board: phase status, next actions, verification commands | Any phase item changes status, or a new implementation phase starts |
+| `CONTROL_SYSTEM_PLAN.md` | Product / architecture plan and high-level capability inventory | A user-visible capability, architecture direction, or major risk changes |
+| `CONTROL_SYSTEM_BACKLOG.md` | Detailed task ledger with IDs, dependencies, and verification evidence | A backlog item moves between Planned / In Progress / Done / Paused |
+| `CONTROL_SYSTEM_SKILLS_PLAN.md` | Agent skill decomposition and workflow boundaries | A skill is added, retired, or changes scope |
+| `CONTROL_SYSTEM_VERIFICATION_CASES.md` | Mathematical proof and golden verification cases | A benchmark or expected numeric result changes |
+| `CONTROL_SYSTEM_SCENARIOS.md` | Realistic engineering walkthroughs and UI findings | Browser workflow, scenario issue, or field-use note changes |
+| `AGENT_CONTINUATION.md` | Current handoff / operational snapshot | Before switching agents or after a meaningful checkpoint |
 
-| Phase | 主題 | 狀態 | 驗證腳本 |
-|-------|------|------|----------|
-| P9  | 數學核心（多項式/複數/Schur） | ✅ 完成 | verify_phase9_*.mjs |
-| P10 | CARE / LQR / MPC 基礎 | ✅ 完成 | verify_phase10_*.mjs |
-| P11 | DARE / MIMO / 動態 RGA | ✅ 完成 | verify_phase11_*.mjs |
-| P14 | 時延補償 / IMC / RNG | ✅ 完成 | verify_p14_*.mjs |
-| P15 | ARX 系統辨識 | ✅ 完成 | verify_p15_sysid.mjs |
-| P16 | GA 調參 / H∞ Nelder-Mead | ✅ 完成 | verify_p16_*.mjs |
-| P17 | ARMAX / NSGA-II / EKF-UKF | ✅ 完成 | verify_p17_*.mjs |
-| P18 | 魯棒性驗證（μ-analysis） | ✅ 完成 | verify_p18_robust_validation.mjs |
-| P19 | H∞ Riccati 合成（Glover-Doyle） | ✅ 完成 | verify_p19_hinf_riccati.mjs |
-| P20 | MPC 工程化（移動抑制/Offset-free） | ✅ 完成 | verify_p20_mpc_engineering.mjs |
-| P21 | 進階 SysID（OE/BJ/Subspace/信號設計） | ✅ 完成 | verify_p21_sysid_advanced.mjs |
-| PID | PID/Lead-Lag 自動整定 | ✅ 完成 | verify_pid_design.mjs |
-| **P22** | **工程驗證基礎設施（CI / 回歸）** | ✅ 完成 | run_all_verify.sh, verify.yml |
-| **P23** | **SysID 缺口補強** | 🔶 部分完成 | verify_p23_*.mjs |
-| **P24** | **MPC 進階功能** | 🔲 待開發 | — |
-| **P25** | **模型降階（MOR）** | 🔶 部分完成 | verify_p25_model_reduction.mjs |
-| **P26** | **非線性控制** | 🔶 部分完成 | verify_p26_nonlinear.mjs |
-| **P27** | **H∞ 設計延伸** | 🔲 待開發 | — |
-| **P28** | **基礎設施品質** | 🔲 待開發 | — |
+## Required Development Workflow
 
----
+1. Run `git status --short` and classify dirty files before editing.
+2. Read `control-studio/ROADMAP.md`, `CONTROL_SYSTEM_PLAN.md`, `CONTROL_SYSTEM_BACKLOG.md`, and `AGENT_CONTINUATION.md`.
+3. If a workflow can become reusable agent behavior, check `CONTROL_SYSTEM_SKILLS_PLAN.md` before coding.
+4. Implement the smallest phase slice that can be verified independently.
+5. Add or update a deterministic verification script for every math/control feature.
+6. For UI work, run a browser walkthrough against `http://127.0.0.1:8765`.
+7. Sync affected docs in this order: roadmap → backlog → plan → skills/scenarios/verification cases → continuation.
+8. Commit with both a subject and body, for example:
+   ```bash
+   git commit -m "feat(p24): add economic MPC baseline" \
+     -m "Implement deterministic EMPC optimization and verification fixtures." \
+     -m "Sync roadmap and continuation docs with the new Phase 24 status."
+   ```
+9. Do not commit `node_modules/`, scratch files, `.env*`, keys, local databases, or handoff files.
 
-## P22 — 工程驗證基礎設施
+## Progress Overview
 
-### P22-01 GitHub Actions CI ⬜
-- **目標**：每次 push 自動執行全套 verify 腳本
-- **交付物**：`.github/workflows/verify.yml`
-- **工時**：0.5 天
+| Phase | Theme | Status | Verification |
+| --- | --- | --- | --- |
+| P9 | Math core: polynomial / complex / Schur | Done | `verify_phase9_*.mjs` |
+| P10 | CARE / LQR / MPC baseline | Done | `verify_phase10_*.mjs` |
+| P11 | DARE / MIMO / dynamic RGA | Done | `verify_phase11_*.mjs` |
+| P14 | Delay / IMC / RNG | Done | `verify_p14_*.mjs` |
+| P15 | ARX system identification | Done | `verify_p15_sysid.mjs` |
+| P16 | GA tuning / H∞ Nelder-Mead | Done | `verify_p16_*.mjs` |
+| P17 | ARMAX / NSGA-II / EKF-UKF / advanced robust baseline | Done | `verify_p17_*.mjs` |
+| P18 | Monte Carlo robust validation + UI + skill | Done | `verify_p18_robust_validation.mjs` |
+| P19 | H∞ Riccati synthesis baseline | Done | `verify_p19_hinf_riccati.mjs` |
+| P20 | MPC engineering: offset-free, move suppression, feasibility | Done | `verify_p20_mpc_engineering.mjs` |
+| P21 | Advanced SysID: OE / BJ / subspace / experiment signals | Done | `verify_p21_sysid_advanced.mjs` |
+| P22 | Verification infrastructure / cross-tool regression / CI | Done | `run_all_verify.sh`, `compare_python_control.py`, `.github/workflows/ci.yml` |
+| P23 | SysID gap closure: FRF, model order, MISO ARX | Mostly Done | `verify_p23_*.mjs` |
+| P24 | Advanced MPC: NMPC committed; EMPC dirty / in progress | In Progress | `verify_p24_nmpc.mjs`; dirty `verify_p24_empc.mjs` |
+| P25 | Model order reduction: minreal SS + balanced truncation | Mostly Done | `verify_p25_model_reduction.mjs` |
+| P26 | Nonlinear control: gain scheduling + SMC | Mostly Done | `verify_p26_nonlinear.mjs` |
+| P27 | H∞ extensions: MIMO H∞ verify + loop shaping | Mostly Done | `verify_p27_mimo_hinf.mjs`, `verify_p27_loop_shaping.mjs` |
+| P28 | Infrastructure quality: TS definitions + benchmark | Mostly Done | `control-studio/types/control-studio.d.ts`, `benchmark.mjs` |
 
-```yaml
-# 觸發：push / pull_request
-# 步驟：node 22 → for f in scripts/verify_*.mjs; do node "$f"; done
-#        python3 scripts/compare_python_control.py
-```
+## Dirty Worktree Classification
 
-### P22-02 跨工具數值回歸擴充 ⬜
-- **目標**：`compare_python_control.py` 從 4 案例擴充至 ≥ 20 案例
-- **新增案例**：ARX fitPercent、LQR gains、H∞ γ*、CARE residual、Bode PM/GM
-- **工時**：1 天
+Current uncommitted files observed on 2026-05-20:
 
-### P22-03 全套腳本執行器 ⬜
-- **目標**：單一命令跑完所有腳本並輸出摘要報告
-- **交付物**：`scripts/run_all_verify.sh`（含計時、pass/fail 彙總）
-- **工時**：0.3 天
+| Path | Classification | Action |
+| --- | --- | --- |
+| `package.json` | Local dependency change: adds `typescript` devDependency | Review with `package-lock.json`; commit only if TypeScript checks become an official workflow |
+| `package-lock.json` | Generated lockfile | Commit only if npm dependency management is intentionally adopted |
+| `node_modules/` | Generated dependency directory | Never commit |
+| `control-studio/js/control/empc.js` | P24 EMPC candidate implementation | Audit, verify, then either formalize as P24-03 or keep out of roadmap status |
+| `control-studio/scripts/verify_p24_empc.mjs` | P24 EMPC candidate verification | Run and review before marking P24-03 Done |
+| `control-studio/js/control/scratch_feasibility.js` | Scratch file | Do not commit as-is |
+| `control-studio/js/control/scratch_offset_free.js` | Scratch file | Do not commit as-is |
 
----
+## Phase Details
 
-## P23 — SysID 缺口補強
+### P22 — Verification Infrastructure
 
-### P23-01 頻域辨識（FRF Estimation） ⬜
-- **目標**：新增 `js/control/sysid_freq.js`
-- **API**：
-  - `estimateFRF(u, y, Ts, options)` — Welch/Bartlett 跨功率譜估測
-  - `fitTFfromFRF(omega, H, na, nb, options)` — Levy 頻域最小二乘 TF fitting
-- **輸出欄位**：`{ omega, H, coherence, phaseRad, num, den, fitPercent }`
-- **工時**：2 天
+| Item | Status | Evidence |
+| --- | --- | --- |
+| P22-01 CI workflow | Done | `.github/workflows/ci.yml` |
+| P22-02 Cross-tool numeric regression | Done | `control-studio/scripts/compare_python_control.py` |
+| P22-03 Full verification runner | Done | `control-studio/scripts/run_all_verify.sh` |
 
-### P23-02 MISO/MIMO 系統辨識 ⬜
-- **目標**：`identifyARX` 擴充至多輸入
-- **API**：`identifyMISOARX(U_matrix, y, na, nb_vec, nk_vec, Ts)`
-- **說明**：U_matrix 為 N×nu，nb_vec/nk_vec 各為長度 nu 的陣列
-- **工時**：1.5 天
+### P23 — SysID Gap Closure
 
-### P23-03 模型階次自動選擇強化 ⬜
-- **目標**：跨結構（ARX/ARMAX/OE/BJ）+ AICc + cross-validation
-- **API**：`autoModelOrder(u, y, options)` → 排序候選模型列表
-- **新增**：AICc = AIC + 2p(p+1)/(N−p−1)；80/20 train/validation split
-- **工時**：1 天
+| Item | Status | Evidence |
+| --- | --- | --- |
+| P23-01 Frequency-domain identification | Done | `sysid_freq.js`, `verify_p23_freq_sysid.mjs` |
+| P23-02 MISO ARX | Done | `identifyMISOARX`, `verify_p23_miso.mjs` |
+| P23-03 Model order selection | Done | `autoModelOrder`, `verify_p23_model_order.mjs` |
+| P23-04 Continuous-time identification | Planned | No committed CONTSID / SRIVC runner yet |
 
-### P23-04 連續時間辨識（CONTSID） ⬜
-- **目標**：直接辨識 s-domain 模型（避免離散化誤差）
-- **方法**：Prefiltered IV（SRIVC）
-- **API**：`identifyContinuousARX(u, y, na, nb, nk, Ts, options)`
-- **工時**：3 天
+### P24 — Advanced MPC
 
----
+| Item | Status | Evidence |
+| --- | --- | --- |
+| P24-01 NMPC / SQP-lite | Done | `nmpc.js`, `verify_p24_nmpc.mjs` |
+| P24-02 Tube MPC | Planned | No committed tube MPC runner yet |
+| P24-03 Economic MPC | In Progress | Dirty `empc.js`, dirty `verify_p24_empc.mjs`; not yet committed |
+| P24-04 Explicit MPC | Planned | No committed explicit MPC module yet |
 
-## P24 — MPC 進階功能
+### P25 — Model Order Reduction
 
-### P24-01 非線性 MPC（NMPC / SQP-lite） ⬜
-- **目標**：新增 `js/control/nmpc.js`
-- **方法**：逐步線性化（SLQ）—每時步在當前狀態 Jacobian 化，求解線性 MPC QP
-- **API**：`simulateNMPC(f_nonlinear, h_output, Q, R, horizon, x0, options)`
-- **工時**：2.5 天
+| Item | Status | Evidence |
+| --- | --- | --- |
+| P25-01 Balanced truncation | Done | `model_reduction.js`, `verify_p25_model_reduction.mjs` |
+| P25-02 Hankel norm approximation | Planned | No committed Hankel runner yet |
+| P25-03 SS minreal / Kalman decomposition | Done | `minrealSS`, `verify_p25_model_reduction.mjs` |
 
-### P24-02 Tube MPC（魯棒 MPC） ⬜
-- **目標**：nominal MPC + 不變管（invariant tube）確保魯棒可行性
-- **API**：`simulateTubeMPC(Ad, Bd, Q, R, horizon, x0, W_set, options)`
-- **輸出**：`{ x_nominal, u_nominal, tube_radius[], isFeasible }`
-- **工時**：3 天
+### P26 — Nonlinear Control
 
-### P24-03 經濟 MPC（EMPC） ⬜
-- **目標**：支援任意非二次 stageCost（如能耗）
-- **方法**：差分進化（DE）求解開迴路最佳化問題
-- **API**：`simulateEMPC(Ad, Bd, stageCost, horizon, x0, options)`
-- **工時**：2 天
+| Item | Status | Evidence |
+| --- | --- | --- |
+| P26-01 Gain-scheduled PID | Done | `gainScheduledPID`, `verify_p26_nonlinear.mjs` |
+| P26-02 LPV synthesis | Planned | No committed LPV synthesis runner yet |
+| P26-03 Sliding mode control | Done | `designSMC`, `verify_p26_nonlinear.mjs` |
 
-### P24-04 顯式 MPC（Explicit MPC） ⬜
-- **目標**：預計算 Parametric QP → PWA 控制律查表
-- **API**：`buildExplicitMPC(...)` + `evaluateExplicitMPC(mpc, x)`
-- **工時**：4 天
+### P27 — H∞ Design Extensions
 
----
+| Item | Status | Evidence |
+| --- | --- | --- |
+| P27-01 Full D-K iteration | Planned | Current structured μ path remains surrogate / baseline |
+| P27-02 Loop-shaping H∞ | Done | `loopShapingHinf`, `verify_p27_loop_shaping.mjs` |
+| P27-03 MIMO H∞ verification | Done | `verify_p27_mimo_hinf.mjs` |
 
-## P25 — 模型降階（Model Order Reduction）
+### P28 — Infrastructure Quality
 
-### P25-01 平衡截斷（Balanced Truncation） ⬜
-- **目標**：新增 `js/control/model_reduction.js`
-- **方法**：Gramian Cholesky → SVD balancing → 截斷
-- **API**：`balancedTruncation(ss, order, options)` → `{ ss_reduced, hsvd[], error_bound }`
-- **誤差上界**：`2 * Σ σᵢ`（i > order）
-- **工時**：2 天
+| Item | Status | Evidence |
+| --- | --- | --- |
+| P28-01 TypeScript definitions | Done | `control-studio/types/control-studio.d.ts` |
+| P28-02 JSDoc API docs | Planned | No generated `docs/api/` yet |
+| P28-03 Performance benchmark | Done | `control-studio/scripts/benchmark.mjs` |
 
-### P25-02 最優 Hankel Norm 近似 ⬜
-- **方法**：Glover's AAK algorithm
-- **API**：`hankelNormApprox(ss, order, options)`
-- **工時**：3 天
+## Next Action Order
 
-### P25-03 最小實現 SS（Kalman 分解） ⬜
-- **現狀**：TF `minreal()` 已有，SS minreal 空白
-- **API**：`minrealSS(ss, tol)` — 可控性/可觀性矩陣秩 → Kalman 分解
-- **工時**：1.5 天
-
----
-
-## P26 — 非線性控制
-
-### P26-01 增益調度 PID ⬜
-- **目標**：在 scheduling variable 的 breakpoints 間線性插值 PID 參數
-- **API**：`gainScheduledPID(schedulingVar, breakpoints, pidParams[])`
-- **工時**：2 天
-
-### P26-02 LPV 合成（線性參數變化） ⬜
-- **方法**：在參數網格上求解 LMI（SDP 近似）
-- **工時**：5 天
-
-### P26-03 滑模控制（SMC） ⬜
-- **方法**：等效控制 + 切換控制（boundary layer 抗抖振）
-- **API**：`designSMC(A, B, slidingSurface, options)`
-- **工時**：2 天
-
----
-
-## P27 — H∞ 設計延伸
-
-### P27-01 D-K iteration（真 μ-synthesis） ⬜
-- **現狀**：`structuredMuSynthesisSurrogate()` 為代理函式，非真正 DK
-- **方法**：K-step（H∞） + D-step（rational D-fitting）交替
-- **工時**：5 天
-
-### P27-02 Loop Shaping H∞（McFarlane-Glover） ⬜
-- **方法**：coprime factor robust stabilization
-- **API**：`loopShapingHinf(G, W1, W2, options)`
-- **工時**：3 天
-
-### P27-03 MIMO H∞ 深度驗證 ⬜
-- **目標**：2×2 plant 合成測試、MIMO 閉環範數驗證
-- **工時**：1.5 天
-
----
-
-## P28 — 基礎設施品質
-
-### P28-01 TypeScript 型別定義 ⬜
-- **交付物**：`types/control-studio.d.ts`
-- **覆蓋**：全部 export 函式的輸入/輸出型別
-- **工時**：1.5 天
-
-### P28-02 JSDoc + API 文件 ⬜
-- **工具**：jsdoc + better-docs
-- **交付物**：`docs/api/index.html`
-- **工時**：0.5 天
-
-### P28-03 效能基準（Benchmark） ⬜
-- **交付物**：`scripts/benchmark.mjs`
-- **測量對象**：CARE(n=10,20,50)、NSGA-II、H∞ Riccati、BJ(N=1000)
-- **工時**：0.5 天
-
----
-
-## 優先排序
-
-| 優先 | 項目 | 工時 | 狀態 |
-|:----:|------|:----:|:----:|
-| 1 | P22-03 全套腳本執行器 | 0.3天 | ✅ |
-| 2 | P22-01 GitHub Actions CI | 0.5天 | ✅ |
-| 3 | P22-02 跨工具數值回歸擴充 | 1天 | ✅ |
-| 4 | P23-03 模型階次自動選擇強化 | 1天 | ✅ |
-| 5 | P25-03 SS minreal（Kalman 分解） | 1.5天 | ✅ |
-| 6 | P23-01 頻域辨識（FRF） | 2天 | ✅ |
-| 7 | P25-01 平衡截斷 MOR | 2天 | ✅ |
-| 8 | P26-01 增益調度 PID | 2天 | ✅ |
-| 9 | P26-03 滑模控制 | 2天 | ✅ |
-| 10 | P24-01 非線性 MPC (NMPC) | 2.5天 | ⬜ |
-| 11 | P27-02 Loop Shaping H∞ | 3天 | ⬜ |
-| 12 | P28-01 TypeScript 型別定義 | 1.5天 | ⬜ |
-| 13 | P23-02 MISO/MIMO SysID | 1.5天 | ⬜ |
-| 14 | P27-03 MIMO H∞ 驗證 | 1.5天 | ⬜ |
-| 15 | P24-03 經濟 MPC | 2天 | ⬜ |
-| 16 | P25-02 Hankel Norm 近似 | 3天 | ⬜ |
-| 17 | P24-02 Tube MPC | 3天 | ⬜ |
-| 18 | P27-01 D-K iteration | 5天 | ⬜ |
-| 19 | P26-02 LPV synthesis | 5天 | ⬜ |
-| 20 | P24-04 顯式 MPC | 4天 | ⬜ |
-| 21 | P23-04 連續時間辨識 | 3天 | ⬜ |
-| 22 | P28-02 JSDoc | 0.5天 | ⬜ |
-| 23 | P28-03 Benchmark | 0.5天 | ⬜ |
+1. Resolve dirty P24 EMPC work:
+   - audit `empc.js` and `verify_p24_empc.mjs`
+   - run targeted verification
+   - remove or rewrite scratch files before commit
+2. Decide whether npm dependency management is official:
+   - if yes, commit `package.json` + `package-lock.json`
+   - if no, revert package dependency changes and avoid `node_modules/`
+3. Continue P24 in this order:
+   - EMPC formalization
+   - Tube MPC
+   - Explicit MPC
+4. Continue P27 only after P24 status is clean:
+   - full D-K iteration remains the major robust-control gap.

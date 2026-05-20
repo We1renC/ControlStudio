@@ -1,6 +1,6 @@
 # ControlStudio Research Roadmap And Skill Plan
 
-此文件把 ControlStudio 後續可提供給控制系統工程與研究的能力，整理成 Phase 18+ 開發順序與可拆成 agent skill 的規劃。此文件是規劃基線，不代表功能已完成。
+此文件把 ControlStudio 後續可提供給控制系統工程與研究的能力，整理成 Phase 18+ 可拆成 agent skill 的規劃。實際 phase 狀態與下一步開發順序以 `control-studio/ROADMAP.md` 為準；本文件只維護 skill 邊界、輸入輸出與可重用工作流。
 
 ## Scope
 
@@ -22,11 +22,11 @@
 | Phase | Priority | Status | Theme | Goal | Primary Verification |
 | --- | --- | --- | --- | --- | --- |
 | Phase 18 | P1 | Done | Uncertainty + Monte Carlo robust validation | 將 robust analysis 從 nominal 指標推進到不確定性族群驗證 | deterministic uncertainty fixtures、worst-case replay、`verify:p18` |
-| Phase 19 | P2 | Planned | Full H-infinity / mu backend | 補 Riccati/LMI H-infinity synthesis 與完整 DK-iteration | CARE/LMI residual、closed-loop H-infinity norm、mu upper/lower consistency |
-| Phase 20 | P1 | Planned | MIMO MPC engineering workflow | 完成多輸出 tracking、constraints、offset-free disturbance rejection | constrained MIMO tracking fixtures、infeasibility handling |
-| Phase 21 | P2 | Planned | Research-grade system identification | 從 ARX 擴展到 ARMAX/OE/BJ/subspace ID 與 uncertainty model | residual whiteness、fit/cross-validation、known-plant recovery |
-| Phase 22 | P1 | Planned | Benchmark + cross-tool validation | 建立可重跑、可追溯、可比 MATLAB/Python Control 的驗證基線 | golden fixtures、cross-tool tolerances、manifest output |
-| Phase 23 | P1 | Planned | Agentic design review | 將 AI advisor 升級成 structured controller design reviewer | rule-based checks + golden review cases |
+| Phase 19 | P2 | Done baseline / P27 gap remains | Full H-infinity / mu backend | 已提交 H∞ Riccati synthesis baseline；full D-K iteration 仍列為 P27 gap | `verify_p19_hinf_riccati.mjs`、P27 roadmap |
+| Phase 20 | P1 | Done | MIMO MPC engineering workflow | 完成 offset-free tracking、move suppression、constraints、feasibility diagnostics | `verify_p20_mpc_engineering.mjs` |
+| Phase 21 | P2 | Done | Research-grade system identification | 已擴展 ARMAX/OE/BJ/subspace ID、experiment signals 與 uncertainty export | `verify_p21_sysid_advanced.mjs` |
+| Phase 22 | P1 | Done | Benchmark + cross-tool validation | 已建立 CI、cross-tool comparison、full verification runner 與 benchmark script | `run_all_verify.sh`、`compare_python_control.py`、CI |
+| Phase 23 | P1 | Mostly Done | Agentic design review / SysID gap closure | structured review skills 與 FRF/MISO/model-order 已提交；continuous-time CONTSID/SRIVC 未提交 | `verify_p23_*.mjs`、`control-studio/ROADMAP.md` |
 
 ## Phase Details
 
@@ -173,7 +173,7 @@ Skill 必須遵守：
 - Skill 輸出應是 structured checklist / JSON / markdown summary，方便 agent 後續接 UI、API 或測試。
 - Skill 不直接修改 `control-studio/`，除非使用者明確要求實作；預設先產出設計、驗證與審查結果。
 - Skill 涉及模型選型或外部模型時，必須使用既有 `nv-agent` runtime router，不可硬寫 endpoint。
-- Skill 若會導向功能開發，必須要求後續 agent 更新 `CONTROL_SYSTEM_PLAN.md`、`CONTROL_SYSTEM_BACKLOG.md`、`CONTROL_SYSTEM_VERIFICATION_CASES.md`、`CONTROL_SYSTEM_SCENARIOS.md`、`AGENT_CONTINUATION.md`。
+- Skill 若會導向功能開發，必須要求後續 agent 先更新 `control-studio/ROADMAP.md`，再同步 `CONTROL_SYSTEM_PLAN.md`、`CONTROL_SYSTEM_BACKLOG.md`、`CONTROL_SYSTEM_VERIFICATION_CASES.md`、`CONTROL_SYSTEM_SCENARIOS.md`、`AGENT_CONTINUATION.md` 中受影響的部分。
 
 ## Not Good Skill Targets
 
@@ -185,6 +185,7 @@ Skill 必須遵守：
 
 ## Recommended Next Step
 
-1. Phase 18 已完成；後續使用 `skills/control-studio-robust-validator/SKILL.md` 做 robust validation workflow。
-2. `control-studio-system-auditor` 與 `control-studio-benchmark-author` baseline 已建立，下一步可用它們來審查新設計與產生 benchmark。
-3. 等 Phase 20 / 21 啟動後，再建立 `control-studio-mpc-designer` 與 `control-studio-sysid-planner`。
+1. 後續 phase 進度先查 `control-studio/ROADMAP.md`；本文件只決定是否要建立或調整 skill。
+2. `control-studio-robust-validator`、`control-studio-system-auditor`、`control-studio-benchmark-author` baseline 已建立，應持續用於 robust validation、設計審查與 benchmark 建立。
+3. Phase 20 / 21 已有核心能力與全域 skill entry；下一步是依實際使用案例補 `control-studio-mpc-designer` 與 `control-studio-sysid-planner` 的 examples / references，而不是把所有 MPC/SysID 邏輯塞進 UI。
+4. Phase 24 dirty EMPC 工作若正式化，應評估是否擴充 `control-studio-mpc-designer`，並在 roadmap / backlog / continuation 同步狀態。

@@ -46,7 +46,9 @@
   - `test_control.js`
 - 驗證案例：
   - `CONTROL_SYSTEM_VERIFICATION_CASES.md`
-- 開發順序：
+- 開發順序與文件工作流：
+  - `control-studio/ROADMAP.md`
+- 詳細 task ledger：
   - `CONTROL_SYSTEM_BACKLOG.md`
 - Phase 18+ 與技能化規劃：
   - `CONTROL_SYSTEM_SKILLS_PLAN.md`
@@ -147,16 +149,14 @@
 - Verification：最新節點已通過 TF / SS / ZPK / C2D 與 PID regression（commit message 記錄 `36/36` 與 `21/21`）。
 
 ### 尚未完成能力
-- Phase 18+ engineering / research extensions：
-  - uncertainty + Monte Carlo robust validation
-  - full H∞ / μ backend
-  - MIMO MPC constraints / offset-free tracking
-  - research-grade system identification
-  - benchmark + cross-tool validation
-  - structured agentic design review
-- 自動產生報告 / 報告模板
-- 前端分析流程預設全面切到統一 API
-- Electron packaging / 教學模式
+- Phase 23：continuous-time identification（CONTSID / SRIVC）尚未提交。
+- Phase 24：advanced MPC 尚未完成；NMPC 已提交，EMPC 仍在 dirty worktree，Tube MPC / Explicit MPC 尚未提交。
+- Phase 25：Hankel norm approximation 尚未提交。
+- Phase 26：LPV synthesis 尚未提交。
+- Phase 27：full D-K iteration / structured robust design 尚未提交；目前有 MIMO H∞ verification 與 loop-shaping H∞。
+- Phase 28：JSDoc API docs 尚未提交。
+- 自動產生報告 / 報告模板、Electron packaging、教學模式與 Block Diagram expansion 仍依使用者要求擱置。
+- 前端分析流程預設全面切到統一 API 尚未完成。
 
 ## 4. Scope Definition
 
@@ -430,11 +430,16 @@
 ### Phase 18+ Research / Engineering Extension Track
 - Done：Phase 18 uncertainty + Monte Carlo robust validation — uncertainty schema、deterministic Monte Carlo sampling、worst-case metrics、robust pass/fail、`verify:p18` regression、Robust Validation UI、`control-studio-robust-validator` skill baseline。
 - Done：Phase 19 H∞ Riccati synthesis — Glover-Doyle γ-iteration、generalized plant construction、dual CARE solver with sign-diagonal + Real Schur fallback、controller SS→TF conversion、`verify_p19_hinf_riccati.mjs` 32 checks。已知限制：SISO 1st-order Y∞ CARE 在退化 Hamiltonian 下殘差較高（結構性限制），但 controller 仍穩定。
-- Planned：Phase 20 MIMO MPC engineering workflow — multi-output constraints、move suppression、offset-free disturbance rejection、feasibility diagnostics。
-- Planned：Phase 21 research-grade system identification — ARMAX / OE / BJ / subspace ID、experiment design、residual validation、uncertainty export。
-- Planned：Phase 22 benchmark + cross-tool validation — golden derivations、MATLAB / Python Control comparison、machine-readable manifest。
-- Planned：Phase 23 agentic design review — structured controller review schema、numeric evidence binding、golden review cases。
-- Skill planning：`CONTROL_SYSTEM_SKILLS_PLAN.md` 定義可抽成 agent skill 的項目；`control-studio-robust-validator` baseline 已建立，後續優先為 `control-studio-system-auditor`、`control-studio-benchmark-author`。
+- Done：Phase 20 MIMO MPC engineering workflow — offset-free tracking、move suppression、feasibility diagnostics、constraint handling，詳見 `verify_p20_mpc_engineering.mjs`。
+- Done：Phase 21 research-grade system identification — ARMAX / OE / BJ / subspace ID、experiment design、residual validation、uncertainty export，詳見 `verify_p21_sysid_advanced.mjs`。
+- Done：Phase 22 benchmark + cross-tool validation — full verification runner、cross-tool comparison、CI workflow、benchmark script。
+- Mostly Done：Phase 23 agentic / SysID gap closure — structured review skills、FRF estimation、model order selection、MISO ARX；continuous-time CONTSID / SRIVC 尚未提交。
+- In Progress：Phase 24 advanced MPC — NMPC 已提交；EMPC 目前在 dirty worktree，Tube MPC / Explicit MPC 尚未提交。
+- Mostly Done：Phase 25 model order reduction — balanced truncation 與 SS minreal 已提交；Hankel norm approximation 尚未提交。
+- Mostly Done：Phase 26 nonlinear control — gain-scheduled PID 與 sliding mode control 已提交；LPV synthesis 尚未提交。
+- Mostly Done：Phase 27 H∞ design extensions — MIMO H∞ verification 與 loop-shaping H∞ 已提交；full D-K iteration 尚未提交。
+- Mostly Done：Phase 28 infrastructure quality — TypeScript definitions 與 benchmark script 已提交；JSDoc API docs 尚未提交。
+- Execution roadmap：詳細執行看板與文件工作流以 `control-studio/ROADMAP.md` 為準；本文件保留產品/架構層級摘要。
 
 ### Stage 4: Productization
 - Paused：Electron desktop packaging
@@ -456,14 +461,14 @@
 
 1. 先讀本文件，再動手修改控制系統相關檔案。
 2. 若修改數值核心、API 分析輸出或穩定性指標，需對照 `CONTROL_SYSTEM_VERIFICATION_CASES.md` 的案例與數學推導。
-3. 後續開發順序以 `CONTROL_SYSTEM_BACKLOG.md` 為準。
-4. Phase 17 已完成；若啟動下一階段，先在 `CONTROL_SYSTEM_BACKLOG.md` 與 `CONTROL_SYSTEM_SKILLS_PLAN.md` 定義新的 `p18+` 範圍、技能邊界與驗證基線，再做後續擴充。
+3. 後續開發順序以 `control-studio/ROADMAP.md` 為準；詳細 task ledger 再對照 `CONTROL_SYSTEM_BACKLOG.md`。
+4. 目前已到 `1259565 feat(p27-p28): loop shaping H∞ + TypeScript type definitions` 基線；若啟動下一階段，先更新 `control-studio/ROADMAP.md`，再同步 `CONTROL_SYSTEM_BACKLOG.md` 與 `CONTROL_SYSTEM_SKILLS_PLAN.md` 的範圍、技能邊界與驗證基線。
 5. 若新增控制系統分析功能，必須補：
    - 文件
    - 至少一個 smoke test 或驗證流程
    - UI 對應入口（若屬使用者可見功能）
 6. 若引入新模型類型或新控制器類型，先更新資料模型與輸入格式，再補 UI。
-7. 每次完成控制系統功能、數學核心修復、UI 行為調整或驗證補強後，必須同步文件狀態，再做 git checkpoint；至少檢查 `CONTROL_SYSTEM_PLAN.md`、`CONTROL_SYSTEM_BACKLOG.md`、`CONTROL_SYSTEM_VERIFICATION_CASES.md`、`CONTROL_SYSTEM_SCENARIOS.md`、`AGENT_CONTINUATION.md` 是否需要更新。
+7. 每次完成控制系統功能、數學核心修復、UI 行為調整或驗證補強後，必須同步文件狀態，再做 git checkpoint；至少檢查 `control-studio/ROADMAP.md`、`CONTROL_SYSTEM_PLAN.md`、`CONTROL_SYSTEM_BACKLOG.md`、`CONTROL_SYSTEM_VERIFICATION_CASES.md`、`CONTROL_SYSTEM_SCENARIOS.md`、`AGENT_CONTINUATION.md` 是否需要更新。
 8. 若新增 workflow 或控制系統相關 CLI 能力，需同步更新：
    - `README.md`
    - `RUNNABLE_WORKFLOWS.md`

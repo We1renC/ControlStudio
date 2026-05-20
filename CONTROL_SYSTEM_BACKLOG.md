@@ -1,16 +1,19 @@
 # Control System Backlog
 
-此文件定義 ControlStudio 後續開發的先後順序。後續 agent 若要開發控制系統功能，應先讀：
+此文件定義 ControlStudio 詳細 task ledger。實際 phase 狀態、下一步開發順序與文件同步工作流以 `control-studio/ROADMAP.md` 為準；本文件保留 task ID、依賴與驗證證據。
 
-1. `CONTROL_SYSTEM_PLAN.md`
-2. `CONTROL_SYSTEM_VERIFICATION_CASES.md`
-3. `CONTROL_SYSTEM_BACKLOG.md`
-4. `CONTROL_SYSTEM_SKILLS_PLAN.md`
+後續 agent 若要開發控制系統功能，應先讀：
+
+1. `control-studio/ROADMAP.md`
+2. `CONTROL_SYSTEM_PLAN.md`
+3. `CONTROL_SYSTEM_VERIFICATION_CASES.md`
+4. `CONTROL_SYSTEM_BACKLOG.md`
+5. `CONTROL_SYSTEM_SKILLS_PLAN.md`
 
 目前策略：
 - Block Diagram 暫時擱置，不在近期主線投入新功能。
-- Phase 0-17 已完成：SISO 全鏈、State Feedback / Lyapunov / LQR、Observer / Kalman / LQG、MIMO 基礎與設計（RGA / SV Bode / Decoupler / MIMO LQR）、MPC / Robust baseline、以及 P12~P17 的 usability / delay / identification / synthesis / advanced robust / MIMO / MPC 擴充。
-- Phase 18+ 已進入規劃：下一主線是 uncertainty + Monte Carlo robust validation，技能化規劃見 `CONTROL_SYSTEM_SKILLS_PLAN.md`。
+- Phase 0-22 已完成主線：SISO 全鏈、State Feedback / Lyapunov / LQR、Observer / Kalman / LQG、MIMO 基礎與設計、MPC / Robust baseline、P12~P17 product maturity、P18 robust validation、P19 H∞ Riccati baseline、P20 MPC engineering、P21 advanced SysID、P22 verification infrastructure。
+- Phase 23-28 目前狀態以 `control-studio/ROADMAP.md` 為準：P23/P25/P26/P27/P28 mostly done；P24 advanced MPC in progress。
 - `CONTROL_SYSTEM_PHASE10_PLAN.md` 已屬歷史設計基線；目前主線已超過該文件。
 - 使用者已要求擱置：教學模式、Electron packaging、報告模板 / 報告自動化。
 - 每個功能必須有數學推導或 fixture 驗證，不只看 UI 是否可操作。
@@ -33,8 +36,8 @@
 ## Current Baseline
 
 - Branch: `main`
-- Latest synced commit: `main HEAD`（Phase 17 advanced robust / MIMO / MPC extensions）
-- Current checkpoint: **All CS-P0 ~ CS-P17 items done.** 主線現況已包含：Phase 10/11 的 CARE/DARE/MPC/robust/dynamic-RGA，Phase 12 的 H∞ 視覺化，Phase 13 的 UI/UX overhaul，Phase 14 的 delay/IMC/LaTeX/disk margin/seed control，Phase 15 的 ARX system ID / codegen / compare bode / root-locus animation，Phase 16 的 mixed-sensitivity PID synthesis / GA PID auto-tuner / phase portrait / describing functions，以及 Phase 17 的 plant-order dynamic H∞ / structured μ / advanced MIMO frequency-domain diagnostics / MIMO output MPC tracking。Phase 18+ 與 skill candidates 已由 `CONTROL_SYSTEM_SKILLS_PLAN.md` 定義。
+- Latest synced commit: `1259565 feat(p27-p28): loop shaping H∞ + TypeScript type definitions`
+- Current checkpoint: **CS-P0 ~ CS-P22 done; P23/P25/P26/P27/P28 mostly done; P24 in progress.** 詳細執行看板見 `control-studio/ROADMAP.md`。目前主要未完成項目是 P24 EMPC dirty worktree formalization、Tube MPC、Explicit MPC、P27 full D-K iteration、P28 JSDoc API docs、P23 continuous-time identification 與 P25/P26 的剩餘研究級功能。
 - Scenario 5 browser walkthrough result: Phase 10 math + UI both operational.
 - Scenario 6 browser walkthrough result: SISO / MIMO core workflows are UI-operable.
 - Latest full-theory audit:
@@ -331,11 +334,11 @@ Phase 10 + Phase 11 全部完成：
 | CS-P17-03 | P2 | Done | MIMO frequency-domain design diagnostics: characteristic loci, Gershgorin bands, inverse Nyquist array | `node control-studio/scripts/verify_p17_advanced_control.mjs` |
 | CS-P17-04 | P1 | Done | MPC MIMO output-space setpoint tracking (`y_ref = Cx + Du`) | `node control-studio/scripts/verify_p17_advanced_control.mjs` |
 
-**Validation aggregate status：`npm run verify:all` 現在涵蓋 phase11 / p14 / p15 / p16 / p17 / cases，多套件合計 120+ checks。**
+**Validation aggregate status：`control-studio/scripts/run_all_verify.sh` 與 `npm run verify:all` 是目前主驗證入口；P22+ 新增的 P23 / P24 / P25 / P26 / P27 runner 以 roadmap 與 package scripts 為準。**
 
-## Immediate Next Development: Phase 18+ Research / Engineering Extension
+## Phase 18+ Research / Engineering Extension Ledger
 
-Phase 18+ 必須先維持三個邊界：
+Phase 18+ 已進入持續擴充狀態。下一步順序以 `control-studio/ROADMAP.md` 為準；本 ledger 必須維持三個邊界：
 - 每個控制理論功能先補數學定義與 fixture，再補 UI。
 - 若功能可拆成 agent workflow，需同步評估是否建立 skill。
 - Teaching Mode / Electron / Report Template / Block Diagram expansion 持續 paused。
@@ -359,7 +362,7 @@ Phase 18+ 必須先維持三個邊界：
 | --- | --- | --- | --- | --- | --- | --- |
 | CS-P19-01 | P2 | Done | Riccati/LMI H∞ synthesis backend decision | 決定使用 Python backend、WASM 或 JS baseline | Phase 17 robust baseline | design doc + numeric spike |
 | CS-P19-02 | P2 | Done | Glover-Doyle H∞ synthesis | 取代 browser-side heuristic optimizer 的 full-order path | CS-P19-01 | residual + gamma golden cases |
-| CS-P19-03 | P2 | Done | Full DK-iteration | dynamic D scaling / K fitting，取代 static surrogate | CS-P19-02 | mu upper-bound non-worsening fixtures |
+| CS-P19-03 | P2 | Planned | Full DK-iteration | dynamic D scaling / K fitting，取代 static surrogate；目前仍由 P27 gap 追蹤 | CS-P19-02 | mu upper-bound non-worsening fixtures |
 
 ### Phase 20: MIMO MPC Engineering Workflow (CS-P20)
 
@@ -368,7 +371,7 @@ Phase 18+ 必須先維持三個邊界：
 | CS-P20-01 | P1 | Done | Offset-free MIMO tracking | 擾動存在時仍能消除 steady-state error | Phase 17 MPC MIMO tracking | step disturbance fixture |
 | CS-P20-02 | P1 | Done | Output / delta-u constraints | 工程 MPC 需要輸出限制與 move suppression | Phase 11 state/input constraints | constrained MIMO tracking fixture |
 | CS-P20-03 | P2 | Done | Feasibility diagnostics | 不可行時指出 constraint conflict | QP solver | infeasible setpoint fixture |
-| CS-P20-04 | P1 | Done | `control-studio-mpc-designer` skill | 將 MPC 建模、權重、constraint 設計流程標準化 | `CONTROL_SYSTEM_SKILLS_PLAN.md` | sample MPC design checklist |
+| CS-P20-04 | P1 | Planned | Project-local `control-studio-mpc-designer` skill package | 將 MPC 建模、權重、constraint 設計流程標準化；目前已有全域 skill，可視需要回寫專案版 examples / references | `CONTROL_SYSTEM_SKILLS_PLAN.md` | sample MPC design checklist |
 
 ### Phase 21: Research-Grade System Identification (CS-P21)
 
@@ -378,7 +381,7 @@ Phase 18+ 必須先維持三個邊界：
 | CS-P21-02 | P2 | Done | ARMAX / OE / BJ candidates | 補 ARX 以外常用模型族 | sysid core | synthetic plant recovery |
 | CS-P21-03 | P2 | Done | Subspace state-space ID | 支援 MIMO 與狀態空間研究流程 | matrix core | low-order MIMO recovery |
 | CS-P21-04 | P1 | Done | Residual validation + uncertainty export | 讓 sysid 結果可接 Phase 18 robust validation | CS-P18 | whiteness + uncertainty fixtures |
-| CS-P21-05 | P2 | Done | `control-studio-sysid-planner` skill | 將實驗設計與模型選型流程抽成 agent skill | `CONTROL_SYSTEM_SKILLS_PLAN.md` | sample sysid plan |
+| CS-P21-05 | P2 | Planned | Project-local `control-studio-sysid-planner` skill package | 將實驗設計與模型選型流程抽成 agent skill；目前已有全域 skill，可視需要回寫專案版 examples / references | `CONTROL_SYSTEM_SKILLS_PLAN.md` | sample sysid plan |
 
 ### Phase 22: Benchmark + Cross-Tool Validation (CS-P22)
 
@@ -394,7 +397,48 @@ Phase 18+ 必須先維持三個邊界：
 | --- | --- | --- | --- | --- | --- | --- |
 | CS-P23-01 | P1 | Done | Structured design review schema | Advisor 建議需綁定數值證據與適用條件 | existing advisor | golden review cases |
 | CS-P23-02 | P1 | Done | `control-studio-system-auditor` skill | 讓 agent 能先做 plant/controller 審查再開發 | `CONTROL_SYSTEM_SKILLS_PLAN.md` | audit checklist examples |
-| CS-P23-03 | P2 | Done | `control-studio-ui-verifier` skill | 將 browser UI walkthrough 標準化 | browser smoke | UI issue report example |
+| CS-P23-03 | P2 | Planned | Project-local `control-studio-ui-verifier` skill package | 將 browser UI walkthrough 標準化；目前已有全域 skill，可視需要回寫專案版 examples / references | browser smoke | UI issue report example |
+
+### Phase 24: Advanced MPC (CS-P24)
+
+| ID | Priority | Status | Item | Rationale | Dependencies | Verification |
+| --- | --- | --- | --- | --- | --- | --- |
+| CS-P24-01 | P1 | Done | NMPC / SQP-lite | 支援非線性模型的 deterministic receding-horizon baseline | Phase 20 MPC engineering | `verify_p24_nmpc.mjs` |
+| CS-P24-02 | P1 | Planned | Tube MPC | 將 uncertainty 與 constrained MPC 接起來，支援 robust invariant tube | Phase 18 + Phase 20 | tube disturbance fixture |
+| CS-P24-03 | P1 | In Progress | Economic MPC | 目前有 dirty `empc.js` 與 `verify_p24_empc.mjs`，尚未審查與提交 | Phase 20 | target EMPC economic-cost fixture |
+| CS-P24-04 | P2 | Planned | Explicit MPC | 建立小型線性系統 explicit control law baseline | Phase 20 | region / active-set consistency fixture |
+
+### Phase 25: Model Order Reduction (CS-P25)
+
+| ID | Priority | Status | Item | Rationale | Dependencies | Verification |
+| --- | --- | --- | --- | --- | --- | --- |
+| CS-P25-01 | P1 | Done | Balanced truncation | 對高階 plant 產生低階控制設計模型 | matrix / state-space core | `verify_p25_model_reduction.mjs` |
+| CS-P25-02 | P2 | Planned | Hankel norm approximation | 補更研究級的 model reduction 誤差界工具 | CS-P25-01 | Hankel singular value fixture |
+| CS-P25-03 | P1 | Done | SS minreal / Kalman decomposition | 移除不可控/不可觀 mode，降低 controller design 風險 | state-space core | `verify_p25_model_reduction.mjs` |
+
+### Phase 26: Nonlinear Control (CS-P26)
+
+| ID | Priority | Status | Item | Rationale | Dependencies | Verification |
+| --- | --- | --- | --- | --- | --- | --- |
+| CS-P26-01 | P1 | Done | Gain-scheduled PID | 支援 operating-region dependent PID baseline | PID + nonlinear core | `verify_p26_nonlinear.mjs` |
+| CS-P26-02 | P2 | Planned | LPV synthesis | 將 gain scheduling 推進到更正式的 LPV design path | CS-P26-01 | LPV scheduling fixture |
+| CS-P26-03 | P1 | Done | Sliding mode control | 提供 robust nonlinear control baseline | nonlinear core | `verify_p26_nonlinear.mjs` |
+
+### Phase 27: H-infinity Design Extensions (CS-P27)
+
+| ID | Priority | Status | Item | Rationale | Dependencies | Verification |
+| --- | --- | --- | --- | --- | --- | --- |
+| CS-P27-01 | P1 | Planned | Full D-K iteration | 目前 structured μ 仍是 surrogate / baseline；full-order dynamic D/K fitting 尚未完成 | Phase 19 | mu non-worsening fixture |
+| CS-P27-02 | P1 | Done | Loop-shaping H∞ | 補 weighted loop-shaping design workflow | Phase 19 | `verify_p27_loop_shaping.mjs` |
+| CS-P27-03 | P1 | Done | MIMO H∞ verification | 補 MIMO closed-loop robust performance verification | Phase 19 | `verify_p27_mimo_hinf.mjs` |
+
+### Phase 28: Infrastructure Quality (CS-P28)
+
+| ID | Priority | Status | Item | Rationale | Dependencies | Verification |
+| --- | --- | --- | --- | --- | --- | --- |
+| CS-P28-01 | P1 | Done | TypeScript definitions | 讓外部工具與 agent 可引用穩定 API surface | current JS modules | `control-studio/types/control-studio.d.ts` |
+| CS-P28-02 | P2 | Planned | JSDoc API docs | 將核心模組文件化，降低後續 agent 誤用數學 API 的風險 | CS-P28-01 | generated docs smoke |
+| CS-P28-03 | P1 | Done | Performance benchmark | 追蹤數學核心與控制演算法速度退化 | verification runners | `control-studio/scripts/benchmark.mjs` |
 
 ## Do Not Start Yet
 

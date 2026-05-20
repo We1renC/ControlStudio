@@ -9,7 +9,7 @@
 - 已建立獨立 git repo，避免被 `/Users/w.rc` 外層 git 混入。
 - 控制系統目前同步基線：
   - Branch: `main`
-  - Latest active line: `main HEAD`（Post Phase 17 math-core hardening + Phase 18+ / skill planning docs）
+  - Latest active line: `1259565 feat(p27-p28): loop shaping H∞ + TypeScript type definitions`
   - Full phase audit checkpoints:
     - `7a318b3 fix(control): harden phase 7-9 theory diagnostics`
     - `46e20da fix(control): harden phase 0-6 theory checks`
@@ -110,21 +110,27 @@
     - Done：discrete frequency response 改用共用 robust complex division。
     - Done：Hamiltonian stable subspace 清除未使用且轉置錯誤的 dead computation。
     - Done：real Schur 1x1 block swap 修正 Givens rotation 公式、乘法方向 / 符號與 reordered eigenvalue 回傳順序。
-  - Phase 18+ Research / Engineering Extension：Planned
+  - Phase 18+ Research / Engineering Extension：Active through P28
     - Done：Phase 18 uncertainty + Monte Carlo robust validation。
     - Done：Phase 18 core API in `control-studio/js/control/robust.js`，包含 uncertainty schema、deterministic Monte Carlo sampling、worst-case metrics、robust pass/fail 與 unstable sample classification。
     - Done：`control-studio/scripts/verify_p18_robust_validation.mjs` 與 `npm run verify:p18`。
     - Done：`skills/control-studio-robust-validator/` skill baseline。
     - Done：`skills/control-studio-system-auditor/` 與 `skills/control-studio-benchmark-author/` skill baseline。
     - Done：Robust Validation UI panel，接上 Phase 18 core；Playwright/Chrome walkthrough 已確認 button/output/chart。
-    - Planned：Phase 19 full H∞ / μ backend。
-    - Planned：Phase 20 MIMO MPC constraints / offset-free tracking。
-    - Planned：Phase 21 research-grade system identification。
-    - Planned：Phase 22 benchmark + cross-tool validation。
-    - Planned：Phase 23 structured agentic design review。
+    - Done：Phase 19 H∞ Riccati synthesis baseline；full D-K iteration 仍列為 P27 gap。
+    - Done：Phase 20 MIMO MPC engineering workflow，含 offset-free tracking、move suppression、constraints、feasibility diagnostics。
+    - Done：Phase 21 research-grade system identification，含 ARMAX / OE / BJ / subspace ID、experiment design、residual validation、uncertainty export。
+    - Done：Phase 22 benchmark + cross-tool validation，含 CI、cross-tool comparison、full verification runner、benchmark script。
+    - Mostly Done：Phase 23 agentic / SysID gap closure；FRF、model order、MISO ARX 已提交，CONTSID / SRIVC 尚未提交。
+    - In Progress：Phase 24 advanced MPC；NMPC 已提交，EMPC 仍在 dirty worktree，Tube MPC / Explicit MPC 尚未提交。
+    - Mostly Done：Phase 25 model order reduction；balanced truncation / SS minreal 已提交，Hankel norm approximation 尚未提交。
+    - Mostly Done：Phase 26 nonlinear control；gain-scheduled PID / SMC 已提交，LPV synthesis 尚未提交。
+    - Mostly Done：Phase 27 H∞ design extensions；MIMO H∞ verification / loop-shaping H∞ 已提交，full D-K iteration 尚未提交。
+    - Mostly Done：Phase 28 infrastructure quality；TypeScript definitions / benchmark 已提交，JSDoc API docs 尚未提交。
+    - 主執行看板：`control-studio/ROADMAP.md`。若 phase status、下一步順序或 dirty worktree 分類改變，先更新 roadmap，再同步 backlog / plan / skills / scenarios / verification cases / continuation。
     - Skill plan：`CONTROL_SYSTEM_SKILLS_PLAN.md` 已規劃 `control-studio-robust-validator`、`control-studio-system-auditor`、`control-studio-benchmark-author`、`control-studio-mpc-designer`、`control-studio-sysid-planner` 等候選 skill。
   - Block Diagram expansion：Paused
-  - Phase 0 ~ Phase 17 已完成通盤數學理論與產品流程檢查。後續若修改數值核心，至少重跑 `npm run verify:math`、`npm run verify:phase11`、`npm run verify:p14`、`npm run verify:p15`、`npm run verify:p16`、`npm run verify:p17`、`npm run verify:all`、`node test_control.js`、`node control-studio/scripts/control_regression_dashboard.mjs`。
+  - Phase 0 ~ Phase 28 已完成一次文件進度對齊。後續若修改數值核心，至少依 roadmap 對應 phase 重跑 targeted verify、`npm run verify:all`、`node test_control.js`、`node control-studio/scripts/control_regression_dashboard.mjs`。
 - 已建立 symlink：
   - `/Users/w.rc/.config/agents/skills/nvidia-model-selector`
   - 指向 `/Users/w.rc/nvdiaOSsupport/skills/nvidia-model-selector`
@@ -171,7 +177,7 @@ git log --oneline -5
 ## Git 維護提醒
 - 控制系統開發必須持續用 git 維護；每完成一批功能、修正、或驗證補強，就立刻 commit，不要讓 `control-studio/` 與 `test_control.js` 長時間停留在未提交狀態。
 - 控制系統 commit 請帶 phase / scope，例如 `feat(phase9): ...`、`fix(phase9): ...`、`test(phase9): ...`、`docs(control): ...`。
-- 控制系統 checkpoint 前必須同步文件：若本輪改到功能範圍、數學核心、UI 行為、驗證覆蓋或已知限制，先更新 `CONTROL_SYSTEM_PLAN.md` / backlog / scenarios / verification cases / 本文件中相符項目，再 commit。
+- 控制系統 checkpoint 前必須同步文件：若本輪改到功能範圍、數學核心、UI 行為、驗證覆蓋或已知限制，先更新 `control-studio/ROADMAP.md`，再同步 `CONTROL_SYSTEM_PLAN.md` / backlog / scenarios / verification cases / 本文件中相符項目，再 commit。
 - 在切換 agent 前，若本輪有控制系統改動，先確認至少有一個可回溯的 git checkpoint。
 
 ## 已驗證
@@ -193,8 +199,9 @@ git log --oneline -5
 - `control_advisor_workflow.py --help` 可正常執行。
 - `CONTROL_SYSTEM_PLAN.md` 已整理控制系統盤點、MVP 範圍與後續 roadmap。
 - `CONTROL_SYSTEM_VERIFICATION_CASES.md` 已定義五個具數學推導的控制系統驗證案例，涵蓋一階、二階欠阻尼、初始不穩定/pole-zero/低 PM、RHP zero、State-Space 等價。
-- `CONTROL_SYSTEM_BACKLOG.md` 已規劃後續開發順序，目前 Phase 0~18 已完成，下一步是 `control-studio-system-auditor` 與 `control-studio-benchmark-author`。
-- `CONTROL_SYSTEM_SKILLS_PLAN.md` 已新增 Phase 18+ research roadmap 與 skill candidates，且 `control-studio-robust-validator`、`control-studio-system-auditor`、`control-studio-benchmark-author` baseline 已建立。
+- `control-studio/ROADMAP.md` 已整併為 ControlStudio 主執行看板，記錄 P23~P28 進度、dirty worktree 分類、文件工作流與下一步順序。
+- `CONTROL_SYSTEM_BACKLOG.md` 已改為 detailed task ledger；目前 Phase 0~22 已完成，P23/P25/P26/P27/P28 mostly done，P24 advanced MPC in progress。
+- `CONTROL_SYSTEM_SKILLS_PLAN.md` 已新增 Phase 18+ skill candidates，且 `control-studio-robust-validator`、`control-studio-system-auditor`、`control-studio-benchmark-author` baseline 已建立；MPC / SysID / UI verifier 目前以全域 skill 或候選工作流存在，專案版 examples / references 可後續補。
 - `control-studio` 已補上 State Space（SISO）輸入、Step/Impulse/Ramp 切換、Nyquist Plot、project save/load 與 JSON/CSV 匯出。
 - `control-studio` UI 已改成 sidebar workspace tabs（Model / Sim / Advisor / Compare），並支援 comparison snapshots 疊圖比較。
 - `control-studio/scripts/serve_studio.py` 已提供固定的本地前端啟動入口（預設 `http://127.0.0.1:8765`）。
@@ -268,19 +275,21 @@ git log --oneline -5
 - 本輪完成 math-core audit hardening，新增 regression 覆蓋 extreme complex division、separated quadratic roots、tiny-scale inverse / solve / rank / positive-definite checks；`npm run verify:all`、`node test_control.js`、`node control-studio/scripts/control_regression_dashboard.mjs`、`./nv-agent doctor` 均已通過。
 
 ## 後續可做
-1. 使用 `control-studio-system-auditor` 審查下一個控制設計缺口，並用 `control-studio-benchmark-author` 補 benchmark fixture。
-2. Phase 19 再做 Riccati/LMI Glover-Doyle H∞ backend 與 full DK-iteration，不要直接擴大目前 static surrogate。
-3. Phase 20 再做 MIMO MPC constraints / offset-free tracking，搭配 `control-studio-mpc-designer` skill。
-4. Phase 21 再做 research-grade system identification，搭配 `control-studio-sysid-planner` skill。
-6. Teaching Mode / Electron / Report Template 目前使用者要求擱置，不要開發。
-7. Block Diagram 目前維持 paused；不要新增 block diagram 功能，除非使用者重新明確恢復。
-8. 加 `agents/openai.yaml` UI metadata。
-9. 增強 evaluator：從 heuristic 檢查升級成 judge model + golden dataset。
-10. 若 NVIDIA Build Models 更新，先更新根目錄資料檔，再同步 `skills/nvidia-model-selector/references/`。
-11. 視需求把 `search_models.py` 加上 `--top-category-summary` 或 fuzzy ranking。
-12. 若要更實用，補上本地文件切 chunk / PDF 轉圖 / OCR 結果快取。
-13. 加 parallel runner 與 leaderboard，追蹤同任務多模型輸出品質。
-14. 將 OCR/RAG 的 endpoint source 也改成完整 registry-driven，而不只傳入 model id。
+1. 先處理 `control-studio/ROADMAP.md` 列出的 dirty worktree：審查 `empc.js` / `verify_p24_empc.mjs`，決定是否正式納入 P24；`scratch_*` 不要原樣提交。
+2. 決定 `package.json` / `package-lock.json` / `node_modules/` 的 dependency policy；若 TypeScript workflow 正式化才提交 lockfile，`node_modules/` 永不提交。
+3. 依 roadmap 下一步完成 P24：EMPC formalization → Tube MPC → Explicit MPC。
+4. P24 clean 後再做 P27 full D-K iteration；不要把目前 structured μ surrogate 說成完整 μ-synthesis。
+5. 補 P23 continuous-time identification、P25 Hankel norm approximation、P26 LPV synthesis、P28 JSDoc API docs。
+6. 使用 `control-studio-system-auditor` 審查下一個控制設計缺口，並用 `control-studio-benchmark-author` 補 benchmark fixture。
+7. Teaching Mode / Electron / Report Template 目前使用者要求擱置，不要開發。
+8. Block Diagram 目前維持 paused；不要新增 block diagram 功能，除非使用者重新明確恢復。
+9. 加 `agents/openai.yaml` UI metadata。
+10. 增強 evaluator：從 heuristic 檢查升級成 judge model + golden dataset。
+11. 若 NVIDIA Build Models 更新，先更新根目錄資料檔，再同步 `skills/nvidia-model-selector/references/`。
+12. 視需求把 `search_models.py` 加上 `--top-category-summary` 或 fuzzy ranking。
+13. 若要更實用，補上本地文件切 chunk / PDF 轉圖 / OCR 結果快取。
+14. 加 parallel runner 與 leaderboard，追蹤同任務多模型輸出品質。
+15. 將 OCR/RAG 的 endpoint source 也改成完整 registry-driven，而不只傳入 model id。
 
 ## 注意事項
 - 這個專案不需要 `.agent-handoff.md`。
