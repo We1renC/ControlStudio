@@ -133,6 +133,31 @@ console.log('\n=== Phase 20: MPC Infeasibility Handling ===\n');
     console.error(`[FAIL] ${e.message}`);
     failed++;
   }
+
+  // uMin > uMax: inverted input bounds must be immediately rejected
+  try {
+    const Ad = [[0.9]]; const Bd = [[0.5]]; const C = [[1]]; const x0 = [[0]];
+    const d = checkMpcFeasibility(Ad, Bd, C, 5, x0, { uMin: 2, uMax: -2 });
+    assert(d.feasible === false, 'uMin>uMax detected as infeasible');
+    assert(d.violatedConstraints.some(c => c.type === 'uConflict'), 'uConflict type recorded');
+    console.log('[PASS] Diagnostics detects inverted input bounds (uMin > uMax)');
+  } catch(e) {
+    console.error(`[FAIL] uMin>uMax detection: ${e.message}`);
+    failed++;
+  }
+
+  // Qw size mismatch must throw a descriptive error
+  try {
+    const Ad = [[0.8]]; const Bd = [[0.3]]; const C = [[1]];
+    simulateOffsetFreeMpc(Ad, Bd, C, [[1]], [[0.1]], 5, [[0]], [[1]], {},
+      { steps: 5, Qw: [[0.01]], Rv: [[0.1]] }  // Qw should be 2×2, not 1×1
+    );
+    failed++;
+    console.error('[FAIL] Wrong Qw size: should have thrown');
+  } catch(e) {
+    assert(e.message.includes('Qw must be'), `descriptive Qw error: "${e.message}"`);
+    console.log('[PASS] simulateOffsetFreeMpc rejects wrong Qw size with descriptive error');
+  }
 }
 
 if (failed > 0) {

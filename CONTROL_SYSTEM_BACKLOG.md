@@ -357,44 +357,44 @@ Phase 18+ 必須先維持三個邊界：
 
 | ID | Priority | Status | Item | Rationale | Dependencies | Verification |
 | --- | --- | --- | --- | --- | --- | --- |
-| CS-P19-01 | P2 | Planned | Riccati/LMI H∞ synthesis backend decision | 決定使用 Python backend、WASM 或 JS baseline | Phase 17 robust baseline | design doc + numeric spike |
-| CS-P19-02 | P2 | Planned | Glover-Doyle H∞ synthesis | 取代 browser-side heuristic optimizer 的 full-order path | CS-P19-01 | residual + gamma golden cases |
-| CS-P19-03 | P2 | Planned | Full DK-iteration | dynamic D scaling / K fitting，取代 static surrogate | CS-P19-02 | mu upper-bound non-worsening fixtures |
+| CS-P19-01 | P2 | Done | Riccati/LMI H∞ synthesis backend decision | 決定使用 Python backend、WASM 或 JS baseline | Phase 17 robust baseline | design doc + numeric spike |
+| CS-P19-02 | P2 | Done | Glover-Doyle H∞ synthesis | 取代 browser-side heuristic optimizer 的 full-order path | CS-P19-01 | residual + gamma golden cases |
+| CS-P19-03 | P2 | Done | Full DK-iteration | dynamic D scaling / K fitting，取代 static surrogate | CS-P19-02 | mu upper-bound non-worsening fixtures |
 
 ### Phase 20: MIMO MPC Engineering Workflow (CS-P20)
 
 | ID | Priority | Status | Item | Rationale | Dependencies | Verification |
 | --- | --- | --- | --- | --- | --- | --- |
-| CS-P20-01 | P1 | Planned | Offset-free MIMO tracking | 擾動存在時仍能消除 steady-state error | Phase 17 MPC MIMO tracking | step disturbance fixture |
-| CS-P20-02 | P1 | Planned | Output / delta-u constraints | 工程 MPC 需要輸出限制與 move suppression | Phase 11 state/input constraints | constrained MIMO tracking fixture |
-| CS-P20-03 | P2 | Planned | Feasibility diagnostics | 不可行時指出 constraint conflict | QP solver | infeasible setpoint fixture |
-| CS-P20-04 | P1 | Planned | `control-studio-mpc-designer` skill | 將 MPC 建模、權重、constraint 設計流程標準化 | `CONTROL_SYSTEM_SKILLS_PLAN.md` | sample MPC design checklist |
+| CS-P20-01 | P1 | Done | Offset-free MIMO tracking | 擾動存在時仍能消除 steady-state error | Phase 17 MPC MIMO tracking | step disturbance fixture |
+| CS-P20-02 | P1 | Done | Output / delta-u constraints | 工程 MPC 需要輸出限制與 move suppression | Phase 11 state/input constraints | constrained MIMO tracking fixture |
+| CS-P20-03 | P2 | Done | Feasibility diagnostics | 不可行時指出 constraint conflict | QP solver | infeasible setpoint fixture |
+| CS-P20-04 | P1 | Done | `control-studio-mpc-designer` skill | 將 MPC 建模、權重、constraint 設計流程標準化 | `CONTROL_SYSTEM_SKILLS_PLAN.md` | sample MPC design checklist |
 
 ### Phase 21: Research-Grade System Identification (CS-P21)
 
 | ID | Priority | Status | Item | Rationale | Dependencies | Verification |
 | --- | --- | --- | --- | --- | --- | --- |
-| CS-P21-01 | P2 | Planned | Experiment signal design | PRBS / chirp / multi-sine，改善識別資料品質 | Phase 15 ARX | known signal spectrum fixtures |
-| CS-P21-02 | P2 | Planned | ARMAX / OE / BJ candidates | 補 ARX 以外常用模型族 | sysid core | synthetic plant recovery |
-| CS-P21-03 | P2 | Planned | Subspace state-space ID | 支援 MIMO 與狀態空間研究流程 | matrix core | low-order MIMO recovery |
-| CS-P21-04 | P1 | Planned | Residual validation + uncertainty export | 讓 sysid 結果可接 Phase 18 robust validation | CS-P18 | whiteness + uncertainty fixtures |
-| CS-P21-05 | P2 | Planned | `control-studio-sysid-planner` skill | 將實驗設計與模型選型流程抽成 agent skill | `CONTROL_SYSTEM_SKILLS_PLAN.md` | sample sysid plan |
+| CS-P21-01 | P2 | Done | Experiment signal design | PRBS / chirp / multi-sine，改善識別資料品質 | Phase 15 ARX | known signal spectrum fixtures |
+| CS-P21-02 | P2 | Done | ARMAX / OE / BJ candidates | 補 ARX 以外常用模型族 | sysid core | synthetic plant recovery |
+| CS-P21-03 | P2 | Done | Subspace state-space ID | 支援 MIMO 與狀態空間研究流程 | matrix core | low-order MIMO recovery |
+| CS-P21-04 | P1 | Done | Residual validation + uncertainty export | 讓 sysid 結果可接 Phase 18 robust validation | CS-P18 | whiteness + uncertainty fixtures |
+| CS-P21-05 | P2 | Done | `control-studio-sysid-planner` skill | 將實驗設計與模型選型流程抽成 agent skill | `CONTROL_SYSTEM_SKILLS_PLAN.md` | sample sysid plan |
 
 ### Phase 22: Benchmark + Cross-Tool Validation (CS-P22)
 
 | ID | Priority | Status | Item | Rationale | Dependencies | Verification |
 | --- | --- | --- | --- | --- | --- | --- |
-| CS-P22-01 | P1 | Planned | Benchmark suite expansion | 將 SISO/MIMO/MPC/robust/sysid 案例統一成 benchmark library | verification cases | golden fixture manifest |
-| CS-P22-02 | P1 | Planned | MATLAB / Python Control comparison | 建立 cross-tool tolerance 與 drift detection | codegen + external scripts | comparison artifacts |
-| CS-P22-03 | P1 | Planned | `control-studio-benchmark-author` skill | 標準化新控制案例的推導與 fixture 產生 | `CONTROL_SYSTEM_SKILLS_PLAN.md` | generated benchmark skeleton |
+| CS-P22-01 | P1 | Done | Benchmark suite expansion | 將 SISO/MIMO/MPC/robust/sysid 案例統一成 benchmark library | verification cases | golden fixture manifest |
+| CS-P22-02 | P1 | Done | MATLAB / Python Control comparison | 建立 cross-tool tolerance 與 drift detection | codegen + external scripts | comparison artifacts |
+| CS-P22-03 | P1 | Done | `control-studio-benchmark-author` skill | 標準化新控制案例的推導與 fixture 產生 | `CONTROL_SYSTEM_SKILLS_PLAN.md` | generated benchmark skeleton |
 
 ### Phase 23: Agentic Design Review (CS-P23)
 
 | ID | Priority | Status | Item | Rationale | Dependencies | Verification |
 | --- | --- | --- | --- | --- | --- | --- |
-| CS-P23-01 | P1 | Planned | Structured design review schema | Advisor 建議需綁定數值證據與適用條件 | existing advisor | golden review cases |
-| CS-P23-02 | P1 | Planned | `control-studio-system-auditor` skill | 讓 agent 能先做 plant/controller 審查再開發 | `CONTROL_SYSTEM_SKILLS_PLAN.md` | audit checklist examples |
-| CS-P23-03 | P2 | Planned | `control-studio-ui-verifier` skill | 將 browser UI walkthrough 標準化 | browser smoke | UI issue report example |
+| CS-P23-01 | P1 | Done | Structured design review schema | Advisor 建議需綁定數值證據與適用條件 | existing advisor | golden review cases |
+| CS-P23-02 | P1 | Done | `control-studio-system-auditor` skill | 讓 agent 能先做 plant/controller 審查再開發 | `CONTROL_SYSTEM_SKILLS_PLAN.md` | audit checklist examples |
+| CS-P23-03 | P2 | Done | `control-studio-ui-verifier` skill | 將 browser UI walkthrough 標準化 | browser smoke | UI issue report example |
 
 ## Do Not Start Yet
 

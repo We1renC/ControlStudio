@@ -290,6 +290,575 @@ function _computeARMAXOutput(u, y, aTail, bTail, c, na, nb, nc, nk, N) {
 }
 
 /**
+ * Identify Output Error (OE) model using Steiglitz-McBride iteration.
+ * Model: y[k] = (B(z^-1) / F(z^-1)) u[k] + e[k]
+ * 
+ * @param {number[]} u - input sequence
+ * @param {number[]} y - output sequence
+ * @param {number} nb - numerator order (B)
+ * @param {number} nf - denominator order (F)
+ * @param {number} nk - input delay
+ * @param {number} Ts - sample time
+ * @param {object} options - { maxIter, tol }
+ */
+export function identifyOE(u, y, nb, nf, nk = 1, Ts = 1, options = {}) {
+  if (nf === 0) {
+    // If nf = 0, this is just an FIR filter: y = B u + e, which ARX can solve natively (na=0).
+    const arx = identifyARX(u, y, 0, nb, nk, Ts);
+    return { b: arx.b, f: [], tf: arx.tf, yhat: arx.yhat, residual: arx.residual, fitPercent: arx.fitPercent, mse: arx.mse, aic: arx.aic, iterations: 1, order: { nb, nf, nk } };
+  }
+
+  const maxIter = options.maxIter ?? 20;
+  const tol = options.tol ?? 1e-6;
+  const N = y.length;
+  
+  // Initialize F(q) using ARX(nf, nb, nk)
+  const arxInit = identifyARX(u, y, nf, nb, nk, Ts);
+  let fTail = arxInit.a.slice(1); // F initial guess (like A)
+  let bTail = arxInit.b.slice(nk); // B initial guess
+  
+  let prevParams = [...fTail, ...bTail];
+  let iterations = 0;
+
+  for (let iter = 0; iter < maxIter; iter++) {
+    // Filter u and y by 1/F(q)
+    // w[k] + f1 w[k-1] + ... = u[k]  => w[k] = u[k] - f1 w[k-1] ...
+    const uf = new Array(N).fill(0);
+    const yf = new Array(N).fill(0);
+    for (let k = 0; k < N; k++) {
+      let suf = u[k], syf = y[k];
+      for (let i = 1; i <= nf; i++) {
+        suf -= (fTail[i - 1] || 0) * (uf[k - i] || 0);
+        syf -= (fTail[i - 1] || 0) * (yf[k - i] || 0);
+      }
+      uf[k] = suf;
+      yf[k] = syf;
+    }
+
+    // Regress y_f on past y_f and past u_f
+    // y_f[k] + f1 y_f[k-1] + ... = b1 u_f[k-nk] + ...
+    // => y_f[k] = -f1 y_f[k-1] ... + b1 u_f[k-nk] ...
+    const maxLag = Math.max(nf, nb + nk - 1);
+    const Phi = [];
+    const yVec = [];
+    for (let k = maxLag; k < N; k++) {
+      const row = [];
+      for (let i = 1; i <= nf; i++) row.push(-yf[k - i]);
+      for (let j = 0; j < nb; j++) row.push(uf[k - nk - j]);
+      Phi.push(row);
+      yVec.push(yf[k]); // note: regressing to yf[k], NOT y[k] in Steiglitz-McBride
+    }
+
+    const result = normalEquationsRidge(Phi, yVec, 1e-8);
+    fTail = result.slice(0, nf);
+    bTail = result.slice(nf, nf + nb);
+
+    const newParams = [...fTail, ...bTail];
+    const diff = Math.max(...newParams.map((p, i) => Math.abs(p - prevParams[i])));
+    prevParams = newParams;
+    iterations = iter + 1;
+    if (diff < tol) break;
+  }
+
+  // Simulate final OE model to get yhat and residuals
+  // yhat[k] = -f1 yhat[k-1] ... + b1 u[k-nk] ...
+  const yhat = new Array(N).fill(0);
+  for (let k = 0; k < N; k++) {
+    let s = 0;
+    for (let i = 1; i <= nf; i++) s -= (fTail[i - 1] || 0) * (yhat[k - i] || 0);
+    for (let j = 0; j < nb; j++) s += (bTail[j] || 0) * (u[k - nk - j] || 0);
+    yhat[k] = s;
+  }
+
+  const residuals = y.map((yi, k) => yi - yhat[k]);
+  const mse = residuals.reduce((s, ei) => s + ei * ei, 0) / N;
+  const yMean = y.reduce((s, v) => s + v, 0) / N;
+  const ssTot = y.reduce((s, yi) => s + (yi - yMean) ** 2, 0);
+  const fitPercent = ssTot > 1e-12
+    ? Math.max(0, (1 - Math.sqrt(residuals.reduce((s, ei) => s + ei * ei, 0) / ssTot)) * 100)
+    : NaN;
+  const nParams = nf + nb;
+  const aic = N * Math.log(mse + 1e-300) + 2 * nParams;
+
+  const fFull = [1, ...fTail];
+  const bFull = [...new Array(nk).fill(0), ...bTail];
+
+  return {
+    b: bTail, f: fTail,
+    tf: new DiscreteTransferFunction(bFull, fFull, Ts),
+    yhat, residual: residuals,
+    fitPercent, mse, aic, iterations,
+    order: { nb, nf, nk },
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Private helpers shared by OE / BJ
+// ---------------------------------------------------------------------------
+
+/**
+ * AR filter: out[k] = signal[k] − a[0]*out[k-1] − a[1]*out[k-2] − ...
+ * Equivalent to dividing by A(q) = 1 + a[0]q⁻¹ + a[1]q⁻² + …
+ */
+function _arFilter(signal, aTail, N) {
+  const out = new Array(N).fill(0);
+  for (let k = 0; k < N; k++) {
+    let s = signal[k] ?? 0;
+    for (let i = 0; i < aTail.length; i++) s -= (aTail[i] || 0) * (out[k - 1 - i] || 0);
+    out[k] = s;
+  }
+  return out;
+}
+
+/**
+ * Simulate OE model output (model-predicted, no noise):
+ *   yhat[k] = −f[0]*yhat[k-1] − … + b[0]*u[k-nk] + …
+ */
+function _oeSimulate(u, fTail, bTail, nk, N) {
+  const yhat = new Array(N).fill(0);
+  for (let k = 0; k < N; k++) {
+    let s = 0;
+    for (let i = 0; i < fTail.length; i++) s -= (fTail[i] || 0) * (yhat[k - 1 - i] || 0);
+    for (let j = 0; j < bTail.length; j++) s += (bTail[j] || 0) * (u[k - nk - j] || 0);
+    yhat[k] = s;
+  }
+  return yhat;
+}
+
+/**
+ * Fit ARMA(nc, nd) to signal r via iterative pseudo-linear regression.
+ * Noise model: D(q)·r = C(q)·e  ↔  r[k] = −d·r_past + c·e_past
+ * Returns [cTail, dTail].
+ */
+function _fitARMA(r, nc, nd, N, maxLag, innerIter = 6) {
+  let cTail = new Array(nc).fill(0);
+  let dTail = new Array(nd).fill(0);
+  if (nc === 0 && nd === 0) return [cTail, dTail];
+
+  for (let it = 0; it < innerIter; it++) {
+    // Compute innovations from current C, D
+    const e = new Array(N).fill(0);
+    for (let k = 0; k < N; k++) {
+      let ek = r[k] ?? 0;
+      for (let i = 0; i < nd; i++) ek += (dTail[i] || 0) * (r[k - 1 - i] || 0);
+      for (let l = 0; l < nc; l++) ek -= (cTail[l] || 0) * (e[k - 1 - l] || 0);
+      e[k] = ek;
+    }
+    const Phi = [], yVec = [];
+    for (let k = maxLag; k < N; k++) {
+      const row = [];
+      for (let i = 0; i < nd; i++) row.push(-(r[k - 1 - i] ?? 0));
+      for (let l = 0; l < nc; l++) row.push(e[k - 1 - l] ?? 0);
+      Phi.push(row);
+      yVec.push(r[k]);
+    }
+    if (Phi.length > 0 && Phi[0].length > 0) {
+      const res = normalEquationsRidge(Phi, yVec, 1e-8);
+      dTail = res.slice(0, nd);
+      cTail = res.slice(nd, nd + nc);
+    }
+  }
+  return [cTail, dTail];
+}
+
+// ---------------------------------------------------------------------------
+// CS-P21-02: Box-Jenkins (BJ) Model
+// ---------------------------------------------------------------------------
+
+/**
+ * Identify a Box-Jenkins model: y = B(q)/F(q)·u + C(q)/D(q)·e
+ *
+ * Uses alternating optimisation (extended Steiglitz-McBride for B/F;
+ * pseudo-linear ARMA regression for C/D).
+ *
+ * Degenerates correctly:
+ *   nc=nd=0 → OE;   nf=nd=0 → ARMAX-like (no AR on noise)
+ *
+ * @param {number[]} u   - input sequence
+ * @param {number[]} y   - output sequence
+ * @param {number}   nb  - process numerator order (B)
+ * @param {number}   nf  - process denominator order (F)
+ * @param {number}   nc  - noise MA order (C)
+ * @param {number}   nd  - noise AR order (D)
+ * @param {number}   nk  - input delay (≥1)
+ * @param {number}   Ts  - sample time
+ * @returns {{ b, f, c, d, tf, yhat, residual, fitPercent, mse, aic, iterations, order }}
+ */
+export function identifyBJ(u, y, nb, nf, nc, nd, nk = 1, Ts = 1, options = {}) {
+  if (!Number.isInteger(nb) || nb < 1) throw new Error('BJ: nb must be a positive integer');
+  if (!Number.isInteger(nf) || nf < 0) throw new Error('BJ: nf must be a non-negative integer');
+  if (!Number.isInteger(nc) || nc < 0) throw new Error('BJ: nc must be a non-negative integer');
+  if (!Number.isInteger(nd) || nd < 0) throw new Error('BJ: nd must be a non-negative integer');
+  if (!Number.isInteger(nk) || nk < 0) throw new Error('BJ: nk must be a non-negative integer');
+
+  // Degenerate to OE when noise model is trivial
+  if (nc === 0 && nd === 0) {
+    const oe = identifyOE(u, y, nb, nf, nk, Ts, options);
+    return { ...oe, c: [], d: [], order: { nb, nf, nc, nd, nk } };
+  }
+
+  const maxIter = options.maxIter ?? 30;
+  const tol = options.tol ?? 1e-6;
+  const N = y.length;
+  const maxLagBF = Math.max(nf, nb + nk - 1);
+  const maxLagCD = Math.max(nc, nd);
+  if (N < Math.max(maxLagBF, maxLagCD) + 10) throw new Error('BJ: not enough samples');
+
+  // Initialise B, F from OE; C = 1, D = 1 (zero tails)
+  const oeInit = identifyOE(u, y, nb, nf > 0 ? nf : 1, nk, Ts);
+  let fTail = nf > 0 ? oeInit.f.slice() : [];
+  let bTail = oeInit.b.slice();
+  let [cTail, dTail] = _fitARMA(oeInit.residual, nc, nd, N, maxLagCD);
+
+  let prevParams = [...bTail, ...fTail, ...cTail, ...dTail];
+  let iterations = 0;
+
+  for (let iter = 0; iter < maxIter; iter++) {
+    // ── Step 1: Update B, F (Steiglitz-McBride on D-filtered signals) ──
+    if (nf > 0 || nb > 0) {
+      const yD = _arFilter(y, dTail, N);
+      const uD = _arFilter(u, dTail, N);
+      const yDF = _arFilter(yD, fTail, N);
+      const uDF = _arFilter(uD, fTail, N);
+
+      const PhiBF = [], yVecBF = [];
+      for (let k = maxLagBF; k < N; k++) {
+        const row = [];
+        for (let i = 1; i <= nf; i++) row.push(-(yDF[k - i] ?? 0));
+        for (let j = 0; j < nb; j++) row.push(uDF[k - nk - j] ?? 0);
+        PhiBF.push(row);
+        yVecBF.push(yDF[k]);
+      }
+      if (PhiBF.length > 0 && PhiBF[0].length > 0) {
+        const res = normalEquationsRidge(PhiBF, yVecBF, 1e-8);
+        fTail = res.slice(0, nf);
+        bTail = res.slice(nf, nf + nb);
+      }
+    }
+
+    // ── Step 2: Update C, D (ARMA on OE residuals) ──
+    const resid = y.map((yi, k) => yi - _oeSimulate(u, fTail, bTail, nk, N)[k]);
+    [cTail, dTail] = _fitARMA(resid, nc, nd, N, maxLagCD);
+
+    const newParams = [...bTail, ...fTail, ...cTail, ...dTail];
+    const diff = Math.max(...newParams.map((p, i) => Math.abs(p - (prevParams[i] ?? 0))));
+    prevParams = newParams;
+    iterations = iter + 1;
+    if (diff < tol) break;
+  }
+
+  // Final metrics (OE simulation as yhat — the process model output)
+  const yhat = _oeSimulate(u, fTail, bTail, nk, N);
+  const residuals = y.map((yi, k) => yi - yhat[k]);
+  const mse = residuals.reduce((s, ei) => s + ei * ei, 0) / N;
+  const yMean = y.reduce((s, v) => s + v, 0) / N;
+  const ssTot = y.reduce((s, yi) => s + (yi - yMean) ** 2, 0);
+  const fitPercent = ssTot > 1e-12
+    ? Math.max(0, (1 - Math.sqrt(residuals.reduce((s, ei) => s + ei * ei, 0) / ssTot)) * 100)
+    : NaN;
+  const nParams = nb + nf + nc + nd;
+  const aic = N * Math.log(mse + 1e-300) + 2 * nParams;
+  const fFull = [1, ...fTail];
+  const bFull = [...new Array(nk).fill(0), ...bTail];
+
+  return {
+    b: bTail, f: fTail, c: cTail, d: dTail,
+    tf: new DiscreteTransferFunction(bFull, fFull, Ts),
+    yhat, residual: residuals,
+    fitPercent, mse, aic, iterations,
+    order: { nb, nf, nc, nd, nk },
+  };
+}
+
+// ---------------------------------------------------------------------------
+// CS-P21-04: Residual Validation + Model Uncertainty Export
+// ---------------------------------------------------------------------------
+
+/**
+ * Compute sample autocorrelation of signal at lags 0…nlags.
+ * Returns normalised values (r[0] = 1).
+ */
+function _sampleACF(signal, nlags) {
+  const N = signal.length;
+  const mean = signal.reduce((s, v) => s + v, 0) / N;
+  const variance = signal.reduce((s, v) => s + (v - mean) ** 2, 0) / N;
+  if (variance < 1e-15) return new Array(nlags + 1).fill(0);
+  const ac = new Array(nlags + 1);
+  for (let lag = 0; lag <= nlags; lag++) {
+    let sum = 0;
+    for (let k = lag; k < N; k++) sum += (signal[k] - mean) * (signal[k - lag] - mean);
+    ac[lag] = sum / (N * variance);
+  }
+  return ac;
+}
+
+/**
+ * Residual whiteness test (autocorrelation + Ljung-Box).
+ *
+ * A well-fitted model leaves white (uncorrelated) residuals.
+ * Uses the 95 % confidence bound ±1.96/√N; 90 % of lags must lie within
+ * bounds for `passed` to be true.
+ *
+ * @param {number[]} residuals
+ * @param {number}   nlags   - number of lags to test (default 20)
+ * @returns {{
+ *   autocorr:     number[],   // ACF at lags 1…nlags
+ *   bound95:      number,     // ±1.96/√N
+ *   withinBounds: boolean[],  // per-lag pass/fail
+ *   ljungBox:     number,     // Ljung-Box Q statistic
+ *   ljungBoxDf:   number,     // degrees of freedom (= nlags)
+ *   passed:       boolean,    // ≥ 90 % lags within bounds
+ * }}
+ */
+export function residualWhitenessTest(residuals, nlags = 20) {
+  const N = residuals.length;
+  const bound95 = 1.96 / Math.sqrt(N);
+  const ac = _sampleACF(residuals, nlags);
+  const autocorr = ac.slice(1); // lags 1…nlags
+
+  const withinBounds = autocorr.map(r => Math.abs(r) <= bound95);
+  const passed = withinBounds.filter(Boolean).length >= Math.ceil(0.90 * nlags);
+
+  // Ljung-Box Q = N(N+2) · Σ_{k=1}^{m} r_k² / (N−k)
+  let ljungBox = 0;
+  for (let k = 1; k <= nlags; k++) ljungBox += ac[k] ** 2 / (N - k);
+  ljungBox *= N * (N + 2);
+
+  return { autocorr, bound95, withinBounds, ljungBox, ljungBoxDf: nlags, passed };
+}
+
+/**
+ * Cross-correlation test between residuals and input.
+ *
+ * For a correctly identified model, residuals e[k] must be uncorrelated with
+ * all past inputs u[k-j], j ≥ 1.  Checks lags −nlags … +nlags.
+ *
+ * @param {number[]} residuals
+ * @param {number[]} u       - input signal (same length)
+ * @param {number}   nlags   - one-sided lag count (default 20)
+ * @returns {{
+ *   crossCorr:    number[],   // CCF at lags −nlags…+nlags
+ *   lags:         number[],   // corresponding lag values
+ *   bound95:      number,
+ *   withinBounds: boolean[],
+ *   passed:       boolean,
+ * }}
+ */
+export function crossCorrelationTest(residuals, u, nlags = 20) {
+  const N = Math.min(residuals.length, u.length);
+  const bound95 = 1.96 / Math.sqrt(N);
+
+  const eMean = residuals.reduce((s, v) => s + v, 0) / N;
+  const uMean = u.slice(0, N).reduce((s, v) => s + v, 0) / N;
+  const eVar = residuals.reduce((s, v) => s + (v - eMean) ** 2, 0) / N;
+  const uVar = u.slice(0, N).reduce((s, v) => s + (v - uMean) ** 2, 0) / N;
+  const denom = Math.sqrt(eVar * uVar);
+
+  const lags = Array.from({ length: 2 * nlags + 1 }, (_, i) => i - nlags);
+  const crossCorr = lags.map(lag => {
+    let sum = 0, cnt = 0;
+    const kStart = Math.max(0, -lag);
+    const kEnd   = Math.min(N, N - lag);
+    for (let k = kStart; k < kEnd; k++) {
+      sum += (residuals[k] - eMean) * (u[k + lag] - uMean);
+      cnt++;
+    }
+    return denom > 1e-15 ? sum / (cnt * denom) : 0;
+  });
+
+  const withinBounds = crossCorr.map(r => Math.abs(r) <= bound95);
+  // 85 % threshold (looser than ACF): boundary lags ±0…±nk can be nonzero
+  // for causal models with input delay even when the model is correct.
+  const passed = withinBounds.filter(Boolean).length >= Math.ceil(0.85 * crossCorr.length);
+  return { crossCorr, lags, bound95, withinBounds, passed };
+}
+
+/**
+ * Compute parameter covariance from a normal-equations regression.
+ * cov(θ) = σ² · (ΦᵀΦ)⁻¹
+ *
+ * @param {number[][]} Phi    - regressor matrix (N × p)
+ * @param {number}     sigma2 - noise variance (mse from fit)
+ * @returns {{ cov: number[][], stderr: number[] }}
+ */
+export function computeParameterCovariance(Phi, sigma2) {
+  const p = Phi[0].length;
+  const AtA = Array.from({ length: p }, () => new Array(p).fill(0));
+  for (const row of Phi) {
+    for (let i = 0; i < p; i++)
+      for (let j = 0; j < p; j++)
+        AtA[i][j] += row[i] * row[j];
+  }
+  // Invert via Gauss-Jordan
+  const aug = AtA.map((r, i) => {
+    const e = new Array(p).fill(0); e[i] = 1;
+    return [...r, ...e];
+  });
+  for (let k = 0; k < p; k++) {
+    let pivot = k;
+    for (let i = k + 1; i < p; i++) if (Math.abs(aug[i][k]) > Math.abs(aug[pivot][k])) pivot = i;
+    if (pivot !== k) { const t = aug[k]; aug[k] = aug[pivot]; aug[pivot] = t; }
+    const akk = aug[k][k];
+    if (Math.abs(akk) < 1e-14) continue;
+    for (let j = k; j < 2 * p; j++) aug[k][j] /= akk;
+    for (let i = 0; i < p; i++) if (i !== k) {
+      const f = aug[i][k];
+      for (let j = k; j < 2 * p; j++) aug[i][j] -= f * aug[k][j];
+    }
+  }
+  const invAtA = aug.map(r => r.slice(p));
+  const cov = invAtA.map(row => row.map(v => v * sigma2));
+  const stderr = cov.map((row, i) => Math.sqrt(Math.max(0, row[i])));
+  return { cov, stderr };
+}
+
+/**
+ * Export model uncertainty as a multiplicative frequency-domain bound,
+ * compatible with Phase 18 robust validation input format.
+ *
+ * Uses Monte Carlo sampling from N(θ̂, cov(θ̂)) to compute ±2σ magnitude
+ * bounds at each frequency, then reports the maximum relative deviation
+ * as a scalar gain variation and worst-case phase spread.
+ *
+ * @param {number[]}   num    - identified numerator (z⁻¹ polynomial, nk zeros prepended)
+ * @param {number[]}   den    - identified denominator (length na+1, leading 1)
+ * @param {number[][]} cov    - parameter covariance (from computeParameterCovariance)
+ * @param {number}     nSamples - Monte Carlo draws (default 200)
+ * @param {number}     nFreqs   - frequency grid points (default 100)
+ * @returns {{
+ *   gainVariation:   number,    // max relative magnitude deviation (0–1) for ±2σ → Phase 18 gain knob
+ *   phaseVariation:  number,    // max absolute phase spread in degrees
+ *   freqNorm:        number[],  // normalised freq grid [0, π]
+ *   nominalMagDB:    number[],  // |H(e^jω)| in dB
+ *   upperMagDB:      number[],  // 97.5th-percentile sample magnitude in dB
+ *   lowerMagDB:      number[],  // 2.5th-percentile sample magnitude in dB
+ *   multiplicativeW: number[],  // |ΔH/H_nominal| at each frequency (for w(jω))
+ * }}
+ */
+export function exportModelUncertainty(num, den, cov, nSamples = 200, nFreqs = 100) {
+  const nb = num.length;
+  const na = den.length - 1; // excluding leading 1
+  const nParams = nb + na;
+  const freqs = Array.from({ length: nFreqs }, (_, i) => (Math.PI * i) / (nFreqs - 1));
+
+  // Evaluate H(e^jω) for a given num/den
+  function evalH(n, d, omega) {
+    let nRe = 0, nIm = 0, dRe = 0, dIm = 0;
+    let cosK = 1, sinK = 0; // e^{-j0}
+    for (let k = 0; k < n.length; k++) {
+      nRe += n[k] * cosK; nIm -= n[k] * sinK;
+      const c2 = cosK * Math.cos(omega) + sinK * Math.sin(omega);
+      const s2 = sinK * Math.cos(omega) - cosK * Math.sin(omega);
+      cosK = c2; sinK = s2;
+    }
+    cosK = 1; sinK = 0;
+    for (let k = 0; k < d.length; k++) {
+      dRe += d[k] * cosK; dIm -= d[k] * sinK;
+      const c2 = cosK * Math.cos(omega) + sinK * Math.sin(omega);
+      const s2 = sinK * Math.cos(omega) - cosK * Math.sin(omega);
+      cosK = c2; sinK = s2;
+    }
+    const dMag2 = dRe * dRe + dIm * dIm;
+    if (dMag2 < 1e-30) return { mag: 0, phase: 0 };
+    const Hre = (nRe * dRe + nIm * dIm) / dMag2;
+    const Him = (nIm * dRe - nRe * dIm) / dMag2;
+    return { mag: Math.sqrt(Hre * Hre + Him * Him), phase: Math.atan2(Him, Hre) * 180 / Math.PI };
+  }
+
+  // Nominal response
+  const nominal = freqs.map(w => evalH(num, den, w));
+
+  // Cholesky decomposition for sampling N(0, cov)
+  function choleskyLower(C) {
+    const n = C.length;
+    const L = Array.from({ length: n }, () => new Array(n).fill(0));
+    for (let i = 0; i < n; i++) {
+      for (let j = 0; j <= i; j++) {
+        let sum = C[i][j];
+        for (let k = 0; k < j; k++) sum -= L[i][k] * L[j][k];
+        L[i][j] = i === j ? Math.sqrt(Math.max(0, sum)) : (L[j][j] > 1e-14 ? sum / L[j][j] : 0);
+      }
+    }
+    return L;
+  }
+
+  // Simple LCG for deterministic sampling (seed 42)
+  let lcgState = 42;
+  function lcgNormal() {
+    // Box-Muller using LCG
+    lcgState = (lcgState * 1664525 + 1013904223) & 0xffffffff;
+    const u1 = ((lcgState >>> 0) + 0.5) / 4294967296;
+    lcgState = (lcgState * 1664525 + 1013904223) & 0xffffffff;
+    const u2 = ((lcgState >>> 0) + 0.5) / 4294967296;
+    return Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
+  }
+
+  // Build reduced covariance (only parameters that exist)
+  const nP = Math.min(nParams, cov.length);
+  const L = choleskyLower(cov.slice(0, nP).map(r => r.slice(0, nP)));
+
+  // Sample and accumulate per-frequency magnitudes
+  const magSamples = freqs.map(() => []);
+  const phaseSamples = freqs.map(() => []);
+
+  for (let s = 0; s < nSamples; s++) {
+    // Sample z ~ N(0, I), then θ_s = θ̂ + L·z
+    const z = Array.from({ length: nP }, lcgNormal);
+    const dTheta = L.map(row => row.reduce((acc, l, j) => acc + l * z[j], 0));
+
+    // Perturb num (first nb params) and den tail (next na params)
+    const numS = num.map((v, i) => v + (i < nP ? dTheta[i] : 0));
+    const denS = den.map((v, i) => i === 0 ? 1 : v + (i - 1 + nb < nP ? dTheta[i - 1 + nb] : 0));
+
+    for (let f = 0; f < freqs.length; f++) {
+      const h = evalH(numS, denS, freqs[f]);
+      magSamples[f].push(h.mag);
+      phaseSamples[f].push(h.phase);
+    }
+  }
+
+  // Per-frequency 2.5 / 97.5 percentile
+  function percentile(arr, p) {
+    const sorted = arr.slice().sort((a, b) => a - b);
+    const idx = (p / 100) * (sorted.length - 1);
+    const lo = Math.floor(idx), hi = Math.ceil(idx);
+    return sorted[lo] + (sorted[hi] - sorted[lo]) * (idx - lo);
+  }
+
+  const upperMagDB = [], lowerMagDB = [], nominalMagDB = [], multW = [];
+  let maxGainDev = 0, maxPhaseDev = 0;
+
+  for (let f = 0; f < freqs.length; f++) {
+    const nomMag = nominal[f].mag;
+    const hi = percentile(magSamples[f], 97.5);
+    const lo = percentile(magSamples[f], 2.5);
+    nominalMagDB.push(20 * Math.log10(Math.max(nomMag, 1e-30)));
+    upperMagDB.push(20 * Math.log10(Math.max(hi, 1e-30)));
+    lowerMagDB.push(20 * Math.log10(Math.max(lo, 1e-30)));
+    const relDev = nomMag > 1e-10 ? Math.max(Math.abs(hi - nomMag), Math.abs(nomMag - lo)) / nomMag : 0;
+    multW.push(relDev);
+    maxGainDev = Math.max(maxGainDev, relDev);
+
+    const phaseArr = phaseSamples[f];
+    const phiHi = percentile(phaseArr, 97.5);
+    const phiLo = percentile(phaseArr, 2.5);
+    maxPhaseDev = Math.max(maxPhaseDev, Math.abs(phiHi - phiLo) / 2);
+  }
+
+  return {
+    gainVariation: maxGainDev,
+    phaseVariation: maxPhaseDev,
+    freqNorm: freqs,
+    nominalMagDB,
+    upperMagDB,
+    lowerMagDB,
+    multiplicativeW: multW,
+  };
+}
+
+// ---------------------------------------------------------------------------
+
+/**
  * Convenience: try several (na, nb) combinations and pick the one with lowest AIC.
  */
 export function autoARXOrder(u, y, options = {}) {

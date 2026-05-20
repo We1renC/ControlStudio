@@ -1104,6 +1104,17 @@ export function simulateOffsetFreeMpc(
   if (!options.Qw || !options.Rv) {
     throw new Error('Qw and Rv are required for offset-free observer design');
   }
+  // Validate Qw / Rv dimensions against the augmented model (n+p state, p output).
+  const nAug = n + p;
+  if (!Array.isArray(options.Qw) || options.Qw.length !== nAug || options.Qw[0].length !== nAug) {
+    throw new Error(
+      `Qw must be ${nAug}×${nAug} (augmented state size n+p = ${n}+${p}) ` +
+      `but got ${Array.isArray(options.Qw) ? options.Qw.length : '?'}×${Array.isArray(options.Qw) && Array.isArray(options.Qw[0]) ? options.Qw[0].length : '?'}`
+    );
+  }
+  if (!Array.isArray(options.Rv) || options.Rv.length !== p || options.Rv[0].length !== p) {
+    throw new Error(`Rv must be ${p}×${p} (output dimension) but got ${options.Rv?.length}×${options.Rv?.[0]?.length}`);
+  }
 
   const { A_aug, B_aug, C_aug } = buildDisturbanceModel(Ad, Bd, C, p);
   const obs = designDisturbanceObserver(A_aug, C_aug, options.Qw, options.Rv);
@@ -1203,11 +1214,21 @@ export function checkMpcFeasibility(Ad, Bd, C, horizon, x0, constraints = {}) {
   const rawMax = constraints.uMax ?? Infinity;
   const uMin = Array.isArray(rawMin) ? rawMin : Array(m).fill(rawMin);
   const uMax = Array.isArray(rawMax) ? rawMax : Array(m).fill(rawMax);
-  
+
+  // Early exit: detect inverted input bounds (uMin > uMax) — no feasible control action exists.
+  const diagnostics = { feasible: true, violatedConstraints: [] };
+  for (let j = 0; j < m; j++) {
+    if (uMin[j] > uMax[j] + 1e-10) {
+      diagnostics.feasible = false;
+      diagnostics.violatedConstraints.push({
+        type: 'uConflict', inputIndex: j, uMin: uMin[j], uMax: uMax[j],
+      });
+    }
+  }
+  if (!diagnostics.feasible) return diagnostics;
+
   let currentMin = x0.map(r => r[0]);
   let currentMax = x0.map(r => r[0]);
-  
-  const diagnostics = { feasible: true, violatedConstraints: [] };
   
   for (let k = 1; k <= horizon; k++) {
     const nextMin = Array(n).fill(0);
