@@ -1158,3 +1158,109 @@ export function autoModelOrder(u, y, options = {}) {
 
   return { best, candidates: results };
 }
+
+// ---------------------------------------------------------------------------
+
+/**
+ * MISO ARX identification — Multiple-Input Single-Output system.
+ *
+ * Model: A(q)y[k] = B₁(q)u₁[k] + B₂(q)u₂[k] + … + Bₙᵤ(q)uₙᵤ[k]
+ *
+ * where the AR part is shared and each input has its own B polynomial
+ * and optional individual delay nk_i.
+ *
+ * The regression matrix extends the SISO ARX Φ by concatenating the
+ * delayed input columns for all nu inputs.
+ *
+ * @param {number[][]} U_matrix  - N×nu input matrix  (each column = one input)
+ * @param {number[]}   y         - Output sequence (length N)
+ * @param {number}     na        - Shared AR order
+ * @param {number[]}   nb_vec    - B orders [nb₁, nb₂, …, nbₙᵤ] (length = nu)
+ * @param {number[]}   nk_vec    - Input delays [nk₁, nk₂, …] (default: all 1)
+ * @param {number}     Ts        - Sample time (default 1)
+ * @returns {{
+ *   a: number[],         // [1, a₁, …, aₙₐ]
+ *   b_each: number[][],  // [b₁_coeffs, b₂_coeffs, …] — one array per input
+ *   yhat: number[],
+ *   residual: number[],
+ *   fitPercent: number,
+ *   mse: number,
+ *   aic: number,
+ *   nParams: number,
+ * }}
+ */
+export function identifyMISOARX(U_matrix, y, na, nb_vec, nk_vec = null, Ts = 1) {
+  const N  = y.length;
+  const nu = U_matrix[0].length;
+  if (U_matrix.length !== N) throw new Error('MISO ARX: U_matrix rows must equal y.length');
+  if (nb_vec.length !== nu)  throw new Error('MISO ARX: nb_vec.length must equal number of inputs');
+
+  const nk = nk_vec ?? new Array(nu).fill(1);
+  if (nk.length !== nu) throw new Error('MISO ARX: nk_vec.length must equal number of inputs');
+
+  // Determine valid start index
+  const maxLag = Math.max(na, ...nb_vec.map((nb, i) => nb + nk[i] - 1));
+  if (maxLag >= N) throw new Error('MISO ARX: not enough samples for the chosen orders');
+
+  const nValid = N - maxLag;
+  const nCols  = na + nb_vec.reduce((s, nb) => s + nb, 0);
+
+  // Build regression matrix
+  const Phi  = [];
+  const yvec = [];
+  for (let k = maxLag; k < N; k++) {
+    const row = new Array(nCols).fill(0);
+    let col = 0;
+    // AR columns: -y[k-1], …, -y[k-na]
+    for (let i = 1; i <= na; i++) row[col++] = -y[k - i];
+    // B columns for each input
+    for (let inp = 0; inp < nu; inp++) {
+      for (let j = 0; j < nb_vec[inp]; j++) {
+        const kj = k - nk[inp] - j;
+        row[col++] = kj >= 0 ? U_matrix[kj][inp] : 0;
+      }
+    }
+    Phi.push(row);
+    yvec.push(y[k]);
+  }
+
+  // Least-squares
+  const theta = normalEquations(Phi, yvec);
+
+  // Extract coefficients
+  let idx = 0;
+  const aTail = theta.slice(idx, idx + na); idx += na;
+  const a = [1, ...aTail];
+  const b_each = [];
+  for (let inp = 0; inp < nu; inp++) {
+    b_each.push(theta.slice(idx, idx + nb_vec[inp]));
+    idx += nb_vec[inp];
+  }
+
+  // One-step-ahead prediction
+  const yhat = new Array(N).fill(NaN);
+  for (let k = maxLag; k < N; k++) {
+    let s = 0;
+    for (let i = 1; i <= na; i++) s -= aTail[i - 1] * y[k - i];
+    for (let inp = 0; inp < nu; inp++) {
+      for (let j = 0; j < nb_vec[inp]; j++) {
+        const kj = k - nk[inp] - j;
+        if (kj >= 0) s += b_each[inp][j] * U_matrix[kj][inp];
+      }
+    }
+    yhat[k] = s;
+  }
+
+  const residual  = y.map((yk, k) => Number.isFinite(yhat[k]) ? yk - yhat[k] : 0);
+  const validRes  = residual.slice(maxLag);
+  const validY    = y.slice(maxLag);
+  const sse       = validRes.reduce((s, r) => s + r * r, 0);
+  const yMean     = validY.reduce((s, v) => s + v, 0) / nValid;
+  const sst       = validY.reduce((s, v) => s + (v - yMean) ** 2, 0);
+  const fitPercent = sst > 1e-12 ? Math.max(0, (1 - Math.sqrt(sse / sst)) * 100) : NaN;
+  const mse       = sse / nValid;
+  const nParams   = nCols;
+  const aic       = nValid * Math.log(mse + 1e-300) + 2 * nParams;
+
+  return { a, b_each, yhat, residual, fitPercent, mse, aic, nParams };
+}

@@ -79,6 +79,13 @@ run_script "Phase 18 robust validation"    "node scripts/verify_p18_robust_valid
 run_script "Phase 19 H∞ Riccati"          "node scripts/verify_p19_hinf_riccati.mjs"
 run_script "Phase 20 MPC engineering"      "node scripts/verify_p20_mpc_engineering.mjs"
 run_script "Phase 21 SysID advanced"       "node scripts/verify_p21_sysid_advanced.mjs"
+run_script "P23 freq sysid (FRF)"         "node scripts/verify_p23_freq_sysid.mjs"
+run_script "P23 model order selection"    "node scripts/verify_p23_model_order.mjs"
+run_script "P23 MISO ARX"                 "node scripts/verify_p23_miso.mjs"
+run_script "P24 NMPC"                     "node scripts/verify_p24_nmpc.mjs"
+run_script "P25 model reduction"          "node scripts/verify_p25_model_reduction.mjs"
+run_script "P26 nonlinear control"        "node scripts/verify_p26_nonlinear.mjs"
+run_script "P27 MIMO H∞"                  "node scripts/verify_p27_mimo_hinf.mjs"
 echo ""
 
 # ── General Math & PID ───────────────────────────────────────────────────────
