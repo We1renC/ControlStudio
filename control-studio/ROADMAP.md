@@ -1,7 +1,7 @@
 # ControlStudio Development Roadmap
 
 > Last updated: 2026-05-20
-> Current committed baseline: `1259565 feat(p27-p28): loop shaping H∞ + TypeScript type definitions`
+> Current committed baseline: `6a7d741 chore(git): ignore node dependency artifacts`
 > Scope: this is the canonical execution roadmap for ControlStudio implementation status.
 > Do not use this file for product vision, proof derivations, or handoff notes; see the document workflow below.
 
@@ -51,25 +51,21 @@
 | P21 | Advanced SysID: OE / BJ / subspace / experiment signals | Done | `verify_p21_sysid_advanced.mjs` |
 | P22 | Verification infrastructure / cross-tool regression / CI | Done | `run_all_verify.sh`, `compare_python_control.py`, `.github/workflows/ci.yml` |
 | P23 | SysID gap closure: FRF, model order, MISO ARX | Mostly Done | `verify_p23_*.mjs` |
-| P24 | Advanced MPC: NMPC committed; EMPC dirty / in progress | In Progress | `verify_p24_nmpc.mjs`; dirty `verify_p24_empc.mjs` |
+| P24 | Advanced MPC: NMPC, EMPC, Tube MPC, Explicit MPC | Done | `verify_p24_nmpc.mjs`, `verify_p24_empc.mjs`, `verify_p24_tube_explicit_mpc.mjs` |
 | P25 | Model order reduction: minreal SS + balanced truncation | Mostly Done | `verify_p25_model_reduction.mjs` |
 | P26 | Nonlinear control: gain scheduling + SMC | Mostly Done | `verify_p26_nonlinear.mjs` |
 | P27 | H∞ extensions: MIMO H∞ verify + loop shaping | Mostly Done | `verify_p27_mimo_hinf.mjs`, `verify_p27_loop_shaping.mjs` |
 | P28 | Infrastructure quality: TS definitions + benchmark | Mostly Done | `control-studio/types/control-studio.d.ts`, `benchmark.mjs` |
 
-## Dirty Worktree Classification
+## Remaining Dirty Worktree Classification
 
-Current uncommitted files observed on 2026-05-20:
+Current non-P24 uncommitted files observed on 2026-05-20:
 
 | Path | Classification | Action |
 | --- | --- | --- |
 | `package.json` | Local dependency change: adds `typescript` devDependency | Review with `package-lock.json`; commit only if TypeScript checks become an official workflow |
 | `package-lock.json` | Generated lockfile | Commit only if npm dependency management is intentionally adopted |
 | `node_modules/` | Generated dependency directory | Never commit |
-| `control-studio/js/control/empc.js` | P24 EMPC candidate implementation | Audit, verify, then either formalize as P24-03 or keep out of roadmap status |
-| `control-studio/scripts/verify_p24_empc.mjs` | P24 EMPC candidate verification | Run and review before marking P24-03 Done |
-| `control-studio/js/control/scratch_feasibility.js` | Scratch file | Do not commit as-is |
-| `control-studio/js/control/scratch_offset_free.js` | Scratch file | Do not commit as-is |
 
 ## Phase Details
 
@@ -95,9 +91,9 @@ Current uncommitted files observed on 2026-05-20:
 | Item | Status | Evidence |
 | --- | --- | --- |
 | P24-01 NMPC / SQP-lite | Done | `nmpc.js`, `verify_p24_nmpc.mjs` |
-| P24-02 Tube MPC | Planned | No committed tube MPC runner yet |
-| P24-03 Economic MPC | In Progress | Dirty `empc.js`, dirty `verify_p24_empc.mjs`; not yet committed |
-| P24-04 Explicit MPC | Planned | No committed explicit MPC module yet |
+| P24-02 Tube MPC | Done | `tube_mpc.js`, `verify_p24_tube_explicit_mpc.mjs` |
+| P24-03 Economic MPC | Done | `empc.js`, `verify_p24_empc.mjs` |
+| P24-04 Explicit MPC | Done | `explicit_mpc.js`, `verify_p24_tube_explicit_mpc.mjs` |
 
 ### P25 — Model Order Reduction
 
@@ -133,16 +129,13 @@ Current uncommitted files observed on 2026-05-20:
 
 ## Next Action Order
 
-1. Resolve dirty P24 EMPC work:
-   - audit `empc.js` and `verify_p24_empc.mjs`
-   - run targeted verification
-   - remove or rewrite scratch files before commit
-2. Decide whether npm dependency management is official:
+1. Decide whether npm dependency management is official:
    - if yes, commit `package.json` + `package-lock.json`
    - if no, revert package dependency changes and avoid `node_modules/`
-3. Continue P24 in this order:
-   - EMPC formalization
-   - Tube MPC
-   - Explicit MPC
-4. Continue P27 only after P24 status is clean:
+2. Continue P27:
    - full D-K iteration remains the major robust-control gap.
+3. Fill remaining research gaps:
+   - P23 continuous-time identification
+   - P25 Hankel norm approximation
+   - P26 LPV synthesis
+   - P28 JSDoc API docs

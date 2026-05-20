@@ -122,7 +122,7 @@
     - Done：Phase 21 research-grade system identification，含 ARMAX / OE / BJ / subspace ID、experiment design、residual validation、uncertainty export。
     - Done：Phase 22 benchmark + cross-tool validation，含 CI、cross-tool comparison、full verification runner、benchmark script。
     - Mostly Done：Phase 23 agentic / SysID gap closure；FRF、model order、MISO ARX 已提交，CONTSID / SRIVC 尚未提交。
-    - In Progress：Phase 24 advanced MPC；NMPC 已提交，EMPC 仍在 dirty worktree，Tube MPC / Explicit MPC 尚未提交。
+    - Done：Phase 24 advanced MPC；NMPC、EMPC、Tube MPC、Explicit MPC 已提交，含 deterministic regression runners。
     - Mostly Done：Phase 25 model order reduction；balanced truncation / SS minreal 已提交，Hankel norm approximation 尚未提交。
     - Mostly Done：Phase 26 nonlinear control；gain-scheduled PID / SMC 已提交，LPV synthesis 尚未提交。
     - Mostly Done：Phase 27 H∞ design extensions；MIMO H∞ verification / loop-shaping H∞ 已提交，full D-K iteration 尚未提交。
@@ -199,8 +199,8 @@ git log --oneline -5
 - `control_advisor_workflow.py --help` 可正常執行。
 - `CONTROL_SYSTEM_PLAN.md` 已整理控制系統盤點、MVP 範圍與後續 roadmap。
 - `CONTROL_SYSTEM_VERIFICATION_CASES.md` 已定義五個具數學推導的控制系統驗證案例，涵蓋一階、二階欠阻尼、初始不穩定/pole-zero/低 PM、RHP zero、State-Space 等價。
-- `control-studio/ROADMAP.md` 已整併為 ControlStudio 主執行看板，記錄 P23~P28 進度、dirty worktree 分類、文件工作流與下一步順序。
-- `CONTROL_SYSTEM_BACKLOG.md` 已改為 detailed task ledger；目前 Phase 0~22 已完成，P23/P25/P26/P27/P28 mostly done，P24 advanced MPC in progress。
+- `control-studio/ROADMAP.md` 已整併為 ControlStudio 主執行看板，記錄 P23~P28 進度、dirty worktree 分類、文件工作流與下一步順序；P24 advanced MPC 已完成。
+- `CONTROL_SYSTEM_BACKLOG.md` 已改為 detailed task ledger；目前 Phase 0~24 已完成，P25/P26/P27/P28 mostly done。
 - `CONTROL_SYSTEM_SKILLS_PLAN.md` 已新增 Phase 18+ skill candidates，且 `control-studio-robust-validator`、`control-studio-system-auditor`、`control-studio-benchmark-author` baseline 已建立；MPC / SysID / UI verifier 目前以全域 skill 或候選工作流存在，專案版 examples / references 可後續補。
 - `control-studio` 已補上 State Space（SISO）輸入、Step/Impulse/Ramp 切換、Nyquist Plot、project save/load 與 JSON/CSV 匯出。
 - `control-studio` UI 已改成 sidebar workspace tabs（Model / Sim / Advisor / Compare），並支援 comparison snapshots 疊圖比較。
@@ -268,6 +268,7 @@ git log --oneline -5
 - `control-studio` 已補 Phase 15：ARX system ID（least squares + AIC auto order）、Compare Bode overlay、MATLAB / Python codegen、root-locus K-sweep animation；`npm run verify:p15` 可重跑驗證。
 - `control-studio` 已補 Phase 16：mixed-sensitivity H∞ PID synthesis helper、GA PID auto-tuner、phase portrait、describing functions；`npm run verify:p16` 可重跑驗證。
 - `control-studio` 已補 Phase 17：plant-order dynamic H∞ mixed-sensitivity synthesis、structured μ D-scaling upper-bound / DK-style static gain surrogate、MIMO characteristic loci / Gershgorin bands / inverse Nyquist array、MPC MIMO output-space setpoint tracking；`npm run verify:p17` 可重跑驗證。
+- `control-studio` 已補 Phase 24：EMPC (`empc.js`)、Tube MPC (`tube_mpc.js`)、Explicit MPC (`explicit_mpc.js`)；`verify_p24_empc.mjs` 與 `verify_p24_tube_explicit_mpc.mjs` 可重跑驗證。
 - `a2a89d3 fix(math): 4 defects in complex / polynomial / realschur` 已完成 post Phase 17 數學核心修復；commit 記錄 TF/SS/ZPK/C2D `36/36` 與 PID `21/21` 通過。
 - 本輪補上 unpaired complex root error wording 相容性後，`node test_control.js` / `./nv-agent doctor` 不應再因錯誤訊息分類失敗。
 - 本輪同步 `scripts/validate_nvidia_model_selector.sh` 的 Phase 10 math-core 預期值為 `16/16`，避免標準 `doctor` workflow 停留在舊 `12/12` 基線。
@@ -275,21 +276,19 @@ git log --oneline -5
 - 本輪完成 math-core audit hardening，新增 regression 覆蓋 extreme complex division、separated quadratic roots、tiny-scale inverse / solve / rank / positive-definite checks；`npm run verify:all`、`node test_control.js`、`node control-studio/scripts/control_regression_dashboard.mjs`、`./nv-agent doctor` 均已通過。
 
 ## 後續可做
-1. 先處理 `control-studio/ROADMAP.md` 列出的 dirty worktree：審查 `empc.js` / `verify_p24_empc.mjs`，決定是否正式納入 P24；`scratch_*` 不要原樣提交。
-2. 決定 `package.json` / `package-lock.json` / `node_modules/` 的 dependency policy；若 TypeScript workflow 正式化才提交 lockfile，`node_modules/` 永不提交。
-3. 依 roadmap 下一步完成 P24：EMPC formalization → Tube MPC → Explicit MPC。
-4. P24 clean 後再做 P27 full D-K iteration；不要把目前 structured μ surrogate 說成完整 μ-synthesis。
-5. 補 P23 continuous-time identification、P25 Hankel norm approximation、P26 LPV synthesis、P28 JSDoc API docs。
-6. 使用 `control-studio-system-auditor` 審查下一個控制設計缺口，並用 `control-studio-benchmark-author` 補 benchmark fixture。
-7. Teaching Mode / Electron / Report Template 目前使用者要求擱置，不要開發。
-8. Block Diagram 目前維持 paused；不要新增 block diagram 功能，除非使用者重新明確恢復。
-9. 加 `agents/openai.yaml` UI metadata。
-10. 增強 evaluator：從 heuristic 檢查升級成 judge model + golden dataset。
-11. 若 NVIDIA Build Models 更新，先更新根目錄資料檔，再同步 `skills/nvidia-model-selector/references/`。
-12. 視需求把 `search_models.py` 加上 `--top-category-summary` 或 fuzzy ranking。
-13. 若要更實用，補上本地文件切 chunk / PDF 轉圖 / OCR 結果快取。
-14. 加 parallel runner 與 leaderboard，追蹤同任務多模型輸出品質。
-15. 將 OCR/RAG 的 endpoint source 也改成完整 registry-driven，而不只傳入 model id。
+1. 決定 `package.json` / `package-lock.json` 的 dependency policy；若 TypeScript workflow 正式化才提交 lockfile，`node_modules/` 永不提交。
+2. 下一個主線做 P27 full D-K iteration；不要把目前 structured μ surrogate 說成完整 μ-synthesis。
+3. 補 P23 continuous-time identification、P25 Hankel norm approximation、P26 LPV synthesis、P28 JSDoc API docs。
+4. 使用 `control-studio-system-auditor` 審查下一個控制設計缺口，並用 `control-studio-benchmark-author` 補 benchmark fixture。
+5. Teaching Mode / Electron / Report Template 目前使用者要求擱置，不要開發。
+6. Block Diagram 目前維持 paused；不要新增 block diagram 功能，除非使用者重新明確恢復。
+7. 加 `agents/openai.yaml` UI metadata。
+8. 增強 evaluator：從 heuristic 檢查升級成 judge model + golden dataset。
+9. 若 NVIDIA Build Models 更新，先更新根目錄資料檔，再同步 `skills/nvidia-model-selector/references/`。
+10. 視需求把 `search_models.py` 加上 `--top-category-summary` 或 fuzzy ranking。
+11. 若要更實用，補上本地文件切 chunk / PDF 轉圖 / OCR 結果快取。
+12. 加 parallel runner 與 leaderboard，追蹤同任務多模型輸出品質。
+13. 將 OCR/RAG 的 endpoint source 也改成完整 registry-driven，而不只傳入 model id。
 
 ## 注意事項
 - 這個專案不需要 `.agent-handoff.md`。

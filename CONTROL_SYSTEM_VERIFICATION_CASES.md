@@ -528,6 +528,63 @@ rank(Qo) = 2
 }
 ```
 
+## Phase 24 Advanced MPC Verification Addendum
+
+Phase 24 的 NMPC / EMPC / Tube MPC / Explicit MPC 屬離散時間最佳控制基線，驗證重點不是圖形外觀，而是最佳化問題、約束與閉迴路行為是否符合數學定義。
+
+### P24-03 Economic MPC
+
+Economic MPC 使用有限域非二次目標：
+
+```text
+min_U Σ_{k=0}^{N-1} ℓ(x_k, u_k) + V_f(x_N)
+s.t.  x_{k+1} = A_d x_k + B_d u_k
+      u_min <= u_k <= u_max
+```
+
+`control-studio/js/control/empc.js` 以 seeded Differential Evolution 求解 open-loop sequence，並只套用第一個控制量。驗證腳本 `verify_p24_empc.mjs` 檢查：
+
+- quadratic cost 時狀態收斂，行為接近 finite-horizon LQR。
+- L1 / non-quadratic cost 仍可穩定改善狀態。
+- `uMin/uMax` 全程滿足。
+- 相同 seed 產生相同控制序列。
+- terminal cost 會改變閉迴路末端誤差。
+
+### P24-02 Tube MPC
+
+Tube MPC 使用：
+
+```text
+u_k = v_k - K(x_k - z_k)
+z_{k+1} = A_d z_k + B_d v_k
+e_{k+1} = (A_d - B_d K)e_k + w_k
+```
+
+若 disturbance bound 為 `|w| <= w_max`，tube radius 以區間上界遞推：
+
+```text
+r_{k+1} = |A_d - B_d K| r_k + w_max
+```
+
+控制量 tightening：
+
+```text
+|K e_k| <= |K| r_k
+u_min + |K|r <= v_k <= u_max - |K|r
+```
+
+`verify_p24_tube_explicit_mpc.mjs` 以 scalar fixture 驗證 radius propagation、input tightening、原始 input bound 滿足，以及 tightened infeasible case 的診斷。
+
+### P24-04 Explicit MPC
+
+Explicit MPC baseline 目前限制在 scalar `1 state / 1 input`，用 online constrained MPC 在 state grid 上取樣，再壓縮成 piecewise-linear policy：
+
+```text
+u(x) = a_i x + b_i,  x in region_i
+```
+
+驗證腳本檢查 explicit lookup 在 sample states 上與 online constrained MPC 一致，並確認 policy 可讓 scalar plant regulation 收斂。
+
 ## Implementation Checklist
 
 後續 agent 將這些案例自動化時，建議順序如下：

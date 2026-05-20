@@ -83,6 +83,8 @@ run_script "P23 freq sysid (FRF)"         "node scripts/verify_p23_freq_sysid.mj
 run_script "P23 model order selection"    "node scripts/verify_p23_model_order.mjs"
 run_script "P23 MISO ARX"                 "node scripts/verify_p23_miso.mjs"
 run_script "P24 NMPC"                     "node scripts/verify_p24_nmpc.mjs"
+run_script "P24 EMPC"                     "node scripts/verify_p24_empc.mjs"
+run_script "P24 Tube/Explicit MPC"        "node scripts/verify_p24_tube_explicit_mpc.mjs"
 run_script "P25 model reduction"          "node scripts/verify_p25_model_reduction.mjs"
 run_script "P26 nonlinear control"        "node scripts/verify_p26_nonlinear.mjs"
 run_script "P27 MIMO H∞"                  "node scripts/verify_p27_mimo_hinf.mjs"

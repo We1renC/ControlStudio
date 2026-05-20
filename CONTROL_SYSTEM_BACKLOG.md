@@ -37,7 +37,7 @@
 
 - Branch: `main`
 - Latest synced commit: `1259565 feat(p27-p28): loop shaping H∞ + TypeScript type definitions`
-- Current checkpoint: **CS-P0 ~ CS-P22 done; P23/P25/P26/P27/P28 mostly done; P24 in progress.** 詳細執行看板見 `control-studio/ROADMAP.md`。目前主要未完成項目是 P24 EMPC dirty worktree formalization、Tube MPC、Explicit MPC、P27 full D-K iteration、P28 JSDoc API docs、P23 continuous-time identification 與 P25/P26 的剩餘研究級功能。
+- Current checkpoint: **CS-P0 ~ CS-P24 done; P25/P26/P27/P28 mostly done.** 詳細執行看板見 `control-studio/ROADMAP.md`。目前主要未完成項目是 P27 full D-K iteration、P28 JSDoc API docs、P23 continuous-time identification、P25 Hankel norm approximation 與 P26 LPV synthesis。
 - Scenario 5 browser walkthrough result: Phase 10 math + UI both operational.
 - Scenario 6 browser walkthrough result: SISO / MIMO core workflows are UI-operable.
 - Latest full-theory audit:
@@ -404,9 +404,9 @@ Phase 18+ 已進入持續擴充狀態。下一步順序以 `control-studio/ROADM
 | ID | Priority | Status | Item | Rationale | Dependencies | Verification |
 | --- | --- | --- | --- | --- | --- | --- |
 | CS-P24-01 | P1 | Done | NMPC / SQP-lite | 支援非線性模型的 deterministic receding-horizon baseline | Phase 20 MPC engineering | `verify_p24_nmpc.mjs` |
-| CS-P24-02 | P1 | Planned | Tube MPC | 將 uncertainty 與 constrained MPC 接起來，支援 robust invariant tube | Phase 18 + Phase 20 | tube disturbance fixture |
-| CS-P24-03 | P1 | In Progress | Economic MPC | 目前有 dirty `empc.js` 與 `verify_p24_empc.mjs`，尚未審查與提交 | Phase 20 | target EMPC economic-cost fixture |
-| CS-P24-04 | P2 | Planned | Explicit MPC | 建立小型線性系統 explicit control law baseline | Phase 20 | region / active-set consistency fixture |
+| CS-P24-02 | P1 | Done | Tube MPC | 將 uncertainty 與 constrained MPC 接起來，支援 robust invariant tube | Phase 18 + Phase 20 | `verify_p24_tube_explicit_mpc.mjs` |
+| CS-P24-03 | P1 | Done | Economic MPC | Differential Evolution finite-horizon non-quadratic economic objective，含 seed reproducibility 與 warm-start candidate | Phase 20 | `verify_p24_empc.mjs` |
+| CS-P24-04 | P2 | Done | Explicit MPC | scalar PWA lookup policy，對照 online constrained MPC | Phase 20 | `verify_p24_tube_explicit_mpc.mjs` |
 
 ### Phase 25: Model Order Reduction (CS-P25)
 

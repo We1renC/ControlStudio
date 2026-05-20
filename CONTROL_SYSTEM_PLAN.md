@@ -150,7 +150,7 @@
 
 ### 尚未完成能力
 - Phase 23：continuous-time identification（CONTSID / SRIVC）尚未提交。
-- Phase 24：advanced MPC 尚未完成；NMPC 已提交，EMPC 仍在 dirty worktree，Tube MPC / Explicit MPC 尚未提交。
+- Phase 24：advanced MPC 已完成；NMPC、EMPC、Tube MPC、Explicit MPC 均有 deterministic verification。
 - Phase 25：Hankel norm approximation 尚未提交。
 - Phase 26：LPV synthesis 尚未提交。
 - Phase 27：full D-K iteration / structured robust design 尚未提交；目前有 MIMO H∞ verification 與 loop-shaping H∞。
@@ -434,7 +434,7 @@
 - Done：Phase 21 research-grade system identification — ARMAX / OE / BJ / subspace ID、experiment design、residual validation、uncertainty export，詳見 `verify_p21_sysid_advanced.mjs`。
 - Done：Phase 22 benchmark + cross-tool validation — full verification runner、cross-tool comparison、CI workflow、benchmark script。
 - Mostly Done：Phase 23 agentic / SysID gap closure — structured review skills、FRF estimation、model order selection、MISO ARX；continuous-time CONTSID / SRIVC 尚未提交。
-- In Progress：Phase 24 advanced MPC — NMPC 已提交；EMPC 目前在 dirty worktree，Tube MPC / Explicit MPC 尚未提交。
+- Done：Phase 24 advanced MPC — NMPC、EMPC、Tube MPC、Explicit MPC，含 `verify_p24_nmpc.mjs`、`verify_p24_empc.mjs`、`verify_p24_tube_explicit_mpc.mjs`。
 - Mostly Done：Phase 25 model order reduction — balanced truncation 與 SS minreal 已提交；Hankel norm approximation 尚未提交。
 - Mostly Done：Phase 26 nonlinear control — gain-scheduled PID 與 sliding mode control 已提交；LPV synthesis 尚未提交。
 - Mostly Done：Phase 27 H∞ design extensions — MIMO H∞ verification 與 loop-shaping H∞ 已提交；full D-K iteration 尚未提交。

@@ -188,4 +188,4 @@ Skill 必須遵守：
 1. 後續 phase 進度先查 `control-studio/ROADMAP.md`；本文件只決定是否要建立或調整 skill。
 2. `control-studio-robust-validator`、`control-studio-system-auditor`、`control-studio-benchmark-author` baseline 已建立，應持續用於 robust validation、設計審查與 benchmark 建立。
 3. Phase 20 / 21 已有核心能力與全域 skill entry；下一步是依實際使用案例補 `control-studio-mpc-designer` 與 `control-studio-sysid-planner` 的 examples / references，而不是把所有 MPC/SysID 邏輯塞進 UI。
-4. Phase 24 dirty EMPC 工作若正式化，應評估是否擴充 `control-studio-mpc-designer`，並在 roadmap / backlog / continuation 同步狀態。
+4. Phase 24 advanced MPC 已正式化 EMPC、Tube MPC、Explicit MPC；後續若把此流程產品化，應擴充 `control-studio-mpc-designer` 的 examples / references，涵蓋 economic objective、tube tightening 與 scalar explicit policy lookup。

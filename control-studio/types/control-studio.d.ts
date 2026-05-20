@@ -460,6 +460,129 @@ export function simulateNMPC(
 ): NMPCResult;
 
 // ============================================================================
+// js/control/empc.js
+// ============================================================================
+
+export interface EMPCOptions {
+  termCost?: (x: Vector) => number;
+  uMin?: Vector;
+  uMax?: Vector;
+  popSize?: number;
+  maxGen?: number;
+  F?: number;
+  CR?: number;
+  seed?: number;
+  uInit?: Vector;
+}
+
+export interface EMPCResult {
+  x: Vector[];
+  u: Vector[];
+  stageCosts: number[];
+  totalCost: number;
+  deInfo: { fx: number; generations: number }[];
+}
+
+export function simulateEMPC(
+  Ad: Matrix, Bd: Matrix,
+  stageCost: (x: Vector, u: Vector) => number,
+  horizon: number, x0: Vector, steps: number,
+  opts?: EMPCOptions
+): EMPCResult;
+
+export function differentialEvolution(
+  fn: (x: Vector) => number,
+  lb: Vector,
+  ub: Vector,
+  opts?: { popSize?: number; maxGen?: number; F?: number; CR?: number; seed?: number; tol?: number; initialCandidate?: Vector }
+): { x: Vector; fx: number; generations: number };
+
+// ============================================================================
+// js/control/tube_mpc.js
+// ============================================================================
+
+export interface TubeMPCDesign {
+  K: Matrix;
+  disturbanceBound: Vector;
+  radiusSchedule: Vector[];
+  tightening: Vector;
+  tightenedConstraints: { uMin: Vector; uMax: Vector };
+  feasible: boolean;
+  diagnostics: object[];
+}
+
+export function propagateTubeRadius(
+  Ad: Matrix, Bd: Matrix, K: Matrix, radius: Vector, disturbanceBound: Vector
+): Vector;
+
+export function designTubeMpc(
+  Ad: Matrix, Bd: Matrix, Q: Matrix, R: Matrix,
+  horizon: number, constraints?: MPCConstraints,
+  options?: { K?: Matrix; Qf?: Matrix; disturbanceBound?: Vector; initialRadius?: Vector }
+): TubeMPCDesign;
+
+export function simulateTubeMPC(
+  Ad: Matrix, Bd: Matrix, Q: Matrix, R: Matrix,
+  horizon: number, x0: Vector | Matrix,
+  constraints?: MPCConstraints,
+  options?: object
+): {
+  x: Matrix[];
+  z: Matrix[];
+  u: Matrix[];
+  v: Matrix[];
+  e: Matrix[];
+  radius: Vector[];
+  K: Matrix;
+  feasible: boolean;
+  finalErrorNormInf: number;
+};
+
+// ============================================================================
+// js/control/explicit_mpc.js
+// ============================================================================
+
+export interface ExplicitMPCRegion {
+  xMin: number;
+  xMax: number;
+  slope: number;
+  intercept: number;
+  maxError: number;
+  activeAt: (string | null)[];
+}
+
+export interface ExplicitMPCPolicy {
+  type: 'explicit-mpc-scalar-pwl';
+  Ad: Matrix;
+  Bd: Matrix;
+  Q: Matrix;
+  R: Matrix;
+  horizon: number;
+  constraints: MPCConstraints;
+  xDomain: [number, number];
+  gridSize: number;
+  regions: ExplicitMPCRegion[];
+  samples: object[];
+  maxFitError: number;
+  allOnlineConverged: boolean;
+}
+
+export function buildExplicitMPC(
+  Ad: Matrix, Bd: Matrix, Q: Matrix, R: Matrix,
+  horizon: number, constraints?: MPCConstraints,
+  options?: { xMin?: number; xMax?: number; gridSize?: number; mergeTolerance?: number; Qf?: Matrix }
+): ExplicitMPCPolicy;
+
+export function evaluateExplicitMPC(
+  policy: ExplicitMPCPolicy, x: number | Vector | Matrix
+): { u: Matrix; x: number; region: ExplicitMPCRegion; clipped: boolean };
+
+export function simulateExplicitMPC(
+  policy: ExplicitMPCPolicy, x0: number | Vector | Matrix, steps: number,
+  options?: { disturbanceFn?: (k: number, x: number, u: number) => number }
+): { x: number[][]; u: number[][]; regionLog: ExplicitMPCRegion[]; finalStateAbs: number; steps: number };
+
+// ============================================================================
 // js/control/sysid.js
 // ============================================================================
 
