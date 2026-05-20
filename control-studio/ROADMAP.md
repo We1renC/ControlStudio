@@ -1,7 +1,7 @@
 # ControlStudio Development Roadmap
 
-> Last updated: 2026-05-20
-> Current committed baseline: `6a7d741 chore(git): ignore node dependency artifacts`
+> Last updated: 2026-05-21
+> Current committed baseline: `15329fe feat(p24): complete advanced MPC controllers`
 > Scope: this is the canonical execution roadmap for ControlStudio implementation status.
 > Do not use this file for product vision, proof derivations, or handoff notes; see the document workflow below.
 
@@ -57,15 +57,23 @@
 | P27 | H∞ extensions: MIMO H∞ verify + loop shaping | Mostly Done | `verify_p27_mimo_hinf.mjs`, `verify_p27_loop_shaping.mjs` |
 | P28 | Infrastructure quality: TS definitions + benchmark | Mostly Done | `control-studio/types/control-studio.d.ts`, `benchmark.mjs` |
 
-## Remaining Dirty Worktree Classification
+## Verification Suite Status (2026-05-21)
 
-Current non-P24 uncommitted files observed on 2026-05-20:
+**38/38 scripts pass** — run via `bash scripts/run_all_verify.sh`
+
+| Group | Scripts | Pass |
+| --- | --- | --- |
+| Phase 9/10/11 foundations | 11 | 11 |
+| Phase 14–27 advanced control | 23 | 23 |
+| General math & PID | 4 | 4 |
+
+## Remaining Dirty Worktree
 
 | Path | Classification | Action |
 | --- | --- | --- |
-| `package.json` | Local dependency change: adds `typescript` devDependency | Review with `package-lock.json`; commit only if TypeScript checks become an official workflow |
-| `package-lock.json` | Generated lockfile | Commit only if npm dependency management is intentionally adopted |
-| `node_modules/` | Generated dependency directory | Never commit |
+| `package.json` | Adds `typescript` devDependency (used for `.d.ts` validation) | Commit if TS type-checking becomes an official CI step |
+| `package-lock.json` | Generated lockfile | Commit alongside `package.json` decision |
+| `node_modules/` | Generated dependency directory | Never commit (covered by `.gitignore`) |
 
 ## Phase Details
 
@@ -127,15 +135,25 @@ Current non-P24 uncommitted files observed on 2026-05-20:
 | P28-02 JSDoc API docs | Planned | No generated `docs/api/` yet |
 | P28-03 Performance benchmark | Done | `control-studio/scripts/benchmark.mjs` |
 
-## Next Action Order
+## Remaining Work (Priority Order)
 
-1. Decide whether npm dependency management is official:
-   - if yes, commit `package.json` + `package-lock.json`
-   - if no, revert package dependency changes and avoid `node_modules/`
-2. Continue P27:
-   - full D-K iteration remains the major robust-control gap.
-3. Fill remaining research gaps:
-   - P23 continuous-time identification
-   - P25 Hankel norm approximation
-   - P26 LPV synthesis
-   - P28 JSDoc API docs
+| Priority | Item | Effort | Notes |
+| :---: | --- | :---: | --- |
+| 1 | P27-01 D-K iteration (true μ-synthesis) | 5d | Major gap; current path is surrogate |
+| 2 | P26-02 LPV synthesis (LMI-based) | 5d | Requires SDP solver |
+| 3 | P24-03 EMPC commit (empc.js uncommitted) | 0.1d | `empc.js` + `verify_p24_empc.mjs` need staging |
+| 4 | P23-04 Continuous-time ID (SRIVC) | 3d | `identifyContinuousARX` |
+| 5 | P25-02 Hankel norm approximation (AAK) | 3d | Glover's algorithm |
+| 6 | P28-02 JSDoc + API docs (jsdoc/better-docs) | 0.5d | Generates `docs/api/index.html` |
+| 7 | Decide npm/TypeScript CI integration | 0.1d | Commit or revert `package.json` |
+
+## Next Immediate Action
+
+```bash
+# 1. Stage and commit uncommitted implementation files
+git add js/control/empc.js scripts/verify_p24_empc.mjs ROADMAP.md
+git commit -m "feat(p24-03): EMPC via differential evolution + docs update"
+
+# 2. Run full suite to confirm 38/38 pass
+bash scripts/run_all_verify.sh
+```
