@@ -89,6 +89,7 @@ run_script "P25 model reduction"          "node scripts/verify_p25_model_reducti
 run_script "P26 nonlinear control"        "node scripts/verify_p26_nonlinear.mjs"
 run_script "P27 MIMO H∞"                  "node scripts/verify_p27_mimo_hinf.mjs"
 run_script "P27 Loop Shaping H∞"          "node scripts/verify_p27_loop_shaping.mjs"
+run_script "P29 QP solver"                "node scripts/verify_p29_qp.mjs"
 echo ""
 
 # ── General Math & PID ───────────────────────────────────────────────────────
