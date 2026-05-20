@@ -56,6 +56,12 @@
 | P26 | Nonlinear control: gain scheduling + SMC | Mostly Done | `verify_p26_nonlinear.mjs` |
 | P27 | H∞ extensions: MIMO H∞ verify + loop shaping | Mostly Done | `verify_p27_mimo_hinf.mjs`, `verify_p27_loop_shaping.mjs` |
 | P28 | Infrastructure quality: TS definitions + benchmark | Mostly Done | `control-studio/types/control-studio.d.ts`, `benchmark.mjs` |
+| **P29** | **Numerical optimization core: QP / LP / SDP-LMI** | Planned | — |
+| **P30** | **Adaptive & learning control: RLS / MRAC / STR / ILC** | Planned | — |
+| **P31** | **Estimation & monitoring: MHE / particle filter / FDD / FTC** | Planned | — |
+| **P32** | **Advanced nonlinear: feedback linearization / backstepping / CLF-CBF** | Planned | — |
+| **P33** | **Productization & interop: codegen / report / python-control bridge** | Planned | — |
+| **P34** | **UI/UX experience & design system** | Planned | — |
 
 ## Verification Suite Status (2026-05-21)
 
@@ -135,25 +141,120 @@
 | P28-02 JSDoc API docs | Planned | No generated `docs/api/` yet |
 | P28-03 Performance benchmark | Done | `control-studio/scripts/benchmark.mjs` |
 
-## Remaining Work (Priority Order)
+---
 
-| Priority | Item | Effort | Notes |
+# Future Roadmap (P29–P34)
+
+> Strategic blueprint approved 2026-05-21. Sequencing rationale:
+> **enabling technology (P29 optimization) → new control paradigms (P30–P32) → productization (P33) → experience (P34)**.
+> P29 is the highest-leverage start: a general QP/LP/SDP solver unblocks LPV (P26-02),
+> D-K iteration (P27-01), and hardens constrained MPC.
+
+### P29 — Numerical Optimization Core
+
+> **Why:** ControlStudio currently has no general optimizer; MPC constraint handling is an inlined
+> simplified routine, and LMI-based methods (LPV, D-K) are blocked. This is the key enabling layer.
+> **Benchmark target:** MATLAB `quadprog` / `linprog` / CVX-class problems.
+
+| Item | Goal | API | Effort | Dependency |
+| --- | --- | --- | :---: | --- |
+| P29-01 QP solver | Convex QP via active-set + interior-point | `solveQP(H, f, A, b, Aeq, beq, lb, ub, opts)` | 3d | matrix core |
+| P29-02 LP solver | Simplex / interior-point LP | `solveLP(c, A, b, Aeq, beq, lb, ub, opts)` | 2d | P29-01 |
+| P29-03 SDP / LMI solver | Projected-gradient / ADMM for small LMIs | `solveLMI(constraints, objective, opts)` | 4d | P29-01 |
+| P29-04 Retrofit MPC | Replace inlined QP in `mpc.js` with `solveQP` | (internal) | 1d | P29-01 |
+| P29-05 Close LPV (P26-02) | LMI-based LPV synthesis on parameter grid | `synthesizeLPV(grid, opts)` | 3d | P29-03 |
+| P29-06 Close D-K (P27-01) | True μ-synthesis: K-step + D-step rational fit | `dkIteration(plant, weights, opts)` | 4d | P29-03 |
+
+### P30 — Adaptive & Learning Control
+
+> **Why:** ControlStudio has rich offline SysID; the natural extension is *online* identification
+> and self-adjusting controllers. Entirely new paradigm.
+> **Benchmark target:** MATLAB Adaptive Control / self-tuning toolboxes.
+
+| Item | Goal | API | Effort | Dependency |
+| --- | --- | --- | :---: | --- |
+| P30-01 Recursive least squares | Online parameter ID with forgetting factor | `identifyRLS(opts)` → streaming estimator | 2d | sysid |
+| P30-02 MRAC | Model-reference adaptive control (MIT rule / Lyapunov) | `designMRAC(refModel, plant, gains)` | 3d | P30-01 |
+| P30-03 Self-tuning regulator | RLS + pole-placement / minimum-variance | `selfTuningRegulator(opts)` | 3d | P30-01 |
+| P30-04 Iterative learning control | ILC for repetitive tasks (P-type / Q-filter) | `iterativeLearningControl(plant, trials, opts)` | 2d | — |
+| P30-05 Close SRIVC (P23-04) | Continuous-time ID via prefiltered IV | `identifyContinuousARX(...)` | 3d | sysid |
+
+### P31 — Estimation & Health Monitoring
+
+> **Why:** EKF/UKF exist; extend to optimization-based estimation (MHE) and a brand-new
+> fault-detection/fault-tolerant domain. **Benchmark target:** MATLAB FDI Toolbox.
+
+| Item | Goal | API | Effort | Dependency |
+| --- | --- | --- | :---: | --- |
+| P31-01 Moving horizon estimation | Constrained optimization-based state estimation | `movingHorizonEstimation(model, opts)` | 3d | P29-01 |
+| P31-02 Particle filter | Sequential Monte Carlo for nonlinear/non-Gaussian | `particleFilter(f, h, opts)` | 2d | rng |
+| P31-03 Fault detection & diagnosis | Residual generation + statistical evaluation | `designFDD(model, opts)` | 3d | observer |
+| P31-04 Fault-tolerant control | Reconfigurable control after fault isolation | `reconfigurableFTC(model, faultSet, opts)` | 3d | P31-03 |
+
+### P32 — Advanced Nonlinear Control
+
+> **Why:** Extends P26 (gain scheduling / SMC) to model-based nonlinear synthesis and
+> safety-critical control. **Benchmark target:** academic nonlinear control references.
+
+| Item | Goal | API | Effort | Dependency |
+| --- | --- | --- | :---: | --- |
+| P32-01 Feedback linearization | Input-output / input-state exact linearization | `feedbackLinearization(f, g, h, opts)` | 3d | — |
+| P32-02 Backstepping | Recursive Lyapunov design for strict-feedback | `backstepping(systemChain, opts)` | 3d | — |
+| P32-03 CLF / CBF safety control | Control Lyapunov + barrier functions via QP | `controlBarrierFunction(dynamics, safeSet, opts)` | 3d | P29-01 |
+
+### P33 — Productization & Interop
+
+> **Why:** Turn designs into deliverables. `js/utils/codegen.js` already exists as a seed.
+> **Benchmark target:** Embedded Coder / report generation / data interchange.
+
+| Item | Goal | API | Effort | Dependency |
+| --- | --- | --- | :---: | --- |
+| P33-01 Controller codegen | Export designed controllers to C / Python / MATLAB | `exportController(ctrl, target)` | 3d | codegen.js |
+| P33-02 Design report generator | Auto HTML/PDF report (Bode, RL, margins, verification) | `generateDesignReport(design, opts)` | 2d | analysis |
+| P33-03 python-control bridge | Bidirectional JSON interchange (TF/SS/results) | `toPythonControl()` / `fromPythonControl()` | 2d | — |
+| P33-04 Design wizard skill | Agent skill: spec → recommended workflow + design | `control-studio-design-wizard` skill | 2d | skills |
+
+### P34 — UI/UX Experience & Design System
+
+> **Why:** Design tokens (`css/variables.css`) are mature, but `js/ui/` is empty (6520-line `app.js`),
+> responsive coverage is thin (~7 `@media`), and a11y is partial (~33 aria attrs).
+> Goal: elevate usability and *design experience* for control engineers.
+
+| Item | Goal | Deliverable | Effort | Dependency |
+| --- | --- | --- | :---: | --- |
+| P34-01 UI module extraction | Split `app.js` UI logic into `js/ui/` modules | `js/ui/panels/*.js` | 3d | — |
+| P34-02 Component library | Tokenized reusable components (cards, inputs, charts) | `css/components.css` refactor + `js/ui/widgets/` | 2d | P34-01 |
+| P34-03 Responsive layout | Mobile/tablet breakpoints; collapsible panels | `layout.css` breakpoints | 2d | — |
+| P34-04 Accessibility (WCAG AA) | Keyboard nav, ARIA, focus rings, contrast audit | a11y pass + `verify` walkthrough | 2d | — |
+| P34-05 Design wizard UI | Guided spec→design flow with live feedback | `view-wizard` panel | 3d | P33-04 |
+| P34-06 Chart interaction | Zoom, cursor readout, export PNG/CSV on all plots | `js/ui/widgets/chart.js` | 2d | P34-02 |
+
+## Execution Order (Approved Blueprint)
+
+The full P29–P34 blueprint is approved. Execution proceeds phase-by-phase, each item
+shipping with a deterministic `verify_pNN_*.mjs` script wired into `run_all_verify.sh`.
+
+| Order | Item | Effort | Why now |
 | :---: | --- | :---: | --- |
-| 1 | P27-01 D-K iteration (true μ-synthesis) | 5d | Major gap; current path is surrogate |
-| 2 | P26-02 LPV synthesis (LMI-based) | 5d | Requires SDP solver |
-| 3 | P24-03 EMPC commit (empc.js uncommitted) | 0.1d | `empc.js` + `verify_p24_empc.mjs` need staging |
-| 4 | P23-04 Continuous-time ID (SRIVC) | 3d | `identifyContinuousARX` |
-| 5 | P25-02 Hankel norm approximation (AAK) | 3d | Glover's algorithm |
-| 6 | P28-02 JSDoc + API docs (jsdoc/better-docs) | 0.5d | Generates `docs/api/index.html` |
-| 7 | Decide npm/TypeScript CI integration | 0.1d | Commit or revert `package.json` |
+| 1 | P29-01 QP solver | 3d | Enabling tech; unblocks LMI/MPC/CBF — start here |
+| 2 | P29-02 LP solver | 2d | Completes the convex-program trio |
+| 3 | P29-03 SDP/LMI solver | 4d | Unblocks LPV + D-K |
+| 4 | P29-04 Retrofit MPC with `solveQP` | 1d | Hardens existing constrained MPC |
+| 5 | P29-05 / P29-06 Close LPV + D-K | 7d | Clears the two oldest "Planned" gaps |
+| 6 | P30 Adaptive & learning (RLS→MRAC→STR→ILC, +SRIVC) | 13d | New paradigm on top of SysID |
+| 7 | P31 Estimation & monitoring (MHE/PF/FDD/FTC) | 11d | New domain on top of EKF/UKF |
+| 8 | P32 Advanced nonlinear (FBL/backstepping/CBF) | 9d | Extends P26 |
+| 9 | P33 Productization (codegen/report/bridge/wizard) | 9d | Turns designs into deliverables |
+| 10 | P34 UI/UX & design system | 14d | Elevates experience across all phases |
+
+Legacy small gaps folded into the above: P23-04 SRIVC → P30-05; P26-02 LPV → P29-05;
+P27-01 D-K → P29-06; P25-02 Hankel norm and P28-02 JSDoc docs remain standalone backlog.
 
 ## Next Immediate Action
 
-```bash
-# 1. Stage and commit uncommitted implementation files
-git add js/control/empc.js scripts/verify_p24_empc.mjs ROADMAP.md
-git commit -m "feat(p24-03): EMPC via differential evolution + docs update"
+Start **P29-01 QP solver** (`js/math/optimization.js` + `verify_p29_qp.mjs`):
 
-# 2. Run full suite to confirm 38/38 pass
-bash scripts/run_all_verify.sh
+```bash
+# After implementing solveQP + verification script
+bash scripts/run_all_verify.sh        # confirm 39/39 pass
 ```
