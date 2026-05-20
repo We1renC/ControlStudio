@@ -250,25 +250,35 @@ export function solveQP(H, f, opts = {}) {
     const inner = s.map((si, i) => rc[i] / si - sigmaDiag[i] * rin[i]);
     const rhsX = vadd(vscale(rd, -1), matTvec(G, inner));
 
-    // Solve condensed KKT for (Δx, Δν)
+    // Solve condensed KKT for (Δx, Δν). Near a degenerate optimum the
+    // active-constraint Σ entries blow up and the condensed system becomes
+    // numerically singular — at that point the current iterate is already a
+    // good estimate, so we accept it if practically converged.
     let dx, dnu;
-    if (p === 0) {
-      dx = matSolve(M, rhsX);
-      dnu = [];
-    } else {
-      const N = n + p;
-      const KK = Array.from({ length: N }, () => new Array(N).fill(0));
-      for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) KK[i][j] = M[i][j];
-      for (let i = 0; i < p; i++) for (let j = 0; j < n; j++) {
-        KK[j][n + i] = Aeq[i][j];
-        KK[n + i][j] = Aeq[i][j];
+    try {
+      if (p === 0) {
+        dx = matSolve(M, rhsX);
+        dnu = [];
+      } else {
+        const N = n + p;
+        const KK = Array.from({ length: N }, () => new Array(N).fill(0));
+        for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) KK[i][j] = M[i][j];
+        for (let i = 0; i < p; i++) for (let j = 0; j < n; j++) {
+          KK[j][n + i] = Aeq[i][j];
+          KK[n + i][j] = Aeq[i][j];
+        }
+        const rhs = new Array(N).fill(0);
+        for (let i = 0; i < n; i++) rhs[i] = rhsX[i];
+        for (let i = 0; i < p; i++) rhs[n + i] = -req[i];
+        const sol = matSolve(KK, rhs);
+        dx = sol.slice(0, n);
+        dnu = sol.slice(n);
       }
-      const rhs = new Array(N).fill(0);
-      for (let i = 0; i < n; i++) rhs[i] = rhsX[i];
-      for (let i = 0; i < p; i++) rhs[n + i] = -req[i];
-      const sol = matSolve(KK, rhs);
-      dx = sol.slice(0, n);
-      dnu = sol.slice(n);
+    } catch (_) {
+      // Ill-conditioned near degenerate optimum: accept current iterate
+      // if primal/dual residuals and duality gap are practically small.
+      converged = (resIn < 1e-5 && resEq < 1e-5 && mu < 1e-5);
+      break;
     }
 
     // Back-substitute Δλ and Δs
@@ -319,4 +329,52 @@ export function solveQP(H, f, opts = {}) {
  */
 export function solveBoxQP(H, f, lb, ub, opts = {}) {
   return solveQP(H, f, { ...opts, lb, ub });
+}
+
+// ---------------------------------------------------------------------------
+// Linear Program via regularized interior-point (P29-02)
+// ---------------------------------------------------------------------------
+
+/**
+ * Solve a linear program:
+ *
+ *   minimize    cᵀ x
+ *   subject to  A x ≤ b , Aeq x = beq , lb ≤ x ≤ ub
+ *
+ * Implemented as a strictly-convex QP with a vanishing quadratic term
+ * (H = reg·I). For LPs with a unique optimal vertex the solution converges
+ * to the LP optimum as reg→0; for degenerate/multiple-optima LPs it selects
+ * the minimum-norm optimal point (a useful, well-defined tie-break). The
+ * regularization also keeps the condensed Newton system non-singular even
+ * when A is rank-deficient in x.
+ *
+ * @param {number[]} c   - Cost vector (length n)
+ * @param {object} [opts] - Same constraint fields as solveQP, plus:
+ * @param {number} [opts.reg=1e-7] - Quadratic regularization (tie-break / conditioning)
+ * @returns {{
+ *   x:number[], fval:number, iterations:number, converged:boolean,
+ *   lambda:number[], nu:number[], method:string
+ * }}
+ */
+export function solveLP(c, opts = {}) {
+  const n = c.length;
+  const reg = opts.reg ?? 1e-7;
+
+  // H = reg·I  (strictly convex perturbation of the linear objective)
+  const H = Array.from({ length: n }, (_, i) =>
+    Array.from({ length: n }, (_, j) => (i === j ? reg : 0))
+  );
+
+  // reg already baked into H → tell solveQP not to add more
+  const r = solveQP(H, c, { ...opts, reg: 0 });
+
+  return {
+    x: r.x,
+    fval: dot(c, r.x),          // true LP objective (no quadratic term)
+    iterations: r.iterations,
+    converged: r.converged,
+    lambda: r.lambda,
+    nu: r.nu,
+    method: 'lp-regularized-ip',
+  };
 }
