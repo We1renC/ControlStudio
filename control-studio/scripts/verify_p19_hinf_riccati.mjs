@@ -148,23 +148,53 @@ console.log('\n=== Phase 19: Riccati vs Nelder-Mead comparison ===\n');
   }
 }
 
-// ── Case 6: Error handling — infeasible ──────────────────────────────────
+// ── Case 6: Error handling — infeasible γ-bound ───────────────────────────
 
 console.log('\n=== Phase 19: Error handling ===\n');
 
 {
-  // Unstable plant with extreme weights — may fail
-  const G = new TransferFunction([1], [1, -1]); // unstable: pole at +1
+  // Test 6a: gammaHi set below any achievable H∞ norm → must throw with the
+  // canonical "H∞ γ-iteration failed" message.
+  const G = new TransferFunction([1], [1, 1]); // stable 1/(s+1)
+  const weights = defaultMixedSensitivityWeights({ wB: 1, M: 2, Alow: 0.01, controlPenalty: 0.1 });
+
+  let threw6a = false;
+  let errMsg6a = '';
+  try {
+    // gammaHi=0.001 is provably below any achievable closed-loop H∞ norm
+    synthesizeHinfRiccati(G, weights, { gammaHi: 0.001, gammaTol: 0.001, maxBisect: 5 });
+  } catch (e) {
+    threw6a = true;
+    errMsg6a = e.message;
+  }
+  assert(threw6a,
+    'infeasible gammaHi: synthesis throws');
+  assert(threw6a && errMsg6a.includes('H∞ γ-iteration failed'),
+    `infeasible gammaHi: error message contains "H∞ γ-iteration failed" (got: "${errMsg6a.slice(0, 80)}")`);
+}
+
+{
+  // Test 6b: unstable plant — either throws (CARE infeasible for this γ range)
+  // or converges to a valid stabilising controller with finite γ.
+  const G = new TransferFunction([1], [1, -1]); // pole at +1
   const weights = { W1: new TransferFunction([100], [1]), W2: null, W3: null };
 
-  let threw = false;
+  let threw6b = false;
+  let errMsg6b = '';
   try {
-    synthesizeHinfRiccati(G, weights, { gammaHi: 5, gammaTol: 0.1, maxBisect: 10 });
+    const r = synthesizeHinfRiccati(G, weights, { gammaHi: 1000, gammaTol: 0.1, maxBisect: 15 });
+    // If it succeeds, the returned γ must be positive and finite
+    assert(Number.isFinite(r.gamma) && r.gamma > 0,
+      `unstable plant: if synthesis succeeds γ must be finite+positive (got ${r.gamma})`);
   } catch (e) {
-    threw = true;
+    threw6b = true;
+    errMsg6b = e.message;
+    // Must carry an informative message — not a bare JS TypeError/undefined
+    assert(errMsg6b.length > 0,
+      `unstable plant: thrown error has non-empty message ("${errMsg6b.slice(0, 80)}")`);
   }
-  // Either throws or returns a high γ — both are acceptable
-  assert(true, 'error handling: unstable plant does not crash');
+  // Either path is acceptable — record the outcome
+  console.log(`  unstable plant outcome: ${threw6b ? 'threw → "' + errMsg6b.slice(0, 60) + '"' : 'succeeded (controller found)'}`);
 }
 
 // ── Summary ──────────────────────────────────────────────────────────────

@@ -5,7 +5,8 @@
 import { identifyARMAX, identifyARX } from '../js/control/sysid.js';
 import { nsga2TunePID } from '../js/control/ga_tuner.js';
 import { TransferFunction } from '../js/control/transfer-function.js';
-import { setSeed } from '../js/math/rng.js';
+import { setSeed, randn } from '../js/math/rng.js';
+import { generatePRBS } from '../js/control/sysid_signals.js';
 
 let passed = 0;
 let failed = 0;
@@ -103,6 +104,44 @@ console.log('\n=== ARMAX Tests ===\n');
   assert(Number.isFinite(armax.mse), 'Test 6d: armax.mse is finite');
   assert(Number.isFinite(armax.aic), 'Test 6e: armax.aic is finite');
   assert(typeof armax.iterations === 'number', 'Test 6f: armax.iterations is number');
+}
+
+// ---------------------------------------------------------------------------
+// AIC Model-Selection Tests — verifies that the AIC criterion correctly
+// identifies the true model structure over competing candidates.
+
+console.log('\n=== AIC Model-Selection Tests ===\n');
+
+// Test 7: White equation-error noise → ARX wins over ARMAX on AIC.
+// Data generating model: y[k] = 0.7·y[k-1] + 0.4·u[k-1] + e[k], e iid N(0,0.04)
+// True structure is ARX(1,1), so ARX has the correct order and should be preferred.
+{
+  setSeed(42);
+  const N = 500;
+  const u = generatePRBS(N, 7, 1.0);
+  const y = new Array(N).fill(0);
+  for (let k = 1; k < N; k++) y[k] = 0.7 * y[k - 1] + 0.4 * u[k - 1] + 0.2 * randn();
+  const arx   = identifyARX(u, y, 1, 1, 1, 1.0);
+  const armax  = identifyARMAX(u, y, 1, 1, 1, 1, 1.0); // ARMAX(1,1,1) — over-parametrised
+  assert(arx.aic < armax.aic,
+    `Test 7: ARX AIC (${arx.aic.toFixed(1)}) < ARMAX AIC (${armax.aic.toFixed(1)}) for white equation-error noise`);
+}
+
+// Test 8: Colored MA(1) noise → ARMAX wins over ARX on AIC.
+// Data generating model: y[k] = 0.7·y[k-1] + 0.4·u[k-1] + e[k] + 0.5·e[k-1]
+// True structure is ARMAX(1,1,nc=1); ARX is mis-specified and should have higher AIC.
+{
+  setSeed(55);
+  const N = 600;
+  const u = generatePRBS(N, 8, 1.0);
+  const e = Array.from({ length: N }, () => 0.2 * randn());
+  const y = new Array(N).fill(0);
+  for (let k = 1; k < N; k++)
+    y[k] = 0.7 * y[k - 1] + 0.4 * u[k - 1] + e[k] + 0.5 * (e[k - 1] ?? 0);
+  const arx   = identifyARX(u, y, 1, 1, 1, 1.0);
+  const armax  = identifyARMAX(u, y, 1, 1, 1, 1, 1.0);
+  assert(armax.aic < arx.aic,
+    `Test 8: ARMAX AIC (${armax.aic.toFixed(1)}) < ARX AIC (${arx.aic.toFixed(1)}) for colored MA(1) noise`);
 }
 
 // ---------------------------------------------------------------------------

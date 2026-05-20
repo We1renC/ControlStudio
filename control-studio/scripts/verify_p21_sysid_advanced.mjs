@@ -131,6 +131,38 @@ try {
   failed++;
 }
 
+// ── SVD rank-deficient matrix ─────────────────────────────────────────────
+// A rank-1 matrix must yield S[1]=S[2]=0 and perfect reconstruction.
+// Jacobi SVD must not return NaN or crash.
+console.log('\n=== Phase 21: SVD Rank-Deficient Matrix ===\n');
+
+try {
+  // Rank-1 outer product: A = [1;2;3;4] * [1,2,3]
+  const Arank1 = [[1,2,3],[2,4,6],[3,6,9],[4,8,12]];
+  const { U: Ur, S: Sr, V: Vr } = computeSVD(Arank1);
+
+  ok('SVD rank-1: S[0] > 0 (only nonzero singular value)', Sr[0] > 0,
+    `S[0]=${Sr[0].toFixed(4)}`);
+  ok('SVD rank-1: S[1] ≈ 0 (rank deficiency)',   Math.abs(Sr[1]) < 1e-8,
+    `S[1]=${Sr[1].toExponential(2)}`);
+  ok('SVD rank-1: S[2] ≈ 0 (rank deficiency)',   Math.abs(Sr[2]) < 1e-8,
+    `S[2]=${Sr[2].toExponential(2)}`);
+
+  // Reconstruction: U·diag(S)·Vᵀ must still recover A
+  const diagSr = [[Sr[0],0,0],[0,Sr[1],0],[0,0,Sr[2]]];
+  const Reconr  = matMul(matMul(Ur, diagSr), matTranspose(Vr));
+  let maxErrR = 0;
+  for (let i = 0; i < 4; i++)
+    for (let j = 0; j < 3; j++)
+      maxErrR = Math.max(maxErrR, Math.abs(Arank1[i][j] - Reconr[i][j]));
+  ok('SVD rank-1: reconstruction error < 1e-10', maxErrR < 1e-10,
+    `max err=${maxErrR.toExponential(2)}`);
+
+} catch (e) {
+  console.error(`[FAIL] SVD rank-deficient: ${e.message}`);
+  failed++;
+}
+
 console.log('\n=== Phase 21: Subspace ID (System Recovery) ===\n');
 
 try {
@@ -224,6 +256,38 @@ try {
 
 } catch (e) {
   console.error(`[FAIL] BJ model: ${e.message}\n${e.stack}`);
+  failed++;
+}
+
+// ── OE / BJ near-unit-circle filter stability ─────────────────────────────
+// When the true pole is at 0.99 (integrator-like), the OE/BJ simulation
+// loop must not blow up to NaN/Inf — numerical stability of the IIR filter.
+console.log('\n=== Phase 21: OE/BJ Near-Unit-Circle Filter Stability ===\n');
+
+try {
+  setSeed(33);
+  const N_stab = 500;
+  const u_stab = generatePRBS(N_stab, 7, 1.0);
+
+  // True process: pole at 0.99, very small gain — slow integrator
+  const y_stab = new Array(N_stab).fill(0);
+  for (let k = 1; k < N_stab; k++)
+    y_stab[k] = 0.99 * y_stab[k - 1] + 0.01 * u_stab[k - 1] + 0.01 * randn();
+
+  const oeStab = identifyOE(u_stab, y_stab, 1, 1, 1, 1.0, { maxIter: 30 });
+
+  ok('OE near-unit-circle: completes without error', true);
+  ok('OE near-unit-circle: all yhat are finite',
+    oeStab.yhat.every(v => Number.isFinite(v)));
+  ok('OE near-unit-circle: fitPercent is non-negative and finite',
+    Number.isFinite(oeStab.fitPercent) && oeStab.fitPercent >= 0);
+  // Pole estimate should be roughly in [0.85, 1.05] — loose because SNR is low
+  ok('OE near-unit-circle: identified pole in plausible range',
+    Math.abs(oeStab.f[0] + 0.99) < 0.10,
+    `f[0]=${oeStab.f[0].toFixed(4)}`);
+
+} catch (e) {
+  console.error(`[FAIL] OE near-unit-circle: ${e.message}`);
   failed++;
 }
 
