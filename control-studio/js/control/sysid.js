@@ -593,21 +593,36 @@ function _sampleACF(signal, nlags) {
 }
 
 /**
+ * Chi-square 95th-percentile critical value via Wilson-Hilferty approximation.
+ * Error < 0.5 % for df ≥ 4.  Used for Ljung-Box and portmanteau tests.
+ * @param {number} df - degrees of freedom
+ * @returns {number}
+ */
+function _chi2Critical95(df) {
+  const z = 1.6449; // z_{0.95} from standard normal
+  const mu = 1 - 2 / (9 * df);
+  const sigma = Math.sqrt(2 / (9 * df));
+  return df * Math.pow(mu + z * sigma, 3);
+}
+
+/**
  * Residual whiteness test (autocorrelation + Ljung-Box).
  *
  * A well-fitted model leaves white (uncorrelated) residuals.
- * Uses the 95 % confidence bound ±1.96/√N; 90 % of lags must lie within
- * bounds for `passed` to be true.
+ * `passed` is the formal Ljung-Box test at the 5 % significance level:
+ *   Q = N(N+2)·Σ r_k²/(N−k) < χ²(nlags, 0.95)
+ * The per-lag ±1.96/√N band is provided for visual inspection only.
  *
  * @param {number[]} residuals
  * @param {number}   nlags   - number of lags to test (default 20)
  * @returns {{
- *   autocorr:     number[],   // ACF at lags 1…nlags
- *   bound95:      number,     // ±1.96/√N
- *   withinBounds: boolean[],  // per-lag pass/fail
- *   ljungBox:     number,     // Ljung-Box Q statistic
- *   ljungBoxDf:   number,     // degrees of freedom (= nlags)
- *   passed:       boolean,    // ≥ 90 % lags within bounds
+ *   autocorr:         number[],  // ACF at lags 1…nlags
+ *   bound95:          number,    // ±1.96/√N pointwise band
+ *   withinBounds:     boolean[], // per-lag flag (visual aid only)
+ *   ljungBox:         number,    // Ljung-Box Q statistic
+ *   ljungBoxDf:       number,    // degrees of freedom (= nlags)
+ *   ljungBoxCritical: number,    // χ²(nlags, 0.95) — formal threshold
+ *   passed:           boolean,   // true iff Q < χ²(nlags, 0.95)
  * }}
  */
 export function residualWhitenessTest(residuals, nlags = 20) {
@@ -617,31 +632,41 @@ export function residualWhitenessTest(residuals, nlags = 20) {
   const autocorr = ac.slice(1); // lags 1…nlags
 
   const withinBounds = autocorr.map(r => Math.abs(r) <= bound95);
-  const passed = withinBounds.filter(Boolean).length >= Math.ceil(0.90 * nlags);
 
   // Ljung-Box Q = N(N+2) · Σ_{k=1}^{m} r_k² / (N−k)
   let ljungBox = 0;
   for (let k = 1; k <= nlags; k++) ljungBox += ac[k] ** 2 / (N - k);
   ljungBox *= N * (N + 2);
 
-  return { autocorr, bound95, withinBounds, ljungBox, ljungBoxDf: nlags, passed };
+  const ljungBoxCritical = _chi2Critical95(nlags);
+  // Formal test: reject H₀ (white residuals) if Q ≥ critical value
+  const passed = ljungBox < ljungBoxCritical;
+
+  return { autocorr, bound95, withinBounds, ljungBox, ljungBoxDf: nlags, ljungBoxCritical, passed };
 }
 
 /**
  * Cross-correlation test between residuals and input.
  *
  * For a correctly identified model, residuals e[k] must be uncorrelated with
- * all past inputs u[k-j], j ≥ 1.  Checks lags −nlags … +nlags.
+ * all past inputs u[k-j], j ≥ 1.  The `passed` criterion is the one-sided
+ * portmanteau test on negative lags (past inputs):
+ *   Q_cc = N · Σ_{j=1}^{nlags} r_{eu}(−j)² < χ²(nlags, 0.95)
+ * Lag 0 and positive lags are provided for inspection but excluded from the
+ * test statistic because lag 0 is model-dependent and positive lags are trivially
+ * zero for causal systems.
  *
  * @param {number[]} residuals
  * @param {number[]} u       - input signal (same length)
  * @param {number}   nlags   - one-sided lag count (default 20)
  * @returns {{
- *   crossCorr:    number[],   // CCF at lags −nlags…+nlags
- *   lags:         number[],   // corresponding lag values
- *   bound95:      number,
- *   withinBounds: boolean[],
- *   passed:       boolean,
+ *   crossCorr:           number[],  // CCF at lags −nlags…+nlags
+ *   lags:                number[],  // corresponding lag values
+ *   bound95:             number,
+ *   withinBounds:        boolean[],
+ *   portmanteau:         number,    // Q_cc on negative lags 1..nlags
+ *   portmanteauCritical: number,    // χ²(nlags, 0.95)
+ *   passed:              boolean,   // true iff Q_cc < χ²(nlags, 0.95)
  * }}
  */
 export function crossCorrelationTest(residuals, u, nlags = 20) {
@@ -667,10 +692,17 @@ export function crossCorrelationTest(residuals, u, nlags = 20) {
   });
 
   const withinBounds = crossCorr.map(r => Math.abs(r) <= bound95);
-  // 85 % threshold (looser than ACF): boundary lags ±0…±nk can be nonzero
-  // for causal models with input delay even when the model is correct.
-  const passed = withinBounds.filter(Boolean).length >= Math.ceil(0.85 * crossCorr.length);
-  return { crossCorr, lags, bound95, withinBounds, passed };
+
+  // Portmanteau on past-input lags (lag = -1 … -nlags → indices 0 … nlags-1):
+  // Q_cc = N · Σ_{j=1}^{nlags} r_{eu}(−j)²
+  let portmanteau = 0;
+  for (let i = 0; i < nlags; i++) portmanteau += crossCorr[i] ** 2;
+  portmanteau *= N;
+
+  const portmanteauCritical = _chi2Critical95(nlags);
+  const passed = portmanteau < portmanteauCritical;
+
+  return { crossCorr, lags, bound95, withinBounds, portmanteau, portmanteauCritical, passed };
 }
 
 /**

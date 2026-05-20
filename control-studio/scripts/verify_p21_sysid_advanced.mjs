@@ -77,8 +77,9 @@ try {
   const arxModel = identifyARX(u, yNoisy, 1, 1, 1, 1.0);
 
   // OE should be unbiased for OE noise structure
+  // N=800, σ_noise=0.5, SNR≈2 → Cramér-Rao std ≈ 0.018; 3σ bound ≈ 0.054 → use 0.05
   near('OE f_1 ≈ −0.7', oeModel.f[0], -0.7, 0.05);
-  near('OE b_1 ≈ 0.4', oeModel.b[0], 0.4, 0.05);
+  near('OE b_1 ≈  0.4', oeModel.b[0], 0.4, 0.05);
   
   // ARX will be biased because it assumes A(q) e(t) instead of just e(t)
   const arx_f1_bias = Math.abs(arxModel.a[1] - (-0.7));
@@ -198,8 +199,9 @@ try {
   const u = generatePRBS(N, 8, 1.0);
 
   // True BJ plant: B/F = 0.5 / (1 − 0.7q⁻¹), noise: C/D = (1 + 0.3q⁻¹)/(1 + 0.2q⁻¹)
+  // σ_e = 0.1 → SNR ≈ 40 → fitPercent (OE-based) > 80 % is achievable
   const yTrue = new Array(N).fill(0);
-  const e     = Array.from({ length: N }, () => 0.3 * randn());
+  const e     = Array.from({ length: N }, () => 0.1 * randn());
   const eFilt = new Array(N).fill(0); // C/D filtered noise
   for (let k = 0; k < N; k++) {
     yTrue[k] = 0.7 * (yTrue[k - 1] ?? 0) + 0.5 * (u[k - 1] ?? 0);
@@ -209,10 +211,11 @@ try {
 
   const bjModel = identifyBJ(u, yBJ, 1, 1, 1, 1, 1, 1.0, { maxIter: 40 });
 
-  // BJ should recover process model without noise bias
-  near('BJ f_1 ≈ −0.7', bjModel.f[0], -0.7, 0.06);
-  near('BJ b_1 ≈  0.5', bjModel.b[0],  0.5, 0.06);
-  ok('BJ fitPercent > 60', bjModel.fitPercent > 60, `got ${bjModel.fitPercent.toFixed(1)}%`);
+  // BJ should recover process model without noise bias.
+  // N=1000, σ_e=0.1, SNR≈40 → parameter std < 0.01; 4σ bound = 0.04.
+  near('BJ f_1 ≈ −0.7', bjModel.f[0], -0.7, 0.04);
+  near('BJ b_1 ≈  0.5', bjModel.b[0],  0.5, 0.04);
+  ok('BJ fitPercent > 80', bjModel.fitPercent > 80, `got ${bjModel.fitPercent.toFixed(1)}%`);
   ok('BJ aic is finite', Number.isFinite(bjModel.aic));
   ok('BJ nc=0,nd=0 degenerates to OE', (() => {
     const m = identifyBJ(u, yBJ, 1, 1, 0, 0, 1, 1.0);
@@ -231,24 +234,36 @@ try {
   setSeed(99);
   const N = 500;
   const u = generatePRBS(N, 7, 1.0);
-  // Perfect ARX(1,1) plant — residuals should be white
-  const yClean = new Array(N).fill(0);
-  for (let k = 1; k < N; k++) yClean[k] = 0.7 * yClean[k - 1] + 0.4 * u[k - 1];
-  const yNoisy = yClean.map(v => v + 0.3 * randn());
+  // Equation-error ARX(1,1): y[k] = 0.7·y[k−1] + 0.4·u[k−1] + e[k], e ~ N(0, 0.09)
+  // Noise is injected recursively → equation error e[k] is iid white → ARX LS
+  // produces white residuals when the true order is fitted.
+  const yNoisy = new Array(N).fill(0);
+  for (let k = 1; k < N; k++) yNoisy[k] = 0.7 * yNoisy[k - 1] + 0.4 * u[k - 1] + 0.3 * randn();
 
+  // Equation-error ARX(1,1): noise injected at each step → true equation error
+  // is white, so ARX residuals are provably white under correct identification.
+  // (Additive measurement noise would produce colored MA(1) equation error.)
   const model = identifyARX(u, yNoisy, 1, 1, 1, 1.0);
 
   // Whiteness test on residuals
   const wt = residualWhitenessTest(model.residual.filter(Number.isFinite), 20);
   ok('Whiteness: bound95 ≈ 1.96/√N', Math.abs(wt.bound95 - 1.96 / Math.sqrt(N)) < 1e-6);
   ok('Whiteness: autocorr has 20 values', wt.autocorr.length === 20);
-  ok('Whiteness: ARX residuals pass whiteness', wt.passed, `${wt.withinBounds.filter(Boolean).length}/20 within bounds`);
-  ok('Whiteness: Ljung-Box Q is finite', Number.isFinite(wt.ljungBox));
+  // Formal Ljung-Box test: Q < χ²(20, 0.95) ≈ 31.41 at 5 % significance
+  ok('Whiteness: ljungBoxCritical exposed', Number.isFinite(wt.ljungBoxCritical));
+  ok('Whiteness: Ljung-Box Q < χ²(20,0.95)',
+    wt.ljungBox < wt.ljungBoxCritical,
+    `Q=${wt.ljungBox.toFixed(2)}, critical=${wt.ljungBoxCritical.toFixed(2)}`);
 
   // Cross-correlation test
   const cc = crossCorrelationTest(model.residual.filter(Number.isFinite), u.slice(0, N), 20);
   ok('CrossCorr: lags array length 41', cc.lags.length === 41);
-  ok('CrossCorr: ARX residuals pass cross-corr', cc.passed, `${cc.withinBounds.filter(Boolean).length}/41 within bounds`);
+  // Portmanteau test on past-input lags: Q_cc = N·Σr²(−j) < χ²(nlags, 0.95)
+  ok('CrossCorr: portmanteau fields exposed',
+    Number.isFinite(cc.portmanteau) && Number.isFinite(cc.portmanteauCritical));
+  ok('CrossCorr: ARX residuals pass portmanteau Q_cc < χ²(20,0.95)',
+    cc.portmanteau < cc.portmanteauCritical,
+    `Q_cc=${cc.portmanteau.toFixed(2)}, critical=${cc.portmanteauCritical.toFixed(2)}`);
 
   // Parameter covariance
   const { Phi } = (() => {
