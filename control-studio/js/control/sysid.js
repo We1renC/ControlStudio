@@ -250,17 +250,23 @@ export function identifyARMAX(u, y, na, nb, nc, nk = 1, Ts = 1, options = {}) {
     if (diff < tol) break;
   }
 
-  // Final output and metrics
+  // Final output and metrics.
+  // Use the same valid range as the regression (k = maxLag … N−1) for SSE,
+  // MSE, and AIC so that cross-model AIC comparisons (ARX vs ARMAX vs OE vs BJ)
+  // are computed on the same effective sample count N_v = N − maxLag.
   const yhat = _computeARMAXOutput(u, y, aTail, bTail, c, na, nb, nc, nk, N);
   const residuals = y.map((yi, k) => yi - yhat[k]);
-  const mse = residuals.reduce((s, ei) => s + ei * ei, 0) / N;
-  const yMean = y.reduce((s, v) => s + v, 0) / N;
-  const ssTot = y.reduce((s, yi) => s + (yi - yMean) ** 2, 0);
+  const N_v = N - maxLag; // valid (non-transient) sample count
+  const validResid = residuals.slice(maxLag);
+  const sse = validResid.reduce((s, ei) => s + ei * ei, 0);
+  const mse = sse / N_v;
+  const yMean = y.slice(maxLag).reduce((s, v) => s + v, 0) / N_v;
+  const ssTot = y.slice(maxLag).reduce((s, yi) => s + (yi - yMean) ** 2, 0);
   const fitPercent = ssTot > 1e-12
-    ? Math.max(0, (1 - Math.sqrt(residuals.reduce((s, ei) => s + ei * ei, 0) / ssTot)) * 100)
+    ? Math.max(0, (1 - Math.sqrt(sse / ssTot)) * 100)
     : NaN;
   const nParams = na + nb + nc;
-  const aic = N * Math.log(mse + 1e-300) + 2 * nParams;
+  const aic = N_v * Math.log(mse + 1e-300) + 2 * nParams;
 
   // Build discrete TF: B(z⁻¹)/A(z⁻¹) (noise model C is separate)
   const aFull = [1, ...aTail];                        // [1, a1, ..., ana]
@@ -311,7 +317,8 @@ export function identifyOE(u, y, nb, nf, nk = 1, Ts = 1, options = {}) {
   const maxIter = options.maxIter ?? 20;
   const tol = options.tol ?? 1e-6;
   const N = y.length;
-  
+  const maxLag = Math.max(nf, nb + nk - 1); // first valid sample index
+
   // Initialize F(q) using ARX(nf, nb, nk)
   const arxInit = identifyARX(u, y, nf, nb, nk, Ts);
   let fTail = arxInit.a.slice(1); // F initial guess (like A)
@@ -338,7 +345,6 @@ export function identifyOE(u, y, nb, nf, nk = 1, Ts = 1, options = {}) {
     // Regress y_f on past y_f and past u_f
     // y_f[k] + f1 y_f[k-1] + ... = b1 u_f[k-nk] + ...
     // => y_f[k] = -f1 y_f[k-1] ... + b1 u_f[k-nk] ...
-    const maxLag = Math.max(nf, nb + nk - 1);
     const Phi = [];
     const yVec = [];
     for (let k = maxLag; k < N; k++) {
@@ -371,14 +377,18 @@ export function identifyOE(u, y, nb, nf, nk = 1, Ts = 1, options = {}) {
   }
 
   const residuals = y.map((yi, k) => yi - yhat[k]);
-  const mse = residuals.reduce((s, ei) => s + ei * ei, 0) / N;
-  const yMean = y.reduce((s, v) => s + v, 0) / N;
-  const ssTot = y.reduce((s, yi) => s + (yi - yMean) ** 2, 0);
+  // Use valid range k = maxLag … N-1 for consistent AIC cross-model comparison.
+  const N_v = N - maxLag;
+  const validResid = residuals.slice(maxLag);
+  const sse = validResid.reduce((s, ei) => s + ei * ei, 0);
+  const mse = sse / N_v;
+  const yMean = y.slice(maxLag).reduce((s, v) => s + v, 0) / N_v;
+  const ssTot = y.slice(maxLag).reduce((s, yi) => s + (yi - yMean) ** 2, 0);
   const fitPercent = ssTot > 1e-12
-    ? Math.max(0, (1 - Math.sqrt(residuals.reduce((s, ei) => s + ei * ei, 0) / ssTot)) * 100)
+    ? Math.max(0, (1 - Math.sqrt(sse / ssTot)) * 100)
     : NaN;
   const nParams = nf + nb;
-  const aic = N * Math.log(mse + 1e-300) + 2 * nParams;
+  const aic = N_v * Math.log(mse + 1e-300) + 2 * nParams;
 
   const fFull = [1, ...fTail];
   const bFull = [...new Array(nk).fill(0), ...bTail];
@@ -547,17 +557,21 @@ export function identifyBJ(u, y, nb, nf, nc, nd, nk = 1, Ts = 1, options = {}) {
     if (diff < tol) break;
   }
 
-  // Final metrics (OE simulation as yhat — the process model output)
+  // Final metrics (OE simulation as yhat — the process model output).
+  // Valid range k = maxLagBF … N-1 for consistent cross-model AIC comparison.
   const yhat = _oeSimulate(u, fTail, bTail, nk, N);
   const residuals = y.map((yi, k) => yi - yhat[k]);
-  const mse = residuals.reduce((s, ei) => s + ei * ei, 0) / N;
-  const yMean = y.reduce((s, v) => s + v, 0) / N;
-  const ssTot = y.reduce((s, yi) => s + (yi - yMean) ** 2, 0);
+  const N_v = N - maxLagBF;
+  const validResid = residuals.slice(maxLagBF);
+  const sse = validResid.reduce((s, ei) => s + ei * ei, 0);
+  const mse = sse / N_v;
+  const yMean = y.slice(maxLagBF).reduce((s, v) => s + v, 0) / N_v;
+  const ssTot = y.slice(maxLagBF).reduce((s, yi) => s + (yi - yMean) ** 2, 0);
   const fitPercent = ssTot > 1e-12
-    ? Math.max(0, (1 - Math.sqrt(residuals.reduce((s, ei) => s + ei * ei, 0) / ssTot)) * 100)
+    ? Math.max(0, (1 - Math.sqrt(sse / ssTot)) * 100)
     : NaN;
   const nParams = nb + nf + nc + nd;
-  const aic = N * Math.log(mse + 1e-300) + 2 * nParams;
+  const aic = N_v * Math.log(mse + 1e-300) + 2 * nParams;
   const fFull = [1, ...fTail];
   const bFull = [...new Array(nk).fill(0), ...bTail];
 

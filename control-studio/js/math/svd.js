@@ -89,6 +89,15 @@ export function computeSVD(A_in, tol = 1e-12, maxIter = 50) {
     iter++;
   }
 
+  // Warn if the Jacobi iteration did not converge — the returned SVD may be
+  // inaccurate for ill-conditioned or rank-deficient inputs.
+  if (!converged) {
+    console.warn(
+      `computeSVD: Jacobi iteration did not converge after ${maxIter} sweeps ` +
+      `(matrix ${m}×${n}, tol=${tol}). Results may be inaccurate.`
+    );
+  }
+
   // Calculate singular values and normalize U
   const S = new Float64Array(n);
   for (let j = 0; j < n; j++) {
