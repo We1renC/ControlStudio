@@ -1,0 +1,77 @@
+name: Control Studio — Verification Suite
+
+on:
+  push:
+    branches: ["main", "dev", "feature/**"]
+  pull_request:
+    branches: ["main"]
+
+jobs:
+  verify-js:
+    name: JS Verify Scripts (Node 22)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Run full verification suite
+        run: bash scripts/run_all_verify.sh
+        working-directory: control-studio
+
+      - name: Upload failure log on error
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: verify-failure-log
+          path: control-studio/scripts/
+          retention-days: 7
+
+  verify-python:
+    name: Python Cross-Tool Comparison
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install python-control + numpy
+        run: pip install control numpy
+
+      - name: Run Python cross-tool comparison
+        run: python3 scripts/compare_python_control.py
+        working-directory: control-studio
+
+  benchmark:
+    name: Performance Benchmark (informational)
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    timeout-minutes: 5
+    needs: verify-js
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Run benchmark (informational only)
+        run: |
+          if [ -f scripts/benchmark.mjs ]; then
+            node scripts/benchmark.mjs
+          else
+            echo "benchmark.mjs not yet created — skipping"
+          fi
+        working-directory: control-studio

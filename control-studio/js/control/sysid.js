@@ -925,3 +925,236 @@ export function autoARXOrder(u, y, options = {}) {
   }
   return { best, candidates };
 }
+
+// ---------------------------------------------------------------------------
+
+/**
+ * AICc (corrected AIC for small samples).
+ * AICc = AIC + 2p(p+1)/(N−p−1)
+ * Reduces to AIC as N→∞. Preferred when N/p < 40.
+ *
+ * @param {number} aic  - Standard AIC value
+ * @param {number} N    - Effective sample count
+ * @param {number} p    - Number of estimated parameters
+ * @returns {number}
+ */
+function computeAICc(aic, N, p) {
+  const denom = N - p - 1;
+  if (denom <= 0) return Infinity; // model too complex for sample size
+  return aic + (2 * p * (p + 1)) / denom;
+}
+
+/**
+ * Multi-structure model order selection with AIC, AICc, BIC and optional
+ * cross-validation.
+ *
+ * Tries every combination of model structure and order, ranks candidates by
+ * the chosen information criterion, and optionally evaluates prediction fit
+ * on a hold-out validation set.
+ *
+ * @param {number[]} u - Input sequence (length N)
+ * @param {number[]} y - Output sequence (length N)
+ * @param {object} [options]
+ * @param {string[]} [options.structures]     - Subset of ['ARX','ARMAX','OE','BJ'] (default: all)
+ * @param {string}   [options.criterion]      - 'AIC'|'AICc'|'BIC' (default: 'AICc')
+ * @param {number}   [options.maxNa]          - Max AR order (default: 4)
+ * @param {number}   [options.maxNb]          - Max B order (default: 4)
+ * @param {number}   [options.maxNc]          - Max MA order for ARMAX/BJ (default: 3)
+ * @param {number}   [options.maxNf]          - Max F order for OE/BJ (default: 4)
+ * @param {number}   [options.nk]             - Input delay (default: 1)
+ * @param {number}   [options.Ts]             - Sample time (default: 1)
+ * @param {number}   [options.trainFraction]  - Fraction for training (default: 0.8)
+ * @param {boolean}  [options.crossValidate]  - Enable train/validation split (default: true)
+ * @param {number}   [options.maxIter]        - Max iterations for iterative methods (default: 20)
+ * @returns {{
+ *   best: object,
+ *   candidates: Array<{structure, orders, criterion, aic, aicc, bic, trainFit, validFit, nParams}>
+ * }}
+ */
+export function autoModelOrder(u, y, options = {}) {
+  const N = u.length;
+  const structures     = options.structures    ?? ['ARX', 'ARMAX', 'OE', 'BJ'];
+  const criterionName  = (options.criterion    ?? 'AICc').toUpperCase();
+  const maxNa          = options.maxNa         ?? 4;
+  const maxNb          = options.maxNb         ?? 4;
+  const maxNc          = options.maxNc         ?? 3;
+  const maxNf          = options.maxNf         ?? 4;
+  const nk             = options.nk            ?? 1;
+  const Ts             = options.Ts            ?? 1;
+  const trainFraction  = options.trainFraction ?? 0.8;
+  const crossValidate  = options.crossValidate ?? true;
+  const maxIter        = options.maxIter       ?? 20;
+
+  // ── Train/validation split ────────────────────────────────────────────────
+  const nTrain = crossValidate ? Math.floor(N * trainFraction) : N;
+  const uTrain = u.slice(0, nTrain);
+  const yTrain = y.slice(0, nTrain);
+  const uValid = crossValidate ? u.slice(nTrain) : null;
+  const yValid = crossValidate ? y.slice(nTrain) : null;
+
+  /**
+   * Compute validation fitPercent by simulating the identified model on the
+   * validation data.  Uses the model's transfer function (impulse-response
+   * convolution) as a simulation, so it is a "simulation" (not prediction)
+   * fit — conservative but model-structure agnostic.
+   */
+  function validationFit(model) {
+    if (!crossValidate || !model.tf) return null;
+    const nv = uValid.length;
+    if (nv < 5) return null;
+    try {
+      // Simulate model on validation input via impulse-response convolution
+      const num = model.tf.numerator;
+      const den = model.tf.denominator;
+      // den[0] should be 1 (monic); if it's the continuous/discrete check,
+      // use yhat from the model's own multi-step prediction instead.
+      // Fallback: just return null if tf structure unclear.
+      if (!Array.isArray(num) || !Array.isArray(den) || den.length < 2) return null;
+      // Simple ARX-style simulation: y[k] = -a1*y[k-1]-...-a_na*y[k-na] + b1*u[k-nk]+...
+      const na_d = den.length - 1;   // AR order from TF denominator
+      const nb_d = num.length - 1;   // B order from TF numerator
+      const aCoeffs = den.slice(1);  // a1..a_na
+      const bCoeffs = num;           // b0..b_nb (b0 usually 0 for nk≥1)
+      const yhat = new Array(nv).fill(0);
+      for (let k = 0; k < nv; k++) {
+        let val = 0;
+        for (let i = 0; i < na_d; i++) {
+          if (k - i - 1 >= 0) val -= aCoeffs[i] * yhat[k - i - 1];
+          else if (yValid[k - i - 1] !== undefined) val -= aCoeffs[i] * yValid[k - i - 1];
+        }
+        for (let j = 0; j <= nb_d; j++) {
+          const uIdx = k - j - nk + 1;
+          if (uIdx >= 0) val += bCoeffs[j] * uValid[uIdx];
+        }
+        yhat[k] = val;
+      }
+      const yMean = yValid.reduce((s, v) => s + v, 0) / nv;
+      const sse = yValid.reduce((s, v, i) => s + (v - yhat[i]) ** 2, 0);
+      const sst = yValid.reduce((s, v) => s + (v - yMean) ** 2, 0);
+      return sst > 1e-12 ? Math.max(0, (1 - Math.sqrt(sse / sst)) * 100) : NaN;
+    } catch { return null; }
+  }
+
+  const candidates = [];
+
+  // ── ARX ───────────────────────────────────────────────────────────────────
+  if (structures.includes('ARX')) {
+    for (let na = 1; na <= maxNa; na++) {
+      for (let nb = 1; nb <= maxNb; nb++) {
+        try {
+          const m = identifyARX(uTrain, yTrain, na, nb, nk, Ts);
+          const p = na + nb;
+          const aicc = computeAICc(m.aic, nTrain - Math.max(na, nb + nk - 1), p);
+          const bic  = (nTrain - Math.max(na, nb + nk - 1)) * Math.log(m.mse + 1e-300) + p * Math.log(nTrain);
+          candidates.push({
+            structure: 'ARX',
+            orders: { na, nb, nk },
+            criterion: criterionName === 'BIC' ? bic : criterionName === 'AIC' ? m.aic : aicc,
+            aic: m.aic, aicc, bic,
+            trainFit: m.fitPercent,
+            validFit: validationFit(m),
+            nParams: p,
+            model: m,
+          });
+        } catch { /* skip */ }
+      }
+    }
+  }
+
+  // ── ARMAX ─────────────────────────────────────────────────────────────────
+  if (structures.includes('ARMAX')) {
+    for (let na = 1; na <= maxNa; na++) {
+      for (let nb = 1; nb <= maxNb; nb++) {
+        for (let nc = 1; nc <= maxNc; nc++) {
+          try {
+            const m = identifyARMAX(uTrain, yTrain, na, nb, nc, nk, Ts, { maxIter });
+            const p = na + nb + nc;
+            const N_v = nTrain - Math.max(na, nb + nk - 1, nc);
+            const aicc = computeAICc(m.aic, N_v, p);
+            const bic  = N_v * Math.log(m.mse + 1e-300) + p * Math.log(N_v);
+            candidates.push({
+              structure: 'ARMAX',
+              orders: { na, nb, nc, nk },
+              criterion: criterionName === 'BIC' ? bic : criterionName === 'AIC' ? m.aic : aicc,
+              aic: m.aic, aicc, bic,
+              trainFit: m.fitPercent,
+              validFit: validationFit(m),
+              nParams: p,
+              model: m,
+            });
+          } catch { /* skip */ }
+        }
+      }
+    }
+  }
+
+  // ── OE ────────────────────────────────────────────────────────────────────
+  if (structures.includes('OE')) {
+    for (let nb = 1; nb <= maxNb; nb++) {
+      for (let nf = 1; nf <= maxNf; nf++) {
+        try {
+          const m = identifyOE(uTrain, yTrain, nb, nf, nk, Ts, { maxIter });
+          const p = nb + nf;
+          const N_v = nTrain - Math.max(nf, nb + nk - 1);
+          const aicc = computeAICc(m.aic, N_v, p);
+          const bic  = N_v * Math.log(m.mse + 1e-300) + p * Math.log(N_v);
+          candidates.push({
+            structure: 'OE',
+            orders: { nb, nf, nk },
+            criterion: criterionName === 'BIC' ? bic : criterionName === 'AIC' ? m.aic : aicc,
+            aic: m.aic, aicc, bic,
+            trainFit: m.fitPercent,
+            validFit: validationFit(m),
+            nParams: p,
+            model: m,
+          });
+        } catch { /* skip */ }
+      }
+    }
+  }
+
+  // ── BJ ────────────────────────────────────────────────────────────────────
+  if (structures.includes('BJ')) {
+    for (let nb = 1; nb <= maxNb; nb++) {
+      for (let nf = 1; nf <= maxNf; nf++) {
+        for (let nc = 1; nc <= maxNc; nc++) {
+          try {
+            const nd = nc; // BJ: noise model order = nc for simplicity
+            const m = identifyBJ(uTrain, yTrain, nb, nf, nc, nd, nk, Ts, { maxIter });
+            const p = nb + nf + nc + nd;
+            const N_v = nTrain - Math.max(nf, nb + nk - 1);
+            const aicc = computeAICc(m.aic, N_v, p);
+            const bic  = N_v * Math.log(m.mse + 1e-300) + p * Math.log(N_v);
+            candidates.push({
+              structure: 'BJ',
+              orders: { nb, nf, nc, nd, nk },
+              criterion: criterionName === 'BIC' ? bic : criterionName === 'AIC' ? m.aic : aicc,
+              aic: m.aic, aicc, bic,
+              trainFit: m.fitPercent,
+              validFit: validationFit(m),
+              nParams: p,
+              model: m,
+            });
+          } catch { /* skip */ }
+        }
+      }
+    }
+  }
+
+  if (candidates.length === 0) {
+    throw new Error('autoModelOrder: no valid candidates found — check input data or reduce maxNa/maxNb');
+  }
+
+  // ── Sort by chosen criterion (lower = better) ─────────────────────────────
+  candidates.sort((a, b) => a.criterion - b.criterion);
+
+  // Strip internal model objects from returned list (keep only metadata)
+  const results = candidates.map(({ model: _m, ...rest }) => rest);
+  const best = candidates[0].model;
+  best._structure = candidates[0].structure;
+  best._orders    = candidates[0].orders;
+  best._criterion = criterionName;
+  best._criterionValue = candidates[0].criterion;
+
+  return { best, candidates: results };
+}
