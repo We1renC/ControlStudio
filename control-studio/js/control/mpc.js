@@ -1,10 +1,11 @@
 /**
- * mpc.js — Phase 10 finite-horizon MPC baseline.
+ * mpc.js — Phase 10 finite-horizon MPC baseline + P29-04 solver retrofit.
  *
- * Scope is intentionally narrow:
+ * Scope:
  * - discrete-time state-space only
- * - unconstrained quadratic cost
- * - receding-horizon control via finite-horizon Riccati recursion
+ * - unconstrained quadratic cost (Riccati)
+ * - receding-horizon control via condensed QP
+ * - P29-04: box + general linear input constraints via solveQP (interior-point)
  */
 
 import {
@@ -20,6 +21,7 @@ import {
   matTranspose,
 } from '../math/matrix.js';
 import { solveDAREHamiltonianSign, solveDiscreteKalman } from './state-feedback.js';
+import { solveQP } from '../math/optimization.js';
 
 function assertMatrixShape(name, M, rows, cols) {
   if (!Array.isArray(M) || M.length !== rows || M.some((row) => !Array.isArray(row) || row.length !== cols)) {
@@ -605,8 +607,8 @@ function condensedGradient(condensed, x0) {
  * Hildreth's coordinate-descent algorithm for box-constrained QP:
  *   min  0.5 U' H U + f' U   s.t.  uMin[i] ≤ U[i] ≤ uMax[i]
  *
- * Guaranteed to converge for positive-definite H.
- * Each iteration sweeps all components and clamps each one to its bounds.
+ * @deprecated (P29-04) — replaced by solveQP (primal-dual interior-point) in all
+ * public-facing MPC functions.  Retained for reference / legacy callers only.
  */
 function boxQPHildreth(H, f, uMin, uMax, maxIter = 400, tol = 1e-10) {
   const N = f.length;
@@ -634,9 +636,14 @@ function boxQPHildreth(H, f, uMin, uMax, maxIter = 400, tol = 1e-10) {
 /**
  * Solve one constrained MPC step (receding-horizon: return only u_0).
  *
- * constraints: { uMin: number|number[], uMax: number|number[] }
- *   - scalar means the same bound for all inputs
- *   - array of length m means per-input bounds
+ * constraints:
+ *   { uMin: number|number[], uMax: number|number[] }   — per-step box bounds on u
+ *   { A: number[][], b: number[] }                     — general polyhedral: A·U_seq ≤ b
+ *
+ *   Both can be combined.  Per-input arrays or scalars are broadcast over horizon.
+ *
+ * P29-04: uses solveQP (primal-dual interior-point) instead of Hildreth coordinate descent,
+ * enabling general linear inequality constraints (not just box).
  */
 export function firstMpcActionConstrained(Ad, Bd, Q, R, horizon, x, constraints = {}, Qf = null, options = {}) {
   const { n, m } = validateMpcModel(Ad, Bd, Q, R, horizon);
@@ -696,7 +703,17 @@ export function firstMpcActionConstrained(Ad, Bd, Q, R, horizon, x, constraints 
     }
   }
 
-  const { U, converged, iterations } = boxQPHildreth(H, f, uMin, uMax);
+  // P29-04: general linear input constraints A·U ≤ b (optional)
+  const qpOpts = { lb: uMin, ub: uMax };
+  if (constraints.A && constraints.b) {
+    qpOpts.A = constraints.A;
+    qpOpts.b = constraints.b;
+  }
+
+  const qpResult = solveQP(H, f, qpOpts);
+  const U = qpResult.x;
+  const { converged, iterations } = qpResult;
+
   const u = Array.from({ length: m }, (_, j) => [U[j]]);
   const activeAt = U.map((val, i) => {
     if (Math.abs(val - uMin[i]) < 1e-7 && Number.isFinite(uMin[i])) return 'lower';
@@ -712,6 +729,7 @@ export function firstMpcActionConstrained(Ad, Bd, Q, R, horizon, x, constraints 
     condensed,
     converged,
     iterations,
+    method: qpResult.method,
   };
 }
 
@@ -945,7 +963,15 @@ export function firstMpcActionStateConstrained(
     f_total = f_total.map((v, i) => v + df[i]);
   }
 
-  const { U, converged, iterations } = boxQPHildreth(H_total, f_total, uMin, uMax);
+  // P29-04: use general solveQP (supports polyhedral input constraints too)
+  const _sc_opts = { lb: uMin, ub: uMax };
+  if (uConstraints.A && uConstraints.b) {
+    _sc_opts.A = uConstraints.A;
+    _sc_opts.b = uConstraints.b;
+  }
+  const _sc_res = solveQP(H_total, f_total, _sc_opts);
+  const U = _sc_res.x;
+  const { converged, iterations } = _sc_res;
   const u = Array.from({ length: m }, (_, j) => [U[j]]);
 
   // Compute predicted trajectory to report violations
@@ -969,6 +995,7 @@ export function firstMpcActionStateConstrained(
     condensed,
     converged,
     iterations,
+    method: _sc_res.method,
   };
 }
 
