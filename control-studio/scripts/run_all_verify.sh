@@ -98,6 +98,7 @@ run_script "P30 adaptive control"        "node scripts/verify_p30_adaptive.mjs"
 run_script "P31 estimation & FDD/FTC"   "node scripts/verify_p31_estimation.mjs"
 run_script "P32 nonlinear advanced"     "node scripts/verify_p32_nonlinear_advanced.mjs"
 run_script "P33 productization"         "node scripts/verify_p33_productization.mjs"
+run_script "P34 UI/UX experience"       "node scripts/verify_p34_ui.mjs"
 echo ""
 
 # ── General Math & PID ───────────────────────────────────────────────────────

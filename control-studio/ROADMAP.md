@@ -60,12 +60,12 @@
 | **P30** | **Adaptive & learning control: RLS / MRAC / STR / ILC** | Done | `verify_p30_adaptive.mjs` |
 | **P31** | **Estimation & monitoring: MHE / particle filter / FDD / FTC** | Done | `verify_p31_estimation.mjs` |
 | **P32** | **Advanced nonlinear: feedback linearization / backstepping / CLF-CBF** | Done | `verify_p32_nonlinear_advanced.mjs` |
-| **P33** | **Productization & interop: codegen / report / python-control bridge** | In Progress | — |
-| **P34** | **UI/UX experience & design system** | Planned | — |
+| **P33** | **Productization & interop: codegen / report / python-control bridge** | Done | `verify_p33_productization.mjs` |
+| **P34** | **UI/UX experience & design system** | Done | `verify_p34_ui.mjs` |
 
 ## Verification Suite Status (2026-05-21)
 
-**46/46 scripts pass** — run via `bash scripts/run_all_verify.sh`
+**48/48 scripts pass** — run via `bash scripts/run_all_verify.sh`
 
 | Group | Scripts | Pass |
 | --- | --- | --- |
