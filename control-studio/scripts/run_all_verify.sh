@@ -97,6 +97,7 @@ run_script "P29 D-K iteration (μ-synth)" "node scripts/verify_p29_dk.mjs"
 run_script "P30 adaptive control"        "node scripts/verify_p30_adaptive.mjs"
 run_script "P31 estimation & FDD/FTC"   "node scripts/verify_p31_estimation.mjs"
 run_script "P32 nonlinear advanced"     "node scripts/verify_p32_nonlinear_advanced.mjs"
+run_script "P33 productization"         "node scripts/verify_p33_productization.mjs"
 echo ""
 
 # ── General Math & PID ───────────────────────────────────────────────────────

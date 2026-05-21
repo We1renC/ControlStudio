@@ -57,15 +57,15 @@
 | P27 | H∞ extensions: MIMO H∞ verify + loop shaping | Mostly Done | `verify_p27_mimo_hinf.mjs`, `verify_p27_loop_shaping.mjs` |
 | P28 | Infrastructure quality: TS definitions + benchmark | Mostly Done | `control-studio/types/control-studio.d.ts`, `benchmark.mjs` |
 | **P29** | **Numerical optimization core: QP / LP / SDP-LMI** | Done | `verify_p29_{qp,lp,sdp,lpv,dk}.mjs` — 43 scripts total |
-| **P30** | **Adaptive & learning control: RLS / MRAC / STR / ILC** | In Progress | — |
-| **P31** | **Estimation & monitoring: MHE / particle filter / FDD / FTC** | Planned | — |
-| **P32** | **Advanced nonlinear: feedback linearization / backstepping / CLF-CBF** | Planned | — |
-| **P33** | **Productization & interop: codegen / report / python-control bridge** | Planned | — |
+| **P30** | **Adaptive & learning control: RLS / MRAC / STR / ILC** | Done | `verify_p30_adaptive.mjs` |
+| **P31** | **Estimation & monitoring: MHE / particle filter / FDD / FTC** | Done | `verify_p31_estimation.mjs` |
+| **P32** | **Advanced nonlinear: feedback linearization / backstepping / CLF-CBF** | Done | `verify_p32_nonlinear_advanced.mjs` |
+| **P33** | **Productization & interop: codegen / report / python-control bridge** | In Progress | — |
 | **P34** | **UI/UX experience & design system** | Planned | — |
 
 ## Verification Suite Status (2026-05-21)
 
-**43/43 scripts pass** — run via `bash scripts/run_all_verify.sh`
+**46/46 scripts pass** — run via `bash scripts/run_all_verify.sh`
 
 | Group | Scripts | Pass |
 | --- | --- | --- |
