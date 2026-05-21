@@ -1,0 +1,22 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "allowJs": true,
+    "checkJs": false,
+    "declaration": false,
+    "noEmit": true,
+    "strict": false,
+    "skipLibCheck": true,
+    "typeRoots": ["./types"],
+    "paths": {}
+  },
+  "include": [
+    "types/**/*.d.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "scripts/**/*.mjs"
+  ]
+}

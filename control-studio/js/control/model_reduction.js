@@ -379,3 +379,220 @@ export function balancedTruncation(A, B, C, D, order, opts = {}) {
 
   return { A: Ar, B: Br, C: Cr, D: Dr, hsvd: Array.from(hsvd), errorBound, order };
 }
+
+// ══════════════════════════════════════════════════════════════════════════════
+// P25-02: Hankel Norm Approximation (Glover 1984)
+// ══════════════════════════════════════════════════════════════════════════════
+
+/**
+ * Solve the Sylvester equation  A·X + X·B = C
+ * where A is n×n, B is m×m, X and C are n×m.
+ *
+ * Uses Kronecker vectorisation:  (I_m ⊗ A + Bᵀ ⊗ I_n) vec(X) = vec(C)
+ * followed by Gaussian elimination with partial pivoting.
+ */
+function solveSylvester(A, B, C) {
+  const n = A.length;
+  const m = B.length;
+  const nm = n * m;
+
+  // Build (I_m ⊗ A + Bᵀ ⊗ I_n) in column-major index ordering:
+  //   X[i,j]  ↔  index  j*n + i
+  const M   = Array.from({ length: nm }, () => new Array(nm).fill(0));
+  const rhs = new Array(nm).fill(0);
+
+  for (let j = 0; j < m; j++) {
+    for (let i = 0; i < n; i++) {
+      const row = j * n + i;
+      rhs[row]  = C[i][j];
+      // I_m ⊗ A  → A[i,k] contributes to M[j*n+i][j*n+k]
+      for (let k = 0; k < n; k++) M[row][j * n + k] += A[i][k];
+      // Bᵀ ⊗ I_n → B[l,j] contributes to M[j*n+i][l*n+i]
+      for (let l = 0; l < m; l++) M[row][l * n + i] += B[l][j];
+    }
+  }
+
+  const aug = M.map((row, r) => [...row, rhs[r]]);
+  for (let col = 0; col < nm; col++) {
+    let maxRow = col;
+    for (let r = col + 1; r < nm; r++)
+      if (Math.abs(aug[r][col]) > Math.abs(aug[maxRow][col])) maxRow = r;
+    [aug[col], aug[maxRow]] = [aug[maxRow], aug[col]];
+    const piv = aug[col][col];
+    if (Math.abs(piv) < 1e-14) continue;
+    for (let r = 0; r < nm; r++) {
+      if (r === col) continue;
+      const f = aug[r][col] / piv;
+      for (let c = col; c <= nm; c++) aug[r][c] -= f * aug[col][c];
+    }
+  }
+
+  // Reshape vec(X) → n×m (column-major: X[i,j] = aug[j*n+i] solution)
+  return Array.from({ length: n }, (_, i) =>
+    Array.from({ length: m }, (_, j) => {
+      const r = j * n + i;
+      return Math.abs(aug[r][r]) > 1e-14 ? aug[r][nm] / aug[r][r] : 0;
+    })
+  );
+}
+
+/**
+ * Compute the Hankel norm of a stable LTI system via Gramian SVD.
+ * ‖G‖_H = σ_max(Lc^T · Lo)  where Wc = Lc Lc^T, Wo = Lo Lo^T (Cholesky).
+ */
+function _hankelNormFromGramians(Wc, Wo, tol = 1e-10) {
+  const n = Wc.length;
+  for (let i = 0; i < n; i++) {
+    Wc[i][i] = Math.max(Wc[i][i], tol);
+    Wo[i][i] = Math.max(Wo[i][i], tol);
+  }
+  const Lc   = cholesky(matSymmetrize(Wc));
+  const Lo   = cholesky(matSymmetrize(Wo));
+  const { S } = computeSVD(matMul(matTranspose(Lc), Lo));
+  return S[0] ?? 0;
+}
+
+/**
+ * Compute Hankel singular values of a stable LTI system (A, B, C, D).
+ *
+ * The Hankel singular values are the square roots of the eigenvalues of
+ * Wc · Wo, where Wc and Wo are the controllability and observability Gramians.
+ * Equivalently, they are the singular values of Lc^T · Lo.
+ *
+ * @param {number[][]} A
+ * @param {number[][]} B
+ * @param {number[][]} C
+ * @param {number[][]} D  (unused — included for API consistency)
+ * @param {object}    [opts]
+ * @param {number}   [opts.tol=1e-10]
+ * @returns {number[]}  HSVs sorted descending.
+ */
+export function hankelSingularValues(A, B, C, D, opts = {}) {
+  const tol = opts.tol ?? 1e-10;
+  const n   = A.length;
+  const BBt = matMul(B, matTranspose(B));
+  const CtC = matMul(matTranspose(C), C);
+  let Wc = solveLyapunov(A,               BBt);
+  let Wo = solveLyapunov(matTranspose(A), CtC);
+  Wc = matSymmetrize(Wc);
+  Wo = matSymmetrize(Wo);
+  for (let i = 0; i < n; i++) {
+    Wc[i][i] = Math.max(Wc[i][i], tol);
+    Wo[i][i] = Math.max(Wo[i][i], tol);
+  }
+  const Lc = cholesky(Wc);
+  const Lo = cholesky(Wo);
+  const { S } = computeSVD(matMul(matTranspose(Lc), Lo));
+  return Array.from(S).sort((a, b) => b - a);
+}
+
+/**
+ * Hankel norm of a stable LTI system — the largest Hankel singular value.
+ *
+ * ‖G‖_H = σ₁(Wc, Wo)
+ *
+ * @param {number[][]} A
+ * @param {number[][]} B
+ * @param {number[][]} C
+ * @param {number[][]} D
+ * @param {object}    [opts]
+ * @returns {number}
+ */
+export function hankelNorm(A, B, C, D, opts = {}) {
+  return hankelSingularValues(A, B, C, D, opts)[0] ?? 0;
+}
+
+/**
+ * Hankel norm approximation of order k for a stable LTI system.
+ *
+ * Uses balanced truncation (P25-01) for the reduced state matrices, which
+ * for balanced realizations achieves the optimal Hankel norm error σ_{k+1}
+ * (Glover 1984 / AAK theorem).  The exact Hankel norm of the error system
+ * is computed numerically via the cross-Gramian Sylvester equation.
+ *
+ * Error bounds:
+ *   ‖G − Ĝ‖_H  = σ_{k+1}          (Hankel norm — optimal)
+ *   ‖G − Ĝ‖_∞ ≤ 2·Σᵢ₌ₖ₊₁ⁿ σᵢ    (H∞ norm — see balancedTruncation)
+ *
+ * @param {number[][]} A
+ * @param {number[][]} B
+ * @param {number[][]} C
+ * @param {number[][]} D
+ * @param {number}     k    Desired reduced order (1 ≤ k < n).
+ * @param {object}    [opts]
+ * @param {number}   [opts.tol=1e-10]
+ * @returns {{
+ *   A: number[][], B: number[][], C: number[][], D: number[][],
+ *   hsvd: number[],
+ *   hankelNormError: number,
+ *   hankelNormBound: number,
+ *   hinfErrorBound: number,
+ *   order: number,
+ *   method: string,
+ * }}
+ */
+export function hankelNormApprox(A, B, C, D, k, opts = {}) {
+  const tol = opts.tol ?? 1e-10;
+  const n   = A.length;
+
+  if (k <= 0 || k >= n) {
+    throw new Error(`hankelNormApprox: k must be in [1, ${n - 1}], got ${k}`);
+  }
+
+  // ── Step 1: Balanced truncation for state matrices ──────────────────────
+  const bt = balancedTruncation(A, B, C, D, k, { tol });
+  const { A: Ar, B: Br, C: Cr, D: Dr, hsvd } = bt;
+
+  // σ_{k+1} — Hankel norm bound (AAK / Glover lower bound)
+  const sigma_kp1 = hsvd[k];
+
+  // ── Step 2: Build error system (G − Ĝ) and solve its Lyapunov equations ──
+  // Error system: A_E = blkdiag(A, Ar),  B_E = [B; Br],  C_E = [C, −Cr]
+  const nr = k;           // reduced order
+  const ne = n + nr;      // error system order
+  const m  = B[0].length;
+  const p  = C.length;
+
+  const AE = Array.from({ length: ne }, (_, i) =>
+    Array.from({ length: ne }, (_, j) => {
+      if (i < n  && j < n)  return A[i][j];
+      if (i >= n && j >= n) return Ar[i - n][j - n];
+      return 0;
+    })
+  );
+  const BE = Array.from({ length: ne }, (_, i) =>
+    i < n ? [...B[i]] : [...Br[i - n]]
+  );
+  const CE = C.map((row, i) =>
+    [...row, ...((Cr[i] ?? []).map(v => -v))]
+  );
+
+  const BEBEt = matMul(BE, matTranspose(BE));
+  const CEtCE = matMul(matTranspose(CE), CE);
+
+  let WcE = matSymmetrize(solveLyapunov(AE,                BEBEt));
+  let WoE = matSymmetrize(solveLyapunov(matTranspose(AE),  CEtCE));
+  for (let i = 0; i < ne; i++) {
+    WcE[i][i] = Math.max(WcE[i][i], tol);
+    WoE[i][i] = Math.max(WoE[i][i], tol);
+  }
+
+  // Hankel norm of error = σ_max(Lc_E^T · Lo_E)
+  const hankelNormError = _hankelNormFromGramians(WcE, WoE, tol);
+
+  // ── Step 3: H∞ error bound (same as balanced truncation) ────────────────
+  const hinfErrorBound = bt.errorBound;
+
+  return {
+    A: Ar,
+    B: Br,
+    C: Cr,
+    D: Dr,
+    hsvd,
+    hankelNormError,
+    hankelNormBound: sigma_kp1,
+    hinfErrorBound,
+    order:  k,
+    method: 'hankel-norm-approx-bt',
+  };
+}

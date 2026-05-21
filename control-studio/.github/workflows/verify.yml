@@ -32,6 +32,39 @@ jobs:
           path: control-studio/scripts/
           retention-days: 7
 
+  typecheck:
+    name: TypeScript Type Check (tsc --noEmit)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install TypeScript
+        run: npm install --save-dev typescript
+        working-directory: control-studio
+
+      - name: Run type check
+        run: npx tsc --noEmit
+        working-directory: control-studio
+
+      - name: Generate API docs (P28-02)
+        run: node scripts/generate_api_docs.mjs --quiet
+        working-directory: control-studio
+
+      - name: Verify API docs output
+        run: |
+          test -f docs/api/index.html && echo "✓ docs/api/index.html exists" || exit 1
+          test -f docs/api/symbols.json && echo "✓ docs/api/symbols.json exists" || exit 1
+          SYMBOLS=$(node -e "const s=require('./docs/api/symbols.json'); console.log(s.length)")
+          echo "✓ ${SYMBOLS} symbols indexed"
+        working-directory: control-studio
+
   verify-python:
     name: Python Cross-Tool Comparison
     runs-on: ubuntu-latest

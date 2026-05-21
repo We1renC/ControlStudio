@@ -1,0 +1,2000 @@
+[
+  {
+    "name": "discreteBodeData",
+    "kind": "function",
+    "module": "js/analysis/discrete-frequency-response.js",
+    "doc": "Compute Bode data for a discrete transfer function."
+  },
+  {
+    "name": "discreteStepResponse",
+    "kind": "function",
+    "module": "js/analysis/discrete-response.js",
+    "doc": ""
+  },
+  {
+    "name": "discreteImpulseResponse",
+    "kind": "function",
+    "module": "js/analysis/discrete-response.js",
+    "doc": ""
+  },
+  {
+    "name": "findEquilibrium",
+    "kind": "function",
+    "module": "js/analysis/equilibrium.js",
+    "doc": "Newton-Raphson iteration to find an equilibrium x* such that f(x*)=0, starting from initial guess x0."
+  },
+  {
+    "name": "classifyEquilibrium",
+    "kind": "function",
+    "module": "js/analysis/equilibrium.js",
+    "doc": "Classify an equilibrium point via Jacobian eigenvalues.   type: 'stable-node'|'unstable-node'|'saddle'|'stable-spiral'|'unstable-spiral'|'center'|'unknown'   stable: true if all eigenvalues have Re < 0   stiffness: max|Re(λ)| / min|Re(λ)| (stiffness ratio)"
+  },
+  {
+    "name": "scanEquilibria",
+    "kind": "function",
+    "module": "js/analysis/equilibrium.js",
+    "doc": "Scan for multiple equilibria by running Newton-Raphson from a grid of starting points.   Unique equilibria found (deduplicated within tolerance)"
+  },
+  {
+    "name": "bodeData",
+    "kind": "function",
+    "module": "js/analysis/frequency-response.js",
+    "doc": "Compute Bode plot data."
+  },
+  {
+    "name": "nyquistData",
+    "kind": "function",
+    "module": "js/analysis/frequency-response.js",
+    "doc": "Compute Nyquist plot data. Returns real and imaginary parts for positive and negative frequencies."
+  },
+  {
+    "name": "autoFreqRange",
+    "kind": "function",
+    "module": "js/analysis/frequency-response.js",
+    "doc": "Auto-detect frequency range based on poles and zeros."
+  },
+  {
+    "name": "nicholsData",
+    "kind": "function",
+    "module": "js/analysis/frequency-response.js",
+    "doc": "Compute Nichols chart data (open-loop phase vs. magnitude)."
+  },
+  {
+    "name": "nyquistEncirclements",
+    "kind": "function",
+    "module": "js/analysis/frequency-response.js",
+    "doc": "Count Nyquist encirclements of the -1+j0 point. Positive = clockwise encirclement (indicates instability for stable open-loop). Uses winding number algorithm."
+  },
+  {
+    "name": "phasePortrait",
+    "kind": "function",
+    "module": "js/analysis/phase-portrait.js",
+    "doc": "Build a phase portrait for the autonomous 2D system  ẋ = f(x).   trajectories: array of [t, x1, x2] sequences"
+  },
+  {
+    "name": "linearVelocityField",
+    "kind": "function",
+    "module": "js/analysis/phase-portrait.js",
+    "doc": "Build a 2D state-space velocity field from a linear system:  ẋ = A x + B u(t),  u≡0."
+  },
+  {
+    "name": "describingFunction",
+    "kind": "function",
+    "module": "js/analysis/phase-portrait.js",
+    "doc": "Describing function N(A) of common nonlinearities, returning the equivalent complex gain as a function of input amplitude A. Useful for predicting limit cycles via 1 + N(A)·G(jω) = 0. type: 'saturation' | 'relay' | 'deadzone'"
+  },
+  {
+    "name": "rootLocusData",
+    "kind": "function",
+    "module": "js/analysis/root-locus.js",
+    "doc": "Compute root locus data. For characteristic equation: den(s) + K·num(s) = 0"
+  },
+  {
+    "name": "rootLocusAsymptotes",
+    "kind": "function",
+    "module": "js/analysis/root-locus.js",
+    "doc": "Compute asymptotes for root locus."
+  },
+  {
+    "name": "sortRootLocusBranches",
+    "kind": "function",
+    "module": "js/analysis/root-locus.js",
+    "doc": "Sort each step's root array so that branch index is continuous across K. Greedy nearest-neighbor matching between consecutive steps."
+  },
+  {
+    "name": "rootLocusBreakPoints",
+    "kind": "function",
+    "module": "js/analysis/root-locus.js",
+    "doc": "Find breakaway / break-in points on the real axis. Solves num'(s)·den(s) − num(s)·den'(s) = 0 and keeps real candidates with K > 0."
+  },
+  {
+    "name": "rootLocusJwCrossings",
+    "kind": "function",
+    "module": "js/analysis/root-locus.js",
+    "doc": "Find K values where the locus crosses the imaginary axis (jω crossings). Sweeps K logarithmically, detects sign change in Re(root) on any branch, then refines each crossing by bisection on the parametric characteristic poly."
+  },
+  {
+    "name": "simulateTimeResponse",
+    "kind": "function",
+    "module": "js/analysis/time-response.js",
+    "doc": ""
+  },
+  {
+    "name": "stepResponse",
+    "kind": "function",
+    "module": "js/analysis/time-response.js",
+    "doc": ""
+  },
+  {
+    "name": "impulseResponse",
+    "kind": "function",
+    "module": "js/analysis/time-response.js",
+    "doc": ""
+  },
+  {
+    "name": "rampResponse",
+    "kind": "function",
+    "module": "js/analysis/time-response.js",
+    "doc": ""
+  },
+  {
+    "name": "simulatePIDAntiWindup",
+    "kind": "function",
+    "module": "js/analysis/time-response.js",
+    "doc": "Simulate PID controller + plant in open-loop feedback with actuator saturation and back-calculation anti-windup. Anti-windup law:  dxi/dt = e + (u_sat - u_unsat) / Tt When u_unsat is within [uMin, uMax], the correction term is zero (normal integral). When saturated, the correction pulls the integrat"
+  },
+  {
+    "name": "identifyRLS",
+    "kind": "function",
+    "module": "js/control/adaptive.js",
+    "doc": "Create a stateful RLS estimator for a linear regression model:   y(t) = φ(t)ᵀ θ where θ ∈ ℝⁿ are unknown parameters and φ(t) is the regressor vector. Exponential forgetting: older data is down-weighted by λᵏ (0 < λ ≤ 1). λ = 1 → standard least squares (all history equally weighted). Update equations"
+  },
+  {
+    "name": "designMRAC",
+    "kind": "function",
+    "module": "js/control/adaptive.js",
+    "doc": "Design a MRAC controller for a first-order plant:   ẋ_p = a_p x_p + b_p u   (unknown a_p, b_p) tracking a reference model:   ẋ_m = a_m x_m + b_m r   (a_m < 0, b_m > 0 specified) MIT gradient rule adaptive laws:   k̇_r = −γ e x_m   (feed-forward gain from reference)   k̇_x = −γ e x_p   (state feedbac"
+  },
+  {
+    "name": "selfTuningRegulator",
+    "kind": "function",
+    "module": "js/control/adaptive.js",
+    "doc": "Self-Tuning Regulator: online RLS identification + pole-placement redesign. Plant model: A(q⁻¹) y(t) = B(q⁻¹) u(t) + e(t)   θ = [a1,...,na, b1,...,nb]ᵀ — estimated online via RLS. Controller redesign: at each step, use estimated {a_i, b_i} to compute a control law u(t) = −k_y · y(t) + k_r · r(t) tha"
+  },
+  {
+    "name": "iterativeLearningControl",
+    "kind": "function",
+    "module": "js/control/adaptive.js",
+    "doc": "P-type Iterative Learning Control for repetitive tasks. Given a desired output trajectory yd[0..T-1], ILC updates the feed-forward input sequence across trials to eliminate the repetitive error. Update law (P-type):   u_{k+1}(t) = u_k(t) + L · e_k(t+d) where e_k(t) = yd(t) − y_k(t), d is relative de"
+  },
+  {
+    "name": "identifySRIVC",
+    "kind": "function",
+    "module": "js/control/adaptive.js",
+    "doc": "Simplified Refined Instrumental Variable for Continuous-time (SRIVC). Estimates continuous-time ARX model parameters:   a(p) y(t) = b(p) u(t) + e(t) where p = d/dt, a(p) = pⁿ + a_{n-1}p^{n-1} + ... + a_0,               b(p) = b_{m} p^m + ... + b_0. Algorithm (Simplified / batch IV estimate):   1. Pr"
+  },
+  {
+    "name": "c2dTustin",
+    "kind": "function",
+    "module": "js/control/c2d.js",
+    "doc": ""
+  },
+  {
+    "name": "c2dTustinPrewarp",
+    "kind": "function",
+    "module": "js/control/c2d.js",
+    "doc": ""
+  },
+  {
+    "name": "c2dMatchedZ",
+    "kind": "function",
+    "module": "js/control/c2d.js",
+    "doc": ""
+  },
+  {
+    "name": "c2dZOH",
+    "kind": "function",
+    "module": "js/control/c2d.js",
+    "doc": ""
+  },
+  {
+    "name": "c2dImpulseInvariant",
+    "kind": "function",
+    "module": "js/control/c2d.js",
+    "doc": ""
+  },
+  {
+    "name": "d2cTustin",
+    "kind": "function",
+    "module": "js/control/c2d.js",
+    "doc": ""
+  },
+  {
+    "name": "normalizeCompensatorConfig",
+    "kind": "function",
+    "module": "js/control/compensator.js",
+    "doc": ""
+  },
+  {
+    "name": "leadLagTransferFunction",
+    "kind": "function",
+    "module": "js/control/compensator.js",
+    "doc": ""
+  },
+  {
+    "name": "compensatorDescription",
+    "kind": "function",
+    "module": "js/control/compensator.js",
+    "doc": ""
+  },
+  {
+    "name": "designLeadCompensator",
+    "kind": "function",
+    "module": "js/control/compensator.js",
+    "doc": ""
+  },
+  {
+    "name": "notchFilter",
+    "kind": "function",
+    "module": "js/control/compensator.js",
+    "doc": "Notch filter transfer function. N(s) = (s² + 2·ζ_num·ω_n·s + ω_n²) / (s² + 2·ζ_den·ω_n·s + ω_n²) zetaNum < zetaDen gives attenuation at ω_n."
+  },
+  {
+    "name": "notchFilterDescription",
+    "kind": "function",
+    "module": "js/control/compensator.js",
+    "doc": ""
+  },
+  {
+    "name": "designLeadLagCompensator",
+    "kind": "function",
+    "module": "js/control/compensator.js",
+    "doc": "Design a Lead-Lag cascade compensator in one step. C(s) = Kc_lead·(τ₁s+1)/(ατ₁s+1) · (τ₂s+1)/(βτ₂s+1)   α<1, β>1 Lead part: provides phaseBoostDeg phase lift at crossoverFreq. Lag  part: provides improvementFactor steady-state gain boost (α_lag = improvementFactor)."
+  },
+  {
+    "name": "designLagCompensator",
+    "kind": "function",
+    "module": "js/control/compensator.js",
+    "doc": ""
+  },
+  {
+    "name": "padeCoefficients",
+    "kind": "function",
+    "module": "js/control/delay.js",
+    "doc": "Pade approximant of e^{-sT}: a rational p(s)/q(s) of order n.   Numerator   p(s) = Σ_{k=0..n} a_k (Ts)^k   where a_k = (2n−k)! n! / [(2n)! k! (n−k)!] (−1)^k   Denominator q(s) = a_k with sign flipped to + (k always positive) The convention here uses high-order coefficient first (matches TransferFunc"
+  },
+  {
+    "name": "padeApprox",
+    "kind": "function",
+    "module": "js/control/delay.js",
+    "doc": "Returns a TransferFunction representing the n-th order Padé approximation of e^{-sT}."
+  },
+  {
+    "name": "applyDelay",
+    "kind": "function",
+    "module": "js/control/delay.js",
+    "doc": "Compose a plant with a time delay. Returns G(s) · e^{-sT} approximated as G(s)·Pade(T, n)."
+  },
+  {
+    "name": "delayPhase",
+    "kind": "function",
+    "module": "js/control/delay.js",
+    "doc": "Phase contribution of a pure delay e^{-jωT}: φ(ω) = −ωT radians. Useful for analytical phase computation without Padé approximation."
+  },
+  {
+    "name": "delayMargin",
+    "kind": "function",
+    "module": "js/control/delay.js",
+    "doc": "Delay margin (seconds): given phase margin PM (radians) at gain-crossover ω_gc, DM = PM / ω_gc. This is the additional delay the loop can tolerate before instability."
+  },
+  {
+    "name": "smithPredictor",
+    "kind": "function",
+    "module": "js/control/delay.js",
+    "doc": "Smith Predictor compensator structure for plants with dead time. The Smith predictor wraps an existing controller C(s) so that the effective loop transfer L(s) = C(s) · G(s) (delay-free) rather than C(s) · G(s) · e^{-sT}.      ┌────── G_m(s)·(1−e^{−sT_m}) ──────┐      │                              "
+  },
+  {
+    "name": "specsToTargetPoles",
+    "kind": "function",
+    "module": "js/control/design.js",
+    "doc": "Map (%OS, Ts) specifications to a 2nd-order dominant pole pair.   ζ  = -ln(OS/100) / √(π² + ln²(OS/100))   σ  = k / Ts        (k=4 for 2%, k=3 for 5%)   ωn = σ / ζ   ωd = ωn · √(1 - ζ²)   target poles s = -σ ± j ωd"
+  },
+  {
+    "name": "designLeadForPM",
+    "kind": "function",
+    "module": "js/control/design.js",
+    "doc": "Design a Lead compensator that lifts plant phase margin to `targetPM`. Strategy: keep crossover frequency, add phase boost at that frequency.                   currentPM, targetPM, achievedPM, leadTf, params }}"
+  },
+  {
+    "name": "autoTunePIDToSpec",
+    "kind": "function",
+    "module": "js/control/design.js",
+    "doc": "Auto-tune PID to meet a frequency-domain specification:   target phase margin PM_target at target crossover frequency ωc. Algorithm (loop-shaping):   1. Evaluate G(jωc) → magnitude |G|, phase φ_G   2. Required controller phase: φ_C = PM_target − 180° − φ_G   3. Solve for (Kp, Ki, Kd) from the two co"
+  },
+  {
+    "name": "deadbeatGain",
+    "kind": "function",
+    "module": "js/control/design.js",
+    "doc": "Deadbeat state-feedback gain via Ackermann's formula.   K = [0 0 … 0 1] · Wc⁻¹ · α(A) where Wc = [B AB A²B … A^{n-1}B] and α(z) = zⁿ (all desired poles at 0). Therefore α(A) = Aⁿ. The resulting closed-loop A − BK has all eigenvalues at z = 0, settling in at most n samples."
+  },
+  {
+    "name": "DiscreteTransferFunction",
+    "kind": "class",
+    "module": "js/control/discrete-transfer-function.js",
+    "doc": ""
+  },
+  {
+    "name": "computeMuUpperBound",
+    "kind": "function",
+    "module": "js/control/dk_iteration.js",
+    "doc": "Compute the μ upper bound for a real matrix M via D-scaling:   μ̄(M) = min_{d>0} σ_max(D M D⁻¹)   where D = diag(d) Optimization is performed by gradient descent on log(d). For full-block unstructured Δ: optimal D = I, so μ̄ = σ_max(M)."
+  },
+  {
+    "name": "computeMuBoundFreq",
+    "kind": "function",
+    "module": "js/control/dk_iteration.js",
+    "doc": "Compute μ upper bound profile over a frequency grid."
+  },
+  {
+    "name": "dkIteration",
+    "kind": "function",
+    "module": "js/control/dk_iteration.js",
+    "doc": "D-K iteration for robust H∞ synthesis. Starting from the plant state-space {A,B,C,D}, iterates:   K-step: H∞ synthesis on D-scaled plant   D-step: optimize D diagonal scaling at each frequency This simplified version uses frequency-independent (constant) D scaling and the loopShapingHinf controller "
+  },
+  {
+    "name": "numericalJacobian",
+    "kind": "function",
+    "module": "js/control/ekf.js",
+    "doc": "Numerical Jacobian: J[i][j] = ∂f_i/∂x_j via central difference."
+  },
+  {
+    "name": "simulateEKF",
+    "kind": "function",
+    "module": "js/control/ekf.js",
+    "doc": "Run Extended Kalman Filter (EKF) on a sequence of measurements.   xhat[k] = posterior state estimate at time k   P[k] = posterior covariance at time k   innovations[k] = y[k] - h(x_prior[k]) (innovation vector)"
+  },
+  {
+    "name": "simulateUKF",
+    "kind": "function",
+    "module": "js/control/ekf.js",
+    "doc": "Run Unscented Kalman Filter (UKF) — sigma-point based, no Jacobians needed. Uses the standard scaled unscented transform with parameters (α=1e-3, β=2, κ=0)."
+  },
+  {
+    "name": "runLinearEKF",
+    "kind": "function",
+    "module": "js/control/ekf.js",
+    "doc": "Convenience: run EKF (or UKF) on a linearized discrete-time SS model {Ad, Bd, Cd} + a step control sequence. Simulates the true states from the model with process noise, then runs EKF/UKF on the simulated measurements."
+  },
+  {
+    "name": "differentialEvolution",
+    "kind": "function",
+    "module": "js/control/empc.js",
+    "doc": "Minimise fn(x) over x ∈ [lb, lb+range]^d using DE/rand/1/bin."
+  },
+  {
+    "name": "simulateEMPC",
+    "kind": "function",
+    "module": "js/control/empc.js",
+    "doc": "Simulate Economic MPC via Differential Evolution open-loop optimisation.                                   Must return a finite scalar for any (x,u).   x:          number[][],   // closed-loop state trajectory (steps+1 × n)   u:          number[][],   // applied control sequence (steps × m)   stageC"
+  },
+  {
+    "name": "movingHorizonEstimation",
+    "kind": "function",
+    "module": "js/control/estimation.js",
+    "doc": "Moving Horizon Estimator for linear discrete-time systems. Problem (horizon N):   min  Σ_{k=t-N}^{t} ‖y_k − C x_k‖²_R⁻¹ + ‖w_k‖²_Q⁻¹ + ‖x̄_{t-N} − x₀‖²_P₀⁻¹   s.t. x_{k+1} = A x_k + B u_k + w_k        xMin ≤ x_k ≤ xMax  (optional) Solved as a condensed least-squares QP (active-set for simplicity)."
+  },
+  {
+    "name": "particleFilter",
+    "kind": "function",
+    "module": "js/control/estimation.js",
+    "doc": "Particle filter (Bootstrap / SIR) for nonlinear state estimation. State transition: x_{k+1} = f(x_k, u_k) + w_k,   w_k ~ N(0, Q) Observation:      y_k = h(x_k) + v_k,              v_k ~ N(0, R)"
+  },
+  {
+    "name": "designFDD",
+    "kind": "function",
+    "module": "js/control/estimation.js",
+    "doc": "Design a model-based FDD system using residual generation. Residual: r(t) = y(t) − ŷ(t|t-1)  (innovation / output error) Fault detection: alarm when ‖r(t)‖ > threshold (based on Gaussian statistics). Fault diagnosis: compare residual pattern to fault signatures.   and `.reset()`."
+  },
+  {
+    "name": "reconfigurableFTC",
+    "kind": "function",
+    "module": "js/control/estimation.js",
+    "doc": "Reconfigurable fault-tolerant controller. Maintains a bank of controllers (one nominal + one per fault mode). After fault isolation by FDD, switches to the appropriate controller."
+  },
+  {
+    "name": "buildExplicitMPC",
+    "kind": "function",
+    "module": "js/control/explicit_mpc.js",
+    "doc": ""
+  },
+  {
+    "name": "evaluateExplicitMPC",
+    "kind": "function",
+    "module": "js/control/explicit_mpc.js",
+    "doc": ""
+  },
+  {
+    "name": "simulateExplicitMPC",
+    "kind": "function",
+    "module": "js/control/explicit_mpc.js",
+    "doc": ""
+  },
+  {
+    "name": "gaTunePID",
+    "kind": "function",
+    "module": "js/control/ga_tuner.js",
+    "doc": "Run the GA. Returns the best PID parameters and the convergence history."
+  },
+  {
+    "name": "nsga2TunePID",
+    "kind": "function",
+    "module": "js/control/ga_tuner.js",
+    "doc": "NSGA-II multi-objective PID tuner. Objectives: [overshoot%, settlingTime] by default (optionally iae/effort). Returns a Pareto front of non-dominated solutions sorted by first objective."
+  },
+  {
+    "name": "buildMixedSensitivityPlant",
+    "kind": "function",
+    "module": "js/control/hinf_riccati.js",
+    "doc": "Build generalized plant P from SISO plant G and weights W1, W2, W3. Static-gain weights (null SS) are handled via D-matrix only."
+  },
+  {
+    "name": "tfToSS",
+    "kind": "function",
+    "module": "js/control/hinf_riccati.js",
+    "doc": "Convert TF to controllable-canonical SS. Returns null for static gains."
+  },
+  {
+    "name": "gammaIteration",
+    "kind": "function",
+    "module": "js/control/hinf_riccati.js",
+    "doc": "Glover-Doyle H∞ synthesis via γ-iteration. Simplified assumptions for SISO mixed-sensitivity: - D22 = 0 (or small) - D11 handled via loop-shifting when non-zero Returns { controller, gamma, Xinf, Yinf, closedLoopPoles, ... }"
+  },
+  {
+    "name": "synthesizeHinfRiccati",
+    "kind": "function",
+    "module": "js/control/hinf_riccati.js",
+    "doc": "Full Riccati-based H∞ mixed-sensitivity synthesis for SISO plants."
+  },
+  {
+    "name": "loopShapingHinf",
+    "kind": "function",
+    "module": "js/control/hinf_riccati.js",
+    "doc": "Loop Shaping H∞ synthesis via normalized coprime factor robust stabilization. (McFarlane & Glover, 1992) Procedure:   1. Form shaped plant Gs = W2 · G · W1  (default W1=W2=1)   2. Solve two CAREs for the normalized LCF of Gs:        X∞ CARE: As'X + XAs + Qs_x − X·Rs_x·X = 0        Y∞ CARE: As·Y + Y·"
+  },
+  {
+    "name": "mixedSensitivityCost",
+    "kind": "function",
+    "module": "js/control/hinf_synth.js",
+    "doc": "For each frequency, compute the maximum singular value of the stacked sensitivity vector [W1·S ; W2·KS ; W3·T]. In SISO this is simply sqrt(|W1 S|² + |W2 KS|² + |W3 T|²)."
+  },
+  {
+    "name": "tunePIDForMixedSensitivity",
+    "kind": "function",
+    "module": "js/control/hinf_synth.js",
+    "doc": "Nelder-Mead simplex search for PID parameters (Kp, Ki, Kd). Minimises the mixed-sensitivity H∞ cost subject to closed-loop stability."
+  },
+  {
+    "name": "dynamicControllerFromParams",
+    "kind": "function",
+    "module": "js/control/hinf_synth.js",
+    "doc": ""
+  },
+  {
+    "name": "synthesizeDynamicMixedSensitivity",
+    "kind": "function",
+    "module": "js/control/hinf_synth.js",
+    "doc": "Fixed/full-order dynamic mixed-sensitivity H∞ synthesis. This solves the same weighted objective as mixedSensitivityCost, but searches over a stable proper dynamic controller K(s)=N(s)/D(s). When order is omitted, it uses plant.order, giving a full-order controller relative to the plant. The impleme"
+  },
+  {
+    "name": "fullOrderHinfMixedSensitivity",
+    "kind": "function",
+    "module": "js/control/hinf_synth.js",
+    "doc": ""
+  },
+  {
+    "name": "defaultMixedSensitivityWeights",
+    "kind": "function",
+    "module": "js/control/hinf_synth.js",
+    "doc": "Convenience: build typical mixed-sensitivity weights.   W1 = (s/M + ω_B) / (s + ω_B·A_low)  — performance (low-freq integrator-like)   W3 = (s + ω_B/M)·A_high / (M·s + ω_B) — high-freq T constraint   W2 = constant (control effort)"
+  },
+  {
+    "name": "analyzeLPV",
+    "kind": "function",
+    "module": "js/control/lpv.js",
+    "doc": "Check common quadratic stability of an LPV system. Solves: ∃P ≻ 0 s.t. Aᵢᵀ P + P Aᵢ ≺ 0 for all i in grid."
+  },
+  {
+    "name": "synthesizeLPV",
+    "kind": "function",
+    "module": "js/control/lpv.js",
+    "doc": "Design a common quadratic-stabilizing state-feedback gain K for an LPV system. Solves: ∃Q ≻ 0, L s.t.   Aᵢ Q + Q Aᵢᵀ − Bᵢ L − Lᵀ Bᵢᵀ ≺ 0   ∀i then K = L Q⁻¹.   A: n×n state matrix, B: n×m input matrix (same n,m across all points)."
+  },
+  {
+    "name": "MIMOStateSpace",
+    "kind": "class",
+    "module": "js/control/mimo.js",
+    "doc": ""
+  },
+  {
+    "name": "parseMIMOMatrices",
+    "kind": "function",
+    "module": "js/control/mimo.js",
+    "doc": "Parse MIMO state-space from textarea inputs."
+  },
+  {
+    "name": "dcGain",
+    "kind": "function",
+    "module": "js/control/mimo.js",
+    "doc": "Compute DC gain matrix G(0) = -C·A^{-1}·B + D"
+  },
+  {
+    "name": "rgaSteady",
+    "kind": "function",
+    "module": "js/control/mimo.js",
+    "doc": "Compute RGA = G ⊗ (G^{-T}) for square m×m system at steady state."
+  },
+  {
+    "name": "rgaInvariants",
+    "kind": "function",
+    "module": "js/control/mimo.js",
+    "doc": ""
+  },
+  {
+    "name": "staticDecoupler",
+    "kind": "function",
+    "module": "js/control/mimo.js",
+    "doc": "Static decoupler: W = G(0)^{-1} (yields G(0)·W = I). Returns m×m static matrix W. Caller can apply via applyDecoupler."
+  },
+  {
+    "name": "dynamicDecouplerAtFrequency",
+    "kind": "function",
+    "module": "js/control/mimo.js",
+    "doc": "Frequency-specific dynamic decoupler prototype: W(jωc) = G(jωc)^-1, verification = G(jωc)·W(jωc). This is not yet a polynomial matrix dynamic compensator. It is a selected- frequency inverse used to quantify whether dynamic decoupling is plausible around a chosen crossover frequency."
+  },
+  {
+    "name": "applyDecoupler",
+    "kind": "function",
+    "module": "js/control/mimo.js",
+    "doc": "Apply a static decoupler W (m×m) to a MIMO plant: B' = B·W, D' = D·W. Returns a new MIMOStateSpace with decoupled inputs."
+  },
+  {
+    "name": "rgaDiagnosis",
+    "kind": "function",
+    "module": "js/control/mimo.js",
+    "doc": "Diagnose pairing quality from RGA diagonal."
+  },
+  {
+    "name": "evalAtJw",
+    "kind": "function",
+    "module": "js/control/mimo.js",
+    "doc": "Evaluate complex matrix G(jω) = C·(jωI - A)^{-1}·B + D. Returns p×m grid of Complex numbers."
+  },
+  {
+    "name": "singularValues",
+    "kind": "function",
+    "module": "js/control/mimo.js",
+    "doc": "Singular values of complex matrix G via eigenvalues of G^H · G."
+  },
+  {
+    "name": "dynamicRGA",
+    "kind": "function",
+    "module": "js/control/mimo.js",
+    "doc": "Dynamic RGA: Λ(jω) = G(jω) .* (G(jω)^{-T})   where Λ_{ij} = G_{ij}(jω) · [G^{-1}(jω)]_{ji}"
+  },
+  {
+    "name": "dynamicRGAMagnitude",
+    "kind": "function",
+    "module": "js/control/mimo.js",
+    "doc": "Like dynamicRGA but returns magnitudes |Λ_{ij}(jω)| as plain numbers."
+  },
+  {
+    "name": "dynamicRGADiagonal",
+    "kind": "function",
+    "module": "js/control/mimo.js",
+    "doc": "Returns only the diagonal RGA magnitudes [|Λ_{11}|, |Λ_{22}|, …] per frequency. Useful for monitoring coupling as a function of frequency."
+  },
+  {
+    "name": "characteristicLoci",
+    "kind": "function",
+    "module": "js/control/mimo.js",
+    "doc": "Characteristic loci: eigenvalues λ_i(G(jω)) across frequency. These are used in MIMO Nyquist-style design to see whether loop eigenvalues encircle the critical point after pairing / decoupling."
+  },
+  {
+    "name": "gershgorinBands",
+    "kind": "function",
+    "module": "js/control/mimo.js",
+    "doc": "Gershgorin bands for G(jω): center = G_ii(jω), radius = Σ_{j≠i}|G_ij(jω)|. A small radius/center ratio indicates weaker loop interaction around ω."
+  },
+  {
+    "name": "inverseNyquistArray",
+    "kind": "function",
+    "module": "js/control/mimo.js",
+    "doc": "Inverse Nyquist Array (INA): entries of G(jω)^-1 across frequency. Useful when designing diagonal controllers on inverse plant channels."
+  },
+  {
+    "name": "singularValueBode",
+    "kind": "function",
+    "module": "js/control/mimo.js",
+    "doc": "Compute σ_max(ω), σ_min(ω) across frequency grid."
+  },
+  {
+    "name": "minrealSS",
+    "kind": "function",
+    "module": "js/control/model_reduction.js",
+    "doc": "Compute the minimum realisation of a state-space system (A, B, C, D) by removing uncontrollable and unobservable states using SVD-based rank tests on the controllability and observability Gramians (or matrices). Algorithm:   1. Compute Wc = controllability Gramian (or Kalman matrix if A unstable)   "
+  },
+  {
+    "name": "balancedTruncation",
+    "kind": "function",
+    "module": "js/control/model_reduction.js",
+    "doc": "Balanced Truncation model order reduction for stable LTI systems. Algorithm (square-root method):   1. Solve Gramians: A·Wc + Wc·Aᵀ + B·Bᵀ = 0                      Aᵀ·Wo + Wo·A + Cᵀ·C  = 0   2. Cholesky: Wc = Lc·Lc', Wo = Lo·Lo'   3. SVD: Lc'·Lo = U·Σ·V'  →  Hankel singular values σᵢ = Σ[i]   4. Bal"
+  },
+  {
+    "name": "hankelSingularValues",
+    "kind": "function",
+    "module": "js/control/model_reduction.js",
+    "doc": "Compute Hankel singular values of a stable LTI system (A, B, C, D). The Hankel singular values are the square roots of the eigenvalues of Wc · Wo, where Wc and Wo are the controllability and observability Gramians. Equivalently, they are the singular values of Lc^T · Lo."
+  },
+  {
+    "name": "hankelNorm",
+    "kind": "function",
+    "module": "js/control/model_reduction.js",
+    "doc": "Hankel norm of a stable LTI system — the largest Hankel singular value. ‖G‖_H = σ₁(Wc, Wo)"
+  },
+  {
+    "name": "hankelNormApprox",
+    "kind": "function",
+    "module": "js/control/model_reduction.js",
+    "doc": "Hankel norm approximation of order k for a stable LTI system. Uses balanced truncation (P25-01) for the reduced state matrices, which for balanced realizations achieves the optimal Hankel norm error σ_{k+1} (Glover 1984 / AAK theorem).  The exact Hankel norm of the error system is computed numerical"
+  },
+  {
+    "name": "validateMpcModel",
+    "kind": "function",
+    "module": "js/control/mpc.js",
+    "doc": ""
+  },
+  {
+    "name": "finiteHorizonLqr",
+    "kind": "function",
+    "module": "js/control/mpc.js",
+    "doc": "Finite-horizon discrete LQR recursion for unconstrained MPC: P_N = Qf  (or P∞ from DARE when options.autoTerminalCost = true) K_k = (R + B'P_{k+1}B)^-1 B'P_{k+1}A P_k = Q + A'P_{k+1}A - A'P_{k+1}B K_k"
+  },
+  {
+    "name": "firstMpcAction",
+    "kind": "function",
+    "module": "js/control/mpc.js",
+    "doc": ""
+  },
+  {
+    "name": "simulateUnconstrainedMpc",
+    "kind": "function",
+    "module": "js/control/mpc.js",
+    "doc": ""
+  },
+  {
+    "name": "solveSetpointSteadyState",
+    "kind": "function",
+    "module": "js/control/mpc.js",
+    "doc": "Compute the steady-state input u_ss required for the state x_ss = r. Steady-state condition: r = Ad·r + Bd·u_ss  →  (I−Ad)·r = Bd·u_ss Solution: u_ss = pinv(Bd) · (I−Ad) · r   (minimum-norm if underdetermined) Also returns the residual ‖Bd·u_ss − (I−Ad)·r‖∞ (= 0 when r is exactly reachable)."
+  },
+  {
+    "name": "firstMpcActionTracking",
+    "kind": "function",
+    "module": "js/control/mpc.js",
+    "doc": "One step of receding-horizon setpoint-tracking MPC. The state error e_k = x_k − r and the input increment v_k = u_k − u_ss satisfy the SAME dynamics as (Ad, Bd), so standard MPC is run on e_0 and v returned. The actual control is u = v + u_ss. constraints: same shape as firstMpcActionConstrained ({ "
+  },
+  {
+    "name": "simulateMpcTracking",
+    "kind": "function",
+    "module": "js/control/mpc.js",
+    "doc": "Simulate setpoint-tracking MPC in receding-horizon fashion. reference: n×1 constant state target, or { r: n×1, steps: callable } for time-varying."
+  },
+  {
+    "name": "solveOutputSetpointSteadyState",
+    "kind": "function",
+    "module": "js/control/mpc.js",
+    "doc": "MIMO output-space setpoint steady-state solver. Finds x_ss, u_ss satisfying:   x_ss = A_d x_ss + B_d u_ss   y_ref = C x_ss + D u_ss Non-square plants use a regularized least-squares solution, so the residual explicitly reports whether the requested output setpoint is exactly reachable."
+  },
+  {
+    "name": "firstMpcActionOutputTracking",
+    "kind": "function",
+    "module": "js/control/mpc.js",
+    "doc": ""
+  },
+  {
+    "name": "simulateMpcOutputTracking",
+    "kind": "function",
+    "module": "js/control/mpc.js",
+    "doc": "Receding-horizon MPC tracking for MIMO output references y_ref. reference may be a fixed p×1 matrix or a function (k) → p×1."
+  },
+  {
+    "name": "firstMpcActionConstrained",
+    "kind": "function",
+    "module": "js/control/mpc.js",
+    "doc": "Solve one constrained MPC step (receding-horizon: return only u_0). constraints:   { uMin: number|number[], uMax: number|number[] }   — per-step box bounds on u   { A: number[][], b: number[] }                     — general polyhedral: A·U_seq ≤ b   Both can be combined.  Per-input arrays or scalars"
+  },
+  {
+    "name": "simulateConstrainedMpc",
+    "kind": "function",
+    "module": "js/control/mpc.js",
+    "doc": "Simulate constrained MPC in receding-horizon fashion. Returns same shape as simulateUnconstrainedMpc plus activeConstraintsLog."
+  },
+  {
+    "name": "firstMpcActionStateConstrained",
+    "kind": "function",
+    "module": "js/control/mpc.js",
+    "doc": "One step of MPC with both input box constraints and soft state constraints. uConstraints: { uMin, uMax }  (same as firstMpcActionConstrained) xConstraints: { xMin: number[], xMax: number[], penalty: number }   xMin/xMax are n-vectors of per-state bounds (use ±Infinity to skip a state).   penalty (ρ)"
+  },
+  {
+    "name": "simulateStateConstrainedMpc",
+    "kind": "function",
+    "module": "js/control/mpc.js",
+    "doc": "Simulate MPC with input and soft state constraints in receding-horizon fashion."
+  },
+  {
+    "name": "mpcTrackingError",
+    "kind": "function",
+    "module": "js/control/mpc.js",
+    "doc": ""
+  },
+  {
+    "name": "buildDisturbanceModel",
+    "kind": "function",
+    "module": "js/control/mpc.js",
+    "doc": "Build augmented state-space model for offset-free tracking. Assumes output disturbances (d is added to y). x_aug = [x; d] d_{k+1} = d_k (random walk) y_k = C x_k + d_k"
+  },
+  {
+    "name": "designDisturbanceObserver",
+    "kind": "function",
+    "module": "js/control/mpc.js",
+    "doc": "Design Kalman observer for the augmented offset-free tracking model."
+  },
+  {
+    "name": "simulateOffsetFreeMpc",
+    "kind": "function",
+    "module": "js/control/mpc.js",
+    "doc": "Simulate MPC with offset-free tracking (augmented observer in the loop)."
+  },
+  {
+    "name": "checkMpcFeasibility",
+    "kind": "function",
+    "module": "js/control/mpc.js",
+    "doc": "Predict bounds of reachable state/output trajectory under input constraints, and check for hard conflicts with state/output constraints. This is a pessimistic box-reachability diagnostic tool."
+  },
+  {
+    "name": "simulateNMPC",
+    "kind": "function",
+    "module": "js/control/nmpc.js",
+    "doc": "Simulate NMPC via successive linearization on a discrete nonlinear system.                                  x: number[n], u: number[m], returns number[n]   x:     number[][],  // state trajectory (steps+1 × n)   u:     number[][],  // control sequence (steps × m)   cost:  number[],    // stage cost "
+  },
+  {
+    "name": "gainScheduledPID",
+    "kind": "function",
+    "module": "js/control/nonlinear.js",
+    "doc": "Build a gain-scheduled PID whose Kp, Ki, Kd are piecewise-linearly interpolated across breakpoints of a scheduling variable ρ.   - PID gains at each breakpoint (length must equal breakpoints.length)   getGains(rho: number): {Kp, Ki, Kd},   compute(e: number, dedt: number, intE: number, rho: number):"
+  },
+  {
+    "name": "simulateGainScheduledPID",
+    "kind": "function",
+    "module": "js/control/nonlinear.js",
+    "doc": "Simulate a gain-scheduled PID controller on a 1st-order discrete plant. Plant model: y[k+1] = a·y[k] + b·u[k]  (discrete) Scheduling:  rho[k] = schedulingFn(k, y[k], u[k])"
+  },
+  {
+    "name": "designSMC",
+    "kind": "function",
+    "module": "js/control/nonlinear.js",
+    "doc": "Design a sliding-mode controller for a SISO system in normal form:   ẋ₁ = x₂,  ẋ₂ = f(x) + g(x)·u Sliding surface:  σ(x) = c·e₁ + ė₁  (linear, c > 0) Control law:      u = u_eq + u_sw   u_eq = -(c·e₂ + f(x)) / g(x)          (equivalent control)   u_sw = -(η/ε)·sat(σ/ε)                 (switching wit"
+  },
+  {
+    "name": "simulateSMC",
+    "kind": "function",
+    "module": "js/control/nonlinear.js",
+    "doc": "Simulate SMC on a 2nd-order continuous plant (Euler integration):   ẋ₁ = x₂   ẋ₂ = a·x₂ + b·u + d(t)    (d = disturbance)"
+  },
+  {
+    "name": "feedbackLinearization",
+    "kind": "function",
+    "module": "js/control/nonlinear_advanced.js",
+    "doc": "Input-output feedback linearization for SISO affine systems:   ẋ = f(x) + g(x) u   y = h(x) If the relative degree r equals the state dimension n, exact state-space linearization is achieved. Otherwise, input-output linearization creates a linear relationship between the r-th derivative of y and a n"
+  },
+  {
+    "name": "backstepping",
+    "kind": "function",
+    "module": "js/control/nonlinear_advanced.js",
+    "doc": "Backstepping controller for 2nd-order strict-feedback systems:   ẋ₁ = f₁(x₁) + x₂           (first subsystem)   ẋ₂ = f₂(x₁, x₂) + u        (second subsystem / actual input)   y  = x₁                      (output) Design:   Step 1: virtual control φ₁*(x₁) = −k₁ x₁ − f₁(x₁) + ẋ₁_ref           e₁ = x₂ "
+  },
+  {
+    "name": "controlBarrierFunction",
+    "kind": "function",
+    "module": "js/control/nonlinear_advanced.js",
+    "doc": "CLF-CBF safety filter via QP. Given a nominal control u_nom(x), find u* nearest to u_nom subject to:   CLF: V̇(x,u) ≤ −γ V(x)        (stability: V must decrease)   CBF: ḣ(x,u) ≥ −α h(x)         (safety: h ≥ 0 is safe set) Solved as:   min_{u, δ}  ‖u − u_nom‖² + λ_δ δ²   s.t.  LfV + LgV u + γ V ≤ δ  "
+  },
+  {
+    "name": "PIDController",
+    "kind": "class",
+    "module": "js/control/pid.js",
+    "doc": ""
+  },
+  {
+    "name": "TwoDOFPIDController",
+    "kind": "class",
+    "module": "js/control/pid.js",
+    "doc": "Two-degree-of-freedom PID controller. Reference: C_r(s) applied to setpoint r; C_y(s) applied to output y. C_r(s) = β·Kp + Ki/s + γ·Kd·N·s/(s+N) C_y(s) = Kp + Ki/s + Kd·N·s/(s+N) β: proportional reference weight (0-1, β=1 → 1-DOF PID) γ: derivative reference weight (0=no derivative kick on setpoint,"
+  },
+  {
+    "name": "exportController",
+    "kind": "function",
+    "module": "js/control/productization.js",
+    "doc": "Export a designed controller to executable code in C, Python, or MATLAB. Supported controller shapes:   PID   — { type:'pid', Kp, Ki, Kd, N?, Ts? }   TF    — { type:'tf',  num:number[], den:number[], Ts? }   SS    — { type:'ss',  A, B, C, D, Ts? }   SF    — { type:'sf',  K:number[], Ts? }     (state"
+  },
+  {
+    "name": "generateDesignReport",
+    "kind": "function",
+    "module": "js/control/productization.js",
+    "doc": "Generate an HTML design report from analysis results. The `design` object can contain any subset of:   title       — string   description — string   margins     — { phaseMargin, gainMargin, gainCrossover, phaseFreq }   poles       — number[][]  [[re,im], ...]   zeros       — number[][]   stepRespons"
+  },
+  {
+    "name": "toPythonControl",
+    "kind": "function",
+    "module": "js/control/productization.js",
+    "doc": "Serialize a ControlStudio object to a JSON structure compatible with python-control's to_dict / from_dict convention. Supported input shapes:   { type:'tf',  num, den, Ts? }   { type:'ss',  A, B, C, D, Ts? }   { type:'pid', Kp, Ki, Kd, N?, Ts? }  → converted to TF first python-control convention (St"
+  },
+  {
+    "name": "fromPythonControl",
+    "kind": "function",
+    "module": "js/control/productization.js",
+    "doc": "Deserialize a python-control JSON dict back to a ControlStudio descriptor."
+  },
+  {
+    "name": "designWizard",
+    "kind": "function",
+    "module": "js/control/productization.js",
+    "doc": "Design Wizard — spec-driven controller architecture recommender. Takes a performance specification and returns:   - Recommended controller type & order   - Ordered design workflow steps   - Estimated design complexity   - Relevant ControlStudio API calls with parameters   recommendation: string,   c"
+  },
+  {
+    "name": "sensitivityAt",
+    "kind": "function",
+    "module": "js/control/robust.js",
+    "doc": ""
+  },
+  {
+    "name": "sensitivityBode",
+    "kind": "function",
+    "module": "js/control/robust.js",
+    "doc": ""
+  },
+  {
+    "name": "robustPeaks",
+    "kind": "function",
+    "module": "js/control/robust.js",
+    "doc": ""
+  },
+  {
+    "name": "additiveUncertaintyEnvelope",
+    "kind": "function",
+    "module": "js/control/robust.js",
+    "doc": "Additive uncertainty: L_perturbed(jω) = L(jω) + ΔL(jω), where |ΔL(jω)| ≤ W_a(ω) at frequency ω. Returns worst-case |S|, |T|, |KS| over a disk perturbation of radius W_a sampled at `samples` angles. Use when the plant is poorly modeled in absolute terms (e.g. additive uncertainty Δ = G_real − G_model"
+  },
+  {
+    "name": "diskMargin",
+    "kind": "function",
+    "module": "js/control/robust.js",
+    "doc": "Disk Margin α: largest disk (gain k ∈ [1/(1+α), 1+α], phase φ ∈ [−θ_α, θ_α]) inside which closed-loop stability is preserved. Approximation via SISO sensitivity:   α ≈ 1 / max( ‖S‖∞ , ‖T‖∞ ) Returns { alpha, phaseDeg, gainDB } where:   phaseDeg = 2·asin(α/2) (degrees) — equivalent phase margin   gai"
+  },
+  {
+    "name": "uncertaintyEnvelope",
+    "kind": "function",
+    "module": "js/control/robust.js",
+    "doc": ""
+  },
+  {
+    "name": "hInfNormUpperBound",
+    "kind": "function",
+    "module": "js/control/robust.js",
+    "doc": "Estimate the H∞ norm using a coarse grid search only (no refinement). Faster but less accurate than hInfNorm."
+  },
+  {
+    "name": "hInfNorm",
+    "kind": "function",
+    "module": "js/control/robust.js",
+    "doc": "Estimate the H∞ norm: max_ω σ_max(G(jω)). Two-pass strategy:   1. Coarse log-spaced grid (gridPoints points from omegaLo to omegaHi).   2. Golden-section search over [10^(log10(ω_peak)−2), 10^(log10(ω_peak)+2)]      for goldenIter iterations to refine the peak to ~0.1% relative accuracy."
+  },
+  {
+    "name": "structuredMuUpperBound",
+    "kind": "function",
+    "module": "js/control/robust.js",
+    "doc": "Upper bound for the structured singular value μΔ(M). The browser implementation uses diagonal positive D-scaling:   μ(M) ≤ inf_D σ_max(D M D⁻¹) For SISO this is exact. For diagonal repeated scalar blocks this is the standard first-pass upper-bound used before a heavier DK-iteration backend."
+  },
+  {
+    "name": "structuredMuSweep",
+    "kind": "function",
+    "module": "js/control/robust.js",
+    "doc": ""
+  },
+  {
+    "name": "structuredMuSynthesisSurrogate",
+    "kind": "function",
+    "module": "js/control/robust.js",
+    "doc": "DK-style static gain search surrogate: choose scalar loop gain k that minimizes maxω μ(k·M(jω)). This is not industrial full DK iteration. It gives ControlStudio an explicit structured robust design loop with a reproducible objective and D-scales."
+  },
+  {
+    "name": "validateUncertaintyModel",
+    "kind": "function",
+    "module": "js/control/robust.js",
+    "doc": "Validate and normalize a SISO transfer-function uncertainty model. Supported fields:   - gain: relative range, e.g. 0.2 => [0.8, 1.2] or [0.8, 1.2]   - numerator: per-coefficient relative ranges   - denominator: per-coefficient relative ranges; leading coefficient is kept normalized   - additive: ad"
+  },
+  {
+    "name": "sampleUncertaintyModel",
+    "kind": "function",
+    "module": "js/control/robust.js",
+    "doc": ""
+  },
+  {
+    "name": "applyUncertaintySample",
+    "kind": "function",
+    "module": "js/control/robust.js",
+    "doc": ""
+  },
+  {
+    "name": "evaluateRobustSample",
+    "kind": "function",
+    "module": "js/control/robust.js",
+    "doc": ""
+  },
+  {
+    "name": "monteCarloRobustValidation",
+    "kind": "function",
+    "module": "js/control/robust.js",
+    "doc": ""
+  },
+  {
+    "name": "stabilityMargins",
+    "kind": "function",
+    "module": "js/control/stability.js",
+    "doc": "Compute gain margin and phase margin from a transfer function."
+  },
+  {
+    "name": "stepInfo",
+    "kind": "function",
+    "module": "js/control/stability.js",
+    "doc": "Compute step response performance metrics."
+  },
+  {
+    "name": "routhTable",
+    "kind": "function",
+    "module": "js/control/stability.js",
+    "doc": "Compute the Routh-Hurwitz stability table for a given denominator polynomial."
+  },
+  {
+    "name": "analyzeStability",
+    "kind": "function",
+    "module": "js/control/stability.js",
+    "doc": "Engineering stability summary for continuous or discrete SISO systems. Continuous systems are stable when every pole is in the open LHP. Discrete systems are stable when every pole is inside the unit circle."
+  },
+  {
+    "name": "solveCareHamiltonianSchur",
+    "kind": "function",
+    "module": "js/control/state-feedback.js",
+    "doc": "Continuous CARE by Hamiltonian stable invariant subspace. For n ≥ 5 the primary path is a real Schur decomposition (Francis QR) which is numerically more reliable than the eigenvector path for high-order systems. For n ≤ 4 the dependency-free eigenvector path is tried first (faster, same accuracy at"
+  },
+  {
+    "name": "solveDAREHamiltonianSign",
+    "kind": "function",
+    "module": "js/control/state-feedback.js",
+    "doc": "Solve the Discrete Algebraic Riccati Equation (DARE) via:   1. Build the symplectic matrix M_d (2n×2n)   2. Cayley transform: C = (M_d − I)(M_d + I)⁻¹ maps |λ|<1 → Re<0   3. Matrix sign function (Newton iteration) on C to isolate stable subspace   4. Extract P = Y X⁻¹ from the stable invariant subsp"
+  },
+  {
+    "name": "resolveDesignStateSpace",
+    "kind": "function",
+    "module": "js/control/state-feedback.js",
+    "doc": ""
+  },
+  {
+    "name": "parseDesiredPoles",
+    "kind": "function",
+    "module": "js/control/state-feedback.js",
+    "doc": ""
+  },
+  {
+    "name": "closedLoopA",
+    "kind": "function",
+    "module": "js/control/state-feedback.js",
+    "doc": ""
+  },
+  {
+    "name": "placeStateFeedback",
+    "kind": "function",
+    "module": "js/control/state-feedback.js",
+    "doc": ""
+  },
+  {
+    "name": "solveContinuousLyapunov",
+    "kind": "function",
+    "module": "js/control/state-feedback.js",
+    "doc": ""
+  },
+  {
+    "name": "analyzeLyapunov",
+    "kind": "function",
+    "module": "js/control/state-feedback.js",
+    "doc": ""
+  },
+  {
+    "name": "solveLqr",
+    "kind": "function",
+    "module": "js/control/state-feedback.js",
+    "doc": ""
+  },
+  {
+    "name": "solveLqrMIMO",
+    "kind": "function",
+    "module": "js/control/state-feedback.js",
+    "doc": "MIMO LQR via Newton–Kleinman iteration. Accepts R as m×m matrix. Returns K (m×n), P (n×n), and convergence diagnostics."
+  },
+  {
+    "name": "placeObserver",
+    "kind": "function",
+    "module": "js/control/state-feedback.js",
+    "doc": ""
+  },
+  {
+    "name": "solveLqe",
+    "kind": "function",
+    "module": "js/control/state-feedback.js",
+    "doc": ""
+  },
+  {
+    "name": "simulateObserver",
+    "kind": "function",
+    "module": "js/control/state-feedback.js",
+    "doc": ""
+  },
+  {
+    "name": "closedLoopTransferFromStateFeedback",
+    "kind": "function",
+    "module": "js/control/state-feedback.js",
+    "doc": ""
+  },
+  {
+    "name": "brysonsRule",
+    "kind": "function",
+    "module": "js/control/state-feedback.js",
+    "doc": ""
+  },
+  {
+    "name": "discretizeZOH",
+    "kind": "function",
+    "module": "js/control/state-feedback.js",
+    "doc": "Discretize a continuous state-space model using Zero-Order Hold (ZOH). Uses the matrix exponential augmented method: Ad = e^(A*Ts), Bd via integral."
+  },
+  {
+    "name": "innovationStats",
+    "kind": "function",
+    "module": "js/control/state-feedback.js",
+    "doc": "Compute innovation sequence statistics to verify Kalman filter tuning. A well-tuned KF produces white-noise innovations (zero-mean, uncorrelated)."
+  },
+  {
+    "name": "solveDiscreteKalman",
+    "kind": "function",
+    "module": "js/control/state-feedback.js",
+    "doc": "Steady-state discrete Kalman filter via Riccati difference equation iteration. Solves: P[k+1] = Ad P Ad' + Qd - K S K'  where K = Ad P Cd' S^{-1}, S = Cd P Cd' + Rd"
+  },
+  {
+    "name": "simulateLqg",
+    "kind": "function",
+    "module": "js/control/state-feedback.js",
+    "doc": "Simulate LQG closed-loop: continuous plant + Luenberger/Kalman observer + LQR feedback. u[k] = -K_lqr * x̂[k]  (feedback on estimated state, not true state) Compare against full state feedback (FSF): u[k] = -K_lqr * x[k]"
+  },
+  {
+    "name": "observerPoles",
+    "kind": "function",
+    "module": "js/control/state-feedback.js",
+    "doc": ""
+  },
+  {
+    "name": "augmentWithIntegralAction",
+    "kind": "function",
+    "module": "js/control/state-feedback.js",
+    "doc": "Augment a state-space model with an integral action on tracking error (y - r). Enables zero steady-state error under constant references/disturbances with state feedback u = -[Kx, Ki] * [x; xi].   Aaug = [A, 0; -C, 0] (n+p × n+p)   Baug = [B; 0] (n+p × m)   Caug = [C, 0] (p × n+p)   n = original sta"
+  },
+  {
+    "name": "designIntegralLQR",
+    "kind": "function",
+    "module": "js/control/state-feedback.js",
+    "doc": "Design integral-action LQR: augment with integrator, then call solveLqr on augmented system. Returns K split into [Kx, Ki]: u = -Kx·x - Ki·xi"
+  },
+  {
+    "name": "checkPoleRegion",
+    "kind": "function",
+    "module": "js/control/state-feedback.js",
+    "doc": "Check whether a set of eigenvalues satisfies a pole region constraint.   disc:   { alpha, radius }     → |s + alpha| < radius   sector: { zetaMin }           → ζ = -Re(s)/|s| ≥ zetaMin   strip:  { sigmaMin, sigmaMax } → sigmaMin < Re(s) < sigmaMax (both negative)"
+  },
+  {
+    "name": "solveHinfFilter",
+    "kind": "function",
+    "module": "js/control/state-feedback.js",
+    "doc": "H∞ filter — worst-case optimal state estimation. Solves the modified CARE: A·P + P·A^T - P·S·P + Qw = 0 where S = C^T·Rv⁻¹·C - γ⁻²·I. Uses the LQR duality: this CARE is equivalent to the LQR CARE for the dual system (A^T, L_chol, Qw, I) where L_chol·L_chol^T = S. Requires γ > γ* (feasibility). If γ "
+  },
+  {
+    "name": "lqrWithPoleRegion",
+    "kind": "function",
+    "module": "js/control/state-feedback.js",
+    "doc": "Find LQR weights that keep closed-loop poles inside a region via iterative Q scaling. Starts from given Q, R and scales Q until all CL poles satisfy the region, up to maxIter."
+  },
+  {
+    "name": "parseMatrixInput",
+    "kind": "function",
+    "module": "js/control/state-space.js",
+    "doc": ""
+  },
+  {
+    "name": "stateSpaceToTransferFunction",
+    "kind": "function",
+    "module": "js/control/state-space.js",
+    "doc": ""
+  },
+  {
+    "name": "tfToControllableCanonical",
+    "kind": "function",
+    "module": "js/control/state-space.js",
+    "doc": ""
+  },
+  {
+    "name": "controllabilityMatrix",
+    "kind": "function",
+    "module": "js/control/state-space.js",
+    "doc": ""
+  },
+  {
+    "name": "observabilityMatrix",
+    "kind": "function",
+    "module": "js/control/state-space.js",
+    "doc": ""
+  },
+  {
+    "name": "identifyARX",
+    "kind": "function",
+    "module": "js/control/sysid.js",
+    "doc": "Fit an ARX model.   a: number[],     // [1, a_1, ..., a_na] (high-order first)   b: number[],     // [0,..0, b_1, ..., b_nb] (with leading zeros for nk)   tf: DiscreteTransferFunction,   yhat: number[],  // predicted output (one-step-ahead)   residual: number[],   fitPercent: number,   mse: number, "
+  },
+  {
+    "name": "identifyARMAX",
+    "kind": "function",
+    "module": "js/control/sysid.js",
+    "doc": "ARMAX model identification via iterative pseudo-linear regression. A(q)y = B(q)u + C(q)e, where C(q) = 1 + c₁z⁻¹ + ... + cₙcz⁻ⁿc   a[i]: coefficients of A (i=1..na), b[j]: coefficients of B (j=0..nb-1), c[k]: C coefficients   tf: estimated discrete TransferFunction B(z⁻¹)/A(z⁻¹) (noise model separat"
+  },
+  {
+    "name": "identifyOE",
+    "kind": "function",
+    "module": "js/control/sysid.js",
+    "doc": "Identify Output Error (OE) model using Steiglitz-McBride iteration. Model: y[k] = (B(z^-1) / F(z^-1)) u[k] + e[k]"
+  },
+  {
+    "name": "identifyBJ",
+    "kind": "function",
+    "module": "js/control/sysid.js",
+    "doc": "Identify a Box-Jenkins model: y = B(q)/F(q)·u + C(q)/D(q)·e Uses alternating optimisation (extended Steiglitz-McBride for B/F; pseudo-linear ARMA regression for C/D). Degenerates correctly:   nc=nd=0 → OE;   nf=nd=0 → ARMAX-like (no AR on noise)"
+  },
+  {
+    "name": "residualWhitenessTest",
+    "kind": "function",
+    "module": "js/control/sysid.js",
+    "doc": "Residual whiteness test (autocorrelation + Ljung-Box). A well-fitted model leaves white (uncorrelated) residuals. `passed` is the formal Ljung-Box test at the 5 % significance level:   Q = N(N+2)·Σ r_k²/(N−k) < χ²(nlags, 0.95) The per-lag ±1.96/√N band is provided for visual inspection only.   autoc"
+  },
+  {
+    "name": "crossCorrelationTest",
+    "kind": "function",
+    "module": "js/control/sysid.js",
+    "doc": "Cross-correlation test between residuals and input. For a correctly identified model, residuals e[k] must be uncorrelated with all past inputs u[k-j], j ≥ 1.  The `passed` criterion is the one-sided portmanteau test on negative lags (past inputs):   Q_cc = N · Σ_{j=1}^{nlags} r_{eu}(−j)² < χ²(nlags,"
+  },
+  {
+    "name": "computeParameterCovariance",
+    "kind": "function",
+    "module": "js/control/sysid.js",
+    "doc": "Compute parameter covariance from a normal-equations regression. cov(θ) = σ² · (ΦᵀΦ)⁻¹"
+  },
+  {
+    "name": "exportModelUncertainty",
+    "kind": "function",
+    "module": "js/control/sysid.js",
+    "doc": "Export model uncertainty as a multiplicative frequency-domain bound, compatible with Phase 18 robust validation input format. Uses Monte Carlo sampling from N(θ̂, cov(θ̂)) to compute ±2σ magnitude bounds at each frequency, then reports the maximum relative deviation as a scalar gain variation and wo"
+  },
+  {
+    "name": "autoARXOrder",
+    "kind": "function",
+    "module": "js/control/sysid.js",
+    "doc": "Convenience: try several (na, nb) combinations and pick the one with lowest AIC."
+  },
+  {
+    "name": "autoModelOrder",
+    "kind": "function",
+    "module": "js/control/sysid.js",
+    "doc": "Multi-structure model order selection with AIC, AICc, BIC and optional cross-validation. Tries every combination of model structure and order, ranks candidates by the chosen information criterion, and optionally evaluates prediction fit on a hold-out validation set.   best: object,   candidates: Arr"
+  },
+  {
+    "name": "identifyMISOARX",
+    "kind": "function",
+    "module": "js/control/sysid.js",
+    "doc": "MISO ARX identification — Multiple-Input Single-Output system. Model: A(q)y[k] = B₁(q)u₁[k] + B₂(q)u₂[k] + … + Bₙᵤ(q)uₙᵤ[k] where the AR part is shared and each input has its own B polynomial and optional individual delay nk_i. The regression matrix extends the SISO ARX Φ by concatenating the delaye"
+  },
+  {
+    "name": "estimateFRF",
+    "kind": "function",
+    "module": "js/control/sysid_freq.js",
+    "doc": "Estimate the Frequency Response Function (FRF) from input u and output y using Welch's averaged cross-spectrum method (H1 estimator):   H1(ω) = Syu(ω) / Suu(ω) where Syu is the cross-spectrum and Suu is the auto-spectrum of u, both averaged over overlapping Hann-windowed segments.   omega:     numbe"
+  },
+  {
+    "name": "fitTFfromFRF",
+    "kind": "function",
+    "module": "js/control/sysid_freq.js",
+    "doc": "Fit a rational transfer function G(jω) = B(jω)/A(jω) to complex FRF data using Levy's iterative weighted complex curve-fitting method. Model:  G(jω) = (b₀ + b₁(jω) + … + bₙ_b(jω)^nb)                / (1 + a₁(jω) + … + aₙ_a(jω)^na) Algorithm (Levy 1959):   1. Form weighted linear system from Re/Im of"
+  },
+  {
+    "name": "generatePRBS",
+    "kind": "function",
+    "module": "js/control/sysid_signals.js",
+    "doc": "Generate a Pseudo-Random Binary Sequence (PRBS) using a Linear-Feedback Shift Register (LFSR)."
+  },
+  {
+    "name": "generateChirp",
+    "kind": "function",
+    "module": "js/control/sysid_signals.js",
+    "doc": "Generate a swept-frequency cosine signal (Chirp)."
+  },
+  {
+    "name": "generateMultiSine",
+    "kind": "function",
+    "module": "js/control/sysid_signals.js",
+    "doc": "Generate a multi-sine signal (sum of sinusoids)."
+  },
+  {
+    "name": "identifySubspace",
+    "kind": "function",
+    "module": "js/control/sysid_subspace.js",
+    "doc": "Subspace Identification (MOESP algorithm) for State-Space models."
+  },
+  {
+    "name": "TransferFunction",
+    "kind": "class",
+    "module": "js/control/transfer-function.js",
+    "doc": ""
+  },
+  {
+    "name": "propagateTubeRadius",
+    "kind": "function",
+    "module": "js/control/tube_mpc.js",
+    "doc": ""
+  },
+  {
+    "name": "designTubeMpc",
+    "kind": "function",
+    "module": "js/control/tube_mpc.js",
+    "doc": ""
+  },
+  {
+    "name": "simulateTubeMPC",
+    "kind": "function",
+    "module": "js/control/tube_mpc.js",
+    "doc": ""
+  },
+  {
+    "name": "parseComplexRoot",
+    "kind": "function",
+    "module": "js/control/zpk.js",
+    "doc": "Parse a complex root string like \"-1\", \"0.5\", \"-1+2j\", \"3j\". Returns { re, im }."
+  },
+  {
+    "name": "parseRootsString",
+    "kind": "function",
+    "module": "js/control/zpk.js",
+    "doc": "Parse roots string: comma-separated list of real or complex roots. Complex conjugate pairs: enter ONLY ONE root of the pair (e.g. \"-1+2j\"). The conjugate is automatically generated. If both z and z* are entered, the duplicate is detected and silently removed."
+  },
+  {
+    "name": "zpkToTransferFunction",
+    "kind": "function",
+    "module": "js/control/zpk.js",
+    "doc": ""
+  },
+  {
+    "name": "tfToZPK",
+    "kind": "function",
+    "module": "js/control/zpk.js",
+    "doc": ""
+  },
+  {
+    "name": "ZPK",
+    "kind": "class",
+    "module": "js/control/zpk.js",
+    "doc": ""
+  },
+  {
+    "name": "EditorCanvas",
+    "kind": "class",
+    "module": "js/editor/canvas.js",
+    "doc": "canvas.js — Visual Editor Canvas Controller Handles zooming, panning, node/link management, and basic interaction."
+  },
+  {
+    "name": "BlockEditor",
+    "kind": "class",
+    "module": "js/editor/editor.js",
+    "doc": ""
+  },
+  {
+    "name": "EditorLink",
+    "kind": "class",
+    "module": "js/editor/link.js",
+    "doc": "link.js — Visual Editor Link (Connection)"
+  },
+  {
+    "name": "EditorNode",
+    "kind": "class",
+    "module": "js/editor/node.js",
+    "doc": "node.js — Visual Editor Block/Node Supports double-click inline editing for TF and Gain labels."
+  },
+  {
+    "name": "Complex",
+    "kind": "class",
+    "module": "js/math/complex.js",
+    "doc": "complex.js — Complex number arithmetic for control system computations Provides a lightweight Complex class with all operations needed for transfer function evaluation, root finding, and frequency response."
+  },
+  {
+    "name": "polyval",
+    "kind": "function",
+    "module": "js/math/complex.js",
+    "doc": "Evaluate a polynomial (coefficients high→low) at a complex value s. poly = [a_n, a_{n-1}, ..., a_1, a_0] result = a_n * s^n + a_{n-1} * s^{n-1} + ... + a_0"
+  },
+  {
+    "name": "SingularMatrixError",
+    "kind": "class",
+    "module": "js/math/matrix.js",
+    "doc": "Custom error for singular matrices so callers can wrap with context-specific guidance (e.g. RGA, LQR, Lyapunov) instead of leaking a raw \"Singular matrix\" string to the user."
+  },
+  {
+    "name": "matCreate",
+    "kind": "function",
+    "module": "js/math/matrix.js",
+    "doc": ""
+  },
+  {
+    "name": "matClone",
+    "kind": "function",
+    "module": "js/math/matrix.js",
+    "doc": ""
+  },
+  {
+    "name": "matIdentity",
+    "kind": "function",
+    "module": "js/math/matrix.js",
+    "doc": ""
+  },
+  {
+    "name": "matAdd",
+    "kind": "function",
+    "module": "js/math/matrix.js",
+    "doc": ""
+  },
+  {
+    "name": "matSub",
+    "kind": "function",
+    "module": "js/math/matrix.js",
+    "doc": ""
+  },
+  {
+    "name": "matMul",
+    "kind": "function",
+    "module": "js/math/matrix.js",
+    "doc": ""
+  },
+  {
+    "name": "matScale",
+    "kind": "function",
+    "module": "js/math/matrix.js",
+    "doc": ""
+  },
+  {
+    "name": "matTrace",
+    "kind": "function",
+    "module": "js/math/matrix.js",
+    "doc": ""
+  },
+  {
+    "name": "matTranspose",
+    "kind": "function",
+    "module": "js/math/matrix.js",
+    "doc": ""
+  },
+  {
+    "name": "matVecMul",
+    "kind": "function",
+    "module": "js/math/matrix.js",
+    "doc": ""
+  },
+  {
+    "name": "vecAdd",
+    "kind": "function",
+    "module": "js/math/matrix.js",
+    "doc": ""
+  },
+  {
+    "name": "vecScale",
+    "kind": "function",
+    "module": "js/math/matrix.js",
+    "doc": ""
+  },
+  {
+    "name": "matDet",
+    "kind": "function",
+    "module": "js/math/matrix.js",
+    "doc": "Determinant (recursive, for small matrices)"
+  },
+  {
+    "name": "matInverse",
+    "kind": "function",
+    "module": "js/math/matrix.js",
+    "doc": "Matrix inverse via Gauss-Jordan (for small matrices)"
+  },
+  {
+    "name": "matSolve",
+    "kind": "function",
+    "module": "js/math/matrix.js",
+    "doc": "Solve AX=B via Gauss-Jordan elimination (small dense systems)."
+  },
+  {
+    "name": "matKronecker",
+    "kind": "function",
+    "module": "js/math/matrix.js",
+    "doc": ""
+  },
+  {
+    "name": "matSymmetrize",
+    "kind": "function",
+    "module": "js/math/matrix.js",
+    "doc": ""
+  },
+  {
+    "name": "matExp",
+    "kind": "function",
+    "module": "js/math/matrix.js",
+    "doc": "Matrix exponential via scaling-and-squaring + truncated Taylor series. Accurate for small / moderate matrices; sufficient for control workbench use."
+  },
+  {
+    "name": "matRank",
+    "kind": "function",
+    "module": "js/math/matrix.js",
+    "doc": "Calculate the rank of a matrix using Gaussian elimination"
+  },
+  {
+    "name": "matEigenvaluesSymmetric",
+    "kind": "function",
+    "module": "js/math/matrix.js",
+    "doc": ""
+  },
+  {
+    "name": "matIsPositiveDefinite",
+    "kind": "function",
+    "module": "js/math/matrix.js",
+    "doc": ""
+  },
+  {
+    "name": "rk4",
+    "kind": "function",
+    "module": "js/math/ode.js",
+    "doc": "RK4 fixed-step solver."
+  },
+  {
+    "name": "rk45",
+    "kind": "function",
+    "module": "js/math/ode.js",
+    "doc": "RK45 (Dormand-Prince) adaptive step solver."
+  },
+  {
+    "name": "interpolateUniform",
+    "kind": "function",
+    "module": "js/math/ode.js",
+    "doc": "Linear interpolation of ODE output at uniform time points."
+  },
+  {
+    "name": "solveEqualityQP",
+    "kind": "function",
+    "module": "js/math/optimization.js",
+    "doc": "Solve  min 0.5 xᵀHx + fᵀx  s.t.  Aeq x = beq   (Aeq optional). KKT system:  [H  Aeqᵀ; Aeq  0] [x; λ] = [−f; beq]."
+  },
+  {
+    "name": "solveQP",
+    "kind": "function",
+    "module": "js/math/optimization.js",
+    "doc": "Solve a convex QP:   minimize    0.5 xᵀ H x + fᵀ x   subject to  A x ≤ b , Aeq x = beq , lb ≤ x ≤ ub   x: number[], fval: number, iterations: number, converged: boolean,   lambda: number[], nu: number[], method: string }}"
+  },
+  {
+    "name": "solveBoxQP",
+    "kind": "function",
+    "module": "js/math/optimization.js",
+    "doc": "Solve box-constrained QP:  min 0.5 xᵀHx + fᵀx  s.t. lb ≤ x ≤ ub. Thin wrapper over solveQP for the most common control case."
+  },
+  {
+    "name": "solveLP",
+    "kind": "function",
+    "module": "js/math/optimization.js",
+    "doc": "Solve a linear program:   minimize    cᵀ x   subject to  A x ≤ b , Aeq x = beq , lb ≤ x ≤ ub Implemented as a strictly-convex QP with a vanishing quadratic term (H = reg·I). For LPs with a unique optimal vertex the solution converges to the LP optimum as reg→0; for degenerate/multiple-optima LPs it "
+  },
+  {
+    "name": "symmetricEig",
+    "kind": "function",
+    "module": "js/math/optimization.js",
+    "doc": "Cyclic Jacobi eigendecomposition of a symmetric matrix.          and vectors[:,k] is the k-th eigenvector (columns of V)."
+  },
+  {
+    "name": "solveSDP",
+    "kind": "function",
+    "module": "js/math/optimization.js",
+    "doc": "Solve a standard-form SDP / LMI:   minimize    cᵀ x   subject to  F(x) = F0 + Σ x_i F_i  ⪰  0      (linear matrix inequality) Method: ADMM splitting with F(x) − S = 0, S ⪰ 0.   • x-update: least-squares solve using the Gram matrix ⟨F_i, F_j⟩   • S-update: projection onto the PSD cone (eigenvalue cla"
+  },
+  {
+    "name": "solveLMIFeasibility",
+    "kind": "function",
+    "module": "js/math/optimization.js",
+    "doc": "Convenience: pure LMI feasibility — find x s.t. F0 + Σ x_i F_i ⪰ 0."
+  },
+  {
+    "name": "polymul",
+    "kind": "function",
+    "module": "js/math/polynomial.js",
+    "doc": ""
+  },
+  {
+    "name": "polyadd",
+    "kind": "function",
+    "module": "js/math/polynomial.js",
+    "doc": ""
+  },
+  {
+    "name": "polysub",
+    "kind": "function",
+    "module": "js/math/polynomial.js",
+    "doc": ""
+  },
+  {
+    "name": "polyscale",
+    "kind": "function",
+    "module": "js/math/polynomial.js",
+    "doc": ""
+  },
+  {
+    "name": "trimPoly",
+    "kind": "function",
+    "module": "js/math/polynomial.js",
+    "doc": ""
+  },
+  {
+    "name": "polydegree",
+    "kind": "function",
+    "module": "js/math/polynomial.js",
+    "doc": ""
+  },
+  {
+    "name": "polyvalReal",
+    "kind": "function",
+    "module": "js/math/polynomial.js",
+    "doc": ""
+  },
+  {
+    "name": "polyderiv",
+    "kind": "function",
+    "module": "js/math/polynomial.js",
+    "doc": "Derivative of polynomial in high-degree-first form."
+  },
+  {
+    "name": "rootsToRealPoly",
+    "kind": "function",
+    "module": "js/math/polynomial.js",
+    "doc": "Convert roots to real polynomial coefficients. Complex roots must form conjugate pairs. Pair matching uses a best-match strategy with relative tolerance to handle numerical drift from root finders (Durand-Kerner can drift ~1e-5 for ill-conditioned / repeated roots)."
+  },
+  {
+    "name": "zpkToTF",
+    "kind": "function",
+    "module": "js/math/polynomial.js",
+    "doc": ""
+  },
+  {
+    "name": "polyroots",
+    "kind": "function",
+    "module": "js/math/polynomial.js",
+    "doc": "Find roots via companion matrix eigenvalues"
+  },
+  {
+    "name": "polydiv",
+    "kind": "function",
+    "module": "js/math/polynomial.js",
+    "doc": "Polynomial long division: a(s) / b(s) = q(s) remainder r(s). Coefficients [high → low]."
+  },
+  {
+    "name": "realSchur",
+    "kind": "function",
+    "module": "js/math/realschur.js",
+    "doc": "Compute the real Schur decomposition A = Q T Q' where T is quasi-upper triangular (real Schur form) and Q is orthogonal."
+  },
+  {
+    "name": "hamiltonianStableSubspace",
+    "kind": "function",
+    "module": "js/math/realschur.js",
+    "doc": "Extract the n-dimensional stable invariant subspace of the Hamiltonian H (2n×2n) via the matrix sign function (Newton iteration). The matrix sign function satisfies sign(H) = I on the unstable subspace and sign(H) = -I on the stable subspace, so Ps = (I − sign(H)) / 2 is the exact spectral projector"
+  },
+  {
+    "name": "mulberry32",
+    "kind": "function",
+    "module": "js/math/rng.js",
+    "doc": "Mulberry32 — small, fast 32-bit hash-based PRNG with good statistical properties. Produces a function returning floats in [0, 1)."
+  },
+  {
+    "name": "setSeed",
+    "kind": "function",
+    "module": "js/math/rng.js",
+    "doc": "Set a deterministic seed. Pass `null` to revert to Math.random."
+  },
+  {
+    "name": "getSeed",
+    "kind": "function",
+    "module": "js/math/rng.js",
+    "doc": ""
+  },
+  {
+    "name": "rand",
+    "kind": "function",
+    "module": "js/math/rng.js",
+    "doc": "Uniform float in [0, 1)."
+  },
+  {
+    "name": "randn",
+    "kind": "function",
+    "module": "js/math/rng.js",
+    "doc": "Normal-distributed sample (Box-Muller)."
+  },
+  {
+    "name": "resetSeed",
+    "kind": "function",
+    "module": "js/math/rng.js",
+    "doc": "Reset the generator to its initial seed (so simulations restart reproducibly)."
+  },
+  {
+    "name": "computeSVD",
+    "kind": "function",
+    "module": "js/math/svd.js",
+    "doc": "Compute the SVD of a matrix A (m x n) where m >= n."
+  },
+  {
+    "name": "ariaAttrs",
+    "kind": "function",
+    "module": "js/ui/a11y.js",
+    "doc": "Build an ARIA attribute string from a plain object. Keys are auto-prefixed with \"aria-\" if not already."
+  },
+  {
+    "name": "hiddenLabel",
+    "kind": "function",
+    "module": "js/ui/a11y.js",
+    "doc": "Emit a hidden <span> label that can be associated via aria-labelledby / aria-describedby."
+  },
+  {
+    "name": "formField",
+    "kind": "function",
+    "module": "js/ui/a11y.js",
+    "doc": "Wrap content with an accessible label for a form field."
+  },
+  {
+    "name": "liveRegion",
+    "kind": "function",
+    "module": "js/ui/a11y.js",
+    "doc": "Build an aria-live region for dynamic announcements."
+  },
+  {
+    "name": "skipLink",
+    "kind": "function",
+    "module": "js/ui/a11y.js",
+    "doc": "\"Skip to main content\" accessibility link (visually hidden until focused)."
+  },
+  {
+    "name": "iconButton",
+    "kind": "function",
+    "module": "js/ui/a11y.js",
+    "doc": "Accessible icon-only button (requires ariaLabel)."
+  },
+  {
+    "name": "focusRingCSS",
+    "kind": "function",
+    "module": "js/ui/a11y.js",
+    "doc": "CSS rules for keyboard focus visibility (WCAG 2.4.7 + 2.4.11)."
+  },
+  {
+    "name": "relativeLuminance",
+    "kind": "function",
+    "module": "js/ui/a11y.js",
+    "doc": "Relative luminance of a CSS hex colour (WCAG 2.1 definition)."
+  },
+  {
+    "name": "contrastRatio",
+    "kind": "function",
+    "module": "js/ui/a11y.js",
+    "doc": "WCAG contrast ratio between two hex colours."
+  },
+  {
+    "name": "meetsWCAG",
+    "kind": "function",
+    "module": "js/ui/a11y.js",
+    "doc": "Check if a colour pair meets WCAG contrast thresholds."
+  },
+  {
+    "name": "describeKey",
+    "kind": "function",
+    "module": "js/ui/a11y.js",
+    "doc": "Generate a human-readable keyboard shortcut label."
+  },
+  {
+    "name": "srOnlyCSS",
+    "kind": "function",
+    "module": "js/ui/a11y.js",
+    "doc": "Standard .cs-sr-only CSS rule (visually hidden but accessible)."
+  },
+  {
+    "name": "createZoomState",
+    "kind": "function",
+    "module": "js/ui/chart-helpers.js",
+    "doc": "Create a zoom-state manager for a 2-D chart.   view: { xMin,xMax,yMin,yMax },   zoom: (factor, cx, cy) => void,   pan:  (dx, dy) => void,   reset: () => void,   setView: (v) => void,   getView: () => { xMin,xMax,yMin,yMax }, }}"
+  },
+  {
+    "name": "windowData",
+    "kind": "function",
+    "module": "js/ui/chart-helpers.js",
+    "doc": "Extract data points within a [xMin, xMax] window."
+  },
+  {
+    "name": "downsampleLTTB",
+    "kind": "function",
+    "module": "js/ui/chart-helpers.js",
+    "doc": "Largest-triangle-three-buckets (LTTB) downsampling. Preserves visual shape while reducing point count."
+  },
+  {
+    "name": "buildSVGChart",
+    "kind": "function",
+    "module": "js/ui/chart-helpers.js",
+    "doc": "Generate a minimal SVG line chart skeleton. Data series are rendered as <polyline> elements."
+  },
+  {
+    "name": "toCSV",
+    "kind": "function",
+    "module": "js/ui/chart-helpers.js",
+    "doc": "Format chart series data as a CSV string."
+  },
+  {
+    "name": "toJSON",
+    "kind": "function",
+    "module": "js/ui/chart-helpers.js",
+    "doc": "Format chart data as a JSON object suitable for external tools."
+  },
+  {
+    "name": "formatAxisLabel",
+    "kind": "function",
+    "module": "js/ui/chart-helpers.js",
+    "doc": "Format a number for use as an axis tick label. Chooses between fixed/exponential based on magnitude."
+  },
+  {
+    "name": "esc",
+    "kind": "function",
+    "module": "js/ui/components.js",
+    "doc": "HTML-escape a string to prevent XSS injection."
+  },
+  {
+    "name": "badge",
+    "kind": "function",
+    "module": "js/ui/components.js",
+    "doc": "Semantic status badge."
+  },
+  {
+    "name": "button",
+    "kind": "function",
+    "module": "js/ui/components.js",
+    "doc": "Accessible button element."
+  },
+  {
+    "name": "table",
+    "kind": "function",
+    "module": "js/ui/components.js",
+    "doc": "Accessible data table with optional caption."
+  },
+  {
+    "name": "alert",
+    "kind": "function",
+    "module": "js/ui/components.js",
+    "doc": "Alert / callout panel."
+  },
+  {
+    "name": "panel",
+    "kind": "function",
+    "module": "js/ui/components.js",
+    "doc": "Collapsible panel / card."
+  },
+  {
+    "name": "progressBar",
+    "kind": "function",
+    "module": "js/ui/components.js",
+    "doc": "Progress bar (0–100)."
+  },
+  {
+    "name": "spinner",
+    "kind": "function",
+    "module": "js/ui/components.js",
+    "doc": "Spinning loader (aria-busy wrapper)."
+  },
+  {
+    "name": "tabs",
+    "kind": "function",
+    "module": "js/ui/components.js",
+    "doc": "Accessible tab strip (ARIA tabs pattern)."
+  },
+  {
+    "name": "kvList",
+    "kind": "function",
+    "module": "js/ui/components.js",
+    "doc": "Definition-list style key-value display."
+  },
+  {
+    "name": "THEMES",
+    "kind": "const",
+    "module": "js/ui/theme.js",
+    "doc": ""
+  },
+  {
+    "name": "buildCSSVars",
+    "kind": "function",
+    "module": "js/ui/theme.js",
+    "doc": "Build a CSS string with :root custom properties for the given theme."
+  },
+  {
+    "name": "buildAdaptiveCSS",
+    "kind": "function",
+    "module": "js/ui/theme.js",
+    "doc": "Build a full CSS variable block that includes both themes via prefers-color-scheme."
+  },
+  {
+    "name": "BREAKPOINTS",
+    "kind": "const",
+    "module": "js/ui/theme.js",
+    "doc": "Breakpoint definitions (mobile-first, pixel widths)."
+  },
+  {
+    "name": "mediaQuery",
+    "kind": "function",
+    "module": "js/ui/theme.js",
+    "doc": "Build a CSS `@media` query string for a given breakpoint."
+  },
+  {
+    "name": "responsiveGrid",
+    "kind": "function",
+    "module": "js/ui/theme.js",
+    "doc": "Build a complete responsive layout CSS block for a grid container."
+  },
+  {
+    "name": "detectTheme",
+    "kind": "function",
+    "module": "js/ui/theme.js",
+    "doc": "Detect preferred theme. In Node.js, always returns 'dark'. In browser, reads data-theme attribute or prefers-color-scheme."
+  },
+  {
+    "name": "applyTheme",
+    "kind": "function",
+    "module": "js/ui/theme.js",
+    "doc": "Apply a theme by setting [data-theme] on the <html> element. (Browser-only; no-op in Node.)"
+  },
+  {
+    "name": "toggleTheme",
+    "kind": "function",
+    "module": "js/ui/theme.js",
+    "doc": "Toggle between light and dark themes."
+  },
+  {
+    "name": "renderWorkflowStep",
+    "kind": "function",
+    "module": "js/ui/wizard-panel.js",
+    "doc": "Render one workflow step as an HTML card."
+  },
+  {
+    "name": "renderWizardPanel",
+    "kind": "function",
+    "module": "js/ui/wizard-panel.js",
+    "doc": "Render the complete design wizard output as an HTML panel.   `result` is the raw designWizard() output for programmatic use."
+  },
+  {
+    "name": "buildWizardForm",
+    "kind": "function",
+    "module": "js/ui/wizard-panel.js",
+    "doc": "Build an HTML form that collects design spec inputs for the wizard. Does NOT include <form> submit logic — that's the app shell's responsibility."
+  },
+  {
+    "name": "toMatlabScript",
+    "kind": "function",
+    "module": "js/utils/codegen.js",
+    "doc": "Generate a MATLAB script reproducing the current plant + controller + analyses.   plant: {num:number[], den:number[]}|null,   controller: {Kp:number, Ki:number, Kd:number, N:number}|null,   delay: {T:number, order:number}|null,   domain: 's'|'z',   Ts: number|null,   responseType: string,   closedLo"
+  },
+  {
+    "name": "toPythonScript",
+    "kind": "function",
+    "module": "js/utils/codegen.js",
+    "doc": "Generate a Python script using python-control (`pip install control`)."
+  },
+  {
+    "name": "downloadScript",
+    "kind": "function",
+    "module": "js/utils/codegen.js",
+    "doc": "Trigger a browser download of the generated script."
+  },
+  {
+    "name": "fmtNum",
+    "kind": "function",
+    "module": "js/utils/format.js",
+    "doc": "format.js — Number and polynomial formatting utilities"
+  },
+  {
+    "name": "fmtDeg",
+    "kind": "function",
+    "module": "js/utils/format.js",
+    "doc": ""
+  },
+  {
+    "name": "fmtDB",
+    "kind": "function",
+    "module": "js/utils/format.js",
+    "doc": ""
+  },
+  {
+    "name": "fmtTime",
+    "kind": "function",
+    "module": "js/utils/format.js",
+    "doc": ""
+  },
+  {
+    "name": "fmtPercent",
+    "kind": "function",
+    "module": "js/utils/format.js",
+    "doc": ""
+  },
+  {
+    "name": "parsePolyString",
+    "kind": "function",
+    "module": "js/utils/format.js",
+    "doc": "Parse polynomial from string input. Extremely robust: extracts all numbers regardless of brackets/parentheses."
+  },
+  {
+    "name": "polyToLatex",
+    "kind": "function",
+    "module": "js/utils/latex.js",
+    "doc": "Format a polynomial coefficient array (high-order first) into a LaTeX string. Examples:   [1] → \"1\"   [1, 0] → \"s\"   [1, 3, 2] → \"s^2 + 3s + 2\"   [-1, 2] → \"-s + 2\""
+  },
+  {
+    "name": "tfToLatex",
+    "kind": "function",
+    "module": "js/utils/latex.js",
+    "doc": "Build a LaTeX rational TF \\frac{num}{den}."
+  },
+  {
+    "name": "renderLatex",
+    "kind": "function",
+    "module": "js/utils/latex.js",
+    "doc": "Render a LaTeX string into a DOM element using KaTeX (loaded async via CDN). Falls back to plain text if KaTeX is unavailable."
+  },
+  {
+    "name": "renderTfLatex",
+    "kind": "function",
+    "module": "js/utils/latex.js",
+    "doc": "Convenience: render a TF directly."
+  },
+  {
+    "name": "pidToLatex",
+    "kind": "function",
+    "module": "js/utils/latex.js",
+    "doc": "PID transfer function as LaTeX: K_p + K_i/s + K_d s"
+  },
+  {
+    "name": "CONTROL_VERIFICATION_CASES",
+    "kind": "const",
+    "module": "js/verification/verification-cases.js",
+    "doc": ""
+  }
+]
