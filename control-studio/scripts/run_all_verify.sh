@@ -94,6 +94,7 @@ run_script "P29 LP solver"                "node scripts/verify_p29_lp.mjs"
 run_script "P29 SDP/LMI solver"           "node scripts/verify_p29_sdp.mjs"
 run_script "P29 LPV synthesis"            "node scripts/verify_p29_lpv.mjs"
 run_script "P29 D-K iteration (μ-synth)" "node scripts/verify_p29_dk.mjs"
+run_script "P30 adaptive control"        "node scripts/verify_p30_adaptive.mjs"
 echo ""
 
 # ── General Math & PID ───────────────────────────────────────────────────────
