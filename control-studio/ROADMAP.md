@@ -115,7 +115,7 @@
 | Item | Status | Evidence |
 | --- | --- | --- |
 | P25-01 Balanced truncation | Done | `model_reduction.js`, `verify_p25_model_reduction.mjs` |
-| P25-02 Hankel norm approximation | Planned | No committed Hankel runner yet |
+| P25-02 Hankel norm approximation | Done | `hankelSingularValues/hankelNorm/hankelNormApprox` in `model_reduction.js`, `verify_p25_hankel.mjs` (23 tests) |
 | P25-03 SS minreal / Kalman decomposition | Done | `minrealSS`, `verify_p25_model_reduction.mjs` |
 
 ### P26 — Nonlinear Control
@@ -139,7 +139,7 @@
 | Item | Status | Evidence |
 | --- | --- | --- |
 | P28-01 TypeScript definitions | Done | `control-studio/types/control-studio.d.ts` |
-| P28-02 JSDoc API docs | Planned | No generated `docs/api/` yet |
+| P28-02 JSDoc API docs | Done | `generate_api_docs.mjs` → `docs/api/index.html` (333 symbols, dark-theme, searchable) + `symbols.json` |
 | P28-03 Performance benchmark | Done | `control-studio/scripts/benchmark.mjs` |
 
 ---
@@ -249,7 +249,7 @@ shipping with a deterministic `verify_pNN_*.mjs` script wired into `run_all_veri
 | 10 | P34 UI/UX & design system | 14d | Elevates experience across all phases |
 
 Legacy small gaps folded into the above: P23-04 SRIVC → P30-05; P26-02 LPV → P29-05;
-P27-01 D-K → P29-06; P25-02 Hankel norm and P28-02 JSDoc docs remain standalone backlog.
+P27-01 D-K → P29-06; P25-02 Hankel norm and P28-02 JSDoc docs completed (2026-05-21).
 
 ## Next Immediate Action
 
