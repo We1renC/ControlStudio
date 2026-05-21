@@ -62,16 +62,16 @@
 | **P32** | **Advanced nonlinear: feedback linearization / backstepping / CLF-CBF** | Done | `verify_p32_nonlinear_advanced.mjs` |
 | **P33** | **Productization & interop: codegen / report / python-control bridge** | Done | `verify_p33_productization.mjs` |
 | **P34** | **UI/UX experience & design system** | Done | `verify_p34_ui.mjs` |
+| **P35** | **UI/UX plan P1 foundation: status bar / toast / empty state** | Done | `verify_p35_uiux_foundation.mjs` |
 
-## Verification Suite Status (2026-05-21)
+## Verification Suite Status (2026-05-22)
 
-**48/48 scripts pass** — run via `bash scripts/run_all_verify.sh`
+**50/50 scripts pass** — run via `bash scripts/run_all_verify.sh`
 
 | Group | Scripts | Pass |
 | --- | --- | --- |
 | Phase 9/10/11 foundations | 11 | 11 |
-| Phase 14–27 advanced control | 23 | 23 |
-| Phase 29 optimization core | 5 | 5 |
+| Phase 14–35 advanced control / UI | 35 | 35 |
 | General math & PID | 4 | 4 |
 
 ## Remaining Dirty Worktree
@@ -81,6 +81,16 @@
 | `package.json` | Adds `typescript` devDependency (used for `.d.ts` validation) | Commit if TS type-checking becomes an official CI step |
 | `package-lock.json` | Generated lockfile | Commit alongside `package.json` decision |
 | `node_modules/` | Generated dependency directory | Never commit (covered by `.gitignore`) |
+
+### P35 — UI/UX Plan P1 Foundation
+
+| Item | Status | Evidence |
+| --- | --- | --- |
+| P35-01 Global status bar | Done | `index.html#app-status-bar`, `updateGlobalStatusBar()` |
+| P35-02 Toast notification infrastructure | Done | `#toast-stack`, `notify()` |
+| P35-03 High-frequency action feedback | Done | Share, theme, project export/load, compare snapshot actions |
+| P35-04 Empty-state action style | Done | `.empty-state-actions` |
+| P35-05 Regression guard | Done | `verify_p35_uiux_foundation.mjs`, `run_all_verify.sh` |
 
 ## Phase Details
 

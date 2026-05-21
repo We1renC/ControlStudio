@@ -289,6 +289,7 @@ function initTheme() {
   state.theme = saved;
   document.documentElement.setAttribute('data-theme', saved);
   updateThemeIcon();
+  updateGlobalStatusBar('Theme loaded');
 }
 
 function toggleTheme() {
@@ -297,6 +298,8 @@ function toggleTheme() {
   localStorage.setItem('cs-theme', state.theme);
   updateThemeIcon();
   if (state.plant) refreshAllCharts();
+  notify(`Theme switched to ${state.theme}`, 'success', { title: 'Theme' });
+  updateGlobalStatusBar(`Theme switched to ${state.theme}`);
 }
 
 function updateThemeIcon() {
@@ -964,8 +967,10 @@ function initEventListeners() {
       const orig = btn.textContent;
       btn.textContent = '✓ Copied!';
       setTimeout(() => { btn.textContent = orig; }, 2000);
+      notify('Share URL copied to clipboard.', 'success', { title: 'Share' });
     }).catch(() => {
       prompt('Share URL (Ctrl+C to copy):', url);
+      notify('Clipboard unavailable; opened manual copy prompt.', 'warning', { title: 'Share' });
     });
   });
 
@@ -1001,6 +1006,7 @@ function switchView(viewName) {
     updateStabilityPanel();
   }
   saveSessionToStorage();
+  updateGlobalStatusBar(`${viewName === 'editor' ? 'Block Diagram' : 'Dashboard'} view active`);
 }
 
 function switchSidebarPanel(panelName) {
@@ -1013,6 +1019,7 @@ function switchSidebarPanel(panelName) {
     panel.classList.toggle('active', panel.id === `panel-${panelName}`);
   });
   saveSessionToStorage();
+  updateGlobalStatusBar(`${panelName} panel active`);
 }
 
 function switchPlot(plotName) {
@@ -1031,6 +1038,7 @@ function switchPlot(plotName) {
   const sys = state.showClosedLoop ? (state.closedLoop || state.plant) : state.plant;
   renderActivePlot(sys);
   saveSessionToStorage();
+  updateGlobalStatusBar(`${plotName} plot active`);
 }
 
 function escapeHtml(value) {
@@ -2440,7 +2448,7 @@ function restoreSessionFromStorage(showMessage = false) {
 
 function clearSessionStorage() {
   localStorage.removeItem(SESSION_STORAGE_KEY);
-  showError('已清除本地 session autosave');
+  notify('Session autosave cleared.', 'info', { title: 'Session' });
 }
 
 // P15-03: Build code-generation payload from current state.
@@ -2578,6 +2586,7 @@ function updateSystem() {
       saveSessionToStorage();
       historySave();
       refreshAllCharts();
+      updateGlobalStatusBar('Discrete plant updated');
       return;
     }
 
@@ -2648,6 +2657,7 @@ function updateSystem() {
     autoToggleOpenLoopForUnstablePlant();
     historySave();
     updateController();
+    updateGlobalStatusBar('Plant updated');
   } catch (err) {
     showError(err.message);
     scheduleSmokeDiagnostics();
@@ -2736,6 +2746,7 @@ function updateController() {
     saveSessionToStorage();
     refreshAllCharts();
     updateStabilityPanel();
+    updateGlobalStatusBar('Controller updated');
   } catch (err) {
     showError(err.message);
     scheduleSmokeDiagnostics();
@@ -2824,6 +2835,8 @@ function updateActivePlotHeader(title, subtitle) {
   const subtitleEl = document.getElementById('active-plot-subtitle');
   if (titleEl) titleEl.textContent = title;
   if (subtitleEl) subtitleEl.textContent = subtitle;
+  const statusPlot = document.getElementById('status-active-plot');
+  if (statusPlot && title) statusPlot.textContent = title;
 }
 
 // ============================================================
@@ -4389,6 +4402,7 @@ function saveComparisonSnapshot() {
   renderComparisonChart();
   switchSidebarPanel('compare');
   saveSessionToStorage();
+  notify('Comparison snapshot saved.', 'success', { title: 'Compare' });
 }
 
 function renderSnapshotList() {
@@ -4472,6 +4486,7 @@ function applySnapshot(snapshotId) {
     syncCompensatorInputs();
   }
   updateController();
+  notify('Snapshot parameters applied.', 'success', { title: 'Compare' });
 }
 
 function deleteSnapshot(snapshotId) {
@@ -4479,6 +4494,7 @@ function deleteSnapshot(snapshotId) {
   renderSnapshotList();
   renderComparisonChart();
   saveSessionToStorage();
+  notify('Snapshot deleted.', 'info', { title: 'Compare' });
 }
 
 function clearSnapshots() {
@@ -4486,6 +4502,7 @@ function clearSnapshots() {
   renderSnapshotList();
   renderComparisonChart();
   saveSessionToStorage();
+  notify('All comparison snapshots cleared.', 'info', { title: 'Compare' });
 }
 
 function exportComparisonSnapshots() {
@@ -4496,6 +4513,7 @@ function exportComparisonSnapshots() {
   };
   const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
   downloadFile(`control-compare-${timestamp}.json`, 'application/json;charset=utf-8', JSON.stringify(payload, null, 2));
+  notify('Comparison export started.', 'success', { title: 'Export' });
 }
 
 function saveProjectFile() {
@@ -4503,6 +4521,7 @@ function saveProjectFile() {
   const payload = buildProjectPayload();
   const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
   downloadFile(`control-project-${timestamp}.json`, 'application/json;charset=utf-8', JSON.stringify(payload, null, 2));
+  notify('Project file export started.', 'success', { title: 'Project' });
 }
 
 async function loadProjectFile(event) {
@@ -4513,6 +4532,7 @@ async function loadProjectFile(event) {
     const data = JSON.parse(text);
     applyProjectPayload(data);
     clearError();
+    notify('Project loaded.', 'success', { title: 'Project' });
   } catch (err) {
     showError(`專案載入失敗: ${err.message}`);
   } finally {
@@ -4843,6 +4863,7 @@ function switchSystemMode(mode) {
       applyMIMOChannel();
     }
   }
+  updateGlobalStatusBar(`${mode.toUpperCase()} mode active`);
 }
 
 function updateMIMOSystem() {
@@ -4872,6 +4893,7 @@ function updateMIMOSystem() {
     autoResizePhase8MatricesForMIMO(mimoPlant);
     syncAdvisorModeVisibility();
     clearError();
+    updateGlobalStatusBar(`MIMO plant updated: ${mimoPlant.p}x${mimoPlant.m}`);
   } catch (err) {
     const statusEl = document.getElementById('mimo-status-out');
     if (statusEl) {
@@ -5756,6 +5778,89 @@ function clearError() {
   if (_errorAutoDismissTimer) { clearTimeout(_errorAutoDismissTimer); _errorAutoDismissTimer = null; }
 }
 
+let _toastSeq = 0;
+function notify(message, variant = 'info', opts = {}) {
+  const stack = document.getElementById('toast-stack');
+  if (!stack) return;
+  const allowed = new Set(['info', 'success', 'warning', 'error']);
+  const tone = allowed.has(variant) ? variant : 'info';
+  const title = opts.title || ({ success: 'Success', warning: 'Notice', error: 'Error', info: 'Info' }[tone]);
+  const duration = Number.isFinite(opts.duration) ? opts.duration : 3600;
+  const id = `toast-${Date.now()}-${_toastSeq++}`;
+  const toast = document.createElement('div');
+  toast.className = `toast ${tone}`;
+  toast.id = id;
+  toast.setAttribute('role', tone === 'error' ? 'alert' : 'status');
+  toast.innerHTML = `
+    <div class="toast-title">${escapeHtml(title)}</div>
+    <button class="toast-close" type="button" aria-label="Dismiss notification">×</button>
+    <div class="toast-message">${escapeHtml(String(message || ''))}</div>
+  `;
+  const close = () => {
+    toast.remove();
+    updateGlobalStatusBar('Ready');
+  };
+  toast.querySelector('.toast-close')?.addEventListener('click', close);
+  stack.appendChild(toast);
+  updateGlobalStatusBar(String(message || 'Ready'));
+  if (duration > 0) setTimeout(close, duration);
+}
+
+function _statusSet(id, text) {
+  const el = document.getElementById(id);
+  if (el) el.textContent = text;
+}
+
+function _realPart(value) {
+  if (value && Number.isFinite(value.re)) return value.re;
+  const n = Number(value);
+  return Number.isFinite(n) ? n : NaN;
+}
+
+function currentStabilityLabel() {
+  if (!state.plant) return 'Pending';
+  const sys = state.showClosedLoop ? (state.closedLoop || state.plant) : state.plant;
+  try {
+    const poles = typeof sys?.poles === 'function' ? sys.poles() : [];
+    if (!poles.length) return 'Unknown';
+    const reals = poles.map(_realPart).filter(Number.isFinite);
+    if (!reals.length) return 'Unknown';
+    if (state.domain === 'z' || sys instanceof DiscreteTransferFunction) {
+      const mags = poles.map((p) => {
+        if (p && typeof p.abs === 'function') {
+          const mag = p.abs();
+          if (Number.isFinite(mag)) return mag;
+        }
+        if (p && Number.isFinite(p.re) && Number.isFinite(p.im)) return Math.hypot(p.re, p.im);
+        const n = Number(p);
+        return Number.isFinite(n) ? Math.abs(n) : NaN;
+      }).filter(Number.isFinite);
+      if (!mags.length) return 'Unknown';
+      if (mags.some((m) => m > 1 + 1e-8)) return 'Unstable';
+      if (mags.some((m) => Math.abs(m - 1) <= 1e-8)) return 'Marginal';
+      return 'Stable';
+    }
+    if (reals.some((r) => r > 1e-8)) return 'Unstable';
+    if (reals.some((r) => Math.abs(r) <= 1e-8)) return 'Marginal';
+    return 'Stable';
+  } catch (_) {
+    return 'Unknown';
+  }
+}
+
+function updateGlobalStatusBar(message = 'Ready') {
+  const plantKind = state.systemMode === 'mimo'
+    ? 'MIMO SS'
+    : `${(state.systemType || 'tf').toUpperCase()} · ${state.domain || 's'}-domain`;
+  _statusSet('status-mode', String(state.systemMode || 'siso').toUpperCase());
+  _statusSet('status-plant-type', plantKind);
+  _statusSet('status-loop-mode', state.showClosedLoop ? 'Closed loop' : 'Open loop');
+  _statusSet('status-stability', currentStabilityLabel());
+  _statusSet('status-theme', state.theme ? state.theme[0].toUpperCase() + state.theme.slice(1) : 'Dark');
+  const live = document.getElementById('global-live-region');
+  if (live) live.textContent = message;
+}
+
 // S4-3: when MIMO dimensions change, auto-resize Phase 8 / MIMO-LQR matrix
 // textareas (Q_n, R_n, Q_d, R_d, MIMO LQR Q/R) to n×n / m×m identity defaults,
 // but only when the existing textarea dimensions no longer match — preserving
@@ -5827,21 +5932,9 @@ function autoToggleOpenLoopForUnstablePlant() {
   } catch (_) { /* defensive — don't block updateSystem */ }
 }
 
-// Non-blocking informational banner (toast) — distinct visual from showError
-// (which is red and treated as failure). Auto-dismisses after 6 s.
-let _bannerAutoDismissTimer = null;
+// Backward-compatible banner entrypoint; routed through the unified toast system.
 function showBanner(msg) {
-  let el = document.getElementById('info-banner');
-  if (!el) {
-    el = document.createElement('div');
-    el.id = 'info-banner';
-    el.style.cssText = 'position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:rgba(245,158,11,0.95);color:#0f1117;padding:10px 18px;border-radius:8px;font-size:12px;z-index:1000;box-shadow:0 10px 25px rgba(0,0,0,0.25);max-width:80%;line-height:1.5;';
-    document.body.appendChild(el);
-  }
-  el.textContent = msg;
-  el.style.display = 'block';
-  if (_bannerAutoDismissTimer) clearTimeout(_bannerAutoDismissTimer);
-  _bannerAutoDismissTimer = setTimeout(() => { if (el) el.style.display = 'none'; }, 6000);
+  notify(msg, 'warning', { title: 'Notice', duration: 6000 });
 }
 
 function exportChartPNG() {
@@ -6507,9 +6600,10 @@ const csUI = (() => {
     watchThemeForCharts();
     initSeedControl();
     initSysID();
+    updateGlobalStatusBar('Ready');
   }
 
-  return { init, showModal, hideModal, confirm, setLoading, withLoading, collapseAll, expandAll, loadPreset };
+  return { init, showModal, hideModal, confirm, setLoading, withLoading, collapseAll, expandAll, loadPreset, notify, updateGlobalStatusBar };
 })();
 
 window.toggleTheme = toggleTheme;

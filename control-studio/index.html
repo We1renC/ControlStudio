@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>ControlStudio — Control System Workbench</title>
+  <link rel="icon" href="data:,">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;600;700&display=swap" rel="stylesheet">
@@ -48,6 +49,42 @@
     .btn-primary:hover { filter: brightness(1.1); }
     .btn-sm { padding: 5px 10px; font-size: 12px; }
     .btn.active { background: var(--color-accent); border-color: var(--color-accent); color: white; }
+    .app-status-bar {
+      min-height: 38px;
+      background: color-mix(in srgb, var(--bg-secondary) 82%, var(--bg-tertiary));
+      border-bottom: 1px solid var(--border-primary);
+      display: flex;
+      align-items: center;
+      gap: var(--space-4);
+      padding: 6px var(--space-6);
+      font-size: 11px;
+      color: var(--text-muted);
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+    .app-status-bar::-webkit-scrollbar { display: none; }
+    .app-status-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+    .app-status-item span {
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+      font-weight: 700;
+    }
+    .app-status-item strong {
+      color: var(--text-secondary);
+      font-weight: 700;
+    }
+    .app-status-live {
+      margin-left: auto;
+      color: var(--text-secondary);
+      min-width: max-content;
+    }
     main { flex: 1; display: flex; overflow: hidden; position: relative; min-width: 0; min-height: 0; }
     aside { width: 340px; background: var(--bg-secondary); border-right: 1px solid var(--border-primary); display: flex; flex-direction: column; overflow-y: auto; padding: var(--space-6); gap: var(--space-4); flex-shrink: 0; }
     .content-area { flex: 1; padding: var(--space-6); overflow-y: auto; display: flex; flex-direction: column; gap: var(--space-6); min-width: 0; min-height: 0; }
@@ -175,6 +212,46 @@
     .pid-control-row { display:grid; grid-template-columns:minmax(0, 1fr) 76px; gap:8px; align-items:center; }
     .pid-control-row input[type="number"] { padding:6px 8px; font-size:12px; }
     .empty-state { border:1px dashed var(--border-primary); border-radius:var(--radius-md); padding:16px; color:var(--text-muted); font-size:12px; line-height:1.5; }
+    .empty-state-actions { display:flex; flex-wrap:wrap; gap:8px; margin-top:12px; }
+    .toast-stack {
+      position: fixed;
+      right: 20px;
+      bottom: 20px;
+      display: grid;
+      gap: 10px;
+      z-index: 2100;
+      max-width: min(420px, calc(100vw - 32px));
+      pointer-events: none;
+    }
+    .toast {
+      pointer-events: auto;
+      border: 1px solid var(--border-primary);
+      border-left: 4px solid var(--color-accent);
+      background: color-mix(in srgb, var(--bg-secondary) 92%, black);
+      color: var(--text-primary);
+      border-radius: var(--radius-md);
+      padding: 10px 12px;
+      box-shadow: 0 14px 35px rgba(0,0,0,0.28);
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 6px 10px;
+      min-width: min(320px, calc(100vw - 32px));
+    }
+    .toast.success { border-left-color: var(--color-stable); }
+    .toast.warning { border-left-color: #f59e0b; }
+    .toast.error { border-left-color: var(--color-unstable); }
+    .toast-title { font-size: 12px; font-weight: 800; color: var(--text-primary); }
+    .toast-message { grid-column: 1 / -1; font-size: 12px; line-height: 1.5; color: var(--text-secondary); }
+    .toast-close {
+      border: 0;
+      background: transparent;
+      color: var(--text-muted);
+      cursor: pointer;
+      font-size: 16px;
+      line-height: 1;
+      padding: 0 2px;
+    }
+    .toast-close:hover { color: var(--text-primary); }
     .compare-shell { display: none; }
     .compare-shell.active { display: flex; }
     .chart-cell.compare-wide { min-height: 280px; }
@@ -190,7 +267,21 @@
       .plot-side { display:grid; grid-template-columns: 1fr 1fr; }
     }
     @media (max-width: 760px) {
-      header { padding: 0 var(--space-4); }
+      header { padding: 0 var(--space-4); gap: var(--space-2); overflow: hidden; }
+      .logo { flex-shrink: 0; }
+      .header-actions {
+        flex: 1;
+        min-width: 0;
+        justify-content: flex-start;
+        gap: 6px;
+        overflow-x: auto;
+        scrollbar-width: none;
+      }
+      .header-actions::-webkit-scrollbar { display: none; }
+      .header-actions .divider-v { display: none; }
+      .header-actions .btn-sm { padding: 5px 8px; }
+      .app-status-bar { padding: 6px var(--space-4); }
+      .app-status-live { display: none; }
       aside { width: 100%; border-right: 0; border-bottom: 1px solid var(--border-primary); }
       main { flex-direction: column; }
       .plot-side { grid-template-columns: 1fr; }
@@ -384,6 +475,16 @@
       </button>
     </div>
   </header>
+
+  <div class="app-status-bar" id="app-status-bar" role="status" aria-live="polite">
+    <div class="app-status-item"><span>Mode</span><strong id="status-mode">SISO</strong></div>
+    <div class="app-status-item"><span>Plant</span><strong id="status-plant-type">TF · s-domain</strong></div>
+    <div class="app-status-item"><span>Loop</span><strong id="status-loop-mode">Closed loop</strong></div>
+    <div class="app-status-item"><span>Plot</span><strong id="status-active-plot">Step</strong></div>
+    <div class="app-status-item"><span>Stability</span><strong id="status-stability">Pending</strong></div>
+    <div class="app-status-item"><span>Theme</span><strong id="status-theme">Dark</strong></div>
+    <div class="app-status-live" id="global-live-region">Ready</div>
+  </div>
 
   <main role="main">
     <aside role="complementary" aria-label="Control system configuration">
@@ -1843,6 +1944,7 @@
   </main>
 
   <div id="error-msg" role="alert" aria-live="assertive" class="error-toast-enhanced" style="position:fixed; bottom:20px; right:20px; background:var(--color-unstable); color:white; padding:12px 20px; border-radius:var(--radius-md); font-size:13px; display:none; z-index:2000; box-shadow:0 10px 25px rgba(0,0,0,0.2);"></div>
+  <div id="toast-stack" class="toast-stack" aria-live="polite" aria-atomic="false"></div>
 
   <!-- Quick Start modal (Ctrl+/) -->
   <div class="modal-overlay" id="quickstart-modal" role="dialog" aria-modal="true" aria-labelledby="qs-title" aria-hidden="true">

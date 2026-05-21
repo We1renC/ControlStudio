@@ -16,6 +16,7 @@
   - 近期主線已接續完成 Phase 12 ~ Phase 17；目前 codebase 已包含 H∞ 視覺化與 MIMO `||G||∞`、大幅 UI/UX 改版、time delay / IMC / disk margin / LaTeX、ARX system ID / A-B compare / codegen / root-locus animation、H∞ mixed-sensitivity PID synthesis / GA PID auto-tuner / phase portrait / describing functions，以及 Phase 17 的 plant-order dynamic H∞、structured μ、MIMO frequency-domain diagnostics、MPC MIMO output tracking。
   - Post Phase 17 最新數學核心 hardening：`a2a89d3` 修正 `complex.js` magnitude overflow/underflow 風險、`polynomial.js` ill-conditioned conjugate root pairing、`realschur.js` Hamiltonian dead computation 與 real Schur 1x1 block swap / eigenvalue order 問題。
   - 本輪文件同步時同步修正 `rootsToRealPoly()` unpaired complex root error message，保留 `conjugate pairs` regression contract，讓 `./nv-agent doctor` / `test_control.js` 可正確分類錯誤。
+  - 2026-05-22 UI/UX 計畫 P1 foundation 已開始落地：全域狀態列、toast notification infrastructure、empty-state action style、Share/Theme/Project/Compare 高頻動作通知，新增 `verify_p35_uiux_foundation.mjs` 並納入 `run_all_verify.sh`。
 - 已完成 NVIDIA Build Models 資料集中管理。
 - 已新增 agent 入口文件：
   - `AGENTS.md`：專案規則、標準流程、擴充規則與品質判準。
@@ -277,18 +278,19 @@ git log --oneline -5
 
 ## 後續可做
 1. 決定 `package.json` / `package-lock.json` 的 dependency policy；若 TypeScript workflow 正式化才提交 lockfile，`node_modules/` 永不提交。
-2. 下一個主線做 P27 full D-K iteration；不要把目前 structured μ surrogate 說成完整 μ-synthesis。
-3. 補 P23 continuous-time identification、P25 Hankel norm approximation、P26 LPV synthesis、P28 JSDoc API docs。
-4. 使用 `control-studio-system-auditor` 審查下一個控制設計缺口，並用 `control-studio-benchmark-author` 補 benchmark fixture。
-5. Teaching Mode / Electron / Report Template 目前使用者要求擱置，不要開發。
-6. Block Diagram 目前維持 paused；不要新增 block diagram 功能，除非使用者重新明確恢復。
-7. 加 `agents/openai.yaml` UI metadata。
-8. 增強 evaluator：從 heuristic 檢查升級成 judge model + golden dataset。
-9. 若 NVIDIA Build Models 更新，先更新根目錄資料檔，再同步 `skills/nvidia-model-selector/references/`。
-10. 視需求把 `search_models.py` 加上 `--top-category-summary` 或 fuzzy ranking。
-11. 若要更實用，補上本地文件切 chunk / PDF 轉圖 / OCR 結果快取。
-12. 加 parallel runner 與 leaderboard，追蹤同任務多模型輸出品質。
-13. 將 OCR/RAG 的 endpoint source 也改成完整 registry-driven，而不只傳入 model id。
+2. UI/UX 下一步依 `control-studio/UI_UX_PLAN.md` P1 順序處理：F1-1/F1-2 導覽與 Context Bar、A2-1 Design Spec panel、A3-1 slider component、D1 codegen panel。
+3. 下一個控制理論主線做 P27 full D-K iteration；不要把目前 structured μ surrogate 說成完整 μ-synthesis。
+4. 補 P23 continuous-time identification、P25 Hankel norm approximation、P26 LPV synthesis、P28 JSDoc API docs。
+5. 使用 `control-studio-system-auditor` 審查下一個控制設計缺口，並用 `control-studio-benchmark-author` 補 benchmark fixture。
+6. Teaching Mode / Electron / Report Template 目前使用者要求擱置，不要開發。
+7. Block Diagram 目前維持 paused；不要新增 block diagram 功能，除非使用者重新明確恢復。
+8. 加 `agents/openai.yaml` UI metadata。
+9. 增強 evaluator：從 heuristic 檢查升級成 judge model + golden dataset。
+10. 若 NVIDIA Build Models 更新，先更新根目錄資料檔，再同步 `skills/nvidia-model-selector/references/`。
+11. 視需求把 `search_models.py` 加上 `--top-category-summary` 或 fuzzy ranking。
+12. 若要更實用，補上本地文件切 chunk / PDF 轉圖 / OCR 結果快取。
+13. 加 parallel runner 與 leaderboard，追蹤同任務多模型輸出品質。
+14. 將 OCR/RAG 的 endpoint source 也改成完整 registry-driven，而不只傳入 model id。
 
 ## 注意事項
 - 這個專案不需要 `.agent-handoff.md`。

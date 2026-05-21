@@ -3960,6 +3960,16 @@ modal：寬 520px，分欄顯示分類
 
 P1 小計：**15d**
 
+**實作 checkpoint（2026-05-22）**
+
+- Done：F3-1 全域狀態列已落地於主畫面 header 下方，顯示 Mode / Plant / Loop / Plot / Stability / Theme，並包含 `aria-live` 狀態訊息。
+- Done：G10 通知 Toast 基礎建設已落地，支援 info / success / warning / error 樣式，並串接 Share、Compare、Project export/load、Theme、Session clear 等高頻動作。
+- Done：G2 空狀態基礎樣式已補齊 `.empty-state-actions`，現有 Compare snapshot empty state 可沿用此模式擴充 CTA。
+- Done：F4-1 既有 theme toggle 已串接 status bar 與成功通知。
+- Done：G12 既有 confirm modal 保留為危險操作標準入口，清除 snapshot / session 仍需維持此模式。
+- Verification：新增 `control-studio/scripts/verify_p35_uiux_foundation.mjs`，並納入 `scripts/run_all_verify.sh`。
+- Next：F1-1 / F1-2 導覽與 Context Bar、A2-1 Design Spec panel、A3-1 slider component、D1 codegen panel。
+
 ### P2 — 第二波（高 UX 價值，中等成本）
 
 | 項目 | 涉及元件 | 估計工時 | 影響族群 |
