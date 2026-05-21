@@ -1,7 +1,7 @@
 # ControlStudio Development Roadmap
 
 > Last updated: 2026-05-21
-> Current committed baseline: `15329fe feat(p24): complete advanced MPC controllers`
+> Current committed baseline: `3cc76b4 feat(p29-06): D-K iteration and μ upper bound via D-scaling`
 > Scope: this is the canonical execution roadmap for ControlStudio implementation status.
 > Do not use this file for product vision, proof derivations, or handoff notes; see the document workflow below.
 
@@ -56,8 +56,8 @@
 | P26 | Nonlinear control: gain scheduling + SMC | Mostly Done | `verify_p26_nonlinear.mjs` |
 | P27 | H∞ extensions: MIMO H∞ verify + loop shaping | Mostly Done | `verify_p27_mimo_hinf.mjs`, `verify_p27_loop_shaping.mjs` |
 | P28 | Infrastructure quality: TS definitions + benchmark | Mostly Done | `control-studio/types/control-studio.d.ts`, `benchmark.mjs` |
-| **P29** | **Numerical optimization core: QP / LP / SDP-LMI** | In Progress | QP + LP + SDP done (`verify_p29_{qp,lp,sdp}.mjs`) |
-| **P30** | **Adaptive & learning control: RLS / MRAC / STR / ILC** | Planned | — |
+| **P29** | **Numerical optimization core: QP / LP / SDP-LMI** | Done | `verify_p29_{qp,lp,sdp,lpv,dk}.mjs` — 43 scripts total |
+| **P30** | **Adaptive & learning control: RLS / MRAC / STR / ILC** | In Progress | — |
 | **P31** | **Estimation & monitoring: MHE / particle filter / FDD / FTC** | Planned | — |
 | **P32** | **Advanced nonlinear: feedback linearization / backstepping / CLF-CBF** | Planned | — |
 | **P33** | **Productization & interop: codegen / report / python-control bridge** | Planned | — |
@@ -65,12 +65,13 @@
 
 ## Verification Suite Status (2026-05-21)
 
-**38/38 scripts pass** — run via `bash scripts/run_all_verify.sh`
+**43/43 scripts pass** — run via `bash scripts/run_all_verify.sh`
 
 | Group | Scripts | Pass |
 | --- | --- | --- |
 | Phase 9/10/11 foundations | 11 | 11 |
 | Phase 14–27 advanced control | 23 | 23 |
+| Phase 29 optimization core | 5 | 5 |
 | General math & PID | 4 | 4 |
 
 ## Remaining Dirty Worktree
@@ -122,14 +123,14 @@
 | Item | Status | Evidence |
 | --- | --- | --- |
 | P26-01 Gain-scheduled PID | Done | `gainScheduledPID`, `verify_p26_nonlinear.mjs` |
-| P26-02 LPV synthesis | Planned | No committed LPV synthesis runner yet |
+| P26-02 LPV synthesis | Done | `lpv.js` — `synthesizeLPV/analyzeLPV`, `verify_p29_lpv.mjs` |
 | P26-03 Sliding mode control | Done | `designSMC`, `verify_p26_nonlinear.mjs` |
 
 ### P27 — H∞ Design Extensions
 
 | Item | Status | Evidence |
 | --- | --- | --- |
-| P27-01 Full D-K iteration | Planned | Current structured μ path remains surrogate / baseline |
+| P27-01 Full D-K iteration | Done | `dk_iteration.js` — `computeMuUpperBound/dkIteration`, `verify_p29_dk.mjs` |
 | P27-02 Loop-shaping H∞ | Done | `loopShapingHinf`, `verify_p27_loop_shaping.mjs` |
 | P27-03 MIMO H∞ verification | Done | `verify_p27_mimo_hinf.mjs` |
 
@@ -161,9 +162,9 @@
 | **P29-01 QP solver** ✅ | Convex QP via primal-dual interior-point + direct KKT | `solveQP(H, f, opts)`, `solveEqualityQP`, `solveBoxQP` in `js/math/optimization.js` (`verify_p29_qp.mjs`, 20 tests) | 3d | matrix core |
 | **P29-02 LP solver** ✅ | Regularized interior-point LP (min-norm tie-break) | `solveLP(c, opts)` in `js/math/optimization.js` (`verify_p29_lp.mjs`, 21 tests) | 2d | P29-01 |
 | **P29-03 SDP / LMI solver** ✅ | ADMM splitting + PSD-cone projection (Jacobi eig) | `solveSDP(F0, Flist, c, opts)`, `solveLMIFeasibility`, `symmetricEig` (`verify_p29_sdp.mjs`, 12 tests) | 4d | P29-01 |
-| P29-04 Retrofit MPC | Replace inlined QP in `mpc.js` with `solveQP` | (internal) | 1d | P29-01 |
-| P29-05 Close LPV (P26-02) | LMI-based LPV synthesis on parameter grid | `synthesizeLPV(grid, opts)` | 3d | P29-03 |
-| P29-06 Close D-K (P27-01) | True μ-synthesis: K-step + D-step rational fit | `dkIteration(plant, weights, opts)` | 4d | P29-03 |
+| **P29-04 Retrofit MPC** ✅ | Replace inlined Hildreth QP in `mpc.js` with `solveQP`; adds general A·u≤b support | (internal `mpc.js`) | 1d | P29-01 |
+| **P29-05 Close LPV (P26-02)** ✅ | LMI-based LPV synthesis on parameter grid | `synthesizeLPV/analyzeLPV` in `js/control/lpv.js` (`verify_p29_lpv.mjs`, 14 tests) | 3d | P29-03 |
+| **P29-06 Close D-K (P27-01)** ✅ | μ upper bound via D-scaling + D-K iteration | `computeMuUpperBound/dkIteration` in `js/control/dk_iteration.js` (`verify_p29_dk.mjs`, 14 tests) | 4d | P29-03 |
 
 ### P30 — Adaptive & Learning Control
 
@@ -252,9 +253,11 @@ P27-01 D-K → P29-06; P25-02 Hankel norm and P28-02 JSDoc docs remain standalon
 
 ## Next Immediate Action
 
-Start **P29-01 QP solver** (`js/math/optimization.js` + `verify_p29_qp.mjs`):
+Start **P30-01 Recursive Least Squares** (`js/control/adaptive.js` + `verify_p30_rls.mjs`):
 
 ```bash
-# After implementing solveQP + verification script
-bash scripts/run_all_verify.sh        # confirm 39/39 pass
+# After implementing identifyRLS + verification script
+bash scripts/run_all_verify.sh        # confirm 44+/43 pass
 ```
+
+P30 implementation order: RLS → MRAC → STR → ILC → SRIVC
