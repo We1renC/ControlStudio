@@ -1294,6 +1294,27 @@
     .health-row-label { flex: 1; color: var(--text-muted); }
     .health-row-val { color: var(--text-primary); font-size: 10px; font-family: ui-monospace, monospace; max-width: 130px; word-break: break-all; text-align: right; }
 
+    /* ── P55: B2-4 Gramian Detail ── */
+    .gramian-table { width: 100%; border-collapse: collapse; font-size: 10px; margin-bottom: 8px; }
+    .gramian-table th { background: var(--bg-tertiary); color: var(--text-muted); font-weight: 600; padding: 3px 6px; text-align: left; }
+    .gramian-table td { padding: 2px 6px; border-bottom: 1px solid var(--border-primary); color: var(--text-secondary); }
+    .gd-num { font-family: ui-monospace, monospace; color: var(--text-primary); }
+    .gd-bar { background: var(--bg-tertiary); border-radius: 3px; height: 6px; width: 60px; }
+    .gd-bar-fill { background: var(--color-accent); height: 100%; border-radius: 3px; }
+    .gramian-summary { display: flex; gap: 10px; flex-wrap: wrap; font-size: 10px; color: var(--text-muted); padding: 4px 0; }
+    .gramian-error { font-size: 11px; color: var(--color-unstable); padding: 6px 0; }
+
+    /* ── P55: B4-3 python-control Bridge ── */
+    .python-bridge-code { background: var(--bg-primary); border: 1px solid var(--border-primary); border-radius: var(--radius-sm); padding: 8px 10px; font-family: ui-monospace, monospace; font-size: 10px; color: var(--text-secondary); white-space: pre; overflow-x: auto; max-height: 220px; overflow-y: auto; line-height: 1.5; }
+    .python-bridge-toolbar { display: flex; gap: 6px; margin-bottom: 6px; }
+
+    /* ── P55: B4-4 LaTeX Symbol Generator ── */
+    .latex-row { display: flex; align-items: flex-start; gap: 6px; padding: 5px 0; border-bottom: 1px solid var(--border-primary); }
+    .latex-label { font-size: 11px; font-weight: 700; color: var(--text-primary); min-width: 36px; }
+    .latex-code { font-family: ui-monospace, monospace; font-size: 10px; color: var(--text-secondary); flex: 1; word-break: break-all; line-height: 1.5; background: var(--bg-tertiary); padding: 2px 6px; border-radius: var(--radius-sm); }
+    .latex-copy-one { flex-shrink: 0; font-size: 9px; padding: 2px 7px; }
+    #latex-gen-out { margin: 8px 0; }
+
     /* ── P54: A4-2 Method Complexity Badge ── */
     .method-complexity-badge { display: inline-flex; align-items: center; gap: 4px; margin-left: 8px; vertical-align: middle; }
     .mcb-stars { font-size: 9px; letter-spacing: 0; }
@@ -2223,6 +2244,32 @@
           </div>
         </section>
 
+        <!-- B4-3: python-control Bridge -->
+        <section class="section-panel" id="python-bridge-panel">
+          <div class="section-title">python-control Bridge (B4-3)</div>
+          <p style="font-size:11px;color:var(--text-muted);line-height:1.5;margin-bottom:8px;">
+            即時產生 <code>python-control</code> API 程式碼，可直接貼入 Jupyter 或 .py 檔案。
+          </p>
+          <div class="python-bridge-toolbar">
+            <button class="btn btn-sm" id="btn-python-bridge-refresh" style="flex:1;justify-content:center;">Refresh</button>
+            <button class="btn btn-sm" id="btn-python-bridge-copy" style="flex:1;justify-content:center;">Copy Code</button>
+          </div>
+          <pre class="python-bridge-code" id="python-bridge-code" aria-label="python-control API code"></pre>
+        </section>
+
+        <!-- B4-4: LaTeX Symbol Generator -->
+        <section class="section-panel" id="latex-gen-panel">
+          <div class="section-title">LaTeX Symbol Generator (B4-4)</div>
+          <p style="font-size:11px;color:var(--text-muted);line-height:1.5;margin-bottom:8px;">
+            自動將 G(s)、K(s)、T(s) 轉換為 LaTeX 分式表示，可貼入論文或 Overleaf。
+          </p>
+          <div style="display:flex;gap:6px;margin-bottom:6px;">
+            <button class="btn btn-sm" id="btn-latex-gen-refresh" style="flex:1;justify-content:center;">Refresh</button>
+            <button class="btn btn-sm" id="btn-latex-gen-copy" style="flex:1;justify-content:center;">Copy All</button>
+          </div>
+          <div id="latex-gen-out" aria-label="LaTeX symbol output" aria-live="polite"></div>
+        </section>
+
         <section class="section-panel s-domain-only">
           <div class="section-title">Controller Design (Specs → Controller)</div>
           <!-- A4-3: Recommendation Explanation Panel -->
@@ -2714,6 +2761,17 @@
             <div id="hankel-svd-bars" class="hsv-bar-wrap"></div>
             <div id="hankel-svd-info" style="margin-top:8px;font-size:11px;color:var(--text-muted);font-family:ui-monospace,monospace;"></div>
           </div>
+        </section>
+
+        <!-- B2-4: Gramian / SVD Detail -->
+        <section class="section-panel" id="gramian-detail-panel">
+          <div class="section-title">Gramian / SVD Detail (B2-4)</div>
+          <p style="font-size:11px;color:var(--text-muted);line-height:1.5;margin-bottom:10px;">
+            以截斷脈衝響應法近似可控性 Wc 與可觀性 Wo Gramian，顯示對角元素、條件數及
+            Hankel 奇異值 σᵢ = √(λᵢ(Wc)·λᵢ(Wo))，條目越小越可約化。
+          </p>
+          <button class="btn btn-sm" id="btn-gramian-detail" style="width:100%;justify-content:center;margin-bottom:8px;">Compute Gramian SVD</button>
+          <div id="gramian-detail-wrap" style="display:none;"></div>
         </section>
 
         <section class="section-panel" id="robust-panel" data-advisor-mode="siso">

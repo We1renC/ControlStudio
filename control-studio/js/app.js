@@ -12481,3 +12481,280 @@ document.addEventListener('DOMContentLoaded', () => {
   initMethodComplexityLabels();
   initRecommendExplain();
 }, { once: true });
+
+// ── P55 — B2-4: Gramian / SVD Detail ──────────────────────────────────────────
+// Computes Wc (controllability) and Wo (observability) Gramians via
+// truncated impulse-simulation approximation, then shows eigenvalue decomposition.
+function computeGramianDetail() {
+  if (!state.plant) return { error: 'No plant defined' };
+  const plant = state.plant;
+  let A, B, C;
+  try {
+    const ss = plant.toStateSpace?.();
+    if (!ss || !ss.A) return { error: 'Cannot convert to state-space' };
+    A = ss.A; B = ss.B; C = ss.C;
+  } catch (e) {
+    return { error: e.message };
+  }
+  const n = A.length;
+  if (n === 0) return { error: 'Empty system' };
+  if (n > 8) return { error: `State dimension n=${n} too large for inline Gramian (max 8)` };
+
+  // Gramian via discrete Lyapunov approximation:  Wc ≈ sum_{k=0}^{N} A^k B B^T (A^T)^k * dt
+  const N = 500, dt = 0.02;
+  const identity = (sz) => Array.from({ length: sz }, (_, i) => Array.from({ length: sz }, (_, j) => i === j ? 1 : 0));
+  const matMul  = (X, Y) => X.map(row => Y[0].map((_, c) => row.reduce((s, v, k) => s + v * Y[k][c], 0)));
+  const matAdd  = (X, Y) => X.map((r, i) => r.map((v, j) => v + Y[i][j]));
+  const matScale = (X, s) => X.map(r => r.map(v => v * s));
+  const matT    = (X) => X[0].map((_, j) => X.map(r => r[j]));
+  const diagEig = (X) => X.map((r, i) => r[i]); // approx eigenvalues via diagonal (for symmetric PD)
+  const trace   = (X) => X.reduce((s, r, i) => s + r[i], 0);
+  const condNum = (vals) => { const pos = vals.filter(v => v > 0); if (!pos.length) return Infinity; return Math.max(...pos) / Math.min(...pos); };
+
+  // Build Wc approximation
+  let Wc = identity(n).map(r => r.map(() => 0));
+  let Ak = identity(n);
+  const BBT = matMul(B, matT(B));
+  for (let k = 0; k < N; k++) {
+    Wc = matAdd(Wc, matScale(matMul(matMul(Ak, BBT), matT(Ak)), dt));
+    Ak = matMul(A, Ak);
+  }
+
+  // Build Wo approximation
+  let Wo = identity(n).map(r => r.map(() => 0));
+  let AkT = identity(n);
+  const CTC = matMul(matT(C), C);
+  for (let k = 0; k < N; k++) {
+    Wo = matAdd(Wo, matScale(matMul(matMul(AkT, CTC), matT(AkT)), dt));
+    AkT = matMul(matT(A), AkT);
+  }
+
+  const wcEig = diagEig(Wc);
+  const woEig = diagEig(Wo);
+  const wcTrace = trace(Wc);
+  const woTrace = trace(Wo);
+  const wcCond = condNum(wcEig);
+  const woCond = condNum(woEig);
+
+  // Balanceability: ratio of min/max diagonal Hankel singular value approximation
+  const hsv = wcEig.map((v, i) => Math.sqrt(Math.max(0, v) * Math.max(0, woEig[i])));
+  const hsvSum = hsv.reduce((a, b) => a + b, 0);
+
+  return { n, wcEig, woEig, wcTrace, woTrace, wcCond, woCond, hsv, hsvSum };
+}
+
+function renderGramianDetail(outEl, result) {
+  if (result.error) { outEl.innerHTML = `<div class="gramian-error">${result.error}</div>`; return; }
+  const fmt = v => (typeof v === 'number' ? (Math.abs(v) < 1e-4 ? v.toExponential(2) : v.toFixed(4)) : '—');
+  const barPct = (v, max) => Math.min(100, Math.max(0, (Math.abs(v) / (max + 1e-12)) * 100)).toFixed(1);
+  const maxHsv = Math.max(...result.hsv) + 1e-12;
+
+  let rows = result.wcEig.map((_, i) => `
+    <tr>
+      <td>${i + 1}</td>
+      <td class="gd-num">${fmt(result.wcEig[i])}</td>
+      <td class="gd-num">${fmt(result.woEig[i])}</td>
+      <td class="gd-num">${fmt(result.hsv[i])}</td>
+      <td><div class="gd-bar"><div class="gd-bar-fill" style="width:${barPct(result.hsv[i], maxHsv)}%;"></div></div></td>
+    </tr>`).join('');
+
+  outEl.innerHTML = `
+    <table class="gramian-table">
+      <thead><tr><th>#</th><th>Wc diag</th><th>Wo diag</th><th>HSV</th><th>Weight</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+    <div class="gramian-summary">
+      <span>tr(Wc): <b>${fmt(result.wcTrace)}</b></span>
+      <span>cond(Wc): <b>${result.wcCond === Infinity ? '∞' : result.wcCond.toFixed(1)}</b></span>
+      <span>tr(Wo): <b>${fmt(result.woTrace)}</b></span>
+      <span>cond(Wo): <b>${result.woCond === Infinity ? '∞' : result.woCond.toFixed(1)}</b></span>
+    </div>`;
+}
+
+function initGramianDetail() {
+  const btn = document.getElementById('btn-gramian-detail');
+  const wrap = document.getElementById('gramian-detail-wrap');
+  if (!btn || !wrap) return;
+  btn.addEventListener('click', () => {
+    const result = computeGramianDetail();
+    wrap.style.display = 'block';
+    renderGramianDetail(wrap, result);
+  });
+}
+
+// ── P55 — B4-3: python-control Bridge Panel ────────────────────────────────────
+// Renders a live python-control code snippet using the current design state.
+function buildPythonBridgeCode() {
+  const lines = ['import control as ct', 'import numpy as np', ''];
+  const p = state.plant;
+  if (!p) { lines.push('# No plant defined — enter a transfer function first'); return lines.join('\n'); }
+
+  try {
+    const tf = p.toTransferFunction?.() ?? p;
+    const num = tf.num?.[0]?.[0] ?? tf.numerator ?? [1];
+    const den = tf.den?.[0]?.[0] ?? tf.denominator ?? [1];
+    lines.push('# Plant transfer function G(s)');
+    lines.push(`num_G = [${num.map(v => +v.toFixed(6)).join(', ')}]`);
+    lines.push(`den_G = [${den.map(v => +v.toFixed(6)).join(', ')}]`);
+    lines.push('G = ct.tf(num_G, den_G)');
+    lines.push('');
+
+    const ctrl = state.controller;
+    if (ctrl) {
+      try {
+        const ctf = ctrl.toTransferFunction?.() ?? ctrl;
+        const cn = ctf.num?.[0]?.[0] ?? ctf.numerator ?? [1];
+        const cd = ctf.den?.[0]?.[0] ?? ctf.denominator ?? [1];
+        lines.push('# Controller K(s)');
+        lines.push(`num_K = [${cn.map(v => +v.toFixed(6)).join(', ')}]`);
+        lines.push(`den_K = [${cd.map(v => +v.toFixed(6)).join(', ')}]`);
+        lines.push('K = ct.tf(num_K, den_K)');
+        lines.push('');
+        lines.push('# Closed-loop system T(s) = G*K / (1 + G*K)');
+        lines.push('T = ct.feedback(G * K, 1)');
+        lines.push('');
+        lines.push('# Step response');
+        lines.push('t, y = ct.step_response(T)');
+        lines.push('');
+        lines.push('# Bode plot');
+        lines.push('ct.bode_plot(G * K, dB=True)');
+      } catch (_) { lines.push('# Controller not convertible'); }
+    }
+    lines.push('# Stability');
+    lines.push('poles = ct.poles(G)');
+    lines.push('print("Poles:", poles)');
+  } catch (e) {
+    lines.push(`# Error: ${e.message}`);
+  }
+  return lines.join('\n');
+}
+
+function initPythonBridge() {
+  const refreshBtn = document.getElementById('btn-python-bridge-refresh');
+  const copyBtn    = document.getElementById('btn-python-bridge-copy');
+  const codeEl     = document.getElementById('python-bridge-code');
+  if (!refreshBtn || !codeEl) return;
+
+  function refresh() {
+    const code = buildPythonBridgeCode();
+    codeEl.textContent = code;
+  }
+
+  refreshBtn.addEventListener('click', refresh);
+  copyBtn?.addEventListener('click', () => {
+    navigator.clipboard.writeText(codeEl.textContent || '').then(() => {
+      const orig = copyBtn.textContent;
+      copyBtn.textContent = 'Copied!';
+      setTimeout(() => { copyBtn.textContent = orig; }, 1500);
+    });
+  });
+
+  // Auto-refresh when plant changes
+  document.addEventListener('plant:changed', refresh);
+  refresh();
+}
+
+window.buildPythonBridgeCode = buildPythonBridgeCode;
+
+// ── P55 — B4-4: LaTeX Symbol Generator ────────────────────────────────────────
+// Generates LaTeX math strings for G(s), K(s), T(s) polynomials.
+function _polyToLatex(coeffs, varName = 's') {
+  if (!coeffs || coeffs.length === 0) return '1';
+  const n = coeffs.length - 1;
+  const terms = [];
+  coeffs.forEach((c, i) => {
+    const power = n - i;
+    const val = +c.toFixed(4);
+    if (Math.abs(val) < 1e-9) return;
+    const sign = val < 0 ? '-' : '+';
+    const absVal = Math.abs(val);
+    const coefStr = Math.abs(absVal - 1) < 1e-6 && power > 0 ? '' : absVal.toString();
+    const varStr = power === 0 ? '' : power === 1 ? varName : `${varName}^{${power}}`;
+    terms.push({ sign, coefStr, varStr, full: `${coefStr}${varStr}` });
+  });
+  if (!terms.length) return '0';
+  let out = (terms[0].sign === '-' ? '-' : '') + terms[0].full;
+  for (let i = 1; i < terms.length; i++) {
+    out += ` ${terms[i].sign} ${terms[i].full}`;
+  }
+  return out;
+}
+
+function buildLatexSymbols() {
+  const symbols = [];
+  const p = state.plant;
+  if (!p) return [{ label: 'G(s)', latex: '\\text{(no plant)}', display: '(no plant)' }];
+
+  try {
+    const tf = p.toTransferFunction?.() ?? p;
+    const num = tf.num?.[0]?.[0] ?? tf.numerator ?? [1];
+    const den = tf.den?.[0]?.[0] ?? tf.denominator ?? [1];
+    const numTex = _polyToLatex(num);
+    const denTex = _polyToLatex(den);
+    symbols.push({ label: 'G(s)', latex: `G(s) = \\dfrac{${numTex}}{${denTex}}`, display: `G(s) = (${numTex}) / (${denTex})` });
+  } catch (_) { symbols.push({ label: 'G(s)', latex: '\\text{error}', display: 'error' }); }
+
+  const ctrl = state.controller;
+  if (ctrl) {
+    try {
+      const ctf = ctrl.toTransferFunction?.() ?? ctrl;
+      const cn = ctf.num?.[0]?.[0] ?? ctf.numerator ?? [1];
+      const cd = ctf.den?.[0]?.[0] ?? ctf.denominator ?? [1];
+      const cnTex = _polyToLatex(cn);
+      const cdTex = _polyToLatex(cd);
+      symbols.push({ label: 'K(s)', latex: `K(s) = \\dfrac{${cnTex}}{${cdTex}}`, display: `K(s) = (${cnTex}) / (${cdTex})` });
+      // Closed-loop numerator = G*K num / (G den * K den + G num * K num) — simplified
+      symbols.push({ label: 'T(s)', latex: 'T(s) = \\dfrac{G(s) K(s)}{1 + G(s) K(s)}', display: 'T(s) = G(s)K(s) / (1 + G(s)K(s))' });
+    } catch (_) { /* skip */ }
+  }
+  return symbols;
+}
+
+function initLatexGen() {
+  const refreshBtn = document.getElementById('btn-latex-gen-refresh');
+  const copyAllBtn = document.getElementById('btn-latex-gen-copy');
+  const outEl      = document.getElementById('latex-gen-out');
+  if (!refreshBtn || !outEl) return;
+
+  function refresh() {
+    const syms = buildLatexSymbols();
+    outEl.innerHTML = syms.map(s => `
+      <div class="latex-row">
+        <div class="latex-label">${s.label}</div>
+        <div class="latex-code" title="Click to copy">${escapeHtml(s.latex)}</div>
+        <button class="btn btn-sm latex-copy-one" data-latex="${escapeHtml(s.latex)}" aria-label="Copy ${s.label} LaTeX">Copy</button>
+      </div>`).join('');
+    outEl.querySelectorAll('.latex-copy-one').forEach(btn => {
+      btn.addEventListener('click', () => {
+        navigator.clipboard.writeText(btn.dataset.latex || '').then(() => {
+          const orig = btn.textContent;
+          btn.textContent = '✓';
+          setTimeout(() => { btn.textContent = orig; }, 1200);
+        });
+      });
+    });
+  }
+
+  refreshBtn.addEventListener('click', refresh);
+  copyAllBtn?.addEventListener('click', () => {
+    const syms = buildLatexSymbols();
+    const all = syms.map(s => `% ${s.label}\n$${s.latex}$`).join('\n\n');
+    navigator.clipboard.writeText(all).then(() => {
+      const orig = copyAllBtn.textContent;
+      copyAllBtn.textContent = 'Copied!';
+      setTimeout(() => { copyAllBtn.textContent = orig; }, 1500);
+    });
+  });
+
+  document.addEventListener('plant:changed', refresh);
+  refresh();
+}
+
+window.buildLatexSymbols = buildLatexSymbols;
+
+// ── P55 init ──────────────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  initGramianDetail();
+  initPythonBridge();
+  initLatexGen();
+}, { once: true });

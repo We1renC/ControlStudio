@@ -120,6 +120,7 @@ run_script "P51 F4/F5/G7 a11y/colors/kbd/screen-reader"  "node scripts/verify_p5
 run_script "P52 G5/G6/G8/G9 i18n/responsive/onboarding/multiproject" "node scripts/verify_p52_g5689.mjs"
 run_script "P53 A1-2/A1-3/A1-4 sysid/example-lib/health-badge"     "node scripts/verify_p53_a1234.mjs"
 run_script "P54 A4-1/A4-2/A4-3 wizard/complexity/explain"          "node scripts/verify_p54_a4.mjs"
+run_script "P55 B2-4/B4-3/B4-4 gramian/python-bridge/latex"        "node scripts/verify_p55_b24_b43_b44.mjs"
 echo ""
 
 # ── General Math & PID ───────────────────────────────────────────────────────
