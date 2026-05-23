@@ -7725,3 +7725,237 @@ document.addEventListener('DOMContentLoaded', () => {
     initErrorGuidance();
   }, 1000);
 }, { once: true });
+
+// ── P40 — C2-1 Design Wizard ──────────────────────────────────────────────────
+// Four-step design wizard progress bar: 建模 → 規格 → 設計 → 驗證
+// Shown/hidden via #btn-wizard. State persists in sessionStorage.
+const WIZARD_STEPS = [
+  { id: 'w-model',  label: '1\n建模',   title: '建模',   hint: '輸入或選取系統模型（Plant）' },
+  { id: 'w-spec',   label: '2\n規格',   title: '規格',   hint: '設定效能目標（OS%, Ts, PM）' },
+  { id: 'w-design', label: '3\n設計',   title: '設計',   hint: '選擇並調整控制器' },
+  { id: 'w-verify', label: '4\n驗證',   title: '驗證',   hint: '確認頻域 / 時域規格合規' },
+];
+
+const WIZARD_STORAGE_KEY = 'cs-wizard-step';
+
+function initDesignWizard() {
+  const bar    = document.getElementById('wizard-bar');
+  const track  = document.getElementById('wizard-track');
+  const btnPrev = document.getElementById('wizard-prev');
+  const btnNext = document.getElementById('wizard-next');
+  const btnSkip = document.getElementById('wizard-skip');
+  const btnOpen = document.getElementById('btn-wizard');
+  if (!bar || !track || !btnPrev || !btnNext || !btnSkip || !btnOpen) return;
+
+  let currentStep = parseInt(sessionStorage.getItem(WIZARD_STORAGE_KEY) ?? '0', 10);
+
+  function buildTrack() {
+    track.innerHTML = '';
+    WIZARD_STEPS.forEach((step, i) => {
+      // Connector before each step (except first)
+      if (i > 0) {
+        const conn = document.createElement('div');
+        conn.className = `wizard-connector${i <= currentStep ? ' done' : ''}`;
+        track.appendChild(conn);
+      }
+      const stepEl = document.createElement('div');
+      stepEl.className = `wizard-step${i < currentStep ? ' done' : i === currentStep ? ' active' : ''}`;
+      stepEl.setAttribute('title', step.hint);
+      stepEl.innerHTML = `
+        <div class="wizard-step-dot">${i < currentStep ? '✓' : i + 1}</div>
+        <div class="wizard-step-label">${step.title}</div>`;
+      stepEl.addEventListener('click', () => { if (i <= currentStep + 1) goToStep(i); });
+      track.appendChild(stepEl);
+    });
+  }
+
+  function goToStep(n) {
+    currentStep = Math.max(0, Math.min(WIZARD_STEPS.length - 1, n));
+    sessionStorage.setItem(WIZARD_STORAGE_KEY, String(currentStep));
+    buildTrack();
+    btnPrev.disabled = currentStep === 0;
+    if (currentStep === WIZARD_STEPS.length - 1) {
+      btnNext.textContent = '完成 ✓';
+    } else {
+      btnNext.textContent = '下一步 →';
+    }
+    // Emit hint as notification
+    notify(`精靈步驟 ${currentStep + 1}：${WIZARD_STEPS[currentStep].hint}`, 'info', { duration: 4000 });
+  }
+
+  function openWizard() {
+    bar.classList.add('visible');
+    buildTrack();
+    btnPrev.disabled = currentStep === 0;
+  }
+
+  function closeWizard() {
+    bar.classList.remove('visible');
+  }
+
+  btnOpen.addEventListener('click', () => {
+    if (bar.classList.contains('visible')) closeWizard();
+    else openWizard();
+  });
+
+  btnSkip.addEventListener('click', closeWizard);
+
+  btnNext.addEventListener('click', () => {
+    if (currentStep === WIZARD_STEPS.length - 1) { closeWizard(); notify('設計精靈完成！', 'success'); }
+    else goToStep(currentStep + 1);
+  });
+
+  btnPrev.addEventListener('click', () => goToStep(currentStep - 1));
+
+  // Register command palette entry
+  if (Array.isArray(window.COMMANDS)) {
+    window.COMMANDS.push({ group: 'UI', icon: '🧭', title: '開啟設計精靈', keys: [], action: openWizard });
+  }
+}
+
+// ── P40 — B3-2 Chart Cursor Readout ──────────────────────────────────────────
+// Adds a crosshair readout overlay to Plotly chart cells, triggered by
+// the plotly_hover event. Shows x value and all series y values.
+function initChartCursorReadout() {
+  const CHART_IDS = ['chart-active', 'chart-rlocus', 'chart-pzmap', 'chart-compare'];
+
+  CHART_IDS.forEach(chartId => {
+    const chartEl = document.getElementById(chartId);
+    if (!chartEl) return;
+    const cell = chartEl.closest('.chart-cell') || chartEl.parentElement;
+    if (!cell) return;
+
+    // Ensure cell has position:relative for absolute children
+    if (getComputedStyle(cell).position === 'static') cell.style.position = 'relative';
+
+    // Create readout box
+    const readout = document.createElement('div');
+    readout.className = 'chart-readout';
+    readout.id = `readout-${chartId}`;
+    cell.appendChild(readout);
+
+    // Create crosshair line
+    const crosshair = document.createElement('div');
+    crosshair.className = 'chart-crosshair';
+    crosshair.id = `crosshair-${chartId}`;
+    chartEl.style.position = 'relative';
+    cell.appendChild(crosshair);
+
+    // Wire plotly events
+    chartEl.on?.('plotly_hover', (data) => {
+      if (!data?.points?.length) return;
+      const pts = data.points;
+      const x = pts[0]?.x;
+      const xLabel = (typeof x === 'number') ? fmtNum(x, 4) : String(x);
+
+      readout.innerHTML = `<div class="chart-readout-x">x = ${xLabel}</div>` +
+        pts.map(pt => {
+          const color = pt.fullData?.line?.color || pt.fullData?.marker?.color || 'var(--color-accent)';
+          const name = pt.fullData?.name || '';
+          const y = typeof pt.y === 'number' ? fmtNum(pt.y, 4) : String(pt.y);
+          return `<div class="chart-readout-row">
+            <div class="chart-readout-swatch" style="background:${color}"></div>
+            <span style="flex:1;color:var(--text-muted)">${name}</span>
+            <span>${y}</span>
+          </div>`;
+        }).join('');
+
+      readout.classList.add('visible');
+
+      // Position crosshair
+      try {
+        const gd = chartEl._fullLayout;
+        if (gd?.xaxis && typeof pts[0]?.x === 'number') {
+          const xFrac = (pts[0].x - gd.xaxis.range[0]) / (gd.xaxis.range[1] - gd.xaxis.range[0]);
+          const plotArea = gd._size;
+          const left = plotArea?.l + xFrac * (plotArea?.w || 100);
+          crosshair.style.left = `${left}px`;
+          crosshair.classList.add('visible');
+        }
+      } catch (_) {}
+    });
+
+    chartEl.on?.('plotly_unhover', () => {
+      readout.classList.remove('visible');
+      crosshair.classList.remove('visible');
+    });
+  });
+}
+
+// ── P40 — B3-3 Chart Theme Toggle ────────────────────────────────────────────
+// Adds a 🎨 button to each chart header to cycle chart color themes.
+// Three modes: auto (follows global theme), vibrant, monochrome.
+const CHART_THEMES = ['auto', 'vibrant', 'mono'];
+const CHART_THEME_LABELS = { auto: '🎨', vibrant: '🌈', mono: '⬛' };
+const CHART_THEME_TITLES = { auto: '圖表主題：跟隨全域', vibrant: '圖表主題：繽紛', mono: '圖表主題：單色' };
+
+// Per-chart theme overrides: chartId → theme string
+const _chartThemes = {};
+
+function getChartColorscale(themeKey) {
+  if (themeKey === 'vibrant') {
+    return ['#ff6b6b', '#ffd93d', '#6bcb77', '#4d96ff', '#f72585', '#7209b7', '#3a0ca3', '#4cc9f0'];
+  }
+  if (themeKey === 'mono') {
+    return ['#e6e6e6', '#bdbdbd', '#969696', '#737373', '#525252', '#252525', '#000000', '#f0f0f0'];
+  }
+  // 'auto' — use CSS accent palette
+  return null;
+}
+
+function initChartThemeToggle() {
+  document.querySelectorAll('.chart-cell').forEach(cell => {
+    const header = cell.querySelector('.chart-header');
+    if (!header) return;
+    const chartDiv = cell.querySelector('[id^="chart-"]');
+    if (!chartDiv) return;
+    const chartId = chartDiv.id;
+
+    const btn = document.createElement('button');
+    btn.className = 'chart-theme-btn';
+    btn.id = `theme-btn-${chartId}`;
+    btn.textContent = CHART_THEME_LABELS['auto'];
+    btn.title = CHART_THEME_TITLES['auto'];
+    header.appendChild(btn);
+
+    let themeIdx = 0;
+
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      themeIdx = (themeIdx + 1) % CHART_THEMES.length;
+      const themeKey = CHART_THEMES[themeIdx];
+      _chartThemes[chartId] = themeKey;
+      btn.textContent = CHART_THEME_LABELS[themeKey];
+      btn.title = CHART_THEME_TITLES[themeKey];
+
+      // Apply colorscale to existing Plotly traces
+      try {
+        const gd = document.getElementById(chartId);
+        const colors = getChartColorscale(themeKey);
+        if (!colors) { Plotly?.relayout(chartId, {}); return; }
+        const traceUpdates = (gd?._fullData || []).map((trace, i) => ({
+          'line.color': colors[i % colors.length],
+          'marker.color': colors[i % colors.length],
+        }));
+        if (traceUpdates.length) {
+          Plotly?.restyle(chartId, traceUpdates.reduce((acc, upd, i) => {
+            Object.entries(upd).forEach(([k, v]) => {
+              if (!acc[k]) acc[k] = [];
+              acc[k][i] = v;
+            });
+            return acc;
+          }, {}));
+        }
+      } catch (_) {}
+    });
+  });
+}
+
+// ── P40 init ──────────────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  initDesignWizard();
+  setTimeout(() => {
+    initChartCursorReadout();
+    initChartThemeToggle();
+  }, 900);
+}, { once: true });

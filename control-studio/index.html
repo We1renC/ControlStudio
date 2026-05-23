@@ -494,6 +494,73 @@
     .error-guidance-action { display: inline-block; margin-top: 4px; font-size: 10px; font-weight: 700; color: var(--color-accent); cursor: pointer; text-decoration: underline; }
 
     /* ==================================================================
+       P40 — C2-1 Design Wizard progress bar
+       ================================================================== */
+    .wizard-bar {
+      display: none; /* shown via .visible */
+      position: sticky; top: 0; z-index: 200;
+      background: var(--bg-secondary);
+      border-bottom: 1px solid var(--border-primary);
+      padding: 10px 24px;
+      flex-direction: column;
+      gap: 0;
+    }
+    .wizard-bar.visible { display: flex; }
+    .wizard-track {
+      display: flex; align-items: center; gap: 0;
+      position: relative; margin-bottom: 4px;
+    }
+    .wizard-step {
+      display: flex; flex-direction: column; align-items: center; flex: 1; position: relative; gap: 4px;
+    }
+    .wizard-step-dot {
+      width: 24px; height: 24px; border-radius: 50%; border: 2px solid var(--border-primary);
+      background: var(--bg-tertiary); display: flex; align-items: center; justify-content: center;
+      font-size: 11px; font-weight: 700; color: var(--text-muted); position: relative; z-index: 1;
+      transition: all 0.2s;
+    }
+    .wizard-step.done .wizard-step-dot { background: var(--color-accent); border-color: var(--color-accent); color: white; }
+    .wizard-step.active .wizard-step-dot { background: var(--color-accent); border-color: var(--color-accent); color: white; box-shadow: 0 0 0 4px rgba(99,102,241,0.25); }
+    .wizard-step-label { font-size: 11px; font-weight: 600; color: var(--text-muted); text-align: center; white-space: nowrap; }
+    .wizard-step.done .wizard-step-label, .wizard-step.active .wizard-step-label { color: var(--color-accent); }
+    .wizard-connector { flex: 1; height: 2px; background: var(--border-primary); margin: 0 -2px; position: relative; top: -14px; }
+    .wizard-connector.done { background: var(--color-accent); }
+    .wizard-actions { display: flex; align-items: center; justify-content: flex-end; gap: 8px; margin-top: 8px; }
+    .wizard-skip { font-size: 11px; color: var(--text-muted); cursor: pointer; background: none; border: none; text-decoration: underline; margin-right: auto; }
+
+    /* ==================================================================
+       P40 — B3-2 Cursor crosshair readout
+       ================================================================== */
+    .chart-readout {
+      position: absolute; top: 36px; right: 8px;
+      background: var(--bg-tertiary); border: 1px solid var(--border-secondary);
+      border-radius: var(--radius-sm); padding: 6px 10px; font-size: 11px;
+      font-family: ui-monospace, monospace; color: var(--text-secondary);
+      pointer-events: none; display: none; z-index: 10; min-width: 140px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    }
+    .chart-readout.visible { display: block; }
+    .chart-readout-x { font-weight: 700; color: var(--text-primary); margin-bottom: 3px; }
+    .chart-readout-row { display: flex; gap: 6px; align-items: center; padding: 1px 0; }
+    .chart-readout-swatch { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+    .chart-crosshair {
+      position: absolute; top: 0; bottom: 0; width: 1px;
+      background: rgba(99,102,241,0.5); pointer-events: none;
+      display: none; z-index: 9;
+    }
+    .chart-crosshair.visible { display: block; }
+
+    /* ==================================================================
+       P40 — B3-3 Chart theme toggle button
+       ================================================================== */
+    .chart-theme-btn {
+      background: transparent; border: 0; color: var(--text-muted); cursor: pointer;
+      padding: 2px 5px; border-radius: 3px; font-size: 13px; line-height: 1;
+      transition: color 0.15s; margin-left: 4px;
+    }
+    .chart-theme-btn:hover { color: var(--text-primary); }
+
+    /* ==================================================================
        P38 — F3-2 Dirty indicator
        ================================================================== */
     .dirty-dot {
@@ -713,6 +780,18 @@
     <div class="calc-progress-bar" id="calc-progress-bar"></div>
   </div>
 
+  <!-- C2-1: Design Wizard bar -->
+  <div class="wizard-bar" id="wizard-bar" role="navigation" aria-label="設計精靈步驟">
+    <div class="wizard-track" id="wizard-track">
+      <!-- Steps injected by JS -->
+    </div>
+    <div class="wizard-actions">
+      <button class="wizard-skip" id="wizard-skip" type="button">跳過精靈</button>
+      <button class="btn btn-sm" id="wizard-prev" type="button" disabled>← 上一步</button>
+      <button class="btn btn-primary btn-sm" id="wizard-next" type="button">下一步 →</button>
+    </div>
+  </div>
+
   <header role="banner">
     <div class="logo">
       <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 2v20M2 12h20"/></svg>
@@ -728,6 +807,7 @@
       <div class="divider-v"></div>
       <button class="btn btn-sm" id="btn-undo" title="Undo (Ctrl+Z)" aria-label="Undo last change" disabled style="font-size:11px;">&#x21A9; Undo</button>
       <button class="btn btn-sm" id="btn-redo" title="Redo (Ctrl+Y)" aria-label="Redo last change" disabled style="font-size:11px;">&#x21AA; Redo</button>
+      <button class="btn btn-sm" id="btn-wizard" title="開啟設計精靈 (C2-1)" aria-label="開啟設計精靈" style="font-size:11px;">🧭 精靈</button>
       <button class="btn btn-sm" id="btn-share-url" title="Copy share URL to clipboard" aria-label="Copy share URL" style="font-size:11px;">&#x29C9; Share</button>
       <button class="btn btn-sm" id="btn-quickstart" title="Quick Start with example presets (Ctrl+/)" aria-label="Open Quick Start guide">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>

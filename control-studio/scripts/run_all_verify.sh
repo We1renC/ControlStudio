@@ -105,6 +105,7 @@ run_script "P36 UI/UX P1 remaining"    "node scripts/verify_p36_uiux_p1_remainin
 run_script "P37 UI/UX P2"              "node scripts/verify_p37_uiux_p2.mjs"
 run_script "P38 UI/UX P2 batch1"      "node scripts/verify_p38_uiux_p2_batch1.mjs"
 run_script "P39 UI/UX P2 batch2"      "node scripts/verify_p39_uiux_p2_batch2.mjs"
+run_script "P40 UI/UX P2 batch3"      "node scripts/verify_p40_uiux_p2_batch3.mjs"
 echo ""
 
 # ── General Math & PID ───────────────────────────────────────────────────────
