@@ -13420,3 +13420,43 @@ document.addEventListener('DOMContentLoaded', () => {
   initWiringDiagram();
   initWarningsPanel();
 }, { once: true });
+
+// ── P58 — G11: Loading Skeleton Screen ────────────────────────────────────────
+// Displays a full-app skeleton overlay while modules initialise, then fades out.
+function showAppSkeleton() {
+  const overlay = document.getElementById('app-skeleton-overlay');
+  if (!overlay) return;
+  overlay.style.display = 'flex';
+  overlay.setAttribute('aria-hidden', 'false');
+}
+
+function hideAppSkeleton() {
+  const overlay = document.getElementById('app-skeleton-overlay');
+  if (!overlay) return;
+  overlay.classList.add('skeleton-fade-out');
+  overlay.addEventListener('transitionend', () => {
+    overlay.style.display = 'none';
+    overlay.setAttribute('aria-hidden', 'true');
+  }, { once: true });
+}
+
+function initLoadingSkeleton() {
+  const overlay = document.getElementById('app-skeleton-overlay');
+  if (!overlay) return;
+  // Skeleton is already visible via CSS (display:flex on the element by default)
+  // Hide it after all DOMContentLoaded work is done + 1 RAF to allow paint
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      hideAppSkeleton();
+    });
+  });
+}
+
+window.showAppSkeleton = showAppSkeleton;
+window.hideAppSkeleton = hideAppSkeleton;
+
+// ── P58 init ──────────────────────────────────────────────────────────────────
+// Must be the LAST DOMContentLoaded listener so skeleton hides after all init.
+document.addEventListener('DOMContentLoaded', () => {
+  initLoadingSkeleton();
+}, { once: true });

@@ -123,6 +123,7 @@ run_script "P54 A4-1/A4-2/A4-3 wizard/complexity/explain"          "node scripts
 run_script "P55 B2-4/B4-3/B4-4 gramian/python-bridge/latex"        "node scripts/verify_p55_b24_b43_b44.mjs"
 run_script "P56 C2-3/C5-2/C5-3/D1-4 err-hints/screenshot/summary/codegen" "node scripts/verify_p56_c23_c52_c53_d14.mjs"
 run_script "P57 D4-1/D4-2/D4-3/D5-1/D5-2/D5-3 unit-test/diff/hil/docs/wiring/warnings" "node scripts/verify_p57_d4_d5.mjs"
+run_script "P58 G11 app-loading skeleton screen"                    "node scripts/verify_p58_g11.mjs"
 echo ""
 
 # ── General Math & PID ───────────────────────────────────────────────────────
