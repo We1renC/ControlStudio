@@ -1,7 +1,7 @@
 # ControlStudio Development Roadmap
 
-> Last updated: 2026-05-21
-> Current committed baseline: `3cc76b4 feat(p29-06): D-K iteration and μ upper bound via D-scaling`
+> Last updated: 2026-05-23
+> Current committed baseline: `d14dfc2 feat(ui): P44 — F2-1 split pane divider, F2-2 multi-design tab system`
 > Scope: this is the canonical execution roadmap for ControlStudio implementation status.
 > Do not use this file for product vision, proof derivations, or handoff notes; see the document workflow below.
 
@@ -65,16 +65,43 @@
 | **P35** | **UI/UX plan P1 foundation: status bar / toast / empty state** | Done | `verify_p35_uiux_foundation.mjs` |
 | **P36** | **UI/UX plan P1 remaining: slider / confirmDialog / skeleton / codeBlock / 3-way theme / SideNav icons / code preview / unit switcher** | Done | `verify_p36_uiux_p1_remaining.mjs` |
 | **P37** | **UI/UX plan P2: command palette / keyboard shortcut modal / unit switcher behaviour / print theme** | Done | `verify_p37_uiux_p2.mjs` |
+| **P38** | **UI/UX P2 batch 1: dirty marker / progress bar / prefs modal / fullscreen / chart export / field hints** | Done | `verify_p38_uiux_p2_batch1.mjs` |
+| **P39** | **UI/UX P2 batch 2: axis range popover / PZ map OL-CL toggle + ζ grid / Hankel SVD bars / error guidance** | Done | `verify_p39_uiux_p2_batch2.mjs` |
+| **P40** | **UI/UX P2 batch 3: 4-step design wizard / cursor readout / chart theme toggle** | Done | `verify_p40_uiux_p2_batch3.mjs` |
+| **P41** | **UI/UX P2 batch 4: D2-1~4 discretization comparison table / A2-2 spec overlay / A2-3 compliance badges** | Done | `verify_p41_disc_spec.mjs` |
+| **P42** | **UI/UX P2 batch 5: B1-2 best-value ★ / sortable compare table / B1-3 diff heatmap + CSV export** | Done | `verify_p42_compare_enhancements.mjs` |
+| **P43** | **UI/UX P2 batch 6: A1-1 system input wizard / A5-2 sensitivity plot / A5-3 robustness badges** | Done | `verify_p43_syswin_a5.mjs` |
+| **P44** | **UI/UX P2 batch 7: F2-1 draggable split pane / F2-2 multi-design tab bar** | Done | `verify_p44_split_tabs.mjs` |
 
 ## Verification Suite Status (2026-05-23)
 
-**52/52 scripts pass** — run via `bash scripts/run_all_verify.sh`
+**59/59 scripts pass** — run via `bash scripts/run_all_verify.sh`
 
 | Group | Scripts | Pass |
 | --- | --- | --- |
 | Phase 9/10/11 foundations | 11 | 11 |
-| Phase 14–37 advanced control / UI | 37 | 37 |
+| Phase 14–44 advanced control / UI | 44 | 44 |
 | General math & PID | 4 | 4 |
+
+## P1/P2 UI/UX Completion Summary
+
+All **P1** and **P2** items from `UI_UX_PLAN.md` have been implemented:
+
+### P1 Items (completed P35/P36)
+- G1 Frequency unit switcher, G11 Skeleton / codeBlock, G12 confirmDialog
+- F1-1 SideNav icons, F4-1 3-way theme (Dark/Light/Print)
+- A3-1 Slider component, D1 Code preview, Status bar, Toast notifications
+
+### P2 Items (completed P37–P44)
+- G3 Command palette (Ctrl+K), G4 Preferences modal, G13 Keyboard shortcuts
+- F3-2 Dirty marker, F3-3 Progress bar, F2-1 Split pane, F2-2 Design tabs, F2-3 Fullscreen
+- B3-1 Axis range popover, B3-2 Cursor readout, B3-3 Chart theme, B3-4 SVG/PNG/CSV export
+- B2-2 Hankel SVD bar chart, B2-3 PZ map OL/CL + ζ grid
+- B1-1~3 Compare mode + ★ table + diff heatmap + CSV
+- A1-1 System input wizard (TF/SS/ZPK), A2-2/A2-3 Spec overlay + compliance badges
+- A5-2 Sensitivity plot (S/T/KS), A5-3 Robustness badges (PM/GM/Ms/Dm)
+- C2-1 4-step design wizard, C2-2 Field hints, C2-3 Error guidance
+- D2-1~4 Discretization comparison tool
 
 ## Remaining Dirty Worktree
 
@@ -107,16 +134,35 @@
 | P36-07 G1 Frequency unit switcher | Done | `#freq-unit-switcher` in status bar, `state._freqUnit` |
 | P36-08 D1 Live code preview panel | Done | `#code-preview-panel` in Design tab, `refreshCodePreview()` |
 
-### P37 — UI/UX Plan P2 Items
+### P37–P44 — UI/UX Plan P2 Items
 
-| Item | Status | Evidence |
-| --- | --- | --- |
-| P37-01 G3 Command Palette | Done | `#cmd-overlay`, `COMMANDS` registry, Ctrl+K, keyboard nav |
-| P37-02 G13 Keyboard shortcuts modal | Done | `#shortcuts-modal`, shortcut table, Ctrl+? |
-| P37-03 G11 Skeleton CSS | Done | `.cs-skeleton`, `@keyframes cs-skeleton-pulse` |
-| P37-04 G1 Unit switcher behaviour | Done | `state._freqUnit`, refreshAllCharts on toggle |
-| P37-05 D1 Code preview MATLAB/Python | Done | `refreshCodePreview()`, `buildCodegenPayload()` |
-| P37-06 F4-1 Print theme CSS | Done | `[data-theme="print"]`, `@media print` |
+| Item | Phase | Status | Evidence |
+| --- | --- | --- | --- |
+| G3 Command Palette | P37 | Done | `#cmd-overlay`, `COMMANDS`, Ctrl+K |
+| G13 Keyboard shortcuts modal | P37 | Done | `#shortcuts-modal`, Ctrl+? |
+| G4 Preferences modal | P38 | Done | `#prefs-modal`, `PREFS_KEY`, `loadPrefs/savePrefs/applyPrefs` |
+| F3-2 Dirty marker | P38 | Done | `#dirty-dot`, `markDirty/clearDirty`, beforeunload guard |
+| F3-3 Progress bar | P38 | Done | `#calc-progress-wrap`, `startCalcProgress/completeCalcProgress` |
+| F2-3 Chart fullscreen | P38 | Done | `initChartFullscreen`, requestFullscreen API |
+| B3-4 Chart export SVG/PNG/CSV | P38 | Done | `initChartExport`, Plotly.downloadImage |
+| C2-2 Field hints | P38 | Done | `FIELD_HINTS`, `initFieldHints`, focus/blur popover |
+| B3-1 Axis range popover | P39 | Done | `initAxisRangeControl`, `.axis-range-popover`, Plotly.relayout |
+| B2-3 PZ map OL/CL + ζ grid | P39 | Done | `initPZMapControls`, `_overlayDampingGrid` |
+| B2-2 Hankel SVD bar chart | P39 | Done | `initHankelSVD`, Gramian approximation, `.hsv-bar-*` |
+| C2-3 Error guidance | P39 | Done | `ERROR_GUIDANCE_MAP`, `initErrorGuidance`, contextual hints |
+| C2-1 4-step Design Wizard | P40 | Done | `WIZARD_STEPS`, `initDesignWizard`, sessionStorage |
+| B3-2 Cursor crosshair readout | P40 | Done | `initChartCursorReadout`, plotly_hover, `.chart-readout` |
+| B3-3 Chart theme toggle | P40 | Done | `initChartThemeToggle`, `CHART_THEMES`, Plotly.restyle |
+| D2-1~4 Discretization tool | P41 | Done | `initDiscretizationTool`, D2_METHODS, Bode overlay |
+| A2-2 Spec overlay | P41 | Done | `chk-spec-overlay` (pre-existing), wired to render |
+| A2-3 Spec compliance badges | P41 | Done | `updateSpecComplianceBadges`, #sc-os/ts/pm/ess |
+| B1-2 Best-value ★ + sortable table | P42 | Done | `initCompareTableEnhancements`, `compare-best` class |
+| B1-3 Diff heatmap + CSV export | P42 | Done | `_diffMode`, `compare-diff-warn/bad`, Blob CSV |
+| A1-1 System input wizard | P43 | Done | `initSystemInputWizard`, TF/SS/ZPK modal, health badges |
+| A5-2 Sensitivity plot | P43 | Done | `renderSensitivityPlot`, S/T/KS Bode, Sensitivity tab |
+| A5-3 Robustness badge bar | P43 | Done | `updateRobustnessBadges`, PM/GM/Ms/Dm in sidebar |
+| F2-1 Split pane | P44 | Done | `initSplitPane`, RAF drag, 240px min, localStorage |
+| F2-2 Design tab system | P44 | Done | `initDesignTabs`, snapshot, add/switch/close |
 
 ## Phase Details
 
