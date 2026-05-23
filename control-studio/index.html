@@ -942,6 +942,47 @@
     .data-export-row { display: flex; gap: 6px; margin-top: 6px; }
 
     /* ==================================================================
+       P47 — C1 Topic Cards + C4 Draft/Notes/Completion
+       ================================================================== */
+    /* C1-1: Learn welcome cards */
+    .learn-card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; }
+    .learn-card { background: var(--bg-secondary); border: 1px solid var(--border-primary); border-radius: 6px; padding: 14px 12px; display: flex; flex-direction: column; gap: 6px; cursor: pointer; transition: border-color 0.15s, transform 0.15s, box-shadow 0.15s; }
+    .learn-card:hover { border-color: var(--color-accent); transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
+    .learn-card-icon { font-size: 28px; line-height: 1; }
+    .learn-card-title { font-size: 13px; font-weight: 700; color: var(--text-primary); }
+    .learn-card-desc { font-size: 11px; color: var(--text-muted); line-height: 1.4; flex: 1; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+    .learn-card-adv { background: var(--bg-tertiary); border: 1px solid var(--border-primary); border-radius: 6px; padding: 10px 14px; grid-column: 1 / -1; display: flex; align-items: center; gap: 12px; cursor: pointer; }
+    .learn-card-adv:hover { border-color: var(--color-accent); }
+    /* C1-2: Explain drawer */
+    .explain-drawer { position: fixed; right: -320px; top: 0; bottom: 0; width: 300px; background: var(--bg-secondary); border-left: 1px solid var(--border-primary); z-index: 4000; padding: 16px; overflow-y: auto; transition: right 0.2s ease; display: flex; flex-direction: column; gap: 10px; box-shadow: -4px 0 16px rgba(0,0,0,0.2); }
+    .explain-drawer.open { right: 0; }
+    .explain-drawer-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; }
+    .explain-drawer-title { font-size: 13px; font-weight: 700; color: var(--text-primary); }
+    .explain-section-title { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); margin: 8px 0 4px; }
+    .explain-item { display: flex; align-items: flex-start; gap: 5px; font-size: 12px; color: var(--text-secondary); line-height: 1.5; }
+    .explain-item.yes { color: #10b981; }
+    .explain-item.no  { color: #ef4444; }
+    /* C1-3: Example dropdown */
+    .example-dropdown-item { padding: 9px 14px; cursor: pointer; font-size: 12px; border-bottom: 1px solid var(--border-primary); color: var(--text-primary); transition: background 0.1s; }
+    .example-dropdown-item:last-child { border-bottom: 0; }
+    .example-dropdown-item:hover { background: rgba(99,102,241,0.08); }
+    .example-dropdown-item .edesc { font-size: 10px; color: var(--text-muted); margin-top: 2px; }
+    /* C4-2: Notes drawer (reuse explain-drawer structure) */
+    .notes-drawer { position: fixed; right: -320px; top: 0; bottom: 0; width: 300px; background: var(--bg-secondary); border-left: 1px solid var(--border-primary); z-index: 4000; padding: 16px; overflow-y: auto; transition: right 0.2s ease; box-shadow: -4px 0 16px rgba(0,0,0,0.2); }
+    .notes-drawer.open { right: 0; }
+    .note-item { background: var(--bg-tertiary); border-radius: 4px; padding: 8px; margin-bottom: 6px; font-size: 11px; position: relative; }
+    .note-meta { font-size: 9px; color: var(--text-muted); margin-bottom: 3px; }
+    .note-text { color: var(--text-primary); white-space: pre-wrap; word-break: break-word; }
+    .note-del { position: absolute; top: 6px; right: 6px; background: none; border: none; cursor: pointer; font-size: 11px; color: var(--text-muted); }
+    .note-del:hover { color: #ef4444; }
+    .bookmark-item { display: flex; align-items: center; justify-content: space-between; font-size: 11px; padding: 4px 0; border-bottom: 1px solid var(--border-primary); }
+    .bookmark-item:last-child { border-bottom: 0; }
+    /* C4-3: Completion */
+    .completion-banner .confetti-icon { font-size: 20px; }
+    /* Draft indicator */
+    .draft-dirty { color: var(--color-accent) !important; font-weight: 700; }
+
+    /* ==================================================================
        P46 — B5 Calc Steps/Tooltip/CondWarn + B2-1 Matrix Expand
        ================================================================== */
     /* B5-1: Calculation steps panel */
@@ -1017,6 +1058,10 @@
       <button class="btn btn-sm split-btn" id="btn-split-pane" title="切換分割工作區 (F2-1)" aria-label="分割工作區" style="font-size:11px;">⧉ 分割</button>
       <button class="btn btn-sm" id="btn-new-system" title="新增系統模型 (A1-1)" aria-label="新增系統模型" style="font-size:11px;">＋ 系統</button>
       <button class="btn btn-sm" id="btn-wizard" title="開啟設計精靈 (C2-1)" aria-label="開啟設計精靈" style="font-size:11px;">🧭 精靈</button>
+      <button class="btn btn-sm" id="btn-load-example" title="載入範例系統 (C1-3)" aria-label="載入範例" style="font-size:11px;">▶ 範例</button>
+      <button class="btn btn-sm" id="btn-explain" title="這是什麼？(C1-2)" aria-label="說明面板" style="font-size:11px;">ⓘ 說明</button>
+      <button class="btn btn-sm" id="btn-notes" title="筆記與書籤 (C4-2)" aria-label="筆記與書籤" style="font-size:11px;">📝 筆記</button>
+      <span id="draft-saved-indicator" style="font-size:10px;color:var(--text-muted);display:none;"></span>
       <button class="btn btn-sm" id="btn-share-url" title="Copy share URL to clipboard" aria-label="Copy share URL" style="font-size:11px;">&#x29C9; Share</button>
       <button class="btn btn-sm" id="btn-quickstart" title="Quick Start with example presets (Ctrl+/)" aria-label="Open Quick Start guide">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
@@ -2521,6 +2566,16 @@
       <div class="design-tab-new" id="design-tab-new" title="新增設計分頁" aria-label="新增設計分頁">＋</div>
     </div>
 
+    <!-- C1-1: Learn welcome card grid (shown when no system loaded) -->
+    <div id="learn-welcome" style="display:none;padding:20px;">
+      <div style="font-size:14px;font-weight:700;color:var(--text-secondary);margin-bottom:14px;">從這裡開始 ControlStudio</div>
+      <!-- C4-1: Draft restore banner -->
+      <div id="draft-banner" class="cond-warn-banner" style="display:none;background:rgba(99,102,241,0.1);border-color:var(--color-accent);color:var(--text-primary);margin-bottom:12px;"></div>
+      <!-- C4-3: Completion banner -->
+      <div id="completion-banner" style="display:none;padding:12px 16px;border-radius:var(--radius-md);background:rgba(16,185,129,0.12);border:1px solid rgba(16,185,129,0.3);color:#10b981;margin-bottom:12px;font-size:13px;font-weight:700;"></div>
+      <div class="learn-card-grid" id="learn-card-grid"></div>
+    </div>
+
     <div id="dashboard-view" class="content-area">
       <div class="plot-workspace">
         <div class="plot-switcher">
@@ -3004,6 +3059,38 @@
           <button class="btn btn-primary btn-sm" id="syswin-confirm" type="button">加入工作區</button>
         </div>
       </div>
+    </div>
+  </div>
+
+  <!-- C1-2: Explain Drawer -->
+  <div class="explain-drawer" id="explain-drawer" role="complementary" aria-label="說明面板">
+    <div class="explain-drawer-header">
+      <span class="explain-drawer-title" id="explain-title">— 說明 —</span>
+      <button class="btn btn-sm" id="explain-close-btn" aria-label="關閉說明">✕</button>
+    </div>
+    <div id="explain-body" style="font-size:12px;line-height:1.7;color:var(--text-secondary);"></div>
+  </div>
+
+  <!-- C1-3: Example Dropdown (injected by JS) -->
+  <div class="example-dropdown" id="example-dropdown" style="display:none;position:fixed;z-index:5000;background:var(--bg-secondary);border:1px solid var(--border-primary);border-radius:var(--radius-md);min-width:220px;box-shadow:0 8px 24px rgba(0,0,0,0.3);overflow:hidden;"></div>
+
+  <!-- C4-2: Notes Drawer -->
+  <div class="notes-drawer" id="notes-drawer" role="complementary" aria-label="筆記面板">
+    <div class="explain-drawer-header">
+      <span class="explain-drawer-title">📝 筆記與書籤</span>
+      <button class="btn btn-sm" id="notes-close-btn" aria-label="關閉筆記">✕</button>
+    </div>
+    <div style="margin-bottom:8px;">
+      <button class="btn btn-sm" id="btn-add-note" style="width:100%;justify-content:center;">＋ 新增筆記</button>
+    </div>
+    <div style="margin-bottom:8px;">
+      <input type="text" id="notes-search" placeholder="搜尋筆記…" style="width:100%;box-sizing:border-box;font-size:11px;padding:5px 8px;background:var(--bg-tertiary);color:var(--text-primary);border:1px solid var(--border-primary);border-radius:4px;">
+    </div>
+    <div id="notes-list" style="max-height:350px;overflow-y:auto;"></div>
+    <div style="margin-top:10px;border-top:1px solid var(--border-primary);padding-top:8px;">
+      <div style="font-size:10px;font-weight:700;text-transform:uppercase;color:var(--text-muted);margin-bottom:6px;">書籤</div>
+      <button class="btn btn-sm" id="btn-add-bookmark" style="width:100%;justify-content:center;margin-bottom:6px;">⭐ 加入書籤</button>
+      <div id="bookmarks-list"></div>
     </div>
   </div>
 

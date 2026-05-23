@@ -9614,3 +9614,596 @@ document.addEventListener('DOMContentLoaded', () => {
   initIntermediateTooltip();
   initMatrixExpandPanel();
 }, { once: true });
+
+// ════════════════════════════════════════════════════════════════════════════════
+// P47 — C1-1~3 Topic Index Cards + C4-1~3 Draft/Notes/Completion
+// ════════════════════════════════════════════════════════════════════════════════
+
+// ── C1-1: Learn welcome card grid ────────────────────────────────────────────
+
+const LEARN_TOPICS = [
+  {
+    id: 'pid',
+    icon: '🎛',
+    title: 'PID 控制',
+    desc: '最常見的控制器。學習比例、積分、微分三個增益的調整。',
+    badge: '入門',
+    action: () => { document.querySelector('[data-sidebar="simulate"]')?.click(); },
+  },
+  {
+    id: 'rlocus',
+    icon: '📈',
+    title: '根軌跡',
+    desc: '圖形化極點設計，直觀看到增益如何影響系統穩定性。',
+    badge: '入門',
+    action: () => { document.querySelector('[data-plot="rlocus"]')?.click(); },
+  },
+  {
+    id: 'freq',
+    icon: '📊',
+    title: '頻域分析',
+    desc: 'Bode 圖 + Nyquist 圖，分析增益裕度與相位裕度。',
+    badge: '入門',
+    action: () => { document.querySelector('[data-plot="bode"]')?.click(); },
+  },
+  {
+    id: 'ss',
+    icon: '🔲',
+    title: '狀態空間',
+    desc: 'LQR/LQG 最優控制、Kalman 濾波器設計。',
+    badge: '進階',
+    action: () => { document.querySelector('[data-sidebar="advisor"]')?.click(); },
+  },
+];
+
+const LEARN_ADVANCED = {
+  icon: '🔬',
+  title: '進階主題',
+  desc: 'H∞ 強健控制、MPC 模型預測、非線性控制、自適應控制',
+};
+
+function initLearnWelcome() {
+  const grid = document.getElementById('learn-card-grid');
+  if (!grid) return;
+
+  // Render topic cards
+  grid.innerHTML = LEARN_TOPICS.map(t => `
+    <div class="learn-card" data-topic="${t.id}" role="button" tabindex="0" aria-label="${t.title}">
+      <div class="learn-card-icon">${t.icon}</div>
+      <div class="learn-card-title">${t.title}</div>
+      <div class="learn-card-desc">${t.desc}</div>
+      <button class="btn btn-sm" style="margin-top:4px;justify-content:center;font-size:10px;">開始學習 →</button>
+    </div>
+  `).join('') + `
+    <div class="learn-card-adv" data-topic="advanced" role="button" tabindex="0">
+      <span style="font-size:28px;">${LEARN_ADVANCED.icon}</span>
+      <div>
+        <div style="font-size:13px;font-weight:700;color:var(--text-primary);">${LEARN_ADVANCED.title}</div>
+        <div style="font-size:11px;color:var(--text-muted);margin-top:2px;">${LEARN_ADVANCED.desc}</div>
+      </div>
+      <button class="btn btn-sm" style="margin-left:auto;justify-content:center;font-size:10px;">探索 →</button>
+    </div>
+  `;
+
+  // Wire click actions
+  grid.querySelectorAll('[data-topic]').forEach(card => {
+    const topic = LEARN_TOPICS.find(t => t.id === card.dataset.topic);
+    const handler = () => {
+      if (topic?.action) topic.action();
+      document.getElementById('learn-welcome').style.display = 'none';
+      document.getElementById('dashboard-view').style.display = 'block';
+    };
+    card.addEventListener('click', handler);
+    card.addEventListener('keydown', e => { if (e.key === 'Enter') handler(); });
+  });
+
+  // Show/hide based on whether a system is loaded
+  window._checkLearnWelcome = () => {
+    const hasSystem = !!document.getElementById('tf-num')?.value?.trim();
+    const welcome = document.getElementById('learn-welcome');
+    const dashboard = document.getElementById('dashboard-view');
+    if (welcome && dashboard) {
+      welcome.style.display = hasSystem ? 'none' : 'block';
+      // Don't hide dashboard — both can coexist
+    }
+  };
+}
+
+// ── C1-2: "What is this?" explain panel ──────────────────────────────────────
+
+const EXPLAIN_MAP = {
+  pid: {
+    title: 'PID 控制器',
+    what: 'PID 結合三個動作：P（比例）快速回應誤差，I（積分）消除穩態誤差，D（微分）阻尼振盪。',
+    when: [
+      { ok: true,  text: '系統是單輸入單輸出（SISO）' },
+      { ok: true,  text: '需要快速調整，不需精確模型' },
+      { ok: false, text: '系統有嚴格頻域規格（建議 H∞）' },
+      { ok: false, text: '系統有嚴格約束（建議 MPC）' },
+    ],
+    params: [
+      { name: 'Kp', desc: '決定回應速度，太大會振盪' },
+      { name: 'Ki', desc: '消除穩態誤差，太大會積分飽和' },
+      { name: 'Kd', desc: '阻尼振盪，對雜訊敏感' },
+    ],
+    links: ['根軌跡設計', 'Bode 頻域分析'],
+  },
+  lqr: {
+    title: 'LQR 最優控制',
+    what: '線性二次型調節器，透過最小化二次型效能指數 J = ∫(xᵀQx + uᵀRu)dt，自動計算最優狀態回授增益 K。',
+    when: [
+      { ok: true,  text: '系統可表示為狀態空間形式' },
+      { ok: true,  text: '需要最優化效能指數' },
+      { ok: false, text: '系統存在模型不確定性（建議 H∞）' },
+    ],
+    params: [
+      { name: 'Q', desc: '狀態權重矩陣，越大越重視狀態誤差' },
+      { name: 'R', desc: '輸入權重矩陣，越大越節省控制能量' },
+    ],
+    links: ['Kalman 濾波器', 'H∞ 強健控制'],
+  },
+  hinf: {
+    title: 'H∞ 強健控制',
+    what: '設計控制器使閉迴路系統的 H∞ 範數（最壞情況放大率）最小，對模型不確定性具有強健性。',
+    when: [
+      { ok: true,  text: '模型有不確定性或擾動' },
+      { ok: true,  text: '需要嚴格的頻域效能規格' },
+      { ok: false, text: '系統非常簡單（過於複雜，PID 更合適）' },
+    ],
+    params: [
+      { name: 'γ', desc: 'H∞ 範數界限，越小越強健但越難達到' },
+      { name: 'W1/W2', desc: '靈敏度加權函數，定義頻域規格' },
+    ],
+    links: ['μ 綜合（D-K 迭代）', 'LMI 求解'],
+  },
+  mpc: {
+    title: 'MPC 模型預測控制',
+    what: '在有限時域內反覆求解最優化問題，同時處理狀態與輸入約束，適合多變數系統。',
+    when: [
+      { ok: true,  text: '系統有輸入或輸出約束' },
+      { ok: true,  text: '需要多步超前預測' },
+      { ok: false, text: '系統速度很快（MPC 計算量大）' },
+    ],
+    params: [
+      { name: 'N', desc: '預測時域，越長性能越好但計算量越大' },
+      { name: 'Q/R', desc: '效能/控制能量權衡' },
+    ],
+    links: ['Tube MPC（不確定系統）', 'NMPC 非線性'],
+  },
+};
+
+function initExplainPanel() {
+  const drawer    = document.getElementById('explain-drawer');
+  const openBtn   = document.getElementById('btn-explain');
+  const closeBtn  = document.getElementById('explain-close-btn');
+  const titleEl   = document.getElementById('explain-title');
+  const bodyEl    = document.getElementById('explain-body');
+  if (!drawer || !openBtn) return;
+
+  function openExplain(key) {
+    const info = EXPLAIN_MAP[key] || EXPLAIN_MAP['pid'];
+    titleEl.textContent = info.title;
+
+    const whenItems = info.when.map(w =>
+      `<div class="explain-item ${w.ok ? 'yes' : 'no'}">${w.ok ? '✓' : '✗'} ${w.text}</div>`
+    ).join('');
+    const paramItems = (info.params || []).map(p =>
+      `<div class="explain-item"><b>${p.name}</b> — ${p.desc}</div>`
+    ).join('');
+    const links = (info.links || []).map(l =>
+      `<a href="#" style="color:var(--color-accent);font-size:12px;text-decoration:none;">${l}</a>`
+    ).join(' &nbsp;·&nbsp; ');
+
+    bodyEl.innerHTML = `
+      <div class="explain-section-title">這個方法做什麼</div>
+      <p style="font-size:12px;color:var(--text-secondary);line-height:1.6;margin:0 0 8px;">${info.what}</p>
+      <div class="explain-section-title">什麼時候用</div>
+      ${whenItems}
+      ${paramItems ? `<div class="explain-section-title">關鍵參數</div>${paramItems}` : ''}
+      ${links ? `<div class="explain-section-title">延伸學習</div><div>${links}</div>` : ''}
+    `;
+    drawer.classList.add('open');
+  }
+
+  openBtn.addEventListener('click', () => {
+    // Detect current context from active panel/tab
+    const activeTab = document.querySelector('.sidebar-tab[aria-selected="true"]')?.dataset.sidebar || 'simulate';
+    const key = activeTab === 'advisor' ? 'lqr' : 'pid';
+    openExplain(key);
+  });
+
+  closeBtn?.addEventListener('click', () => drawer.classList.remove('open'));
+  window.openExplain = openExplain;
+}
+
+// ── C1-3: "Load example" preset button ───────────────────────────────────────
+
+const EXAMPLE_PRESETS = [
+  {
+    id: 'dc_motor',
+    name: 'DC Motor 位置控制',
+    desc: '2 階系統，典型 PID 調參練習',
+    tfNum: [1],
+    tfDen: [1, 3, 2],
+    pid: { kp: 5, ki: 1, kd: 0.5 },
+  },
+  {
+    id: 'mass_spring',
+    name: '質量彈簧阻尼',
+    desc: 'k=1, b=0.5, m=1 — 根軌跡設計',
+    tfNum: [1],
+    tfDen: [1, 0.5, 1],
+    pid: { kp: 2, ki: 0.5, kd: 0.2 },
+  },
+  {
+    id: 'first_order',
+    name: '一階系統 (τ=1)',
+    desc: '最簡單的範例，適合初學者',
+    tfNum: [1],
+    tfDen: [1, 1],
+    pid: { kp: 2, ki: 1, kd: 0 },
+  },
+  {
+    id: 'unstable',
+    name: '不穩定系統',
+    desc: '一個 RHP 極點，需要穩定化控制',
+    tfNum: [1],
+    tfDen: [1, -1, 0],
+    pid: { kp: 4, ki: 2, kd: 1 },
+  },
+];
+
+function loadExample(presetId) {
+  const preset = EXAMPLE_PRESETS.find(p => p.id === presetId);
+  if (!preset) return;
+
+  // Fill TF inputs
+  const numEl = document.getElementById('tf-num');
+  const denEl = document.getElementById('tf-den');
+  if (numEl) numEl.value = preset.tfNum.join(', ');
+  if (denEl) denEl.value = preset.tfDen.join(', ');
+
+  // Fill PID
+  const kpEl = document.getElementById('pid-kp');
+  const kiEl = document.getElementById('pid-ki');
+  const kdEl = document.getElementById('pid-kd');
+  if (kpEl) kpEl.value = preset.pid.kp;
+  if (kiEl) kiEl.value = preset.pid.ki;
+  if (kdEl) kdEl.value = preset.pid.kd;
+
+  // Trigger analysis
+  setTimeout(() => {
+    document.getElementById('btn-analyze')?.click();
+    notify(`已載入範例：${preset.name}`, 'success', { duration: 2000 });
+  }, 100);
+
+  // Update sliders
+  document.querySelectorAll('[data-pid]').forEach(el => {
+    const key = el.dataset.pid;
+    if (preset.pid[key] !== undefined) el.value = preset.pid[key];
+  });
+}
+
+function initExampleLoader() {
+  const btn      = document.getElementById('btn-load-example');
+  const dropdown = document.getElementById('example-dropdown');
+  if (!btn || !dropdown) return;
+
+  // Build dropdown items
+  dropdown.innerHTML = EXAMPLE_PRESETS.map(p => `
+    <div class="example-dropdown-item" data-example="${p.id}">
+      <div>${p.name}</div>
+      <div class="edesc">${p.desc}</div>
+    </div>
+  `).join('');
+
+  dropdown.querySelectorAll('.example-dropdown-item').forEach(item => {
+    item.addEventListener('click', () => {
+      loadExample(item.dataset.example);
+      dropdown.style.display = 'none';
+    });
+  });
+
+  btn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const rect = btn.getBoundingClientRect();
+    dropdown.style.left = `${rect.left}px`;
+    dropdown.style.top  = `${rect.bottom + 4}px`;
+    dropdown.style.display = dropdown.style.display === 'none' ? 'block' : 'none';
+  });
+
+  document.addEventListener('click', () => { dropdown.style.display = 'none'; });
+  window.loadExample = loadExample;
+}
+
+// ── C4-1: Draft autosave ──────────────────────────────────────────────────────
+
+const DRAFT_KEY     = 'cs-draft';
+const DRAFT_VERSION = '2.0';
+let _draftTimer = null;
+
+function _collectDraftState() {
+  return {
+    version:    DRAFT_VERSION,
+    savedAt:    new Date().toISOString(),
+    system: {
+      type: 'tf',
+      num:  document.getElementById('tf-num')?.value  || '',
+      den:  document.getElementById('tf-den')?.value  || '',
+    },
+    controller: {
+      type: 'pid',
+      kp:   document.getElementById('pid-kp')?.value  || '',
+      ki:   document.getElementById('pid-ki')?.value  || '',
+      kd:   document.getElementById('pid-kd')?.value  || '',
+    },
+    specs: {
+      os:  document.getElementById('design-os')?.value  || '',
+      ts:  document.getElementById('design-ts')?.value  || '',
+    },
+    ui: {
+      theme: document.documentElement.dataset.theme || 'dark',
+    },
+  };
+}
+
+function saveDraft() {
+  try {
+    const state = _collectDraftState();
+    const json  = JSON.stringify(state);
+    if (json.length > 200 * 1024) return; // 200KB cap
+    localStorage.setItem(DRAFT_KEY, json);
+
+    const indEl = document.getElementById('draft-saved-indicator');
+    if (indEl) {
+      const t = new Date().toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit' });
+      indEl.textContent = `已儲存 ${t}`;
+      indEl.style.display = 'inline';
+      indEl.classList.remove('draft-dirty');
+    }
+  } catch (_) { /* quota exceeded — ignore */ }
+}
+
+function _scheduleDraft() {
+  const indEl = document.getElementById('draft-saved-indicator');
+  if (indEl) { indEl.textContent = '●'; indEl.classList.add('draft-dirty'); indEl.style.display = 'inline'; }
+  clearTimeout(_draftTimer);
+  if (typeof requestIdleCallback === 'function') {
+    _draftTimer = setTimeout(() => requestIdleCallback(saveDraft), 2000);
+  } else {
+    _draftTimer = setTimeout(saveDraft, 2000);
+  }
+}
+
+function _restoreDraft(state) {
+  const numEl = document.getElementById('tf-num');
+  const denEl = document.getElementById('tf-den');
+  const kpEl  = document.getElementById('pid-kp');
+  const kiEl  = document.getElementById('pid-ki');
+  const kdEl  = document.getElementById('pid-kd');
+  if (numEl && state.system?.num) numEl.value = state.system.num;
+  if (denEl && state.system?.den) denEl.value = state.system.den;
+  if (kpEl  && state.controller?.kp) kpEl.value = state.controller.kp;
+  if (kiEl  && state.controller?.ki) kiEl.value = state.controller.ki;
+  if (kdEl  && state.controller?.kd) kdEl.value = state.controller.kd;
+  notify('草稿已恢復', 'success', { duration: 2000 });
+}
+
+function initDraftAutosave() {
+  // Check for existing draft on load
+  try {
+    const raw = localStorage.getItem(DRAFT_KEY);
+    if (raw) {
+      const state = JSON.parse(raw);
+      if (state.version !== DRAFT_VERSION) {
+        localStorage.removeItem(DRAFT_KEY);
+        notify('草稿格式不符，已清除', 'warn', { duration: 3000 });
+      } else {
+        const banner = document.getElementById('draft-banner');
+        if (banner) {
+          const t = new Date(state.savedAt).toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit' });
+          banner.className = 'cond-warn-banner';
+          banner.style.display = 'block';
+          banner.style.background = 'rgba(99,102,241,0.1)';
+          banner.style.borderColor = 'var(--color-accent)';
+          banner.style.color = 'var(--text-primary)';
+          banner.innerHTML = `<b>發現上次的設計（${t}）</b>
+            <button class="btn btn-sm" id="draft-restore-btn" style="margin-left:8px;">恢復</button>
+            <button class="btn btn-sm" id="draft-dismiss-btn" style="margin-left:4px;">忽略</button>`;
+          banner.querySelector('#draft-restore-btn')?.addEventListener('click', () => {
+            _restoreDraft(state);
+            banner.style.display = 'none';
+          });
+          banner.querySelector('#draft-dismiss-btn')?.addEventListener('click', () => {
+            localStorage.removeItem(DRAFT_KEY);
+            banner.style.display = 'none';
+          });
+        }
+      }
+    }
+  } catch (_) { /* corrupt storage */ }
+
+  // Listen for changes to schedule autosave
+  const watchIds = ['tf-num', 'tf-den', 'pid-kp', 'pid-ki', 'pid-kd', 'design-os', 'design-ts'];
+  watchIds.forEach(id => {
+    document.getElementById(id)?.addEventListener('input', _scheduleDraft);
+  });
+}
+
+// ── C4-2: Bookmark / Notes system ────────────────────────────────────────────
+
+const NOTES_KEY     = 'cs-notes';
+const BOOKMARKS_KEY = 'cs-bookmarks';
+
+function initNotesSystem() {
+  const drawer     = document.getElementById('notes-drawer');
+  const openBtn    = document.getElementById('btn-notes');
+  const closeBtn   = document.getElementById('notes-close-btn');
+  const addNoteBtn = document.getElementById('btn-add-note');
+  const notesList  = document.getElementById('notes-list');
+  const bmarkBtn   = document.getElementById('btn-add-bookmark');
+  const bmarkList  = document.getElementById('bookmarks-list');
+  const searchIn   = document.getElementById('notes-search');
+  if (!drawer || !openBtn) return;
+
+  function loadNotes() { try { return JSON.parse(localStorage.getItem(NOTES_KEY) || '[]'); } catch { return []; } }
+  function saveNotes(arr) { try { localStorage.setItem(NOTES_KEY, JSON.stringify(arr.slice(-100))); } catch {} }
+  function loadBookmarks() { try { return JSON.parse(localStorage.getItem(BOOKMARKS_KEY) || '[]'); } catch { return []; } }
+  function saveBookmarks(arr) { try { localStorage.setItem(BOOKMARKS_KEY, JSON.stringify(arr.slice(-50))); } catch {} }
+
+  function renderNotes(filter = '') {
+    const notes = loadNotes().filter(n => !filter || n.text.includes(filter));
+    if (!notesList) return;
+    notesList.innerHTML = notes.length ? notes.map((n, i) => `
+      <div class="note-item">
+        <div class="note-meta">${n.time} · ${n.page || 'General'}</div>
+        <div class="note-text" contenteditable="true" data-idx="${i}">${n.text}</div>
+        <button class="note-del" data-idx="${i}" aria-label="刪除筆記">🗑</button>
+      </div>
+    `).join('') : '<div style="font-size:11px;color:var(--text-muted);">尚無筆記</div>';
+
+    notesList.querySelectorAll('.note-del').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const arr = loadNotes();
+        arr.splice(parseInt(btn.dataset.idx), 1);
+        saveNotes(arr);
+        renderNotes(searchIn?.value || '');
+      });
+    });
+    notesList.querySelectorAll('[contenteditable]').forEach(el => {
+      el.addEventListener('blur', () => {
+        const arr = loadNotes();
+        const idx = parseInt(el.dataset.idx);
+        if (arr[idx]) { arr[idx].text = el.textContent.slice(0, 500); saveNotes(arr); }
+      });
+    });
+  }
+
+  function renderBookmarks() {
+    const marks = loadBookmarks();
+    if (!bmarkList) return;
+    bmarkList.innerHTML = marks.length ? marks.map((m, i) => `
+      <div class="bookmark-item">
+        <span>⭐ ${m.page} <span style="color:var(--text-muted)">${m.time}</span></span>
+        <button class="note-del" data-bidx="${i}" aria-label="移除書籤">✕</button>
+      </div>
+    `).join('') : '<div style="font-size:11px;color:var(--text-muted);">尚無書籤</div>';
+
+    bmarkList.querySelectorAll('[data-bidx]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const arr = loadBookmarks();
+        arr.splice(parseInt(btn.dataset.bidx), 1);
+        saveBookmarks(arr);
+        renderBookmarks();
+      });
+    });
+  }
+
+  openBtn.addEventListener('click', () => {
+    drawer.classList.toggle('open');
+    if (drawer.classList.contains('open')) { renderNotes(); renderBookmarks(); }
+  });
+  closeBtn?.addEventListener('click', () => drawer.classList.remove('open'));
+
+  addNoteBtn?.addEventListener('click', () => {
+    const arr = loadNotes();
+    const t = new Date().toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit' });
+    const page = document.title.split(' — ')[0] || 'ControlStudio';
+    arr.push({ text: '新筆記…', time: t, page });
+    saveNotes(arr);
+    renderNotes();
+  });
+
+  bmarkBtn?.addEventListener('click', () => {
+    const arr = loadBookmarks();
+    const t = new Date().toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit' });
+    const page = document.querySelector('.sidebar-tab[aria-selected="true"]')?.textContent?.trim() || 'Main';
+    arr.push({ page, time: t });
+    saveBookmarks(arr);
+    renderBookmarks();
+    notify('書籤已加入', 'success', { duration: 1500 });
+  });
+
+  searchIn?.addEventListener('input', () => renderNotes(searchIn.value));
+}
+
+// ── C4-3: Completion badge ────────────────────────────────────────────────────
+
+function _confetti() {
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const canvas = document.createElement('canvas');
+  canvas.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:99999;';
+  document.body.appendChild(canvas);
+  const ctx = canvas.getContext('2d');
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+
+  const pieces = Array.from({ length: 60 }, () => ({
+    x: Math.random() * canvas.width,
+    y: -10,
+    vx: (Math.random() - 0.5) * 3,
+    vy: Math.random() * 3 + 2,
+    color: ['#6366f1','#10b981','#f59e0b','#ef4444','#3b82f6'][Math.floor(Math.random() * 5)],
+    r: Math.random() * 5 + 3,
+    rot: Math.random() * Math.PI * 2,
+    rVel: (Math.random() - 0.5) * 0.2,
+  }));
+
+  let frame = 0;
+  const animate = () => {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    pieces.forEach(p => {
+      p.x += p.vx; p.y += p.vy; p.rot += p.rVel;
+      ctx.save();
+      ctx.translate(p.x, p.y);
+      ctx.rotate(p.rot);
+      ctx.fillStyle = p.color;
+      ctx.fillRect(-p.r, -p.r / 2, p.r * 2, p.r);
+      ctx.restore();
+    });
+    if (++frame < 120) requestAnimationFrame(animate);
+    else canvas.remove();
+  };
+  requestAnimationFrame(animate);
+}
+
+function showCompletionBanner(passCount, totalCount) {
+  const banner = document.getElementById('completion-banner');
+  if (!banner) return;
+  const allPass = passCount === totalCount;
+  banner.style.display = 'block';
+  banner.innerHTML = allPass
+    ? `<span class="confetti-icon">🎉</span> 設計完成！${totalCount} 項規格全部通過。<button class="btn btn-primary btn-sm" style="margin-left:12px;" id="btn-gen-report">生成報告</button>`
+    : `<span style="color:#f59e0b;">⚠</span> ${passCount}/${totalCount} 規格通過。請調整控制器參數。`;
+  if (allPass) _confetti();
+  banner.querySelector('#btn-gen-report')?.addEventListener('click', () => {
+    document.getElementById('btn-export-report')?.click();
+  });
+}
+
+function initCompletionBadge() {
+  // Watch spec-compliance badges and trigger on all-pass
+  const specBar = document.getElementById('spec-compliance-bar');
+  if (!specBar) return;
+
+  const observer = new MutationObserver(() => {
+    const badges = specBar.querySelectorAll('.spec-badge');
+    if (!badges.length) return;
+    const passed = [...badges].filter(b => b.classList.contains('pass')).length;
+    if (passed === badges.length && badges.length >= 2) {
+      showCompletionBanner(passed, badges.length);
+    }
+  });
+  observer.observe(specBar, { childList: true, subtree: true, attributes: true, attributeFilter: ['class'] });
+  window.showCompletionBanner = showCompletionBanner;
+}
+
+// ── P47 init ──────────────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  initLearnWelcome();
+  initExplainPanel();
+  initExampleLoader();
+  initDraftAutosave();
+  initNotesSystem();
+  initCompletionBadge();
+}, { once: true });
