@@ -450,6 +450,97 @@
     [role="alert"], [aria-live] { /* no visual override; just semantic */ }
 
     /* ==================================================================
+       P38 — F3-2 Dirty indicator
+       ================================================================== */
+    .dirty-dot {
+      display: none;
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      background: #f59e0b;
+      flex-shrink: 0;
+      box-shadow: 0 0 0 2px rgba(245,158,11,0.3);
+      animation: dirty-pulse 2s ease-in-out infinite;
+    }
+    @keyframes dirty-pulse {
+      0%,100% { opacity: 1; } 60% { opacity: 0.45; }
+    }
+    .dirty-dot.visible { display: inline-block; }
+
+    /* ==================================================================
+       P38 — F3-3 Computation progress bar
+       ================================================================== */
+    .calc-progress-wrap {
+      position: fixed; top: 0; left: 0; right: 0;
+      height: 3px; z-index: 9999; display: none; overflow: hidden;
+    }
+    .calc-progress-wrap.active { display: block; }
+    .calc-progress-bar {
+      height: 100%; width: 0%;
+      background: linear-gradient(90deg, var(--color-accent), #ec4899);
+      transition: width 0.1s linear;
+      border-radius: 0 2px 2px 0;
+    }
+
+    /* ==================================================================
+       P38 — G4 Preferences modal
+       ================================================================== */
+    .prefs-tabs { display: flex; gap: 0; border-bottom: 1px solid var(--border-primary); margin-bottom: 16px; }
+    .prefs-tab { padding: 8px 16px; font-size: 12px; font-weight: 600; color: var(--text-muted); cursor: pointer; border: 0; background: transparent; border-bottom: 2px solid transparent; margin-bottom: -1px; transition: color 0.15s; }
+    .prefs-tab.active { color: var(--color-accent); border-bottom-color: var(--color-accent); }
+    .prefs-tab:hover:not(.active) { color: var(--text-secondary); }
+    .prefs-section { display: none; }
+    .prefs-section.active { display: block; }
+    .prefs-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 0; border-bottom: 1px solid rgba(45,51,67,0.45); }
+    .prefs-row:last-child { border-bottom: 0; }
+    .prefs-label { font-size: 12px; color: var(--text-secondary); flex: 1; }
+    .prefs-label small { display: block; font-size: 10px; color: var(--text-muted); margin-top: 2px; }
+    .prefs-control { flex-shrink: 0; }
+    .prefs-toggle { position: relative; display: inline-block; width: 36px; height: 20px; }
+    .prefs-toggle input { opacity: 0; width: 0; height: 0; }
+    .prefs-toggle-slider { position: absolute; inset: 0; background: var(--border-secondary); border-radius: 20px; cursor: pointer; transition: background 0.2s; }
+    .prefs-toggle-slider::before { content:''; position: absolute; width: 14px; height: 14px; left: 3px; bottom: 3px; background: white; border-radius: 50%; transition: transform 0.2s; }
+    .prefs-toggle input:checked + .prefs-toggle-slider { background: var(--color-accent); }
+    .prefs-toggle input:checked + .prefs-toggle-slider::before { transform: translateX(16px); }
+    .prefs-select { background: var(--bg-tertiary); border: 1px solid var(--border-primary); border-radius: var(--radius-sm); padding: 4px 8px; color: var(--text-primary); font-size: 12px; cursor: pointer; }
+
+    /* ==================================================================
+       P38 — F2-3 Fullscreen chart
+       ================================================================== */
+    .chart-fullscreen-btn { background: transparent; border: 0; color: var(--text-muted); cursor: pointer; padding: 2px 4px; border-radius: 3px; font-size: 13px; line-height: 1; transition: color 0.15s; }
+    .chart-fullscreen-btn:hover { color: var(--text-primary); }
+    .chart-cell:fullscreen { border-radius: 0; padding: var(--space-6); }
+    .chart-cell:fullscreen .chart-body { min-height: calc(100vh - 80px) !important; }
+
+    /* ==================================================================
+       P38 — B3-4 Chart export dropdown
+       ================================================================== */
+    .chart-export-wrap { position: relative; display: inline-block; }
+    .chart-export-btn { background: transparent; border: 0; color: var(--text-muted); cursor: pointer; padding: 2px 4px; border-radius: 3px; font-size: 12px; line-height: 1; transition: color 0.15s; }
+    .chart-export-btn:hover { color: var(--text-primary); }
+    .chart-export-menu { position: absolute; right: 0; top: 100%; margin-top: 4px; background: var(--bg-secondary); border: 1px solid var(--border-primary); border-radius: var(--radius-md); box-shadow: 0 8px 24px rgba(0,0,0,0.35); min-width: 160px; z-index: 500; display: none; overflow: hidden; }
+    .chart-export-menu.open { display: block; animation: fade-in 0.12s ease; }
+    .chart-export-item { display: block; width: 100%; text-align: left; padding: 8px 14px; font-size: 12px; color: var(--text-secondary); background: transparent; border: 0; cursor: pointer; transition: background 0.1s; }
+    .chart-export-item:hover { background: rgba(99,102,241,0.1); color: var(--text-primary); }
+    .chart-export-item + .chart-export-item { border-top: 1px solid rgba(45,51,67,0.4); }
+
+    /* ==================================================================
+       P38 — C2-2 Field hint popover
+       ================================================================== */
+    .field-hint-popover {
+      position: absolute; z-index: 800; width: 260px;
+      background: var(--bg-secondary); border: 1px solid var(--border-primary);
+      border-radius: var(--radius-md); padding: 10px 12px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.35);
+      font-size: 11px; line-height: 1.55; color: var(--text-secondary);
+      pointer-events: none; opacity: 0; transition: opacity 0.15s;
+    }
+    .field-hint-popover.visible { opacity: 1; }
+    .field-hint-title { font-size: 12px; font-weight: 700; color: var(--text-primary); margin-bottom: 6px; }
+    .field-hint-range { color: var(--color-accent); font-weight: 600; margin-top: 4px; }
+    [style*="position:relative"] > .field-hint-popover,
+    .input-group { position: relative; }
+
+    /* ==================================================================
        P36 — Slider component (A3-1)
        ================================================================== */
     .cs-slider { display: flex; flex-direction: column; gap: 6px; margin-bottom: var(--space-4); }
@@ -573,11 +664,17 @@
   </style>
 </head>
 <body>
+  <!-- F3-3: Computation progress bar -->
+  <div class="calc-progress-wrap" id="calc-progress-wrap" role="progressbar" aria-label="計算中" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+    <div class="calc-progress-bar" id="calc-progress-bar"></div>
+  </div>
+
   <header role="banner">
     <div class="logo">
       <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 2v20M2 12h20"/></svg>
       <span>ControlStudio</span>
       <span style="font-size:10px; color:var(--text-muted); margin-left:8px; font-weight:400; border:1px solid var(--border-primary); padding:1px 4px; border-radius:4px;" aria-label="version 1.1">v1.1</span>
+      <span class="dirty-dot" id="dirty-dot" title="有未儲存的變更" aria-label="未儲存的變更" role="status"></span>
     </div>
     <div class="header-actions">
       <div class="view-switch" role="group" aria-label="View selector">
@@ -591,6 +688,9 @@
       <button class="btn btn-sm" id="btn-quickstart" title="Quick Start with example presets (Ctrl+/)" aria-label="Open Quick Start guide">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
         <span>Help</span>
+      </button>
+      <button class="btn btn-sm" id="btn-prefs" title="偏好設定 (G4)" aria-label="偏好設定" aria-haspopup="dialog">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
       </button>
       <button class="btn btn-sm theme-cycle-btn" id="theme-toggle" title="Cycle theme: Dark → Light → Print" aria-label="Cycle theme">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" id="theme-icon-svg"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
@@ -2237,6 +2337,131 @@
     </div>
   </div>
 
-  <script type="module" src="js/app.js?v=p36-p37"></script>
+  <!-- G4: Preferences Modal -->
+  <div class="modal-overlay" id="prefs-modal" role="dialog" aria-modal="true" aria-labelledby="prefs-title" aria-hidden="true">
+    <div class="modal" style="max-width:520px;">
+      <div class="modal-header">
+        <div class="modal-title" id="prefs-title">⚙ 偏好設定</div>
+        <button class="modal-close" data-modal-close="prefs-modal" aria-label="關閉">×</button>
+      </div>
+      <div class="modal-body" style="padding-top:0;">
+        <div class="prefs-tabs" role="tablist">
+          <button class="prefs-tab active" data-prefs-tab="appearance" role="tab" aria-selected="true">外觀</button>
+          <button class="prefs-tab" data-prefs-tab="units" role="tab" aria-selected="false">單位與格式</button>
+          <button class="prefs-tab" data-prefs-tab="behavior" role="tab" aria-selected="false">行為</button>
+        </div>
+
+        <!-- Appearance -->
+        <div class="prefs-section active" id="prefs-appearance">
+          <div class="prefs-row">
+            <div class="prefs-label">主題<small>Dark / Light / Print 三選一</small></div>
+            <div class="prefs-control">
+              <select class="prefs-select" id="pref-theme">
+                <option value="dark">Dark</option>
+                <option value="light">Light</option>
+                <option value="print">Print</option>
+              </select>
+            </div>
+          </div>
+          <div class="prefs-row">
+            <div class="prefs-label">動態效果<small>覆寫 prefers-reduced-motion</small></div>
+            <div class="prefs-control">
+              <select class="prefs-select" id="pref-motion">
+                <option value="normal">正常</option>
+                <option value="reduced">減少</option>
+              </select>
+            </div>
+          </div>
+          <div class="prefs-row">
+            <div class="prefs-label">介面密度<small>調整 padding 與字體大小</small></div>
+            <div class="prefs-control">
+              <select class="prefs-select" id="pref-density">
+                <option value="normal">標準</option>
+                <option value="compact">緊湊</option>
+                <option value="relaxed">寬鬆</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- Units -->
+        <div class="prefs-section" id="prefs-units">
+          <div class="prefs-row">
+            <div class="prefs-label">頻率單位<small>影響 Bode 圖 x 軸</small></div>
+            <div class="prefs-control">
+              <select class="prefs-select" id="pref-freq-unit">
+                <option value="rads">rad/s</option>
+                <option value="hz">Hz</option>
+              </select>
+            </div>
+          </div>
+          <div class="prefs-row">
+            <div class="prefs-label">增益單位<small>Bode 幅度圖 y 軸</small></div>
+            <div class="prefs-control">
+              <select class="prefs-select" id="pref-gain-unit">
+                <option value="db">dB</option>
+                <option value="linear">倍率</option>
+              </select>
+            </div>
+          </div>
+          <div class="prefs-row">
+            <div class="prefs-label">數值精度<small>顯示小數位數</small></div>
+            <div class="prefs-control">
+              <select class="prefs-select" id="pref-precision">
+                <option value="2">2 位</option>
+                <option value="4">4 位</option>
+                <option value="6">6 位</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- Behavior -->
+        <div class="prefs-section" id="prefs-behavior">
+          <div class="prefs-row">
+            <div class="prefs-label">自動儲存<small>每次變更後 2 秒自動存入 localStorage</small></div>
+            <div class="prefs-control">
+              <label class="prefs-toggle">
+                <input type="checkbox" id="pref-autosave" checked>
+                <span class="prefs-toggle-slider"></span>
+              </label>
+            </div>
+          </div>
+          <div class="prefs-row">
+            <div class="prefs-label">啟動時<small>開啟工具的初始狀態</small></div>
+            <div class="prefs-control">
+              <select class="prefs-select" id="pref-startup">
+                <option value="restore">恢復上次</option>
+                <option value="blank">空白工作區</option>
+                <option value="examples">顯示範例庫</option>
+              </select>
+            </div>
+          </div>
+          <div class="prefs-row">
+            <div class="prefs-label">預設控制器<small>新建設計時預選的控制器類型</small></div>
+            <div class="prefs-control">
+              <select class="prefs-select" id="pref-default-ctrl">
+                <option value="pid">PID</option>
+                <option value="lqr">LQR</option>
+                <option value="ask">每次詢問</option>
+              </select>
+            </div>
+          </div>
+          <div class="prefs-row" style="border-top: 1px solid var(--border-primary); padding-top:14px; margin-top:6px;">
+            <div class="prefs-label" style="color:var(--color-unstable);">危險操作<small>清除所有本地資料（無法復原）</small></div>
+            <div class="prefs-control">
+              <button class="btn btn-sm" id="pref-clear-all" style="border-color:var(--color-unstable);color:var(--color-unstable);" type="button">清除資料</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-sm" data-modal-close="prefs-modal" type="button">關閉</button>
+        <button class="btn btn-sm btn-primary" id="pref-save" type="button">套用並儲存</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="js/app.js?v=p38"></script>
 </body>
 </html>

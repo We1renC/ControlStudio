@@ -6727,6 +6727,7 @@ const COMMANDS = [
   { icon: '↻',  group: 'History',title: 'Redo',             sub: 'Ctrl+Y',          keys: ['Ctrl+Y'], action: () => historyRedo?.() },
   { icon: '⌨',  group: 'Help',   title: 'Keyboard shortcuts',sub: '?',             keys: ['Ctrl+?'], action: () => csUI?.showModal?.('shortcuts-modal') },
   { icon: '❓',  group: 'Help',   title: 'Quick Start guide', sub: 'Ctrl+/',        keys: ['Ctrl+/'], action: () => csUI?.showModal?.('quickstart-modal') },
+  { icon: '⚙',  group: 'Help',   title: '偏好設定',           sub: 'G4 Preferences',keys: [],        action: () => csUI?.showModal?.('prefs-modal') },
   { icon: '📐', group: 'Navigate',title: 'Go to Plant tab',  sub: '',               keys: [], action: () => switchSidebarPanel?.('model') },
   { icon: '📊', group: 'Navigate',title: 'Go to Compare tab',sub: '',               keys: [], action: () => switchSidebarPanel?.('compare') },
   { icon: '✏',  group: 'Navigate',title: 'Go to Design tab', sub: '',               keys: [], action: () => switchSidebarPanel?.('advisor') },
@@ -6859,3 +6860,445 @@ document.addEventListener('DOMContentLoaded', () => {
 // Expose for inline use
 window.openCommandPalette = openCommandPalette;
 window.refreshCodePreview = refreshCodePreview;
+
+// ============================================================================
+// P38 — F3-2 Dirty Marker, F3-3 Progress Bar, G4 Preferences,
+//        F2-3 Fullscreen, B3-4 Chart Export, C2-2 Field Hints
+// ============================================================================
+
+// ── F3-2: Dirty state tracker ────────────────────────────────────────────────
+
+let _autoSaveTimer = null;
+state._dirty = false;
+
+function markDirty() {
+  state._dirty = true;
+  const dot = document.getElementById('dirty-dot');
+  if (dot) dot.classList.add('visible');
+
+  // Auto-clear after 2s if autosave is enabled
+  const prefs = loadPrefs();
+  if (prefs.autosave !== false) {
+    clearTimeout(_autoSaveTimer);
+    _autoSaveTimer = setTimeout(() => {
+      saveSessionToStorage();
+      clearDirty();
+    }, 2000);
+  }
+}
+
+function clearDirty() {
+  state._dirty = false;
+  const dot = document.getElementById('dirty-dot');
+  if (dot) dot.classList.remove('visible');
+}
+
+// Warn before leaving with unsaved changes
+window.addEventListener('beforeunload', (e) => {
+  if (state._dirty) { e.preventDefault(); e.returnValue = ''; }
+});
+
+// ── F3-3: Computation progress bar ───────────────────────────────────────────
+
+let _calcProgressTimer = null;
+let _calcProgressRAF = null;
+let _calcProgressStart = 0;
+let _calcProgressEst = 1000;
+
+function startCalcProgress(estimatedMs = 1000) {
+  _calcProgressEst = estimatedMs;
+  _calcProgressStart = Date.now();
+  clearTimeout(_calcProgressTimer);
+  cancelAnimationFrame(_calcProgressRAF);
+
+  _calcProgressTimer = setTimeout(() => {
+    const wrap = document.getElementById('calc-progress-wrap');
+    const bar  = document.getElementById('calc-progress-bar');
+    if (!wrap || !bar) return;
+    wrap.classList.add('active');
+
+    const animate = () => {
+      const elapsed = Date.now() - _calcProgressStart;
+      const pct = Math.min(80, (elapsed / (_calcProgressEst * 0.8)) * 80);
+      bar.style.width = pct + '%';
+      wrap.setAttribute('aria-valuenow', String(Math.round(pct)));
+      if (pct < 80 && wrap.classList.contains('active')) {
+        _calcProgressRAF = requestAnimationFrame(animate);
+      }
+    };
+    _calcProgressRAF = requestAnimationFrame(animate);
+  }, 300);
+}
+
+function completeCalcProgress() {
+  clearTimeout(_calcProgressTimer);
+  cancelAnimationFrame(_calcProgressRAF);
+  const wrap = document.getElementById('calc-progress-wrap');
+  const bar  = document.getElementById('calc-progress-bar');
+  if (!wrap || !bar || !wrap.classList.contains('active')) return;
+  bar.style.width = '100%';
+  wrap.setAttribute('aria-valuenow', '100');
+  setTimeout(() => {
+    wrap.classList.remove('active');
+    bar.style.width = '0%';
+  }, 300);
+}
+
+// Expose globally so csUI IIFE can wrap heavy calculations
+window.startCalcProgress   = startCalcProgress;
+window.completeCalcProgress = completeCalcProgress;
+
+// ── G4: Preferences system ────────────────────────────────────────────────────
+
+const PREFS_KEY = 'cs-prefs';
+
+function defaultPrefs() {
+  return {
+    theme:       'dark',
+    motion:      'normal',
+    density:     'normal',
+    freqUnit:    'rads',
+    gainUnit:    'db',
+    precision:   '4',
+    autosave:    true,
+    startup:     'restore',
+    defaultCtrl: 'pid',
+  };
+}
+
+function loadPrefs() {
+  try { return { ...defaultPrefs(), ...JSON.parse(localStorage.getItem(PREFS_KEY) || '{}') }; }
+  catch { return defaultPrefs(); }
+}
+
+function savePrefs(prefs) {
+  try { localStorage.setItem(PREFS_KEY, JSON.stringify(prefs)); } catch { /* noop */ }
+}
+
+function applyPrefs(prefs) {
+  // Theme
+  if (prefs.theme && prefs.theme !== state.theme) {
+    state.theme = prefs.theme;
+    document.documentElement.setAttribute('data-theme', prefs.theme);
+    updateThemeIcon();
+    if (state.plant) refreshAllCharts();
+  }
+
+  // Motion
+  document.documentElement.setAttribute('data-motion', prefs.motion ?? 'normal');
+  if (prefs.motion === 'reduced') {
+    document.documentElement.style.setProperty('--motion-factor', '0.01');
+  } else {
+    document.documentElement.style.removeProperty('--motion-factor');
+  }
+
+  // Density
+  const densityMap = { compact: '0.75rem', normal: '1rem', relaxed: '1.25rem' };
+  document.documentElement.style.setProperty('--density-scale', densityMap[prefs.density] ?? '1rem');
+
+  // Freq unit — sync with unit switcher
+  if (prefs.freqUnit) {
+    state._freqUnit = prefs.freqUnit;
+    document.querySelectorAll('#freq-unit-switcher .unit-btn').forEach(btn => {
+      const active = btn.dataset.unit === prefs.freqUnit;
+      btn.classList.toggle('active', active);
+      btn.setAttribute('aria-pressed', String(active));
+    });
+  }
+
+  // Precision
+  if (prefs.precision) state._precision = parseInt(prefs.precision, 10);
+}
+
+function initPrefsModal() {
+  const prefs = loadPrefs();
+
+  // Populate inputs from stored prefs
+  const set = (id, val) => { const el = document.getElementById(id); if (el) el.value = val; };
+  const check = (id, val) => { const el = document.getElementById(id); if (el) el.checked = !!val; };
+
+  set('pref-theme',        prefs.theme);
+  set('pref-motion',       prefs.motion);
+  set('pref-density',      prefs.density);
+  set('pref-freq-unit',    prefs.freqUnit);
+  set('pref-gain-unit',    prefs.gainUnit);
+  set('pref-precision',    prefs.precision);
+  check('pref-autosave',   prefs.autosave);
+  set('pref-startup',      prefs.startup);
+  set('pref-default-ctrl', prefs.defaultCtrl);
+
+  // Apply stored prefs on boot
+  applyPrefs(prefs);
+
+  // Prefs tab switching
+  document.querySelectorAll('.prefs-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      document.querySelectorAll('.prefs-tab').forEach(t => { t.classList.remove('active'); t.setAttribute('aria-selected', 'false'); });
+      document.querySelectorAll('.prefs-section').forEach(s => s.classList.remove('active'));
+      tab.classList.add('active');
+      tab.setAttribute('aria-selected', 'true');
+      document.getElementById(`prefs-${tab.dataset.prefsTab}`)?.classList.add('active');
+    });
+  });
+
+  // Save button
+  document.getElementById('pref-save')?.addEventListener('click', () => {
+    const newPrefs = {
+      theme:       document.getElementById('pref-theme')?.value       ?? 'dark',
+      motion:      document.getElementById('pref-motion')?.value      ?? 'normal',
+      density:     document.getElementById('pref-density')?.value     ?? 'normal',
+      freqUnit:    document.getElementById('pref-freq-unit')?.value   ?? 'rads',
+      gainUnit:    document.getElementById('pref-gain-unit')?.value   ?? 'db',
+      precision:   document.getElementById('pref-precision')?.value   ?? '4',
+      autosave:    document.getElementById('pref-autosave')?.checked  ?? true,
+      startup:     document.getElementById('pref-startup')?.value     ?? 'restore',
+      defaultCtrl: document.getElementById('pref-default-ctrl')?.value ?? 'pid',
+    };
+    savePrefs(newPrefs);
+    applyPrefs(newPrefs);
+    csUI?.hideModal?.('prefs-modal');
+    notify('偏好設定已儲存', 'success', { title: '設定' });
+  });
+
+  // Danger: clear all data
+  document.getElementById('pref-clear-all')?.addEventListener('click', async () => {
+    const ok = await csUI?.confirm?.({ title: '清除所有資料', message: '確定要清除所有 localStorage 資料？此操作無法復原。', okText: '確定清除', danger: true }) ?? false;
+    if (!ok) return;
+    localStorage.clear();
+    notify('所有本地資料已清除，頁面即將重載…', 'warning', { title: '清除' });
+    setTimeout(() => location.reload(), 1500);
+  });
+
+  // Open prefs button in header
+  document.getElementById('btn-prefs')?.addEventListener('click', () => {
+    // Sync UI with current state before opening
+    const cur = loadPrefs();
+    document.getElementById('pref-theme')?.setAttribute('value', cur.theme);
+    if (document.getElementById('pref-theme')) document.getElementById('pref-theme').value = state.theme ?? cur.theme;
+    csUI?.showModal?.('prefs-modal');
+  });
+}
+
+// ── F2-3: Chart fullscreen ────────────────────────────────────────────────────
+
+function initChartFullscreen() {
+  document.querySelectorAll('.chart-cell').forEach(cell => {
+    const header = cell.querySelector('.chart-header');
+    if (!header) return;
+    const btn = document.createElement('button');
+    btn.className = 'chart-fullscreen-btn';
+    btn.title = '全螢幕 (F2-3)';
+    btn.setAttribute('aria-label', '全螢幕顯示此圖表');
+    btn.innerHTML = '⤢';
+    btn.addEventListener('click', () => {
+      if (!document.fullscreenElement) {
+        cell.requestFullscreen?.().catch(() => {});
+      } else {
+        document.exitFullscreen?.().catch(() => {});
+      }
+    });
+    document.addEventListener('fullscreenchange', () => {
+      btn.innerHTML = document.fullscreenElement === cell ? '⤡' : '⤢';
+      btn.title = document.fullscreenElement === cell ? '退出全螢幕' : '全螢幕';
+    });
+    header.appendChild(btn);
+  });
+}
+
+// ── B3-4: Chart export ────────────────────────────────────────────────────────
+
+function initChartExport() {
+  document.querySelectorAll('.chart-cell').forEach(cell => {
+    const plotId = cell.querySelector('[id^="chart-"]')?.id;
+    const header = cell.querySelector('.chart-header');
+    if (!header || !plotId) return;
+
+    const wrap = document.createElement('div');
+    wrap.className = 'chart-export-wrap';
+
+    const btn = document.createElement('button');
+    btn.className = 'chart-export-btn';
+    btn.title = '匯出圖表 (B3-4)';
+    btn.setAttribute('aria-label', '匯出圖表');
+    btn.innerHTML = '↓';
+
+    const menu = document.createElement('div');
+    menu.className = 'chart-export-menu';
+    menu.innerHTML = `
+      <button class="chart-export-item" data-fmt="svg">SVG（向量）</button>
+      <button class="chart-export-item" data-fmt="png-hi">PNG 300dpi</button>
+      <button class="chart-export-item" data-fmt="png-lo">PNG 150dpi</button>
+      <button class="chart-export-item" data-fmt="csv">資料 CSV</button>
+    `;
+
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      menu.classList.toggle('open');
+    });
+    document.addEventListener('click', () => menu.classList.remove('open'));
+
+    menu.querySelectorAll('.chart-export-item').forEach(item => {
+      item.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        menu.classList.remove('open');
+        const fmt = item.dataset.fmt;
+        const ts = new Date().toISOString().slice(0, 19).replace(/[:.]/g, '-');
+        const fname = `cs-${plotId}-${ts}`;
+        try {
+          if (fmt === 'svg') {
+            await window.Plotly?.downloadImage(plotId, { format: 'svg', filename: fname });
+          } else if (fmt === 'png-hi') {
+            await window.Plotly?.downloadImage(plotId, { format: 'png', scale: 3, filename: fname });
+          } else if (fmt === 'png-lo') {
+            await window.Plotly?.downloadImage(plotId, { format: 'png', scale: 1.5, filename: fname });
+          } else if (fmt === 'csv') {
+            // Export from Plotly data
+            const divEl = document.getElementById(plotId);
+            const gd = divEl?._fullData ?? divEl?.data;
+            if (gd && gd.length) {
+              const rows = [['series', 'x', 'y']];
+              gd.forEach(trace => {
+                const xs = trace.x ?? [];
+                const ys = trace.y ?? [];
+                xs.forEach((x, i) => rows.push([trace.name ?? plotId, x, ys[i] ?? '']));
+              });
+              const csv = rows.map(r => r.join(',')).join('\n');
+              const blob = new Blob([csv], { type: 'text/csv' });
+              const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(blob), download: fname + '.csv' });
+              document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 100);
+            } else {
+              notify('圖表尚無資料可匯出', 'warning', { title: 'Export' });
+            }
+          }
+        } catch (err) {
+          notify(`匯出失敗：${err.message}`, 'error', { title: 'Export' });
+        }
+      });
+    });
+
+    wrap.appendChild(btn);
+    wrap.appendChild(menu);
+    header.appendChild(wrap);
+  });
+}
+
+// ── C2-2: Field hints popover ─────────────────────────────────────────────────
+
+const FIELD_HINTS = {
+  'pid-Kp': {
+    title: '比例增益 Kp',
+    body: '輸出 = Kp × 誤差。Kp 越大響應越快，但超越量也越大，過大可能導致不穩定。',
+    range: '常用範圍：0.1 – 100',
+  },
+  'pid-Ki': {
+    title: '積分增益 Ki',
+    body: '消除穩態誤差（靜差）。Ki 過大會增加超越量並可能引起積分飽和（windup）。',
+    range: '常用範圍：0.01 – 10',
+  },
+  'pid-Kd': {
+    title: '微分增益 Kd',
+    body: '對誤差變化率做反應，可減緩超越量。對高頻雜訊敏感，通常配合 N 截止濾波。',
+    range: '常用範圍：0 – 10',
+  },
+  'pid-N': {
+    title: '微分濾波器截止係數 N',
+    body: '微分項頻率截止：截止頻率 = N × Ki/Kp。N 越小濾波越強，N 越大越接近純微分。',
+    range: '常用範圍：5 – 200（推薦 50–100）',
+  },
+  'tf-num': {
+    title: '分子多項式 Numerator',
+    body: '傳遞函數 G(s) = num(s) / den(s) 的係數，由高次到低次，以空格或逗號分隔。',
+    range: '例：輸入「1」表示 G(s) = 1 / den(s)',
+  },
+  'tf-den': {
+    title: '分母多項式 Denominator',
+    body: '分母多項式次數必須 ≥ 分子（嚴格正則）。係數由高次到低次輸入。',
+    range: '例：「1 3 2」表示 s² + 3s + 2',
+  },
+  'design-os': {
+    title: '超越量規格 %OS',
+    body: '閉迴路步階響應最高點超過穩態值的百分比。%OS = exp(−πζ/√(1−ζ²)) × 100。',
+    range: '推薦範圍：5% – 30%（工業一般 ≤ 16.3%）',
+  },
+  'design-ts': {
+    title: '穩定時間規格 Ts (sec)',
+    body: '響應進入並維持在穩態值 ±2% 範圍內所需的時間。Ts ≈ 4/(ζωn)。',
+    range: '依系統時間常數，通常 0.5s – 20s',
+  },
+};
+
+function initFieldHints() {
+  const popover = document.createElement('div');
+  popover.className = 'field-hint-popover';
+  popover.id = 'field-hint-popover';
+  popover.setAttribute('aria-hidden', 'true');
+  document.body.appendChild(popover);
+
+  let _hideTimer = null;
+
+  function showHint(fieldId, anchorEl) {
+    const hint = FIELD_HINTS[fieldId];
+    if (!hint) return;
+    clearTimeout(_hideTimer);
+    popover.innerHTML = `<div class="field-hint-title">${escapeHtml(hint.title)}</div><div>${escapeHtml(hint.body)}</div><div class="field-hint-range">${escapeHtml(hint.range)}</div>`;
+    popover.removeAttribute('aria-hidden');
+
+    // Position relative to anchor
+    const rect = anchorEl.getBoundingClientRect();
+    const top = rect.bottom + 6 + window.scrollY;
+    const left = Math.min(rect.left + window.scrollX, window.innerWidth - 276);
+    popover.style.cssText = `position:fixed;top:${rect.bottom + 6}px;left:${Math.min(rect.left, window.innerWidth - 276)}px`;
+    popover.classList.add('visible');
+  }
+
+  function hideHint() {
+    _hideTimer = setTimeout(() => {
+      popover.classList.remove('visible');
+      popover.setAttribute('aria-hidden', 'true');
+    }, 150);
+  }
+
+  Object.keys(FIELD_HINTS).forEach(fieldId => {
+    const el = document.getElementById(fieldId);
+    if (!el) return;
+    el.addEventListener('focus', () => setTimeout(() => showHint(fieldId, el), 300));
+    el.addEventListener('blur', hideHint);
+    el.addEventListener('mouseenter', () => showHint(fieldId, el));
+    el.addEventListener('mouseleave', hideHint);
+  });
+
+  // Also wire up ⓘ help icons next to inputs
+  document.querySelectorAll('.help-icon[title]').forEach(icon => {
+    icon.addEventListener('mouseenter', () => {
+      const parentInput = icon.closest('.input-group')?.querySelector('input,select,textarea');
+      if (parentInput && FIELD_HINTS[parentInput.id]) {
+        showHint(parentInput.id, icon);
+      }
+    });
+    icon.addEventListener('mouseleave', hideHint);
+  });
+}
+
+// ── P38 init (called after DOM is ready) ─────────────────────────────────────
+
+document.addEventListener('DOMContentLoaded', () => {
+  initPrefsModal();
+  // Delay fullscreen / export init slightly so all chart cells exist
+  setTimeout(() => {
+    initChartFullscreen();
+    initChartExport();
+    initFieldHints();
+  }, 800);
+
+  // Wire dirty marking to plant update path
+  // Patch saveSessionToStorage to clear dirty after saving
+  const _origSave = saveSessionToStorage;
+}, { once: true });
+
+// Patch updateSystem to call markDirty on every change
+const _patchMarkDirty = (() => {
+  const orig = window.updateSystem;
+  if (typeof orig === 'function') {
+    window.updateSystem = function(...args) { markDirty(); return orig.apply(this, args); };
+  }
+})();
