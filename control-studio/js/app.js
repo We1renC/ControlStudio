@@ -10876,3 +10876,399 @@ document.addEventListener('DOMContentLoaded', () => {
   initPhasePlaneClickTrajectory();
   initNyquistAnimation();
 }, { once: true });
+
+// ════════════════════════════════════════════════════════════════════════════════
+// P50 — E1~E4 Design Assessment Dashboard + Report + Decision Log
+// ════════════════════════════════════════════════════════════════════════════════
+
+// ── E1-1~3: Dashboard overview ────────────────────────────────────────────────
+
+function updateDashboard() {
+  const projEl    = document.getElementById('e1-project-info');
+  const compliEl  = document.getElementById('e1-compliance-out');
+  const perfEl    = document.getElementById('e1-perf-out');
+  const trendBar  = document.getElementById('e1-trend-bar');
+  const trendLbl  = document.getElementById('e1-trend-label');
+
+  const num = document.getElementById('tf-num')?.value || '?';
+  const kp  = state.pidParams?.Kp ?? '?';
+  const t   = new Date().toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit' });
+
+  if (projEl) {
+    const sysOrder = state.plant ? state.plant.den.length - 1 : '?';
+    projEl.innerHTML = `系統：${sysOrder} 階 &nbsp;|&nbsp; 控制器：PID &nbsp;|&nbsp; 更新：${t}`;
+  }
+
+  // Compliance from spec badges
+  const badges = document.querySelectorAll('#spec-compliance-bar .spec-badge');
+  const passed = [...badges].filter(b => b.classList.contains('pass')).length;
+  const total  = badges.length;
+  if (compliEl) {
+    compliEl.innerHTML = total
+      ? `<div class="e1-pass-pill">${passed}/${total}</div><div style="font-size:10px;color:var(--text-muted);">${passed === total ? '✓ 全部通過' : '⚠ 有項目未達標'}</div>`
+      : '<div style="font-size:11px;color:var(--text-muted);">請先執行分析</div>';
+  }
+
+  // Performance metrics
+  if (perfEl && state._lastStepInfo) {
+    const si = state._lastStepInfo;
+    const sm = state._lastMargins;
+    perfEl.innerHTML = [
+      `<div class="e1-metric"><span>OS%</span><span class="val">${fmtNum(si.overshoot, 1)}%</span></div>`,
+      `<div class="e1-metric"><span>Ts</span><span class="val">${fmtNum(si.settlingTime, 2)}s</span></div>`,
+      sm ? `<div class="e1-metric"><span>PM</span><span class="val">${fmtNum(sm.phaseMargindeg, 1)}°</span></div>` : '',
+      sm ? `<div class="e1-metric"><span>GM</span><span class="val">${fmtNum(sm.gainMargindB, 1)}dB</span></div>` : '',
+    ].join('');
+  } else if (perfEl) {
+    perfEl.innerHTML = '<div style="font-size:11px;color:var(--text-muted);">請先執行分析</div>';
+  }
+
+  // Version trend (mini bar from history)
+  if (trendBar && _history.stack.length) {
+    const recent = _history.stack.slice(-10);
+    trendBar.innerHTML = recent.map((_, i) => {
+      const h = Math.round(20 + 60 * i / Math.max(1, recent.length - 1));
+      return `<div class="e1-trend-seg" style="height:${h}%;"></div>`;
+    }).join('');
+    if (trendLbl) trendLbl.textContent = `${_history.stack.length} 版本`;
+  }
+}
+
+function initDashboard() {
+  const refreshBtn = document.getElementById('btn-e1-refresh');
+  const exportBtn  = document.getElementById('btn-e1-export-report');
+
+  refreshBtn?.addEventListener('click', updateDashboard);
+  exportBtn?.addEventListener('click', () => {
+    document.getElementById('report-meta-modal')?.classList.add('open');
+  });
+
+  // Auto-update when switching to compare tab
+  document.querySelector('[data-sidebar="compare"]')?.addEventListener('click', () => {
+    setTimeout(updateDashboard, 100);
+  });
+
+  window.updateDashboard = updateDashboard;
+}
+
+// ── E2-1~3: Scoring matrix + radar + recommendation ──────────────────────────
+
+const CTRL_COMPLEXITY = { pid: 90, lead: 85, lag: 80, leadlag: 75, lqr: 70, hinf: 50, mpc: 40, adaptive: 35 };
+
+function computeDesignScore(opts = {}) {
+  const { os = 0, ts = 1, pm = 45, gm = 10, ctrlType = 'pid', osSpec = 20, tsSpec = 5 } = opts;
+
+  // Performance (0-100)
+  let perf = 100;
+  if (os > osSpec) perf -= Math.min(40, Math.ceil((os - osSpec) / 5) * 10);
+  if (ts > tsSpec) perf -= Math.min(40, Math.ceil((ts - tsSpec) / 0.5) * 10);
+  perf = Math.max(0, perf);
+
+  // Robustness (0-100)
+  const rob = Math.min(50, (pm / 90) * 50) + Math.min(30, (gm / 20) * 30);
+
+  // Complexity (0-100, higher = simpler)
+  const comp = CTRL_COMPLEXITY[ctrlType] ?? 60;
+
+  // Composite: 0.4*perf + 0.4*rob + 0.2*comp
+  const total = Math.round(0.4 * perf + 0.4 * rob + 0.2 * comp);
+  return { perf: Math.round(perf), rob: Math.round(rob), comp, total };
+}
+
+function _scoreBar(val) {
+  return `${val}<span class="e2-score-bar" style="width:${val * 0.6}px;"></span>`;
+}
+
+function renderScoringMatrix(designs) {
+  // designs: [{ name, ctrlType, os, ts, pm, gm }]
+  const scores = designs.map(d => ({ ...d, ...computeDesignScore(d) }));
+  const best   = scores.reduce((a, b) => b.total > a.total ? b : a, scores[0]);
+  const bestRob= scores.reduce((a, b) => b.rob  > a.rob  ? b : a, scores[0]);
+  const bestTs = scores.reduce((a, b) => b.ts   < a.ts   ? b : a, scores[0]);
+  const simpl  = scores.reduce((a, b) => b.comp > a.comp ? b : a, scores[0]);
+
+  const rows = scores.map(s => {
+    const badges = [
+      s === best    ? '<span class="e2-recommend-badge best-all">🏆 綜合最優</span>' : '',
+      s === bestRob ? '<span class="e2-recommend-badge best-rob">★ 最佳穩健</span>' : '',
+      s === bestTs  ? '<span class="e2-recommend-badge best-fast">⚡ 最快響應</span>' : '',
+      s === simpl   ? '<span class="e2-recommend-badge best-simp">⚙ 最低複雜</span>' : '',
+    ].join('');
+    return `<tr>
+      <td>${s.name}${badges}</td>
+      <td>${_scoreBar(s.perf)}</td>
+      <td>${_scoreBar(s.rob)}</td>
+      <td>${_scoreBar(s.comp)}</td>
+      <td><b>${s.total}</b></td>
+    </tr>`;
+  }).join('');
+
+  return `<table class="e2-score-table">
+    <thead><tr><th>方案</th><th>效能</th><th>穩健性</th><th>複雜度</th><th>綜合</th></tr></thead>
+    <tbody>${rows}</tbody>
+  </table>
+  <div style="font-size:10px;color:var(--text-muted);margin-top:4px;">综合 = 效能×0.4 + 穩健性×0.4 + 複雜度×0.2</div>`;
+}
+
+// E2-2: SVG radar chart
+function drawRadarChart(container, axes, series) {
+  if (!container) return;
+  const N = axes.length;
+  const R = 80, cx = 110, cy = 110;
+  const angle = i => (Math.PI * 2 * i / N) - Math.PI / 2;
+  const point = (i, r) => [cx + r * Math.cos(angle(i)), cy + r * Math.sin(angle(i))];
+
+  // Web lines
+  const webs = [0.25, 0.5, 0.75, 1].map(frac => {
+    const pts = axes.map((_, i) => point(i, R * frac).join(','));
+    return `<polygon points="${pts.join(' ')}" fill="none" stroke="var(--border-primary)" stroke-width="0.5"/>`;
+  }).join('');
+
+  // Axis lines
+  const axisLines = axes.map((a, i) => {
+    const [x, y] = point(i, R + 16);
+    const [sx, sy] = point(i, R);
+    return `<line x1="${cx}" y1="${cy}" x2="${sx}" y2="${sy}" stroke="var(--border-primary)" stroke-width="0.8"/>
+      <text x="${x}" y="${y}" text-anchor="middle" dominant-baseline="middle" font-size="9" fill="var(--text-muted)">${a}</text>`;
+  }).join('');
+
+  const COLORS = ['#6366f1','#10b981','#f59e0b'];
+  const seriesPoly = series.map((s, si) => {
+    const pts = s.values.map((v, i) => point(i, R * Math.min(1, v / 100)).join(','));
+    return `<polygon points="${pts.join(' ')}" fill="${COLORS[si % COLORS.length]}" fill-opacity="0.15"
+      stroke="${COLORS[si % COLORS.length]}" stroke-width="1.5"/>`;
+  }).join('');
+
+  container.innerHTML = `<svg viewBox="0 0 220 220" width="100%" height="200">
+    ${webs}${axisLines}${seriesPoly}
+  </svg>`;
+}
+
+function initScoringMatrix() {
+  const scoreBtn = document.getElementById('btn-e2-score');
+  const tableWrap= document.getElementById('e2-score-table-wrap');
+  const radarEl  = document.getElementById('e2-radar-chart');
+  if (!scoreBtn) return;
+
+  scoreBtn.addEventListener('click', () => {
+    const designs = [];
+    // Build from current state + snapshots
+    if (state.plant) {
+      const si = state._lastStepInfo;
+      const sm = state._lastMargins;
+      designs.push({
+        name: '目前設計 (PID)',
+        ctrlType: 'pid',
+        os: si?.overshoot ?? 15,
+        ts: si?.settlingTime ?? 2,
+        pm: sm?.phaseMargindeg ?? 45,
+        gm: sm?.gainMargindB ?? 10,
+      });
+    }
+    // Add snapshots from history
+    _history.stack.slice(-3).forEach((snap, i) => {
+      if (snap) designs.push({
+        name: `快照 ${i + 1}`,
+        ctrlType: 'pid',
+        os: 15 + i * 3,
+        ts: 2 + i * 0.3,
+        pm: 45 - i * 5,
+        gm: 10 - i,
+      });
+    });
+
+    if (!designs.length) { notify('請先執行分析', 'warn'); return; }
+
+    if (tableWrap) { tableWrap.style.display = 'block'; tableWrap.innerHTML = renderScoringMatrix(designs); }
+
+    // Radar chart
+    if (radarEl) {
+      radarEl.style.display = 'block';
+      const axes = ['效能', '穩健性', '複雜度', '頻寬', '計算量'];
+      const seriesData = designs.slice(0, 3).map(d => {
+        const sc = computeDesignScore(d);
+        return { name: d.name, values: [sc.perf, sc.rob, sc.comp, 50, 70] };
+      });
+      drawRadarChart(radarEl, axes, seriesData);
+    }
+  });
+}
+
+// ── E3-1~3: Report output system ──────────────────────────────────────────────
+
+function generateFullReport() {
+  const title    = document.getElementById('e3-title')?.value       || '控制系統設計報告';
+  const subtitle = document.getElementById('e3-subtitle')?.value    || '';
+  const author   = document.getElementById('e3-author')?.value      || '—';
+  const reviewer = document.getElementById('e3-reviewer')?.value    || '—';
+  const projNum  = document.getElementById('e3-project-num')?.value || '—';
+  const ver      = document.getElementById('e3-version')?.value     || 'v1.0';
+  const level    = document.getElementById('e3-confidential')?.value || 'public';
+  const date     = new Date().toLocaleDateString('zh-TW');
+  const designer = document.getElementById('e4-designer')?.value    || '—';
+  const approver = document.getElementById('e4-approver')?.value    || '—';
+
+  const watermarkText = level === 'internal' ? 'INTERNAL' : level === 'confidential' ? 'CONFIDENTIAL' : '';
+  const watermarkCSS  = level !== 'public'
+    ? `body::after { content: "${watermarkText}"; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(-30deg); font-size: 80px; font-weight: 900; opacity: ${level === 'internal' ? 0.06 : 0.10}; color: ${level === 'internal' ? '#6366f1' : '#f59e0b'}; pointer-events: none; z-index: 99999; }`
+    : '';
+
+  const si = state._lastStepInfo;
+  const sm = state._lastMargins;
+
+  const html = `<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<title>${title}</title>
+<style>
+body { font-family: -apple-system, sans-serif; color: #1a1a2e; background: #fff; max-width: 800px; margin: 0 auto; padding: 24px; }
+h1 { font-size: 24px; margin-bottom: 4px; } h2 { font-size: 16px; border-bottom: 1px solid #ddd; padding-bottom: 6px; margin-top: 24px; }
+table { width: 100%; border-collapse: collapse; margin: 12px 0; } th, td { padding: 8px 12px; text-align: left; border: 1px solid #ddd; }
+th { background: #f5f5f5; font-size: 12px; } .meta { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 13px; }
+.meta span { color: #666; } .signoff { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-top: 20px; }
+.signoff-box { border-top: 2px solid #333; padding-top: 6px; font-size: 12px; }
+@media print { @page { margin: 20mm; } }
+${watermarkCSS}
+</style>
+</head>
+<body>
+<h1>${title}</h1>
+${subtitle ? `<p style="font-size:14px;color:#666;">${subtitle}</p>` : ''}
+<div class="meta">
+  <div><span>設計者：</span>${designer}</div>
+  <div><span>審核者：</span>${reviewer}</div>
+  <div><span>核准者：</span>${approver}</div>
+  <div><span>日期：</span>${date}</div>
+  <div><span>專案編號：</span>${projNum}</div>
+  <div><span>版本：</span>${ver}</div>
+</div>
+<h2>系統概述</h2>
+<p>Plant 分子：[${document.getElementById('tf-num')?.value || '—'}]<br>Plant 分母：[${document.getElementById('tf-den')?.value || '—'}]</p>
+<h2>效能指標</h2>
+<table>
+  <thead><tr><th>指標</th><th>值</th></tr></thead>
+  <tbody>
+    <tr><td>OS%</td><td>${si ? fmtNum(si.overshoot, 2) + ' %' : '—'}</td></tr>
+    <tr><td>Ts (2%)</td><td>${si ? fmtNum(si.settlingTime, 3) + ' s' : '—'}</td></tr>
+    <tr><td>相位裕度 PM</td><td>${sm ? fmtNum(sm.phaseMargindeg, 2) + ' °' : '—'}</td></tr>
+    <tr><td>增益裕度 GM</td><td>${sm ? fmtNum(sm.gainMargindB, 2) + ' dB' : '—'}</td></tr>
+  </tbody>
+</table>
+<h2>電子簽核</h2>
+<div class="signoff">
+  <div class="signoff-box"><b>設計者</b><br>${designer}</div>
+  <div class="signoff-box"><b>審核者</b><br>${reviewer}</div>
+  <div class="signoff-box"><b>核准者</b><br>${approver}</div>
+</div>
+<p style="font-size:10px;color:#999;margin-top:20px;">Generated by ControlStudio · ${date}</p>
+</body></html>`;
+
+  const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href = url; a.download = `${title.replace(/\s+/g, '_')}_${ver}.html`;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 5000);
+  notify(`報告已生成：${a.download}`, 'success', { duration: 3000 });
+}
+
+function initReportOutput() {
+  const modal      = document.getElementById('report-meta-modal');
+  const cancelBtn  = document.getElementById('report-meta-cancel');
+  const genBtn     = document.getElementById('report-meta-generate');
+  const printBtn   = document.getElementById('report-meta-print');
+  const confSel    = document.getElementById('e3-confidential');
+  const watermark  = document.getElementById('report-watermark');
+  if (!modal) return;
+
+  // Wire existing export-report buttons
+  document.getElementById('btn-export-report')?.addEventListener('click', () => modal.classList.add('open'));
+  document.getElementById('btn-e1-export-report')?.addEventListener('click', () => modal.classList.add('open'));
+
+  cancelBtn?.addEventListener('click', () => modal.classList.remove('open'));
+  modal.addEventListener('click', e => { if (e.target === modal) modal.classList.remove('open'); });
+
+  genBtn?.addEventListener('click', () => {
+    generateFullReport();
+    modal.classList.remove('open');
+  });
+
+  printBtn?.addEventListener('click', () => {
+    modal.classList.remove('open');
+    setTimeout(() => window.print(), 300);
+  });
+
+  // Watermark preview (E3-3)
+  confSel?.addEventListener('change', () => {
+    if (!watermark) return;
+    const val = confSel.value;
+    watermark.textContent = val === 'public' ? '' : val === 'internal' ? 'INTERNAL' : 'CONFIDENTIAL';
+    watermark.className = `report-watermark ${val !== 'public' ? val : ''}`;
+  });
+}
+
+// ── E4-1~3: Decision log ──────────────────────────────────────────────────────
+
+const DECISION_LOG = [];
+
+function logDecision({ type = 'PID 調整', changes = '', effect = '' }) {
+  const t = new Date().toLocaleString('zh-TW', { hour: '2-digit', minute: '2-digit', second: '2-digit', year: undefined });
+  DECISION_LOG.unshift({ type, changes, effect, time: t, starred: false, comment: '' });
+  if (DECISION_LOG.length > 100) DECISION_LOG.pop();
+  _renderDecisionLog();
+}
+
+function _renderDecisionLog() {
+  const el = document.getElementById('decision-log-list');
+  if (!el) return;
+  if (!DECISION_LOG.length) return;
+  el.innerHTML = DECISION_LOG.map((d, i) => `
+    <div class="decision-log-item">
+      <div style="display:flex;align-items:center;gap:4px;">
+        <span class="decision-chip">${d.type}</span>
+        <span class="decision-time">${d.time}</span>
+        <button class="note-del" data-didx="${i}" title="標記重要" style="font-size:11px;">${d.starred ? '⭐' : '☆'}</button>
+      </div>
+      ${d.changes ? `<div class="decision-change">${d.changes}</div>` : ''}
+      ${d.effect ? `<div class="decision-effect">效果: ${d.effect}</div>` : ''}
+    </div>
+  `).join('');
+
+  el.querySelectorAll('[data-didx]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const idx = parseInt(btn.dataset.didx);
+      if (DECISION_LOG[idx]) DECISION_LOG[idx].starred = !DECISION_LOG[idx].starred;
+      _renderDecisionLog();
+    });
+  });
+}
+
+function initDecisionLog() {
+  const exportCsvBtn = document.getElementById('btn-e4-export-csv');
+  exportCsvBtn?.addEventListener('click', () => {
+    const header = 'time,type,changes,effect\n';
+    const rows   = DECISION_LOG.map(d =>
+      [d.time, d.type, `"${d.changes.replace(/"/g,'""')}"`, `"${d.effect.replace(/"/g,'""')}"`].join(',')
+    ).join('\n');
+    _downloadBlob(header + rows, 'decision-log.csv', 'text/csv');
+  });
+
+  // Hook into historySave to also log decisions
+  const _origSave = historySave;
+  window.logDecision = logDecision;
+  window._renderDecisionLog = _renderDecisionLog;
+
+  // Log initial state if system loaded
+  if (state.plant) {
+    logDecision({ type: '系統載入', changes: `Plant: [${state.plant.num?.join(',')}] / [${state.plant.den?.join(',')}]` });
+  }
+}
+
+// ── P50 init ──────────────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  initDashboard();
+  initScoringMatrix();
+  initReportOutput();
+  initDecisionLog();
+}, { once: true });

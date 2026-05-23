@@ -115,6 +115,7 @@ run_script "P46 B5 calc/tooltip/cond + B2-1 matrix" "node scripts/verify_p46_b5_
 run_script "P47 C1 topic cards + C4 draft/notes" "node scripts/verify_p47_c1_c4.mjs"
 run_script "P48 A3 draggable poles + bode + history" "node scripts/verify_p48_a3.mjs"
 run_script "P49 C3 interactive animations" "node scripts/verify_p49_c3.mjs"
+run_script "P50 E1~E4 dashboard/scoring/report/decision" "node scripts/verify_p50_e1_e4.mjs"
 echo ""
 
 # ── General Math & PID ───────────────────────────────────────────────────────

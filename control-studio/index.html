@@ -942,6 +942,58 @@
     .data-export-row { display: flex; gap: 6px; margin-top: 6px; }
 
     /* ==================================================================
+       P50 — E1~E4 Design Assessment & Report
+       ================================================================== */
+    /* E1: Dashboard overview */
+    .e1-dashboard { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+    .e1-card { background: var(--bg-tertiary); border: 1px solid var(--border-primary); border-radius: var(--radius-md); padding: 10px; }
+    .e1-card-title { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); margin-bottom: 6px; }
+    .e1-metric { display: flex; justify-content: space-between; align-items: center; font-size: 11px; padding: 2px 0; }
+    .e1-metric .val { font-weight: 700; font-family: ui-monospace, monospace; color: var(--text-primary); }
+    .e1-pass-pill { display: inline-flex; align-items: center; gap: 4px; font-size: 18px; font-weight: 800; color: var(--color-accent); }
+    .e1-trend-bar { display: flex; align-items: flex-end; gap: 2px; height: 30px; margin-top: 4px; }
+    .e1-trend-seg { flex: 1; background: var(--color-accent); border-radius: 2px; opacity: 0.6; min-height: 4px; }
+    /* E2: Scoring matrix */
+    .e2-score-table { width: 100%; border-collapse: collapse; font-size: 11px; }
+    .e2-score-table th { background: var(--bg-tertiary); padding: 5px 8px; text-align: left; font-size: 10px; font-weight: 700; text-transform: uppercase; color: var(--text-muted); }
+    .e2-score-table td { padding: 5px 8px; border-bottom: 1px solid var(--border-primary); }
+    .e2-score-table tr:last-child td { border-bottom: 0; }
+    .e2-score-bar { display: inline-block; height: 6px; background: var(--color-accent); border-radius: 3px; vertical-align: middle; margin-left: 4px; }
+    .e2-recommend-badge { display: inline-block; font-size: 8px; font-weight: 800; padding: 1px 5px; border-radius: 10px; margin-left: 4px; }
+    .e2-recommend-badge.best-all  { background: rgba(99,102,241,0.2); color: var(--color-accent); }
+    .e2-recommend-badge.best-rob  { background: rgba(245,158,11,0.2); color: #f59e0b; }
+    .e2-recommend-badge.best-fast { background: rgba(59,130,246,0.2); color: #3b82f6; }
+    .e2-recommend-badge.best-simp { background: rgba(20,184,166,0.2); color: #14b8a6; }
+    /* E2-2: Radar chart */
+    .e2-radar-wrap { position: relative; }
+    .e2-radar-wrap svg { width: 100%; display: block; }
+    /* E3: Report meta form */
+    .report-meta-modal { position: fixed; inset: 0; z-index: 10100; display: none; align-items: center; justify-content: center; background: rgba(0,0,0,0.6); }
+    .report-meta-modal.open { display: flex; }
+    .report-meta-box { background: var(--bg-secondary); border: 1px solid var(--border-primary); border-radius: var(--radius-lg); padding: 20px; width: 520px; max-width: 95vw; max-height: 85vh; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; }
+    .report-meta-box h3 { font-size: 14px; font-weight: 700; margin: 0; color: var(--text-primary); }
+    .report-meta-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .report-watermark { position: fixed; pointer-events: none; z-index: 99998; top: 0; left: 0; right: 0; bottom: 0; display: flex; align-items: center; justify-content: center; opacity: 0; font-size: 72px; font-weight: 900; color: var(--text-muted); transform: rotate(-30deg); letter-spacing: 8px; transition: opacity 0.2s; user-select: none; }
+    .report-watermark.internal    { opacity: 0.06; color: #6366f1; }
+    .report-watermark.confidential{ opacity: 0.10; color: #f59e0b; }
+    @media print {
+      nav, .sidebar, .status-bar, .history-drawer, .explain-drawer, .notes-drawer { display: none !important; }
+      .chart-body { page-break-inside: avoid; }
+      body { background: #fff !important; color: #000 !important; }
+    }
+    /* E4: Decision log */
+    .decision-log-panel { max-height: 320px; overflow-y: auto; }
+    .decision-log-item { padding: 8px 10px; border-bottom: 1px solid var(--border-primary); font-size: 11px; }
+    .decision-log-item:last-child { border-bottom: 0; }
+    .decision-chip { display: inline-block; font-size: 9px; font-weight: 700; padding: 1px 6px; border-radius: 10px; background: rgba(99,102,241,0.15); color: var(--color-accent); margin-right: 4px; }
+    .decision-time { font-size: 9px; color: var(--text-muted); }
+    .decision-change { font-family: ui-monospace, monospace; font-size: 10px; color: var(--text-secondary); margin-top: 3px; }
+    .decision-effect { font-size: 10px; color: #10b981; margin-top: 2px; }
+    /* E4-3: Sign-off form */
+    .signoff-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-top: 6px; }
+    .signoff-row input { font-size: 11px; background: var(--bg-tertiary); color: var(--text-primary); border: 1px solid var(--border-primary); border-radius: 4px; padding: 5px 8px; }
+
+    /* ==================================================================
        P49 — C3-1~4 Interactive Animations
        ================================================================== */
     /* C3-1: Pole drag animation */
@@ -2637,6 +2689,67 @@
       </div>
 
       <div class="sidebar-panel" id="panel-compare">
+
+        <!-- E1-1~3: Dashboard Overview -->
+        <section class="section-panel" id="e1-dashboard-section">
+          <div class="toolbar-inline" style="margin-bottom:8px;">
+            <div class="section-title" style="margin-bottom:0;">儀表板總覽 (E1)</div>
+            <div style="display:flex;gap:6px;">
+              <button class="btn btn-sm" id="btn-e1-refresh" style="font-size:10px;">更新</button>
+              <button class="btn btn-sm" id="btn-e1-export-report" style="font-size:10px;">匯出報告</button>
+            </div>
+          </div>
+          <div id="e1-project-info" style="font-size:11px;color:var(--text-muted);margin-bottom:8px;"></div>
+          <div class="e1-dashboard" id="e1-dashboard-grid">
+            <div class="e1-card">
+              <div class="e1-card-title">規格合規</div>
+              <div id="e1-compliance-out">—</div>
+            </div>
+            <div class="e1-card">
+              <div class="e1-card-title">效能摘要</div>
+              <div id="e1-perf-out">—</div>
+            </div>
+            <div class="e1-card">
+              <div class="e1-card-title">版本趨勢</div>
+              <div class="e1-trend-bar" id="e1-trend-bar"></div>
+              <div id="e1-trend-label" style="font-size:9px;color:var(--text-muted);margin-top:2px;"></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- E2-1~3: Scoring Matrix + Recommendation -->
+        <section class="section-panel" id="e2-scoring-section">
+          <div class="section-title">多方案評分矩陣 (E2)</div>
+          <p style="font-size:11px;color:var(--text-muted);line-height:1.5;margin-bottom:8px;">
+            基於效能(40%)、穩健性(40%)、複雜度(20%)計算各設計方案综合分。
+          </p>
+          <button class="btn btn-sm" id="btn-e2-score" style="width:100%;justify-content:center;margin-bottom:8px;">計算評分矩陣</button>
+          <div id="e2-score-table-wrap" style="display:none;overflow-x:auto;margin-bottom:8px;"></div>
+          <!-- E2-2: Radar chart -->
+          <div id="e2-radar-chart" class="e2-radar-wrap" style="display:none;height:200px;margin-top:6px;"></div>
+        </section>
+
+        <!-- E4-1~3: Decision Log + Sign-off -->
+        <section class="section-panel" id="e4-decision-section">
+          <div class="toolbar-inline" style="margin-bottom:8px;">
+            <div class="section-title" style="margin-bottom:0;">設計決策日誌 (E4)</div>
+            <div style="display:flex;gap:4px;">
+              <button class="btn btn-sm" id="btn-e4-export-csv" style="font-size:10px;">匯出 CSV</button>
+            </div>
+          </div>
+          <div class="decision-log-panel" id="decision-log-list">
+            <div style="font-size:11px;color:var(--text-muted);padding:8px 0;">尚無決策記錄。調整參數後自動記錄。</div>
+          </div>
+          <div style="margin-top:10px;border-top:1px solid var(--border-primary);padding-top:8px;">
+            <div style="font-size:10px;font-weight:700;text-transform:uppercase;color:var(--text-muted);margin-bottom:6px;">電子簽核 (E4-3)</div>
+            <div class="signoff-row">
+              <input type="text" id="e4-designer" placeholder="設計者" aria-label="設計者">
+              <input type="text" id="e4-reviewer" placeholder="審核者" aria-label="審核者">
+              <input type="text" id="e4-approver" placeholder="核准者" aria-label="核准者">
+            </div>
+          </div>
+        </section>
+
         <section class="section-panel">
           <div class="toolbar-inline">
             <h3 class="section-title" style="margin-bottom:0;">Result Comparison</h3>
@@ -3204,6 +3317,37 @@
       </div>
     </div>
   </div>
+
+  <!-- E3-1~3: Report Meta Modal -->
+  <div class="report-meta-modal" id="report-meta-modal" role="dialog" aria-modal="true" aria-labelledby="report-meta-title">
+    <div class="report-meta-box">
+      <h3 id="report-meta-title">生成設計報告 (E3)</h3>
+      <div class="report-meta-grid">
+        <div class="input-group"><label>報告標題</label><input type="text" id="e3-title" value="控制系統設計報告"></div>
+        <div class="input-group"><label>副標題</label><input type="text" id="e3-subtitle" placeholder="專案名稱或說明"></div>
+        <div class="input-group"><label>設計者</label><input type="text" id="e3-author" placeholder="姓名"></div>
+        <div class="input-group"><label>審核者</label><input type="text" id="e3-reviewer" placeholder="姓名"></div>
+        <div class="input-group"><label>專案編號</label><input type="text" id="e3-project-num" placeholder="PRJ-001"></div>
+        <div class="input-group"><label>版本</label><input type="text" id="e3-version" value="v1.0"></div>
+      </div>
+      <div class="input-group" style="margin-bottom:0;">
+        <label>機密等級 (E3-3)</label>
+        <select id="e3-confidential" style="font-size:12px;background:var(--bg-tertiary);color:var(--text-primary);border:1px solid var(--border-primary);border-radius:4px;padding:6px 10px;">
+          <option value="public">公開</option>
+          <option value="internal">內部（INTERNAL 浮水印）</option>
+          <option value="confidential">機密（CONFIDENTIAL 浮水印）</option>
+        </select>
+      </div>
+      <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:4px;">
+        <button class="btn btn-sm" id="report-meta-cancel" type="button">取消</button>
+        <button class="btn btn-primary btn-sm" id="report-meta-generate" type="button">生成 HTML 報告</button>
+        <button class="btn btn-sm" id="report-meta-print" type="button">🖨 列印 PDF</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- E3-3: Watermark overlay -->
+  <div class="report-watermark" id="report-watermark" aria-hidden="true"></div>
 
   <!-- A3-4: History Drawer -->
   <div class="history-drawer" id="history-drawer" role="complementary" aria-label="調參歷史">
