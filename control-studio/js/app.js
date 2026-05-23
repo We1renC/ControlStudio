@@ -8150,3 +8150,167 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById(id)?.addEventListener('change', updateSpecComplianceBadges);
   });
 }, { once: true });
+
+// ── P42 — B1-2/B1-3 Compare Table Enhancements ───────────────────────────────
+// Enhances the existing comparison table in panel-compare with:
+//   - Sortable columns (click header to sort asc/desc)
+//   - ★ best-value highlighting per column
+//   - Diff heat-map toggle (show % deviation from best)
+//   - CSV export button
+function initCompareTableEnhancements() {
+  const toolbar = document.getElementById('b1-toolbar');
+  const diffToggle = document.getElementById('b1-diff-toggle');
+  const csvBtn = document.getElementById('btn-b1-csv');
+  const tableBody = document.getElementById('comparison-table-body');
+  if (!toolbar || !diffToggle || !csvBtn || !tableBody) return;
+
+  let _diffMode = false;
+  let _sortCol = -1;
+  let _sortDir = 1; // 1=asc, -1=desc
+
+  // Column metadata: [headerText, metricKey, higherIsBetter]
+  const COLS = [
+    { label: 'Name',      key: 'name',         dir: null },  // not sortable numerically
+    { label: 'Kp',        key: 'kp',            dir: -1 },   // lower=better (less aggressive)
+    { label: 'Ki',        key: 'ki',            dir: -1 },
+    { label: 'Kd',        key: 'kd',            dir: -1 },
+    { label: 'PM',        key: 'pm',            dir: 1  },   // higher PM = better
+    { label: 'GM',        key: 'gm',            dir: 1  },
+    { label: 'Rise',      key: 'rise',          dir: -1 },   // lower=better
+    { label: 'Settling',  key: 'settle',        dir: -1 },
+    { label: 'Overshoot', key: 'os',            dir: -1 },
+    { label: 'ESS',       key: 'ess',           dir: -1 },
+  ];
+
+  /**
+   * Extract metric data from a snapshot card (the existing DOM tbody rows).
+   * Returns array of {name, cells: [values...]} from current snapshot state.
+   */
+  function extractRows() {
+    return state.comparisonSnapshots.map((s) => ({
+      snap: s,
+      name: s.name,
+      vals: [
+        NaN,                                          // name col (skip)
+        s.controller?.Kp ?? NaN,
+        s.controller?.Ki ?? NaN,
+        s.controller?.Kd ?? NaN,
+        s.metrics?.phaseMargin ?? NaN,
+        s.metrics?.gainMarginDB ?? NaN,
+        s.metrics?.riseTime ?? NaN,
+        s.metrics?.settlingTime ?? NaN,
+        s.metrics?.overshoot != null ? s.metrics.overshoot * 100 : NaN,
+        s.metrics?.ess ?? NaN,
+      ],
+    }));
+  }
+
+  function renderEnhancedTable() {
+    if (!state.comparisonSnapshots.length) {
+      toolbar.style.display = 'none';
+      return;
+    }
+    toolbar.style.display = 'flex';
+
+    const rows = extractRows();
+
+    // Sort if needed
+    if (_sortCol > 0 && COLS[_sortCol].dir !== null) {
+      rows.sort((a, b) => {
+        const va = a.vals[_sortCol];
+        const vb = b.vals[_sortCol];
+        if (!Number.isFinite(va) && !Number.isFinite(vb)) return 0;
+        if (!Number.isFinite(va)) return 1;
+        if (!Number.isFinite(vb)) return -1;
+        return (va - vb) * _sortDir;
+      });
+    }
+
+    // Find best per column (col 1–9)
+    const bestIdx = COLS.map((col, ci) => {
+      if (ci === 0 || col.dir === null) return -1;
+      let best = -1, bestV = NaN;
+      rows.forEach((r, ri) => {
+        const v = r.vals[ci];
+        if (!Number.isFinite(v)) return;
+        if (best === -1 || (col.dir === 1 ? v > bestV : v < bestV)) {
+          best = ri; bestV = v;
+        }
+      });
+      return best;
+    });
+
+    // Build tbody HTML
+    tableBody.innerHTML = rows.map((row, ri) => {
+      const cells = row.vals.map((v, ci) => {
+        if (ci === 0) return `<td><strong>${escapeHtml(row.name.slice(0, 30))}</strong></td>`;
+        const isBest = bestIdx[ci] === ri;
+        let diff = 0;
+        if (!isBest && _diffMode && Number.isFinite(v)) {
+          const bestV = rows[bestIdx[ci]]?.vals[ci];
+          if (Number.isFinite(bestV) && bestV !== 0) diff = Math.abs((v - bestV) / bestV * 100);
+        }
+        const cellClass = isBest ? 'compare-best' : diff > 15 ? 'compare-diff-bad' : diff > 5 ? 'compare-diff-warn' : '';
+        const label = Number.isFinite(v) ? (ci >= 6 ? `${fmtNum(v, 3)}${ci === 8 ? '%' : ci === 4 || ci === 3 ? '°' : 's'}` : fmtNum(v, 3)) : '—';
+        const star = isBest ? ' ★' : '';
+        const diffStr = _diffMode && !isBest && diff > 0 ? ` <span style="font-size:9px;opacity:.7">+${diff.toFixed(0)}%</span>` : '';
+        return `<td class="${cellClass}">${label}${star}${diffStr}</td>`;
+      });
+      return `<tr>${cells.join('')}</tr>`;
+    }).join('');
+
+    // Update headers with sort arrows
+    const table = tableBody.closest('table');
+    if (table) {
+      table.classList.add('compare-metrics-enhanced');
+      const headers = table.querySelectorAll('thead th');
+      headers.forEach((th, ci) => {
+        th.querySelector('.compare-sort-arrow')?.remove();
+        if (COLS[ci]?.dir !== null) {
+          const arrow = document.createElement('span');
+          arrow.className = 'compare-sort-arrow';
+          arrow.textContent = _sortCol === ci ? (_sortDir === 1 ? '▲' : '▼') : '⇅';
+          th.appendChild(arrow);
+          if (!th.dataset.b1Wired) {
+            th.dataset.b1Wired = '1';
+            th.addEventListener('click', () => {
+              if (_sortCol === ci) _sortDir *= -1;
+              else { _sortCol = ci; _sortDir = 1; }
+              renderEnhancedTable();
+            });
+          }
+        }
+      });
+    }
+  }
+
+  diffToggle.addEventListener('click', () => {
+    _diffMode = !_diffMode;
+    diffToggle.classList.toggle('active', _diffMode);
+    renderEnhancedTable();
+  });
+
+  csvBtn.addEventListener('click', () => {
+    const rows = extractRows();
+    if (!rows.length) { notify('尚無快照資料', 'info'); return; }
+    const header = COLS.map(c => c.label).join(',');
+    const body = rows.map(r =>
+      [r.name, ...r.vals.slice(1).map(v => Number.isFinite(v) ? v.toFixed(4) : '')].join(',')
+    ).join('\n');
+    const csv = `${header}\n${body}`;
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = 'compare_metrics.csv'; a.click();
+    URL.revokeObjectURL(url);
+    notify('比較表已匯出 CSV', 'success');
+  });
+
+  // Expose refresh hook for external callers
+  window._refreshB1Table = renderEnhancedTable;
+}
+
+// ── P42 init ──────────────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  setTimeout(() => initCompareTableEnhancements(), 600);
+}, { once: true });

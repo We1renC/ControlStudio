@@ -573,6 +573,19 @@
     .disc-compare-badge.bad { background: rgba(239,68,68,0.2); color: #ef4444; }
 
     /* ==================================================================
+       P42 — B1-2/B1-3 Comparison table enhancements
+       ================================================================== */
+    .compare-metrics-enhanced th { cursor: pointer; user-select: none; position: relative; }
+    .compare-metrics-enhanced th:hover { background: rgba(99,102,241,0.1); }
+    .compare-sort-arrow { font-size: 9px; margin-left: 3px; opacity: 0.5; }
+    .compare-best { background: rgba(99,102,241,0.12) !important; font-weight: 700; }
+    .compare-diff-warn { background: rgba(245,158,11,0.15) !important; }
+    .compare-diff-bad  { background: rgba(239,68,68,0.18) !important; }
+    .b1-toolbar { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; flex-wrap: wrap; }
+    .b1-diff-toggle { font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: var(--radius-sm); border: 1px solid var(--border-primary); background: var(--bg-tertiary); color: var(--text-muted); cursor: pointer; transition: all 0.15s; }
+    .b1-diff-toggle.active { background: var(--color-accent); border-color: var(--color-accent); color: white; }
+
+    /* ==================================================================
        P41 — A2-2/A2-3 Spec compliance badge
        ================================================================== */
     .spec-compliance-bar {
@@ -2255,6 +2268,11 @@
               </thead>
               <tbody id="comparison-table-body"><tr><td colspan="10">—</td></tr></tbody>
             </table>
+          </div>
+          <!-- B1-2/B1-3 toolbar -->
+          <div class="b1-toolbar" id="b1-toolbar" style="display:none;">
+            <button class="b1-diff-toggle" id="b1-diff-toggle" title="Toggle diff heat-map highlight">差異視覺化</button>
+            <button class="btn btn-sm" id="btn-b1-csv" style="font-size:10px;padding:3px 8px;">CSV 匯出</button>
           </div>
           <div class="button-grid" style="margin-top:var(--space-4);">
             <button class="btn btn-sm" id="btn-clear-snapshots" style="justify-content:center;">Clear Snapshots</button>
