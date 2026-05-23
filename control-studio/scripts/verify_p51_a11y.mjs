@@ -23,18 +23,8 @@ function assert(cond, label, msg = '') { cond ? ok(label) : bad(label, msg || 'c
 const appJs     = readFileSync(path.join(ROOT, 'js/app.js'),  'utf8');
 const indexHtml = readFileSync(path.join(ROOT, 'index.html'), 'utf8');
 
-// ── F4-3: 8-color cycle ───────────────────────────────────────────────────────
-console.log('\n▶ F4-3 Chart 8-Color Cycle');
-
-assert(appJs.includes('const DARK_COLORS'),          'DARK_COLORS defined');
-assert(appJs.includes('const PRINT_PATTERNS'),       'PRINT_PATTERNS defined');
-assert(appJs.includes('function getChartColors('),   'getChartColors() defined');
-assert(appJs.includes('function getLinePattern('),   'getLinePattern() defined');
-assert(appJs.includes("'#3fb950'"),                  'first dark color present');
-assert(appJs.includes("'#58a6ff'"),                  'second dark color present');
-assert(appJs.includes("theme === 'print'"),          'print theme branch in getChartColors');
-assert(appJs.includes('window.getChartColors'),      'getChartColors exposed globally');
-assert(appJs.includes('window.getLinePattern'),      'getLinePattern exposed globally');
+// ── F4-3: 8-color cycle (removed — chart palette feature removed per UX cleanup) ──
+console.log('\n▶ F4-3 Chart Color (palette removed)');
 
 // ── F4-4: Reduced motion ──────────────────────────────────────────────────────
 console.log('\n▶ F4-4 Reduced Motion');
@@ -108,28 +98,8 @@ assert(appJs.includes('Nyquist 圖'),                   'nyquist ARIA text');
 assert(appJs.includes("setAttribute('role', 'img')"),  'role=img set on charts');
 assert(appJs.includes('window.updateChartARIA'),       'updateChartARIA exposed globally');
 
-// ── G7: Color-blind palette + SVG filters ─────────────────────────────────────
-console.log('\n▶ G7 Color-blind Friendly');
-
-assert(appJs.includes('const OKABE_ITO'),              'OKABE_ITO palette defined');
-assert(appJs.includes('function getColorBlindSafeColors('), 'getColorBlindSafeColors() defined');
-assert(appJs.includes('function initColorBlindFilter()'), 'initColorBlindFilter() defined');
-assert(appJs.includes('cb-mode-select'),               'cb-mode-select referenced');
-assert(appJs.includes('cb-filter-protanopia'),         'protanopia filter class');
-assert(appJs.includes('cb-filter-deuteranopia'),       'deuteranopia filter class');
-assert(appJs.includes('cb-filter-tritanopia'),         'tritanopia filter class');
-assert(appJs.includes('window.getColorBlindSafeColors'), 'getColorBlindSafeColors exposed');
-
-assert(indexHtml.includes('cb-svg-filters'),           '#cb-svg-filters SVG in HTML');
-assert(indexHtml.includes('cb-protanopia'),            '#cb-protanopia filter defined');
-assert(indexHtml.includes('cb-deuteranopia'),          '#cb-deuteranopia filter defined');
-assert(indexHtml.includes('cb-tritanopia'),            '#cb-tritanopia filter defined');
-assert(indexHtml.includes('feColorMatrix'),            'feColorMatrix used in SVG filters');
-assert(indexHtml.includes('cb-mode-select'),           '#cb-mode-select in HTML');
-assert(indexHtml.includes('.cb-filter-protanopia'),    '.cb-filter-protanopia CSS');
-assert(indexHtml.includes('.cb-filter-deuteranopia'),  '.cb-filter-deuteranopia CSS');
-assert(indexHtml.includes('.cb-filter-tritanopia'),    '.cb-filter-tritanopia CSS');
-assert(indexHtml.includes('.cb-mode-row'),             '.cb-mode-row CSS');
+// ── G7: Color-blind mode (removed — feature removed per UX cleanup) ───────────
+console.log('\n▶ G7 Color-blind (removed)');
 
 // ── P51 init ──────────────────────────────────────────────────────────────────
 console.log('\n▶ P51 DOMContentLoaded init');
@@ -140,7 +110,7 @@ assert(appJs.includes('initReducedMotion()'),          'initReducedMotion called
 assert(appJs.includes('initKeyboardNav()'),            'initKeyboardNav called from initA11y');
 assert(appJs.includes('initKeyboardHelpPanel()'),      'initKeyboardHelpPanel called from initA11y');
 assert(appJs.includes('initScreenReaderSupport()'),    'initScreenReaderSupport called from initA11y');
-assert(appJs.includes('initColorBlindFilter()'),       'initColorBlindFilter called from initA11y');
+// initColorBlindFilter removed per UX cleanup
 
 // ── Summary ───────────────────────────────────────────────────────────────────
 console.log('');

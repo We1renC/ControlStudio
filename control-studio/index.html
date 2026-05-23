@@ -65,20 +65,27 @@
     .app-status-bar::-webkit-scrollbar { display: none; }
     .app-status-item {
       display: inline-flex;
-      align-items: center;
-      gap: 6px;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 1px;
       white-space: nowrap;
       flex-shrink: 0;
     }
     .app-status-item span {
+      display: block;
       color: var(--text-muted);
       text-transform: uppercase;
       letter-spacing: 0.4px;
       font-weight: 700;
+      font-size: 9px;
+      line-height: 1;
     }
     .app-status-item strong {
+      display: block;
       color: var(--text-secondary);
       font-weight: 700;
+      font-size: 11px;
+      line-height: 1.2;
     }
     .app-status-live {
       margin-left: auto;
@@ -108,8 +115,10 @@
     .plot-side { display:flex; flex-direction:column; gap:var(--space-4); min-width: 0; }
     .mini-chart .chart-body { min-height: 150px; }
     .sidebar-tabs { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; background: var(--bg-tertiary); padding: 4px; border-radius: var(--radius-md); }
-    .sidebar-tab { border: 0; background: transparent; color: var(--text-secondary); padding: 8px 6px; font-size: 12px; font-weight: 600; border-radius: var(--radius-sm); cursor: pointer; }
+    .sidebar-tab { border: 0; background: transparent; color: var(--text-secondary); padding: 8px 6px; font-size: 12px; font-weight: 600; border-radius: var(--radius-sm); cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 3px; }
     .sidebar-tab.active { background: var(--bg-secondary); color: var(--color-accent); }
+    /* Keep tab icons, show minimal labels below */
+    .tab-label { font-size: 10px; font-weight: 600; letter-spacing: 0.3px; }
     .sidebar-panel { display: none; gap: var(--space-4); }
     .sidebar-panel.active { display: flex; flex-direction: column; }
     .section-panel { background: var(--bg-tertiary); border: 1px solid var(--border-primary); border-radius: var(--radius-md); padding: var(--space-4); }
@@ -551,14 +560,8 @@
     .chart-crosshair.visible { display: block; }
 
     /* ==================================================================
-       P40 — B3-3 Chart theme toggle button
+       P40 — B3-3 Chart theme toggle button removed per UX cleanup
        ================================================================== */
-    .chart-theme-btn {
-      background: transparent; border: 0; color: var(--text-muted); cursor: pointer;
-      padding: 2px 5px; border-radius: 3px; font-size: 13px; line-height: 1;
-      transition: color 0.15s; margin-left: 4px;
-    }
-    .chart-theme-btn:hover { color: var(--text-primary); }
 
     /* ==================================================================
        P41 — D2 Discretization comparison table
@@ -1159,13 +1162,10 @@
     }
 
     /* G7: Color-blind SVG filter wrappers */
-    .cb-filter-protanopia   { filter: url(#cb-protanopia);   }
-    .cb-filter-deuteranopia { filter: url(#cb-deuteranopia); }
-    .cb-filter-tritanopia   { filter: url(#cb-tritanopia);   }
+/* color-blind simulation CSS removed per UX cleanup */
 
     /* G7: Color-blind mode selector */
-    .cb-mode-row { display: flex; align-items: center; gap: 6px; font-size: 10px; color: var(--text-muted); padding: 3px 0; }
-    .cb-mode-row select { font-size: 10px; background: var(--bg-tertiary); color: var(--text-primary); border: 1px solid var(--border-primary); border-radius: 4px; padding: 2px 4px; }
+/* .cb-mode-row removed per UX cleanup */
 
     /* F5-1: Keyboard help panel */
     .kbd-help-panel { position: fixed; inset: 0; z-index: 10200; display: none; align-items: center; justify-content: center; background: rgba(0,0,0,0.65); }
@@ -1443,36 +1443,7 @@
   <a href="#main-content" class="skip-link">跳至主要內容</a>
   <a href="#nav" class="skip-link">跳至導覽列</a>
 
-  <!-- G7: SVG color-blind simulation filters (hidden) -->
-  <svg id="cb-svg-filters" aria-hidden="true" focusable="false"
-       style="position:absolute;width:0;height:0;overflow:hidden;">
-    <defs>
-      <!-- Protanopia (red-blind) -->
-      <filter id="cb-protanopia" color-interpolation-filters="linearRGB">
-        <feColorMatrix type="matrix" values="
-          0.567 0.433 0     0 0
-          0.558 0.442 0     0 0
-          0     0.242 0.758 0 0
-          0     0     0     1 0"/>
-      </filter>
-      <!-- Deuteranopia (green-blind) -->
-      <filter id="cb-deuteranopia" color-interpolation-filters="linearRGB">
-        <feColorMatrix type="matrix" values="
-          0.625 0.375 0     0 0
-          0.700 0.300 0     0 0
-          0     0.300 0.700 0 0
-          0     0     0     1 0"/>
-      </filter>
-      <!-- Tritanopia (blue-blind) -->
-      <filter id="cb-tritanopia" color-interpolation-filters="linearRGB">
-        <feColorMatrix type="matrix" values="
-          0.950 0.050 0     0 0
-          0     0.433 0.567 0 0
-          0     0.475 0.525 0 0
-          0     0     0     1 0"/>
-      </filter>
-    </defs>
-  </svg>
+  <!-- G7: SVG color-blind simulation filters removed per UX cleanup -->
 
   <!-- F3-3: Computation progress bar -->
   <div class="calc-progress-wrap" id="calc-progress-wrap" role="progressbar" aria-label="計算中" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
@@ -1504,38 +1475,34 @@
       <span class="dirty-dot" id="dirty-dot" title="有未儲存的變更" aria-label="未儲存的變更" role="status"></span>
     </div>
     <div class="header-actions">
-      <div class="view-switch" role="group" aria-label="View selector">
-        <button class="btn btn-sm active" id="view-dashboard" aria-pressed="true">Dashboard</button>
-        <button class="btn btn-sm" id="view-editor" disabled aria-disabled="true" title="Block Diagram editor 暫時停用中（保留給後續開發）">Block Diagram</button>
-      </div>
       <div class="divider-v"></div>
-      <button class="btn btn-sm" id="btn-undo" title="Undo (Ctrl+Z)" aria-label="Undo last change" disabled style="font-size:11px;">&#x21A9; Undo</button>
-      <button class="btn btn-sm" id="btn-redo" title="Redo (Ctrl+Y)" aria-label="Redo last change" disabled style="font-size:11px;">&#x21AA; Redo</button>
-      <button class="btn btn-sm split-btn" id="btn-split-pane" title="切換分割工作區 (F2-1)" aria-label="分割工作區" style="font-size:11px;">⧉ 分割</button>
-      <button class="btn btn-sm" id="btn-new-system" title="新增系統模型 (A1-1)" aria-label="新增系統模型" style="font-size:11px;">＋ 系統</button>
-      <button class="btn btn-sm" id="btn-wizard" title="開啟設計精靈 (C2-1)" aria-label="開啟設計精靈" style="font-size:11px;">🧭 精靈</button>
-      <button class="btn btn-sm" id="btn-load-example" title="載入範例系統 (C1-3)" aria-label="載入範例" style="font-size:11px;">▶ 範例</button>
-      <button class="btn btn-sm" id="btn-explain" title="這是什麼？(C1-2)" aria-label="說明面板" style="font-size:11px;">ⓘ 說明</button>
-      <button class="btn btn-sm" id="btn-notes" title="筆記與書籤 (C4-2)" aria-label="筆記與書籤" style="font-size:11px;">📝 筆記</button>
-      <button class="btn btn-sm" id="btn-history" title="調參歷史 (A3-4)" aria-label="調參歷史" style="font-size:11px;">🕘 歷史</button>
+      <button class="btn btn-sm" id="btn-undo" title="Undo (Ctrl+Z)" aria-label="Undo last change" disabled style="font-size:13px;">&#x21A9;</button>
+      <button class="btn btn-sm" id="btn-redo" title="Redo (Ctrl+Y)" aria-label="Redo last change" disabled style="font-size:13px;">&#x21AA;</button>
+      <div class="divider-v"></div>
+      <button class="btn btn-sm split-btn" id="btn-split-pane" title="切換分割工作區 (F2-1)" aria-label="分割工作區" style="font-size:13px;">⧉</button>
+      <button class="btn btn-sm" id="btn-new-system" title="新增系統模型 (A1-1)" aria-label="新增系統模型" style="font-size:13px;">＋</button>
+      <button class="btn btn-sm" id="btn-wizard" title="開啟設計精靈 (C2-1)" aria-label="開啟設計精靈" style="font-size:13px;">🧭</button>
+      <button class="btn btn-sm" id="btn-load-example" title="載入範例系統 (C1-3)" aria-label="載入範例" style="font-size:13px;">▶</button>
+      <button class="btn btn-sm" id="btn-explain" title="這是什麼？(C1-2)" aria-label="說明面板" style="font-size:13px;">ⓘ</button>
+      <button class="btn btn-sm" id="btn-notes" title="筆記與書籤 (C4-2)" aria-label="筆記與書籤" style="font-size:13px;">📝</button>
+      <button class="btn btn-sm" id="btn-history" title="調參歷史 (A3-4)" aria-label="調參歷史" style="font-size:13px;">🕘</button>
       <span id="draft-saved-indicator" style="font-size:10px;color:var(--text-muted);display:none;"></span>
-      <button class="btn btn-sm" id="btn-share-url" title="Copy share URL to clipboard" aria-label="Copy share URL" style="font-size:11px;">&#x29C9; Share</button>
-      <button class="btn btn-sm" id="btn-quickstart" title="Quick Start with example presets (Ctrl+/)" aria-label="Open Quick Start guide">
+      <div class="divider-v"></div>
+      <button class="btn btn-sm" id="btn-quickstart" title="Quick Start / Help (Ctrl+/)" aria-label="Open Quick Start guide">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-        <span>Help</span>
       </button>
       <button class="btn btn-sm" id="btn-prefs" title="偏好設定 (G4)" aria-label="偏好設定" aria-haspopup="dialog">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
       </button>
-      <button class="btn btn-sm" id="btn-keyboard-help" title="鍵盤快捷鍵 (?)" aria-label="顯示鍵盤快捷鍵" aria-haspopup="dialog" style="font-size:11px;">⌨ 快捷鍵</button>
-      <button class="btn btn-sm" id="btn-projects" title="G9: 多專案管理" aria-label="專案管理" aria-haspopup="dialog" style="font-size:11px;">📁 專案</button>
-      <select id="lang-select" aria-label="G5: 介面語言" title="切換介面語言 (G5)">
-        <option value="zh-TW">繁中</option>
+      <button class="btn btn-sm" id="btn-keyboard-help" title="鍵盤快捷鍵 (?)" aria-label="顯示鍵盤快捷鍵" aria-haspopup="dialog" style="font-size:13px;">⌨</button>
+      <button class="btn btn-sm" id="btn-projects" title="G9: 多專案管理" aria-label="專案管理" aria-haspopup="dialog" style="font-size:13px;">📁</button>
+      <select id="lang-select" aria-label="G5: 介面語言" title="切換介面語言 (G5)" style="font-size:10px;background:var(--bg-tertiary);color:var(--text-primary);border:1px solid var(--border-primary);border-radius:4px;padding:2px 4px;cursor:pointer;">
+        <option value="zh-TW">中</option>
         <option value="en">EN</option>
       </select>
       <button class="btn btn-sm theme-cycle-btn" id="theme-toggle" title="Cycle theme: Dark → Light → Print → High-contrast" aria-label="Cycle theme">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" id="theme-icon-svg"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
-        <span class="theme-cycle-label" id="theme-label">Dark</span>
+        <span class="theme-cycle-label" id="theme-label" style="display:none;">Dark</span>
       </button>
     </div>
   </header>
@@ -1554,15 +1521,7 @@
         <button class="unit-btn" data-unit="hz" aria-pressed="false" title="Hz">Hz</button>
       </div>
     </div>
-    <div class="cb-mode-row" title="G7: 色盲模擬預覽">
-      <span>色覺</span>
-      <select id="cb-mode-select" aria-label="色盲模擬模式">
-        <option value="normal">正常</option>
-        <option value="protanopia">紅色盲</option>
-        <option value="deuteranopia">綠色盲</option>
-        <option value="tritanopia">藍色盲</option>
-      </select>
-    </div>
+    <!-- G7 color-blind selector removed per UX cleanup -->
     <!-- A1-4: Model health badge -->
     <div class="app-status-item">
       <button class="health-badge-btn idle" id="health-badge-btn" aria-haspopup="true" aria-label="模型健康診斷" title="A1-4: 模型健康診斷">● 健康</button>

@@ -1066,6 +1066,21 @@ function switchSidebarPanel(panelName) {
   document.querySelectorAll('.sidebar-panel').forEach((panel) => {
     panel.classList.toggle('active', panel.id === `panel-${panelName}`);
   });
+
+  // Close interactive sub-panels that belong to specific sidebar tabs.
+  // Root-locus gain info and z-pole info are only relevant in the Simulate/Plot view.
+  if (panelName !== 'simulate' && panelName !== 'model') {
+    const rlGain = document.getElementById('rl-gain-info');
+    const zpole  = document.getElementById('zpole-info');
+    if (rlGain) rlGain.style.display = 'none';
+    if (zpole)  zpole.style.display  = 'none';
+  }
+  // Sensitivity chart sub-panel belongs to simulate context
+  if (panelName !== 'simulate') {
+    const sensChart = document.getElementById('c3-sensitivity-chart');
+    if (sensChart) sensChart.style.display = 'none';
+  }
+
   saveSessionToStorage();
   updateGlobalStatusBar(`${panelName} panel active`);
 }
@@ -8051,81 +8066,12 @@ function initChartCursorReadout() {
   });
 }
 
-// ── P40 — B3-3 Chart Theme Toggle ────────────────────────────────────────────
-// Adds a 🎨 button to each chart header to cycle chart color themes.
-// Three modes: auto (follows global theme), vibrant, monochrome.
-const CHART_THEMES = ['auto', 'vibrant', 'mono'];
-const CHART_THEME_LABELS = { auto: '🎨', vibrant: '🌈', mono: '⬛' };
-const CHART_THEME_TITLES = { auto: '圖表主題：跟隨全域', vibrant: '圖表主題：繽紛', mono: '圖表主題：單色' };
-
-// Per-chart theme overrides: chartId → theme string
-const _chartThemes = {};
-
-function getChartColorscale(themeKey) {
-  if (themeKey === 'vibrant') {
-    return ['#ff6b6b', '#ffd93d', '#6bcb77', '#4d96ff', '#f72585', '#7209b7', '#3a0ca3', '#4cc9f0'];
-  }
-  if (themeKey === 'mono') {
-    return ['#e6e6e6', '#bdbdbd', '#969696', '#737373', '#525252', '#252525', '#000000', '#f0f0f0'];
-  }
-  // 'auto' — use CSS accent palette
-  return null;
-}
-
-function initChartThemeToggle() {
-  document.querySelectorAll('.chart-cell').forEach(cell => {
-    const header = cell.querySelector('.chart-header');
-    if (!header) return;
-    const chartDiv = cell.querySelector('[id^="chart-"]');
-    if (!chartDiv) return;
-    const chartId = chartDiv.id;
-
-    const btn = document.createElement('button');
-    btn.className = 'chart-theme-btn';
-    btn.id = `theme-btn-${chartId}`;
-    btn.textContent = CHART_THEME_LABELS['auto'];
-    btn.title = CHART_THEME_TITLES['auto'];
-    header.appendChild(btn);
-
-    let themeIdx = 0;
-
-    btn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      themeIdx = (themeIdx + 1) % CHART_THEMES.length;
-      const themeKey = CHART_THEMES[themeIdx];
-      _chartThemes[chartId] = themeKey;
-      btn.textContent = CHART_THEME_LABELS[themeKey];
-      btn.title = CHART_THEME_TITLES[themeKey];
-
-      // Apply colorscale to existing Plotly traces
-      try {
-        const gd = document.getElementById(chartId);
-        const colors = getChartColorscale(themeKey);
-        if (!colors) { Plotly?.relayout(chartId, {}); return; }
-        const traceUpdates = (gd?._fullData || []).map((trace, i) => ({
-          'line.color': colors[i % colors.length],
-          'marker.color': colors[i % colors.length],
-        }));
-        if (traceUpdates.length) {
-          Plotly?.restyle(chartId, traceUpdates.reduce((acc, upd, i) => {
-            Object.entries(upd).forEach(([k, v]) => {
-              if (!acc[k]) acc[k] = [];
-              acc[k][i] = v;
-            });
-            return acc;
-          }, {}));
-        }
-      } catch (_) {}
-    });
-  });
-}
-
 // ── P40 init ──────────────────────────────────────────────────────────────────
+// Note: B3-3 Chart Theme Toggle (🎨 palette button) removed per UX cleanup.
 document.addEventListener('DOMContentLoaded', () => {
   initDesignWizard();
   setTimeout(() => {
     initChartCursorReadout();
-    initChartThemeToggle();
   }, 900);
 }, { once: true });
 
@@ -10026,6 +9972,10 @@ function loadExample(presetId) {
   const preset = EXAMPLE_PRESETS.find(p => p.id === presetId);
   if (!preset) return;
 
+  // Ensure SISO TF mode
+  document.querySelector('.system-mode-btn[data-mode="siso"]')?.click();
+  document.querySelector('.sys-tab[data-type="tf"]')?.click();
+
   // Fill TF inputs
   const numEl = document.getElementById('tf-num');
   const denEl = document.getElementById('tf-den');
@@ -10040,17 +9990,25 @@ function loadExample(presetId) {
   if (kiEl) kiEl.value = preset.pid.ki;
   if (kdEl) kdEl.value = preset.pid.kd;
 
-  // Trigger analysis
-  setTimeout(() => {
-    document.getElementById('btn-analyze')?.click();
-    notify(`已載入範例：${preset.name}`, 'success', { duration: 2000 });
-  }, 100);
-
   // Update sliders
   document.querySelectorAll('[data-pid]').forEach(el => {
     const key = el.dataset.pid;
     if (preset.pid[key] !== undefined) el.value = preset.pid[key];
   });
+
+  // Trigger full system update and refresh all charts
+  setTimeout(() => {
+    document.getElementById('btn-apply')?.click();
+    notify(`已載入範例：${preset.name}`, 'success', { duration: 2000 });
+    // Refresh all dependent panels after system update
+    setTimeout(() => {
+      refreshAllCharts?.();
+      updateHealthBadge?.();
+      refreshWarningsPanel?.();
+      renderWiringDiagram?.();
+      refreshResultSummary?.();
+    }, 300);
+  }, 100);
 }
 
 function initExampleLoader() {
@@ -11443,21 +11401,9 @@ document.addEventListener('DOMContentLoaded', () => {
 }, { once: true });
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// P51 — F4-2~4 Brand colors / 8-color cycle / reduced-motion
-//        F5-1~4 Keyboard nav / Screen reader / High contrast / Skip link
-//        G7    Color-blind palette + SVG filter simulation
+// P51 — F4-4 reduced-motion / F5-1~4 Keyboard nav / Screen reader / High contrast
+//        Note: F4-3 chart 8-color cycle and G7 color-blind mode removed per UX cleanup.
 // ═══════════════════════════════════════════════════════════════════════════════
-
-// ── F4-3: Chart 8-color cycle (WCAG AA verified) ──────────────────────────────
-const DARK_COLORS   = ['#3fb950','#58a6ff','#fb923c','#a78bfa',
-                       '#22d3ee','#f472b6','#facc15','#6ee7b7'];
-const PRINT_PATTERNS = ['solid','6,4','2,2','6,2,2,2','10,4','4,4','8,2','3,3'];
-
-function getChartColors(n, theme = 'dark') {
-  if (theme === 'print') return Array.from({ length: n }, () => '#000000');
-  return Array.from({ length: n }, (_, i) => DARK_COLORS[i % DARK_COLORS.length]);
-}
-function getLinePattern(i) { return PRINT_PATTERNS[i % PRINT_PATTERNS.length]; }
 
 // ── F4-4: prefers-reduced-motion ─────────────────────────────────────────────
 const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -11572,42 +11518,13 @@ function initKeyboardHelpPanel() {
   panel.addEventListener('click', e => { if (e.target === panel) panel.classList.remove('open'); });
 }
 
-// ── G7: Okabe-Ito color-blind safe palette + SVG filter wiring ────────────────
-const OKABE_ITO = ['#E69F00','#56B4E9','#009E73','#F0E442',
-                   '#0072B2','#D55E00','#CC79A7','#000000'];
-
-function getColorBlindSafeColors(n) {
-  return Array.from({ length: n }, (_, i) => OKABE_ITO[i % OKABE_ITO.length]);
-}
-
-function initColorBlindFilter() {
-  const sel = document.getElementById('cb-mode-select');
-  if (!sel) return;
-  const CHART_IDS = ['chart-step','chart-bode','chart-rlocus','chart-nyquist',
-                     'chart-phasePlane','chart-nyquist-anim','c3-step-preview',
-                     'c3-sensitivity-chart'];
-  sel.addEventListener('change', () => {
-    const mode = sel.value;
-    CHART_IDS.forEach(id => {
-      const el = document.getElementById(id);
-      if (!el) return;
-      el.classList.remove('cb-filter-protanopia','cb-filter-deuteranopia','cb-filter-tritanopia');
-      if (mode !== 'normal') el.classList.add(`cb-filter-${mode}`);
-    });
-    notify(`色覺模擬：${sel.options[sel.selectedIndex]?.text}`, 'info', { title: 'G7 色盲模式' });
-  });
-  window.getColorBlindSafeColors = getColorBlindSafeColors;
-  window.getChartColors          = getChartColors;
-  window.getLinePattern          = getLinePattern;
-}
-
 // ── initA11y: orchestrate all accessibility inits ─────────────────────────────
+// Note: G7 color-blind filter (OKABE_ITO / initColorBlindFilter) removed per UX cleanup.
 function initA11y() {
   initReducedMotion();
   initKeyboardNav();
   initKeyboardHelpPanel();
   initScreenReaderSupport();
-  initColorBlindFilter();
 }
 
 // ── P51 init ──────────────────────────────────────────────────────────────────
@@ -12326,6 +12243,9 @@ function _renderExampleCards() {
     btn.addEventListener('click', () => {
       const ex = EXAMPLE_LIBRARY.find(e => e.id === btn.dataset.loadEx);
       if (!ex) return;
+      // Ensure SISO TF mode
+      document.querySelector('.system-mode-btn[data-mode="siso"]')?.click();
+      document.querySelector('.sys-tab[data-type="tf"]')?.click();
       const numEl = document.getElementById('tf-num');
       const denEl = document.getElementById('tf-den');
       if (numEl) numEl.value = ex.num.join(', ');
@@ -12335,10 +12255,23 @@ function _renderExampleCards() {
         const kpEl = document.getElementById('pid-kp'); if (kpEl) kpEl.value = ex.pid.kp;
         const kiEl = document.getElementById('pid-ki'); if (kiEl) kiEl.value = ex.pid.ki;
         const kdEl = document.getElementById('pid-kd'); if (kdEl) kdEl.value = ex.pid.kd;
+        // sync PID sliders
+        document.querySelectorAll('[data-pid]').forEach(el => {
+          if (ex.pid[el.dataset.pid] !== undefined) el.value = ex.pid[el.dataset.pid];
+        });
       }
-      document.querySelector('.sys-tab[data-type="tf"]')?.click();
       notify(`已載入範例：${ex.name}`, 'success', { title: 'A1-3 範例庫' });
-      setTimeout(() => document.getElementById('btn-analyze')?.click(), 100);
+      // Trigger full analysis and refresh all panels
+      setTimeout(() => {
+        document.getElementById('btn-apply')?.click();
+        setTimeout(() => {
+          refreshAllCharts?.();
+          updateHealthBadge?.();
+          refreshWarningsPanel?.();
+          renderWiringDiagram?.();
+          refreshResultSummary?.();
+        }, 300);
+      }, 100);
     });
   });
 }

@@ -84,28 +84,15 @@ assert(indexHtml.includes('.chart-crosshair'), '.chart-crosshair CSS defined');
 assert(indexHtml.includes('.chart-readout-x'), '.chart-readout-x CSS defined');
 assert(indexHtml.includes('.chart-readout-row'), '.chart-readout-row CSS defined');
 
-// ── B3-3: Chart Theme Toggle ─────────────────────────────────────────────────
-console.log('\n▶ B3-3 Chart Theme Toggle');
-
-assert(appJs.includes('CHART_THEMES'), 'CHART_THEMES array defined');
-assert(appJs.includes("'vibrant'"), 'vibrant theme defined');
-assert(appJs.includes("'mono'"), 'mono theme defined');
-assert(appJs.includes("'auto'"), 'auto theme defined');
-assert(appJs.includes('CHART_THEME_LABELS'), 'CHART_THEME_LABELS mapping');
-assert(appJs.includes('CHART_THEME_TITLES'), 'CHART_THEME_TITLES mapping');
-assert(appJs.includes('function getChartColorscale('), 'getChartColorscale() function');
-assert(appJs.includes('function initChartThemeToggle()'), 'initChartThemeToggle() function');
-assert(appJs.includes('chart-theme-btn'), 'chart-theme-btn button class');
-assert(appJs.includes('_chartThemes'), '_chartThemes per-chart state');
-assert(appJs.includes('Plotly?.restyle') || appJs.includes('Plotly.restyle'), 'Plotly.restyle for color update');
-assert(indexHtml.includes('.chart-theme-btn'), '.chart-theme-btn CSS defined');
+// ── B3-3: Chart Theme Toggle (removed — palette feature removed per UX cleanup) ─
+console.log('\n▶ B3-3 Chart Theme Toggle (removed)');
 
 // ── P40 init ──────────────────────────────────────────────────────────────────
 console.log('\n▶ P40 DOMContentLoaded init');
 
 assert(appJs.includes('initDesignWizard()'), 'initDesignWizard called in init');
 assert(appJs.includes('initChartCursorReadout()'), 'initChartCursorReadout called in init');
-assert(appJs.includes('initChartThemeToggle()'), 'initChartThemeToggle called in init');
+// initChartThemeToggle removed per UX cleanup
 
 // ── Summary ───────────────────────────────────────────────────────────────────
 console.log('');
