@@ -8314,3 +8314,276 @@ function initCompareTableEnhancements() {
 document.addEventListener('DOMContentLoaded', () => {
   setTimeout(() => initCompareTableEnhancements(), 600);
 }, { once: true });
+
+// ── P43 — A1-1 System Input Wizard ───────────────────────────────────────────
+// Guided modal for entering TF / SS / ZPK systems with live LaTeX preview
+// and health diagnostics (stable / controllable / observable / min-phase).
+function initSystemInputWizard() {
+  const modal    = document.getElementById('syswin-modal');
+  const closeBtn = document.getElementById('syswin-close');
+  const cancelBtn = document.getElementById('syswin-cancel');
+  const confirmBtn = document.getElementById('syswin-confirm');
+  const typeTabs = document.querySelectorAll('[data-systype]');
+  const preview  = document.getElementById('syswin-preview');
+  const errEl    = document.getElementById('syswin-error');
+  const openBtn  = document.getElementById('btn-new-system');
+  if (!modal || !openBtn || !confirmBtn) return;
+
+  let _sysType = 'tf';
+
+  // ── Section visibility ──
+  function showSection(type) {
+    ['tf', 'ss', 'zpk'].forEach(t => {
+      document.getElementById(`syswin-${t}-section`)?.style.setProperty('display', t === type ? '' : 'none');
+    });
+    typeTabs.forEach(tab => tab.classList.toggle('active', tab.dataset.systype === type));
+    _sysType = type;
+    validateAndPreview();
+  }
+
+  typeTabs.forEach(tab => tab.addEventListener('click', () => showSection(tab.dataset.systype)));
+
+  // ── Health badges ──
+  function setBadge(id, ok) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    if (ok === null) { el.className = 'syswin-badge na'; el.textContent = el.textContent.replace(/[✓✗]/g, '').trim(); }
+    else if (ok) { el.className = 'syswin-badge ok'; el.textContent += ' ✓'; }
+    else { el.className = 'syswin-badge fail'; el.textContent += ' ✗'; }
+  }
+
+  function resetBadges() {
+    [['sh-stable','⬤ 穩定性'], ['sh-ctrl','⬤ 可控性'], ['sh-obs','⬤ 可觀性'], ['sh-mp','⬤ 最小相位']].forEach(([id, label]) => {
+      const el = document.getElementById(id);
+      if (el) { el.className = 'syswin-badge na'; el.textContent = label; }
+    });
+  }
+
+  // ── Build system from current inputs ──
+  function buildSystem() {
+    if (_sysType === 'tf') {
+      const num = parsePolyString(document.getElementById('syswin-tf-num')?.value || '1');
+      const den = parsePolyString(document.getElementById('syswin-tf-den')?.value || '1');
+      if (!num.length || !den.length) throw new Error('多項式解析失敗');
+      return new TransferFunction(num, den);
+    }
+    if (_sysType === 'zpk') {
+      const z = parseRootsString(document.getElementById('syswin-zpk-z')?.value || '');
+      const p = parseRootsString(document.getElementById('syswin-zpk-p')?.value || '');
+      const k = parseFloat(document.getElementById('syswin-zpk-k')?.value || '1');
+      return zpkToTransferFunction(new ZPK(z, p, k));
+    }
+    if (_sysType === 'ss') {
+      const A = parseMatrixInput(document.getElementById('syswin-ss-A')?.value || '-1');
+      const B = parseMatrixInput(document.getElementById('syswin-ss-B')?.value || '1');
+      const C = parseMatrixInput(document.getElementById('syswin-ss-C')?.value || '1');
+      const D = parseMatrixInput(document.getElementById('syswin-ss-D')?.value || '0');
+      return stateSpaceToTransferFunction(A, B, C, D);
+    }
+    throw new Error('未知模型類型');
+  }
+
+  // ── Validate + preview (debounced) ──
+  let _valTimer = null;
+  function validateAndPreview() {
+    clearTimeout(_valTimer);
+    _valTimer = setTimeout(() => {
+      resetBadges();
+      errEl.style.display = 'none';
+      try {
+        const sys = buildSystem();
+        // LaTeX preview
+        if (preview) {
+          try {
+            const latex = tfToLatex(sys.num, sys.den);
+            preview.innerHTML = `\\(${latex}\\)`;
+            renderLatex(preview);
+          } catch { preview.textContent = 'G(s) = …'; }
+        }
+        // Health checks
+        const poles = sys.poles();
+        const zeros = sys.zeros();
+        const stable = poles.every(p => p.re < 0);
+        const minPhase = zeros.every(z => z.re < 0);
+
+        document.getElementById('sh-stable').textContent = '⬤ 穩定性';
+        document.getElementById('sh-mp').textContent = '⬤ 最小相位';
+
+        // For SS forms: controllability / observability
+        let controllable = null, observable = null;
+        if (_sysType === 'ss') {
+          try {
+            const A = parseMatrixInput(document.getElementById('syswin-ss-A')?.value || '-1');
+            const B = parseMatrixInput(document.getElementById('syswin-ss-B')?.value || '1');
+            const C = parseMatrixInput(document.getElementById('syswin-ss-C')?.value || '1');
+            const n = A.length;
+            controllable = matRank(controllabilityMatrix(A, B)) === n;
+            observable   = matRank(observabilityMatrix(A, C)) === n;
+          } catch (_) {}
+        }
+
+        setBadge('sh-stable', stable);
+        setBadge('sh-ctrl', controllable);
+        setBadge('sh-obs', observable);
+        setBadge('sh-mp', minPhase);
+        confirmBtn.disabled = false;
+      } catch (err) {
+        errEl.textContent = err.message;
+        errEl.style.display = 'block';
+        if (preview) preview.textContent = 'G(s) = …';
+        confirmBtn.disabled = true;
+      }
+    }, 200);
+  }
+
+  // Wire input events
+  ['syswin-tf-num','syswin-tf-den','syswin-zpk-z','syswin-zpk-p','syswin-zpk-k',
+   'syswin-ss-A','syswin-ss-B','syswin-ss-C','syswin-ss-D'].forEach(id => {
+    document.getElementById(id)?.addEventListener('input', validateAndPreview);
+  });
+
+  // ── Open / Close ──
+  function openWizard() {
+    modal.classList.add('open');
+    modal.setAttribute('aria-hidden', 'false');
+    validateAndPreview();
+    document.getElementById('syswin-tf-num')?.focus();
+  }
+  function closeWizard() {
+    modal.classList.remove('open');
+    modal.setAttribute('aria-hidden', 'true');
+    errEl.style.display = 'none';
+  }
+
+  openBtn.addEventListener('click', openWizard);
+  closeBtn.addEventListener('click', closeWizard);
+  cancelBtn.addEventListener('click', closeWizard);
+  modal.addEventListener('click', (e) => { if (e.target === modal) closeWizard(); });
+
+  // Keyboard: Escape closes, Ctrl+1/2/3 switch tabs
+  document.addEventListener('keydown', (e) => {
+    if (!modal.classList.contains('open')) return;
+    if (e.key === 'Escape') closeWizard();
+    if (e.ctrlKey && e.key === '1') { e.preventDefault(); showSection('tf'); }
+    if (e.ctrlKey && e.key === '2') { e.preventDefault(); showSection('ss'); }
+    if (e.ctrlKey && e.key === '3') { e.preventDefault(); showSection('zpk'); }
+  });
+
+  // ── Confirm: apply to workspace ──
+  confirmBtn.addEventListener('click', () => {
+    try {
+      const sys = buildSystem();
+      const name = document.getElementById('syswin-name')?.value.trim() || 'Plant-1';
+      // Set as current plant (reuses existing updateSystem pathway)
+      if (_sysType === 'tf') {
+        document.getElementById('tf-num').value = sys.num.join(' ');
+        document.getElementById('tf-den').value = sys.den.join(' ');
+        document.getElementById('input-type')?.dispatchEvent(new Event('change'));
+        document.getElementById('tf-num')?.dispatchEvent(new Event('input'));
+      }
+      if (typeof window.updateSystem === 'function') window.updateSystem();
+      notify(`系統「${name}」已加入工作區`, 'success');
+      closeWizard();
+    } catch (err) {
+      errEl.textContent = err.message;
+      errEl.style.display = 'block';
+    }
+  });
+
+  // Register command
+  if (Array.isArray(window.COMMANDS)) {
+    window.COMMANDS.push({ group: 'UI', icon: '＋', title: '新增系統模型', keys: [], action: openWizard });
+  }
+
+  // Expose
+  window.openSystemWizard = openWizard;
+}
+
+// ── P43 — A5-2 Sensitivity Function Plot ─────────────────────────────────────
+// Renders S, T, KS Bode plots when the 'sensitivity' plot tab is selected.
+function renderSensitivityPlot() {
+  const activeEl = document.getElementById('chart-active');
+  if (!activeEl) return;
+  if (!state.plant || !state.closedLoop) {
+    showError('需要 Plant 與控制器才能繪製靈敏度函數');
+    return;
+  }
+  try {
+    const omegas = autoFreqRange(state.plant, { n: 200 });
+    const { S, T, KS } = sensitivityBode(state.openLoop || state.plant, state.controller, omegas);
+    const peaks = robustPeaks(state.openLoop || state.plant, state.controller, omegas);
+
+    const traces = [
+      { x: omegas, y: S.map(v => fmtDB(v)), name: 'S (Sensitivity)', line: { color: getCSS('--color-accent'), width: 2 }, type: 'scatter', mode: 'lines' },
+      { x: omegas, y: T.map(v => fmtDB(v)), name: 'T (Complementary)', line: { color: '#4d96ff', width: 2 }, type: 'scatter', mode: 'lines' },
+      { x: omegas, y: KS.map(v => fmtDB(v)), name: 'KS (Input Sensitivity)', line: { color: '#f59e0b', width: 2 }, type: 'scatter', mode: 'lines' },
+    ];
+
+    // Peak Ms annotation
+    const msDB = 20 * Math.log10(peaks?.Ms ?? 1);
+    traces.push({ x: [omegas[0], omegas[omegas.length - 1]], y: [msDB, msDB], name: `Ms = ${fmtNum(peaks?.Ms ?? 1, 3)}`, line: { color: getCSS('--color-accent'), width: 1, dash: 'dash' }, type: 'scatter', mode: 'lines' });
+
+    const layout = { ...PLOTLY_LAYOUT_BASE(), xaxis: { ...PLOTLY_LAYOUT_BASE().xaxis, type: 'log', title: 'ω (rad/s)' }, yaxis: { ...PLOTLY_LAYOUT_BASE().yaxis, title: 'Magnitude (dB)' }, showlegend: true, legend: compactLegend() };
+    Plotly.react('chart-active', traces, layout, { responsive: true, displayModeBar: false });
+
+    // Update status bar
+    document.getElementById('active-plot-title').textContent = 'Sensitivity Functions';
+    document.getElementById('active-plot-subtitle').textContent = 'S · T · KS';
+  } catch (err) {
+    showError(`靈敏度繪製失敗：${err.message}`);
+  }
+}
+
+// ── P43 — A5-3 Robustness Badge ───────────────────────────────────────────────
+// Updates the robust-badge-bar with PM, GM, Ms, Dm from current system.
+function updateRobustnessBadges() {
+  const bar = document.getElementById('robust-badge-bar');
+  if (!bar) return;
+
+  if (!state.plant || !state.closedLoop) { bar.style.display = 'none'; return; }
+
+  try {
+    const margins = stabilityMargins(state.openLoop || state.plant);
+    const omegas = autoFreqRange(state.plant, { n: 200 });
+    const peaks = robustPeaks(state.openLoop || state.plant, state.controller, omegas);
+
+    const pm = margins?.phaseMargin;
+    const gm = margins?.gainMarginDB;
+    const ms = peaks?.Ms;
+    const dm = margins?.diskMargin;
+
+    function setRB(id, sid, val, unit, thresh, goodHigh) {
+      const el = document.getElementById(id);
+      const sel = document.getElementById(sid);
+      if (el) el.textContent = Number.isFinite(val) ? `${fmtNum(val, 2)}${unit}` : '—';
+      if (sel) {
+        const ok = Number.isFinite(val) && (goodHigh ? val >= thresh : val <= thresh);
+        sel.className = `rb-status ${ok ? 'ok' : 'fail'}`;
+        sel.textContent = ok ? ' ✓' : ' ✗';
+      }
+    }
+
+    setRB('rb-pm', 'rb-pm-s', pm, '°',  45, true);
+    setRB('rb-gm', 'rb-gm-s', gm, 'dB', 6,  true);
+    setRB('rb-ms', 'rb-ms-s', ms, '',   2.0, false);
+    setRB('rb-dm', 'rb-dm-s', dm, '',   0.25, true);
+
+    bar.style.display = 'flex';
+  } catch { bar.style.display = 'none'; }
+}
+
+window.updateRobustnessBadges = updateRobustnessBadges;
+
+// ── P43 init ──────────────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  initSystemInputWizard();
+
+  // Wire sensitivity plot tab
+  document.getElementById('plot-tab-sensitivity')?.addEventListener('click', () => {
+    // Mark tab active (reuse existing tab logic)
+    document.querySelectorAll('.plot-tab').forEach(t => t.classList.remove('active'));
+    document.getElementById('plot-tab-sensitivity')?.classList.add('active');
+    state.activePlot = 'sensitivity';
+    renderSensitivityPlot();
+  });
+}, { once: true });

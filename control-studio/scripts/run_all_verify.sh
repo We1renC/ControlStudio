@@ -108,6 +108,7 @@ run_script "P39 UI/UX P2 batch2"      "node scripts/verify_p39_uiux_p2_batch2.mj
 run_script "P40 UI/UX P2 batch3"      "node scripts/verify_p40_uiux_p2_batch3.mjs"
 run_script "P41 D2 disc + A2 spec"   "node scripts/verify_p41_disc_spec.mjs"
 run_script "P42 B1 compare enhance"  "node scripts/verify_p42_compare_enhancements.mjs"
+run_script "P43 A1-1 syswin + A5"   "node scripts/verify_p43_syswin_a5.mjs"
 echo ""
 
 # ── General Math & PID ───────────────────────────────────────────────────────
