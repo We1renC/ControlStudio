@@ -233,6 +233,8 @@
     .routh-table { width: 100%; font-size: 11px; border-collapse: collapse; margin-top: var(--space-2); }
     .routh-table td { border: 1px solid var(--border-primary); padding: 4px 8px; text-align: center; color: var(--text-secondary); }
     .routh-table td:first-child { color: var(--text-muted); font-weight: 600; }
+    .routh-table td.routh-neg { background: rgba(239,68,68,0.18); color: #fca5a5; font-weight: 700; }
+    .routh-table td.routh-sign-change { background: rgba(239,68,68,0.28); color: #ef4444; font-weight: 700; border-color: #ef4444; }
     .snapshot-list { display:flex; flex-direction:column; gap:var(--space-2); max-height: 360px; overflow:auto; }
     .snapshot-card { border: 1px solid var(--border-primary); border-radius: var(--radius-sm); padding: 10px 12px; background: rgba(15, 17, 23, 0.35); display:flex; flex-direction:column; gap:8px; }
     .snapshot-top { display:flex; align-items:center; justify-content:space-between; gap:8px; }
@@ -2136,6 +2138,8 @@
             <div title="Delay Margin = PM(rad) / ω_gc — additional dead time tolerable before instability">Delay Margin<strong id="dm-value">—</strong></div>
             <div title="Disk Margin α = 1 / max(‖S‖∞, ‖T‖∞) — single-number robustness metric">Disk Margin<strong id="dskm-value">—</strong></div>
           </div>
+          <!-- ⚠ Stability margin caveat: shown when OL has RHP poles or encirclements -->
+          <div id="margin-caveat-bar" style="display:none;margin-top:6px;padding:5px 8px;background:rgba(239,68,68,0.12);border:1px solid #ef4444;border-radius:var(--radius-sm);font-size:10px;color:#fca5a5;line-height:1.4;"></div>
           <div class="metric-section-label">Time Domain</div>
           <div class="metric-grid">
             <div>Rise Time<strong id="rise-time">0s</strong></div>
@@ -2182,6 +2186,8 @@
               <li>—</li>
             </ul>
           </div>
+          <!-- Nyquist Z = P - N stability criterion panel -->
+          <div id="nyquist-criterion-bar" style="display:none;margin-top:6px;padding:6px 8px;background:var(--bg-tertiary);border:1px solid var(--border-primary);border-radius:var(--radius-sm);font-size:11px;line-height:1.6;"></div>
           <details style="margin-top:var(--space-4);">
             <summary style="font-size:11px; color:var(--text-muted); cursor:pointer;">Routh-Hurwitz Table</summary>
             <table class="routh-table">
@@ -2956,9 +2962,13 @@
         <!-- B2-1: Matrix Expand Panel -->
         <section class="section-panel" id="matrix-expand-panel">
           <div class="section-title">系統矩陣展開</div>
-          <p style="font-size:11px;color:var(--text-muted);line-height:1.5;margin-bottom:10px;">
+          <p style="font-size:11px;color:var(--text-muted);line-height:1.5;margin-bottom:6px;">
             展示 A、B、C、D 矩陣數值、條件數、行列式與正定性。僅在 MIMO/狀態空間模式下有效。
           </p>
+          <div id="matrix-mode-hint" style="display:none;margin-bottom:8px;padding:5px 8px;background:rgba(59,130,246,0.1);border:1px solid rgba(59,130,246,0.4);border-radius:var(--radius-sm);font-size:10px;color:#93c5fd;align-items:center;gap:6px;">
+            <span>ℹ 當前為傳遞函數模式。</span>
+            <button class="btn btn-sm" onclick="window.switchToStateSpaceMode?.()" style="font-size:10px;padding:1px 8px;flex-shrink:0;">切換至狀態空間模式</button>
+          </div>
           <div id="cond-warn-bar" class="cond-warn-banner"></div>
           <div id="matrix-expand-content" class="matrix-expand-panel">
             <div style="font-size:11px;color:var(--text-muted);">請先輸入 State-Space 系統（A, B, C, D 矩陣）。</div>

@@ -2991,7 +2991,59 @@ function updateStabilityPanel() {
     renderStabilityAnalysis(stability);
     scheduleApiAnalysis({ margins, info, stability });
 
-    // Routh-Hurwitz table
+    // ── Stability margin caveat: warn when OL has RHP poles (GM/PM can be misleading) ──
+    const caveatEl = document.getElementById('margin-caveat-bar');
+    const nyqBarEl = document.getElementById('nyquist-criterion-bar');
+    try {
+      const olForCheck = state.openLoop || state.plant;
+      const olPoles = olForCheck?.poles ? olForCheck.poles() : [];
+      const rhpCount = olPoles.filter(p => (p.re ?? p) > 1e-9).length;
+      const encN = (() => {
+        try { return nyquistEncirclements(olForCheck, 1e-3, 1e3); } catch { return 0; }
+      })();
+      const clRhpZ = rhpCount - encN; // Nyquist: Z = P - N (closed-loop RHP poles)
+
+      if (caveatEl) {
+        if (!isDiscrete && (rhpCount > 0 || encN !== 0)) {
+          caveatEl.style.display = 'block';
+          caveatEl.innerHTML = `⚠ <strong>古典裕度（GM/PM）可能失效。</strong>開迴路含 ${rhpCount} 個 RHP 極點（P=${rhpCount}），Nyquist 包圍數 N=${encN}。`
+            + ` 閉迴路 RHP 極點 Z = P−N = ${clRhpZ}。`
+            + (clRhpZ !== 0 ? ' <strong>系統不穩定，請以極點與包圍數為準。</strong>' : ' 閉迴路穩定（Z=0）。');
+        } else {
+          caveatEl.style.display = 'none';
+        }
+      }
+
+      if (nyqBarEl) {
+        if (!isDiscrete && encN !== 0) {
+          nyqBarEl.style.display = 'block';
+          const sign = encN > 0 ? `+${encN}` : String(encN);
+          nyqBarEl.innerHTML =
+            `<strong>Nyquist 穩定判據</strong><br>`
+            + `<span style="font-family:monospace;">Z = P − N = ${rhpCount} − (${sign}) = <strong style="color:${clRhpZ !== 0 ? '#ef4444' : '#22c55e'}">${clRhpZ}</strong></span><br>`
+            + `<span style="color:var(--text-muted);font-size:10px;">`
+            + `P = 開迴路 RHP 極點數，N = −1+j0 點包圍次數（逆時針為正），Z = 閉迴路 RHP 極點數`
+            + `</span><br>`
+            + (clRhpZ !== 0
+              ? `<span style="color:#fca5a5;">⟹ Z=${clRhpZ} > 0，閉迴路不穩定（${clRhpZ} 個 RHP 極點）</span>`
+              : `<span style="color:#86efac;">⟹ Z=0，閉迴路穩定</span>`);
+        } else if (!isDiscrete && rhpCount > 0) {
+          // OL unstable but no encirclements shown (stable by luck)
+          nyqBarEl.style.display = 'block';
+          nyqBarEl.innerHTML =
+            `<strong>Nyquist 穩定判據</strong><br>`
+            + `<span style="font-family:monospace;">Z = P − N = ${rhpCount} − 0 = <strong style="color:#ef4444">${rhpCount}</strong></span><br>`
+            + `<span style="color:#fca5a5;">⟹ 閉迴路不穩定（${rhpCount} 個 RHP 極點）</span>`;
+        } else {
+          nyqBarEl.style.display = 'none';
+        }
+      }
+    } catch (_) {
+      if (caveatEl) caveatEl.style.display = 'none';
+      if (nyqBarEl) nyqBarEl.style.display = 'none';
+    }
+
+    // Routh-Hurwitz table (with first-column sign-change highlighting)
     const routhEl = document.getElementById('routh-table-body');
     if (routhEl) {
       try {
@@ -2999,15 +3051,34 @@ function updateStabilityPanel() {
           routhEl.innerHTML = '<tr><td colspan="4">Routh-Hurwitz applies to continuous-time denominators only.</td></tr>';
           return;
         }
-        const targetDen = sys.den;
+        // Resolve denominator — handle flat [a0..] or nested [[a0..]] format
+        const rawDen = sys.den;
+        const targetDen = Array.isArray(rawDen?.[0]) ? rawDen[0] : (Array.isArray(rawDen) ? rawDen : []);
+        if (targetDen.length === 0) {
+          routhEl.innerHTML = '<tr><td colspan="4">—</td></tr>';
+          return;
+        }
         const routh = routhTable(targetDen);
         const labels = [];
         for (let i = 0; i < targetDen.length; i++) {
           labels.push(`s<sup>${targetDen.length - 1 - i}</sup>`);
         }
+        // Extract first column values to detect sign changes
+        const firstCol = routh.table.map(row => row[0] ?? 0);
+        let prevSign = Math.sign(firstCol[0]);
+        const signChangeRows = new Set();
+        firstCol.forEach((v, i) => {
+          const s = Math.sign(v);
+          if (s !== 0 && s !== prevSign) { signChangeRows.add(i); prevSign = s; }
+        });
         routhEl.innerHTML = routh.table.map((row, idx) => {
-          const cells = row.map(v => `<td>${fmtNum(v)}</td>`).join('');
-          return `<tr><td>${labels[idx] || ''}</td>${cells}</tr>`;
+          const firstVal = row[0] ?? 0;
+          const isNeg = firstVal < -1e-10;
+          const isChange = signChangeRows.has(idx);
+          const fc = isChange ? 'routh-sign-change' : (isNeg ? 'routh-neg' : '');
+          const firstTd = `<td class="${fc}" title="${isChange ? '⚠ 符號變號 — 不穩定根' : (isNeg ? '⚠ 負值' : '')}">${fmtNum(firstVal)}</td>`;
+          const restCells = row.slice(1).map(v => `<td>${fmtNum(v)}</td>`).join('');
+          return `<tr><td>${labels[idx] || ''}</td>${firstTd}${restCells}</tr>`;
         }).join('');
       } catch { routhEl.innerHTML = '<tr><td colspan="4">—</td></tr>'; }
     }
@@ -3526,8 +3597,35 @@ function renderNyquistPlot(sys, targetId = 'chart-active') {
   const range = autoFreqRange(sys);
   const data = nyquistData(sys, range.wMin, range.wMax);
   const encirclements = nyquistEncirclements(sys, range.wMin, range.wMax);
+
+  // ── Direction arrows: sample 3 evenly-spaced points along positive-ω trajectory ──
+  const arrowTraces = [];
+  const re = data.re || [], im = data.im || [];
+  if (re.length > 8) {
+    // Pick indices at ~25%, ~50%, ~75% of the trajectory (skip first/last 10%)
+    const arrowIdxs = [Math.floor(re.length * 0.25), Math.floor(re.length * 0.50), Math.floor(re.length * 0.75)];
+    arrowIdxs.forEach(i => {
+      if (i < 1 || i >= re.length - 1) return;
+      if (!Number.isFinite(re[i]) || !Number.isFinite(im[i])) return;
+      const dx = re[i + 1] - re[i - 1];
+      const dy = im[i + 1] - im[i - 1];
+      const len = Math.sqrt(dx * dx + dy * dy) || 1;
+      const arrowLen = 0.06; // arrow length in data coords
+      arrowTraces.push({
+        x: [re[i], re[i] + (dx / len) * arrowLen],
+        y: [im[i], im[i] + (dy / len) * arrowLen],
+        type: 'scatter', mode: 'lines+markers',
+        line: { color: getCSS('--color-accent'), width: 3 },
+        marker: { symbol: 'triangle-right', size: 8, color: getCSS('--color-accent'),
+          angleref: 'previous', angle: 0 },
+        hoverinfo: 'skip', showlegend: false,
+      });
+    });
+  }
+
   const traces = [
-    { x: data.re, y: data.im, type: 'scatter', mode: 'lines', line: { color: getCSS('--color-accent'), width: 2 }, name: 'Positive ω' },
+    { x: data.re, y: data.im, type: 'scatter', mode: 'lines', line: { color: getCSS('--color-accent'), width: 2 }, name: 'Positive ω (→ ∞)' },
+    ...arrowTraces,
     { x: data.reNeg, y: data.imNeg, type: 'scatter', mode: 'lines', line: { color: getCSS('--color-secondary'), width: 1.5, dash: 'dot' }, name: 'Negative ω' },
     { x: [-1], y: [0], type: 'scatter', mode: 'markers', marker: { size: 9, color: getCSS('--color-unstable') }, name: '-1 + j0' },
   ];
@@ -3574,8 +3672,36 @@ function renderNyquistPlot(sys, targetId = 'chart-active') {
   const annotList = [];
   // Always label the -1+j0 critical point
   annotList.push({ x: -1, y: 0, xshift: 8, yshift: -14, text: '−1+j0', showarrow: false, font: { size: 10, color: getCSS('--color-unstable') } });
-  if (encirclements !== 0) {
-    annotList.push({ x: -1, y: 0.3, text: `N=${encirclements}`, showarrow: false, font: { size: 12, color: getCSS('--color-unstable') } });
+
+  // Nyquist criterion annotation: Z = P - N
+  try {
+    const olPoles = sys.poles ? sys.poles() : [];
+    const P = olPoles.filter(p => (p.re ?? p) > 1e-9).length;
+    const N = encirclements;
+    const Z = P - N;
+    if (N !== 0 || P > 0) {
+      const Nstr = N >= 0 ? String(N) : `(${N})`;
+      const zColor = Z !== 0 ? '#ef4444' : '#22c55e';
+      annotList.push({
+        xref: 'paper', yref: 'paper', x: 0.02, y: 0.98,
+        xanchor: 'left', yanchor: 'top',
+        text: `Z=P−N=${P}−${Nstr}=<b>${Z}</b>  ${Z !== 0 ? '⚠ 不穩定' : '✓ 穩定'}`,
+        showarrow: false,
+        bgcolor: Z !== 0 ? 'rgba(239,68,68,0.15)' : 'rgba(34,197,94,0.1)',
+        bordercolor: zColor, borderwidth: 1, borderpad: 4,
+        font: { size: 11, color: Z !== 0 ? '#fca5a5' : '#86efac' },
+      });
+    }
+    if (N !== 0) {
+      annotList.push({ x: -1, y: 0, xshift: 8, yshift: 16,
+        text: `N=${N}`, showarrow: false, font: { size: 12, color: getCSS('--color-unstable') } });
+    }
+  } catch (_) {
+    // fallback: show N only
+    if (encirclements !== 0) {
+      annotList.push({ x: -1, y: 0, xshift: 8, yshift: 16,
+        text: `N=${encirclements}`, showarrow: false, font: { size: 12, color: getCSS('--color-unstable') } });
+    }
   }
   layout.annotations = annotList;
 
@@ -9674,10 +9800,14 @@ function initMatrixExpandPanel() {
     const ssC = window._currentSS?.C;
     const ssD = window._currentSS?.D;
 
+    // Show/hide the mode-switch hint
+    const modeHint = document.getElementById('matrix-mode-hint');
     if (!ssA) {
-      content.innerHTML = '<div style="font-size:11px;color:var(--text-muted);">未偵測到狀態空間矩陣。請使用 MIMO 模式並輸入系統。</div>';
+      if (modeHint) { modeHint.style.display = 'flex'; modeHint.style.alignItems = 'center'; }
+      content.innerHTML = '<div style="font-size:11px;color:var(--text-muted);">未偵測到狀態空間矩陣。請先在系統輸入精靈中選擇 SS 模式並輸入矩陣。</div>';
       return;
     }
+    if (modeHint) modeHint.style.display = 'none';
     _lastMatrices = { A: ssA, B: ssB, C: ssC, D: ssD };
 
     const html = ['A', 'B', 'C', 'D'].map(name => {
@@ -9742,6 +9872,28 @@ function initMatrixExpandPanel() {
     navigator.clipboard.writeText(text).then(() => notify('LaTeX 已複製', 'success', { duration: 1500 }));
   });
 }
+
+// ── switchToStateSpaceMode: context-aware shortcut ──────────────────────────
+// Called from the "切換至狀態空間模式" button in matrix-expand-panel.
+// Opens the system input wizard on the SS tab so the user can enter A/B/C/D.
+function switchToStateSpaceMode() {
+  // Open system input wizard
+  const modal = document.getElementById('syswin-modal');
+  const openBtn = document.getElementById('btn-new-system');
+  if (modal) {
+    modal.style.display = 'flex';
+    modal.setAttribute('aria-hidden', 'false');
+  } else {
+    openBtn?.click();
+  }
+  // Switch to SS tab (small delay to let modal render)
+  setTimeout(() => {
+    const ssTab = document.querySelector('[data-systype="ss"]');
+    ssTab?.click();
+    notify('已開啟系統輸入精靈 → 狀態空間模式', 'info', { duration: 2000 });
+  }, 80);
+}
+window.switchToStateSpaceMode = switchToStateSpaceMode;
 
 // ── P46 init ──────────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
@@ -12843,15 +12995,24 @@ function buildResultSummary() {
   const rows = [];
   const fmt  = (v, d = 3) => (typeof v === 'number' && isFinite(v)) ? v.toFixed(d) : '—';
 
-  // Plant info
+  // Plant info — resolve TF denominator robustly (flat [a0..] or nested [[a0..]])
   const p = state.plant;
   if (p) {
     try {
       const tf = p.toTransferFunction?.() ?? p;
-      const num = tf.num?.[0]?.[0] ?? tf.numerator ?? [];
-      const den = tf.den?.[0]?.[0] ?? tf.denominator ?? [];
-      rows.push({ label: 'Plant order', value: (den.length - 1).toString() });
-      rows.push({ label: 'Plant poles', value: (state._lastStability?.poles?.map(z => `${z.re.toFixed(2)}${z.im >= 0 ? '+' : ''}${z.im.toFixed(2)}j`).join(', ') || '—') });
+      // den may be [[a0,a1,...]] (nested) or [a0,a1,...] (flat)
+      const rawDen = tf.den ?? tf.denominator;
+      const den = Array.isArray(rawDen?.[0]) ? rawDen[0] : (Array.isArray(rawDen) ? rawDen : []);
+      const order = den.length > 0 ? (den.length - 1) : (p.poles ? p.poles().length : '?');
+      rows.push({ label: 'Plant order', value: String(order) });
+      // Get plant poles directly (don't rely on stale _lastStability)
+      const poleStr = (() => {
+        try {
+          const ps = p.poles ? p.poles() : (state._lastStability?.poles ?? []);
+          return ps.map(z => `${z.re.toFixed(2)}${z.im >= 0 ? '+' : ''}${z.im.toFixed(2)}j`).join(', ') || '—';
+        } catch { return '—'; }
+      })();
+      rows.push({ label: 'Plant poles', value: poleStr });
     } catch (_) {}
   }
 
