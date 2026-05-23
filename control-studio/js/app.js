@@ -13015,3 +13015,408 @@ document.addEventListener('DOMContentLoaded', () => {
   initResultSummaryCard();
   initCodegenOptions();
 }, { once: true });
+
+// ── P57 — D4-1: Unit Test Templates ──────────────────────────────────────────
+function buildUnitTestTemplate(lang = 'python') {
+  const p = state.plant;
+  let numStr = '[1]', denStr = '[1, 1]';
+  if (p) {
+    try {
+      const tf = p.toTransferFunction?.() ?? p;
+      const num = tf.num?.[0]?.[0] ?? tf.numerator ?? [1];
+      const den = tf.den?.[0]?.[0] ?? tf.denominator ?? [1];
+      numStr = `[${num.map(v => +v.toFixed(4)).join(', ')}]`;
+      denStr = `[${den.map(v => +v.toFixed(4)).join(', ')}]`;
+    } catch (_) {}
+  }
+
+  if (lang === 'jest') {
+    return `// Unit tests for ControlStudio design (Jest)
+// Run: npx jest control.test.js
+
+import { TransferFunction } from './js/control/transfer_function.js';
+
+describe('Plant G(s)', () => {
+  const num = ${numStr};
+  const den = ${denStr};
+  const G = new TransferFunction(num, den);
+
+  test('G(s) has correct order', () => {
+    expect(G.denominator[0].length - 1).toBe(${Math.max(0, denStr.split(',').length - 1)});
+  });
+
+  test('G(s) DC gain is finite', () => {
+    const dcGain = G.numerator[0][G.numerator[0].length - 1] /
+                   G.denominator[0][G.denominator[0].length - 1];
+    expect(isFinite(dcGain)).toBe(true);
+  });
+
+  test('all denominator poles have negative real parts (stable)', () => {
+    const poles = G.poles();
+    poles.forEach(p => {
+      expect(p.re).toBeLessThan(0.01); // allow marginal tolerance
+    });
+  });
+});`;
+  }
+
+  // Python (pytest)
+  return `"""Unit tests for ControlStudio design (pytest)
+Run: pytest test_control.py -v
+"""
+import pytest
+import control as ct
+import numpy as np
+
+NUM_G = ${numStr}
+DEN_G = ${denStr}
+
+@pytest.fixture
+def plant():
+    return ct.tf(NUM_G, DEN_G)
+
+def test_plant_order(plant):
+    assert len(ct.poles(plant)) == len(DEN_G) - 1
+
+def test_plant_dc_gain(plant):
+    dc = ct.dcgain(plant)
+    assert np.isfinite(dc) or np.isinf(dc)  # inf allowed for integrator
+
+def test_plant_stability(plant):
+    poles = ct.poles(plant)
+    assert all(p.real < 0 for p in poles), f"Unstable pole found: {poles}"
+
+def test_closed_loop_unity_feedback(plant):
+    T = ct.feedback(plant, 1)
+    cl_poles = ct.poles(T)
+    assert all(p.real < 0 for p in cl_poles), "CL with unity feedback is unstable"
+`;
+}
+
+function initUnitTestPanel() {
+  const langSel = document.getElementById('unit-test-lang');
+  const codeEl  = document.getElementById('unit-test-code');
+  const copyBtn = document.getElementById('btn-unit-test-copy');
+  const dlBtn   = document.getElementById('btn-unit-test-download');
+  if (!codeEl) return;
+
+  function refresh() {
+    const lang = langSel?.value || 'python';
+    codeEl.textContent = buildUnitTestTemplate(lang);
+  }
+
+  langSel?.addEventListener('change', refresh);
+  copyBtn?.addEventListener('click', () => {
+    navigator.clipboard.writeText(codeEl.textContent || '').then(() => {
+      const orig = copyBtn.textContent;
+      copyBtn.textContent = 'Copied!';
+      setTimeout(() => { copyBtn.textContent = orig; }, 1500);
+    });
+  });
+  dlBtn?.addEventListener('click', () => {
+    const lang = langSel?.value || 'python';
+    const ext  = lang === 'jest' ? 'test.js' : 'test_control.py';
+    const blob = new Blob([codeEl.textContent || ''], { type: 'text/plain' });
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+    a.download = `controlstudio-${ext}`; a.click();
+  });
+
+  document.addEventListener('plant:changed', refresh);
+  refresh();
+}
+
+window.buildUnitTestTemplate = buildUnitTestTemplate;
+
+// ── P57 — D4-2: JS/Python Diff Mode ──────────────────────────────────────────
+function renderCodeDiff() {
+  const matlabEl = document.getElementById('diff-matlab-col');
+  const pythonEl = document.getElementById('diff-python-col');
+  if (!matlabEl || !pythonEl) return;
+  const design = (typeof buildCodegenPayload === 'function') ? buildCodegenPayload() : null;
+  if (!design) {
+    matlabEl.textContent = '% Enter a plant first';
+    pythonEl.textContent = '# Enter a plant first';
+    return;
+  }
+  matlabEl.textContent = (typeof toMatlabScript === 'function') ? toMatlabScript(design) : '% No MATLAB generator';
+  pythonEl.textContent = (typeof toPythonScript === 'function') ? toPythonScript(design) : '# No Python generator';
+}
+
+function initCodeDiff() {
+  const refreshBtn = document.getElementById('btn-code-diff-refresh');
+  if (!document.getElementById('diff-matlab-col')) return;
+  refreshBtn?.addEventListener('click', renderCodeDiff);
+  document.addEventListener('plant:changed', renderCodeDiff);
+  renderCodeDiff();
+}
+
+// ── P57 — D4-3: HIL CSV Export ────────────────────────────────────────────────
+// Exports step response data in a Hardware-In-the-Loop compatible CSV with metadata header.
+function exportHILCSV() {
+  const simResult = state._lastSimResult;
+  if (!simResult || !simResult.t || !simResult.y) {
+    notify('先執行步階模擬再匯出 HIL CSV', 'warn');
+    return;
+  }
+  const ts  = simResult.t;
+  const ys  = simResult.y;
+  const us  = simResult.u || ts.map(() => 1);  // default unit step input
+  const now = new Date().toISOString();
+  const meta = [
+    `# HIL CSV — ControlStudio Export`,
+    `# Generated: ${now}`,
+    `# SampleRate_Hz: ${ts.length > 1 ? (1 / (ts[1] - ts[0])).toFixed(2) : 'N/A'}`,
+    `# Samples: ${ts.length}`,
+    `# Format: time_s, input_u, output_y`,
+    `time_s,input_u,output_y`,
+  ];
+  const rows = ts.map((t, i) => `${t.toFixed(6)},${(us[i] ?? 1).toFixed(6)},${(ys[i] ?? 0).toFixed(6)}`);
+  const csv  = [...meta, ...rows].join('\n');
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const a    = document.createElement('a');
+  a.href     = URL.createObjectURL(blob);
+  a.download = `hil-data-${Date.now()}.csv`;
+  a.click();
+  notify('HIL CSV 已匯出', 'success');
+}
+
+function initHILExport() {
+  document.getElementById('btn-hil-export')?.addEventListener('click', exportHILCSV);
+}
+
+window.exportHILCSV = exportHILCSV;
+
+// ── P57 — D5-1: Init Docs Generator ──────────────────────────────────────────
+function buildInitDocs() {
+  const p = state.plant;
+  const lines = [
+    '# ControlStudio — Project Initialization Guide',
+    '',
+    '## Prerequisites',
+    '- Node.js ≥ 22  |  `node -v`',
+    '- Python ≥ 3.10  |  `python3 -V`',
+    '- python-control  |  `pip install control`',
+    '',
+    '## Browser Usage',
+    '```bash',
+    '# Serve locally (no install required)',
+    'npx serve .   # or: python3 -m http.server 8080',
+    '# Then open http://localhost:8080',
+    '```',
+    '',
+    '## Current Design',
+  ];
+  if (p) {
+    try {
+      const tf = p.toTransferFunction?.() ?? p;
+      const num = tf.num?.[0]?.[0] ?? tf.numerator ?? [1];
+      const den = tf.den?.[0]?.[0] ?? tf.denominator ?? [1];
+      lines.push(`- Plant G(s): order ${den.length - 1}`);
+      lines.push(`  num = [${num.map(v => +v.toFixed(4)).join(', ')}]`);
+      lines.push(`  den = [${den.map(v => +v.toFixed(4)).join(', ')}]`);
+    } catch (_) {}
+  } else {
+    lines.push('- Plant: not yet defined');
+  }
+  lines.push('');
+  lines.push('## Python Quick-Start');
+  lines.push('```python');
+  lines.push('import control as ct');
+  if (p) {
+    try {
+      const tf = p.toTransferFunction?.() ?? p;
+      const num = tf.num?.[0]?.[0] ?? tf.numerator ?? [1];
+      const den = tf.den?.[0]?.[0] ?? tf.denominator ?? [1];
+      lines.push(`G = ct.tf([${num.map(v => +v.toFixed(4)).join(', ')}], [${den.map(v => +v.toFixed(4)).join(', ')}])`);
+    } catch (_) { lines.push('G = ct.tf([1], [1, 1])'); }
+  } else {
+    lines.push('G = ct.tf([1], [1, 1])  # replace with your plant');
+  }
+  lines.push('T = ct.feedback(G, 1)');
+  lines.push('ct.step_response(T).plot()');
+  lines.push('```');
+  lines.push('');
+  lines.push('## Verification');
+  lines.push('```bash');
+  lines.push('node scripts/run_all_verify.sh');
+  lines.push('```');
+  return lines.join('\n');
+}
+
+function initInitDocs() {
+  const codeEl  = document.getElementById('init-docs-code');
+  const copyBtn = document.getElementById('btn-init-docs-copy');
+  const dlBtn   = document.getElementById('btn-init-docs-download');
+  if (!codeEl) return;
+
+  function refresh() { codeEl.textContent = buildInitDocs(); }
+  copyBtn?.addEventListener('click', () => {
+    navigator.clipboard.writeText(codeEl.textContent || '').then(() => {
+      const orig = copyBtn.textContent;
+      copyBtn.textContent = 'Copied!';
+      setTimeout(() => { copyBtn.textContent = orig; }, 1500);
+    });
+  });
+  dlBtn?.addEventListener('click', () => {
+    const blob = new Blob([codeEl.textContent || ''], { type: 'text/markdown' });
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+    a.download = 'INIT.md'; a.click();
+  });
+  document.addEventListener('plant:changed', refresh);
+  refresh();
+}
+
+window.buildInitDocs = buildInitDocs;
+
+// ── P57 — D5-2: Wiring Diagram ────────────────────────────────────────────────
+// Renders an ASCII / SVG block diagram of the closed-loop control structure.
+function renderWiringDiagram() {
+  const el = document.getElementById('wiring-diagram-svg');
+  if (!el) return;
+
+  const hasPlant = !!state.plant;
+  const hasCtrl  = !!state.controller;
+  const isDiscrete = state._isDiscrete;
+  const domain = isDiscrete ? 'z' : 's';
+
+  // SVG dimensions
+  const W = 420, H = 120;
+  const blocks = [
+    { x: 20,  y: 48, w: 36, h: 24, label: 'R('+domain+')' , fill: 'none', stroke: 'none' },
+    { x: 68,  y: 38, w: 54, h: 44, label: `K(${domain})`, fill: hasCtrl ? 'rgba(99,102,241,0.15)' : 'rgba(100,100,100,0.1)', stroke: hasCtrl ? '#6366f1' : '#555', id: 'wd-ctrl' },
+    { x: 160, y: 38, w: 54, h: 44, label: `G(${domain})`, fill: hasPlant ? 'rgba(16,185,129,0.15)' : 'rgba(100,100,100,0.1)', stroke: hasPlant ? '#10b981' : '#555', id: 'wd-plant' },
+    { x: 270, y: 48, w: 36, h: 24, label: 'Y('+domain+')', fill: 'none', stroke: 'none' },
+  ];
+
+  // Summing junction
+  const sumX = 46, sumY = 60, sumR = 10;
+  // Feedback path
+  const fbY = 90;
+
+  const svgParts = [
+    `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" class="wiring-svg">`,
+    // Arrows and signal lines
+    // R → sum junction
+    `<line x1="20" y1="${sumY}" x2="${sumX - sumR}" y2="${sumY}" stroke="var(--text-muted)" stroke-width="1.5" marker-end="url(#arr)"/>`,
+    // sum → K
+    `<line x1="${sumX + sumR}" y1="${sumY}" x2="68" y2="${sumY}" stroke="var(--color-accent)" stroke-width="1.5" marker-end="url(#arr)"/>`,
+    // K → G
+    `<line x1="122" y1="${sumY}" x2="160" y2="${sumY}" stroke="var(--color-accent)" stroke-width="1.5" marker-end="url(#arr)"/>`,
+    // G → Y
+    `<line x1="214" y1="${sumY}" x2="270" y2="${sumY}" stroke="var(--text-muted)" stroke-width="1.5" marker-end="url(#arr)"/>`,
+    // Feedback line (bottom)
+    `<polyline points="240,${sumY} 240,${fbY} ${sumX},${fbY} ${sumX},${sumY + sumR}" fill="none" stroke="#f59e0b" stroke-width="1.5" marker-end="url(#arr-fb)"/>`,
+    // Sum junction circle
+    `<circle cx="${sumX}" cy="${sumY}" r="${sumR}" fill="var(--bg-secondary)" stroke="var(--border-primary)" stroke-width="1.5"/>`,
+    `<text x="${sumX}" y="${sumY + 4}" text-anchor="middle" font-size="12" fill="var(--text-primary)">+</text>`,
+    `<text x="${sumX - 5}" y="${sumY + sumR + 10}" text-anchor="middle" font-size="9" fill="#f59e0b">−</text>`,
+    // Blocks
+    ...blocks.filter(b => b.fill !== 'none').map(b =>
+      `<rect x="${b.x}" y="${b.y}" width="${b.w}" height="${b.h}" rx="4" fill="${b.fill}" stroke="${b.stroke}" stroke-width="1.5"/>` +
+      `<text x="${b.x + b.w / 2}" y="${b.y + b.h / 2 + 4}" text-anchor="middle" font-size="11" font-weight="700" fill="${b.stroke === 'none' ? 'var(--text-muted)' : 'var(--text-primary)'}">${b.label}</text>`
+    ),
+    // R and Y labels (no rect)
+    `<text x="36" y="${sumY + 4}" text-anchor="middle" font-size="11" fill="var(--text-muted)">R</text>`,
+    `<text x="286" y="${sumY + 4}" text-anchor="middle" font-size="11" fill="var(--text-muted)">Y</text>`,
+    // Arrow marker
+    `<defs>
+       <marker id="arr" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
+         <path d="M0,0 L6,3 L0,6 Z" fill="var(--text-muted)"/>
+       </marker>
+       <marker id="arr-fb" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
+         <path d="M0,0 L6,3 L0,6 Z" fill="#f59e0b"/>
+       </marker>
+     </defs>`,
+    `</svg>`,
+  ];
+  el.innerHTML = svgParts.join('');
+}
+
+function initWiringDiagram() {
+  const el = document.getElementById('wiring-diagram-svg');
+  if (!el) return;
+  document.addEventListener('plant:changed', renderWiringDiagram);
+  renderWiringDiagram();
+}
+
+window.renderWiringDiagram = renderWiringDiagram;
+
+// ── P57 — D5-3: Design Warnings Panel ────────────────────────────────────────
+function collectDesignWarnings() {
+  const warnings = [];
+  const p = state.plant;
+  if (!p) { warnings.push({ level: 'info', msg: '尚未定義 Plant — 請在 Plant 面板輸入傳遞函數。' }); return warnings; }
+
+  try {
+    const stab = state._lastStability;
+    if (stab) {
+      if (!stab.stable) warnings.push({ level: 'error', msg: `系統不穩定！所有極點必須在左半平面。` });
+      const pm = stab.phaseMargin;
+      if (typeof pm === 'number' && isFinite(pm)) {
+        if (pm < 20) warnings.push({ level: 'error',  msg: `相位裕度 PM = ${pm.toFixed(1)}° 過低 (< 20°)，系統接近不穩定。` });
+        else if (pm < 45) warnings.push({ level: 'warn', msg: `相位裕度 PM = ${pm.toFixed(1)}° 偏低 (< 45°)，瞬態響應可能過振盪。` });
+      }
+      const gm = stab.gainMarginDb ?? stab.gainMargin;
+      if (typeof gm === 'number' && isFinite(gm) && gm < 6) {
+        warnings.push({ level: 'warn', msg: `增益裕度 GM = ${gm.toFixed(1)} dB 偏低 (< 6 dB)，對增益變化敏感。` });
+      }
+    }
+
+    const tf = p.toTransferFunction?.() ?? p;
+    const den = tf.den?.[0]?.[0] ?? tf.denominator ?? [];
+    if (den.length > 6) warnings.push({ level: 'warn', msg: `Plant 階數 ${den.length - 1} 較高，建議考慮模型降階 (P25)。` });
+
+    const sim = state._lastSimResult;
+    if (sim) {
+      if (typeof sim.overshoot === 'number' && sim.overshoot > 50) {
+        warnings.push({ level: 'warn', msg: `步階超越量 ${sim.overshoot.toFixed(1)}% 偏大，建議增加阻尼。` });
+      }
+    }
+  } catch (e) {
+    warnings.push({ level: 'warn', msg: `分析時發生錯誤：${e.message}` });
+  }
+
+  if (!warnings.length) warnings.push({ level: 'ok', msg: '✅ 未發現明顯設計問題。' });
+  return warnings;
+}
+
+function refreshWarningsPanel() {
+  const outEl = document.getElementById('warnings-panel-list');
+  if (!outEl) return;
+  const warnings = collectDesignWarnings();
+  outEl.innerHTML = warnings.map(w => `
+    <div class="warning-row warning-row-${w.level}">
+      <span class="warn-icon">${w.level === 'error' ? '🔴' : w.level === 'warn' ? '🟡' : w.level === 'ok' ? '🟢' : 'ℹ'}</span>
+      <span class="warn-msg">${escapeHtml(w.msg)}</span>
+    </div>`).join('');
+  // Update badge on the warnings button
+  const badge = document.getElementById('warnings-badge');
+  const errCount = warnings.filter(w => w.level === 'error').length;
+  const warnCount = warnings.filter(w => w.level === 'warn').length;
+  if (badge) {
+    badge.textContent = (errCount + warnCount) || '';
+    badge.style.display = (errCount + warnCount) > 0 ? 'inline-flex' : 'none';
+    badge.className = `warnings-badge ${errCount > 0 ? 'badge-error' : 'badge-warn'}`;
+  }
+}
+
+function initWarningsPanel() {
+  const btn = document.getElementById('btn-warnings-refresh');
+  btn?.addEventListener('click', refreshWarningsPanel);
+  document.addEventListener('simulation:done', refreshWarningsPanel);
+  document.addEventListener('plant:changed', refreshWarningsPanel);
+  refreshWarningsPanel();
+}
+
+window.collectDesignWarnings  = collectDesignWarnings;
+window.refreshWarningsPanel   = refreshWarningsPanel;
+
+// ── P57 init ──────────────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  initUnitTestPanel();
+  initCodeDiff();
+  initHILExport();
+  initInitDocs();
+  initWiringDiagram();
+  initWarningsPanel();
+}, { once: true });

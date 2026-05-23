@@ -1294,6 +1294,38 @@
     .health-row-label { flex: 1; color: var(--text-muted); }
     .health-row-val { color: var(--text-primary); font-size: 10px; font-family: ui-monospace, monospace; max-width: 130px; word-break: break-all; text-align: right; }
 
+    /* ── P57: D4-1 Unit Test Templates ── */
+    .unit-test-toolbar { display: flex; gap: 6px; margin-bottom: 6px; align-items: center; }
+    .unit-test-code { background: var(--bg-primary); border: 1px solid var(--border-primary); border-radius: var(--radius-sm); padding: 8px 10px; font-family: ui-monospace, monospace; font-size: 10px; color: var(--text-secondary); white-space: pre; overflow-x: auto; max-height: 200px; overflow-y: auto; line-height: 1.5; }
+
+    /* ── P57: D4-2 Code Diff Mode ── */
+    .code-diff-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+    .code-diff-col { display: flex; flex-direction: column; gap: 3px; }
+    .code-diff-label { font-size: 10px; font-weight: 700; color: var(--text-muted); padding: 2px 4px; }
+    .code-diff-pre { background: var(--bg-primary); border: 1px solid var(--border-primary); border-radius: var(--radius-sm); padding: 6px 8px; font-family: ui-monospace, monospace; font-size: 9px; color: var(--text-secondary); white-space: pre; overflow-x: auto; max-height: 180px; overflow-y: auto; line-height: 1.4; }
+
+    /* ── P57: D4-3 HIL Export ── */
+    .hil-export-info { font-size: 11px; color: var(--text-muted); line-height: 1.5; margin-bottom: 8px; }
+
+    /* ── P57: D5-1 Init Docs ── */
+    .init-docs-code { background: var(--bg-primary); border: 1px solid var(--border-primary); border-radius: var(--radius-sm); padding: 8px 10px; font-family: ui-monospace, monospace; font-size: 10px; color: var(--text-secondary); white-space: pre; overflow-x: auto; max-height: 200px; overflow-y: auto; line-height: 1.5; }
+    .init-docs-toolbar { display: flex; gap: 6px; margin-bottom: 6px; }
+
+    /* ── P57: D5-2 Wiring Diagram ── */
+    .wiring-svg { display: block; width: 100%; border-radius: var(--radius-sm); background: var(--bg-primary); border: 1px solid var(--border-primary); }
+
+    /* ── P57: D5-3 Warnings Panel ── */
+    .warning-row { display: flex; align-items: flex-start; gap: 6px; padding: 5px 4px; font-size: 11px; line-height: 1.5; border-bottom: 1px solid var(--border-primary); }
+    .warning-row:last-child { border-bottom: none; }
+    .warning-row-error .warn-msg { color: #f87171; }
+    .warning-row-warn  .warn-msg { color: #f59e0b; }
+    .warning-row-ok    .warn-msg { color: #10b981; }
+    .warning-row-info  .warn-msg { color: var(--text-muted); }
+    .warn-icon { flex-shrink: 0; font-size: 12px; line-height: 1.5; }
+    .warnings-badge { display: inline-flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 800; min-width: 16px; height: 16px; border-radius: 8px; padding: 0 4px; }
+    .warnings-badge.badge-error { background: rgba(248,113,113,0.25); color: #f87171; }
+    .warnings-badge.badge-warn  { background: rgba(245,158,11,0.2);  color: #f59e0b; }
+
     /* ── P56: C2-3 Common Error Hints ── */
     .ceh-item { border: 1px solid var(--border-primary); border-radius: var(--radius-sm); margin-bottom: 4px; background: var(--bg-tertiary); }
     .ceh-q { font-size: 11px; font-weight: 600; color: var(--text-primary); padding: 6px 8px; cursor: pointer; list-style: none; display: flex; align-items: center; gap: 4px; }
@@ -2342,6 +2374,81 @@
           <div class="section-title">常見錯誤說明 (C2-3)</div>
           <input class="ceh-search" id="ceh-search" type="search" placeholder="搜尋問題…" aria-label="搜尋常見錯誤">
           <div id="common-error-hints-list" role="list" aria-label="Common error hints list"></div>
+        </section>
+
+        <!-- D4-1: Unit Test Templates -->
+        <section class="section-panel" id="unit-test-panel">
+          <div class="section-title">Unit Test Templates (D4-1)</div>
+          <div class="unit-test-toolbar">
+            <select id="unit-test-lang" style="font-size:11px;background:var(--bg-tertiary);color:var(--text-primary);border:1px solid var(--border-primary);border-radius:var(--radius-sm);padding:3px 6px;">
+              <option value="python">pytest (Python)</option>
+              <option value="jest">Jest (JS)</option>
+            </select>
+            <button class="btn btn-sm" id="btn-unit-test-copy" style="flex:1;justify-content:center;">Copy</button>
+            <button class="btn btn-sm" id="btn-unit-test-download" style="flex:1;justify-content:center;">Download</button>
+          </div>
+          <pre class="unit-test-code" id="unit-test-code" aria-label="Unit test code template"></pre>
+        </section>
+
+        <!-- D4-2: JS/Python Diff Mode -->
+        <section class="section-panel" id="code-diff-panel">
+          <div class="section-title">MATLAB ↔ Python Diff (D4-2)</div>
+          <div style="margin-bottom:6px;">
+            <button class="btn btn-sm" id="btn-code-diff-refresh" style="width:100%;justify-content:center;">Refresh</button>
+          </div>
+          <div class="code-diff-grid">
+            <div class="code-diff-col">
+              <div class="code-diff-label">MATLAB</div>
+              <pre class="code-diff-pre" id="diff-matlab-col" aria-label="MATLAB code"></pre>
+            </div>
+            <div class="code-diff-col">
+              <div class="code-diff-label">Python</div>
+              <pre class="code-diff-pre" id="diff-python-col" aria-label="Python code"></pre>
+            </div>
+          </div>
+        </section>
+
+        <!-- D4-3: HIL CSV Export -->
+        <section class="section-panel" id="hil-export-panel">
+          <div class="section-title">HIL CSV Export (D4-3)</div>
+          <p class="hil-export-info">
+            將步階響應數據匯出為 Hardware-in-the-Loop 相容 CSV 格式，包含取樣率與元數據表頭。
+            需先執行步階模擬。
+          </p>
+          <button class="btn btn-sm btn-primary" id="btn-hil-export" style="width:100%;justify-content:center;">Export HIL CSV</button>
+        </section>
+
+        <!-- D5-1: Init Docs -->
+        <section class="section-panel" id="init-docs-panel">
+          <div class="section-title">Init Docs (D5-1)</div>
+          <div class="init-docs-toolbar">
+            <button class="btn btn-sm" id="btn-init-docs-copy" style="flex:1;justify-content:center;">Copy</button>
+            <button class="btn btn-sm" id="btn-init-docs-download" style="flex:1;justify-content:center;">Download INIT.md</button>
+          </div>
+          <pre class="init-docs-code" id="init-docs-code" aria-label="Project initialization documentation"></pre>
+        </section>
+
+        <!-- D5-2: Wiring Diagram -->
+        <section class="section-panel" id="wiring-diagram-panel">
+          <div class="section-title">Control Loop Diagram (D5-2)</div>
+          <p style="font-size:11px;color:var(--text-muted);line-height:1.5;margin-bottom:8px;">
+            閉迴路方塊圖，顯示 R→K→G→Y 與回授路徑。
+          </p>
+          <div id="wiring-diagram-svg" aria-label="Control loop block diagram"></div>
+        </section>
+
+        <!-- D5-3: Warnings Panel -->
+        <section class="section-panel" id="warnings-panel">
+          <div class="section-title">
+            Design Warnings (D5-3)
+            <span class="warnings-badge" id="warnings-badge" style="display:none;" aria-label="Warning count"></span>
+          </div>
+          <div style="margin-bottom:6px;">
+            <button class="btn btn-sm" id="btn-warnings-refresh" style="width:100%;justify-content:center;">Refresh Warnings</button>
+          </div>
+          <div id="warnings-panel-list" aria-live="polite" aria-label="Design warnings list">
+            <div class="warning-row warning-row-info"><span class="warn-icon">ℹ</span><span class="warn-msg">尚未分析。</span></div>
+          </div>
         </section>
 
         <section class="section-panel s-domain-only">
