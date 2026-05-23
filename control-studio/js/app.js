@@ -7103,7 +7103,7 @@ function initChartFullscreen() {
     if (!header) return;
     const btn = document.createElement('button');
     btn.className = 'chart-fullscreen-btn';
-    btn.title = '全螢幕 (F2-3)';
+    btn.title = '全螢幕';
     btn.setAttribute('aria-label', '全螢幕顯示此圖表');
     btn.innerHTML = '⤢ 全螢幕';
     btn.addEventListener('click', () => {
@@ -7134,7 +7134,7 @@ function initChartExport() {
 
     const btn = document.createElement('button');
     btn.className = 'chart-export-btn';
-    btn.title = '匯出圖表 (B3-4)';
+    btn.title = '匯出圖表';
     btn.setAttribute('aria-label', '匯出圖表');
     btn.innerHTML = '↓ 匯出';
 
@@ -12274,7 +12274,7 @@ function _renderExampleCards() {
           if (ex.pid[el.dataset.pid] !== undefined) el.value = ex.pid[el.dataset.pid];
         });
       }
-      notify(`已載入範例：${ex.name}`, 'success', { title: 'A1-3 範例庫' });
+      notify(`已載入範例：${ex.name}`, 'success', { title: '範例庫' });
       // Trigger full analysis and refresh all panels
       setTimeout(() => {
         document.getElementById('btn-apply')?.click();

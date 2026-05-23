@@ -86,7 +86,7 @@ assert(appJs.includes("name: 'T (Complementary)'"), 'T trace labeled');
 assert(appJs.includes("name: 'KS (Input Sensitivity)'"), 'KS trace labeled');
 assert(appJs.includes('plot-tab-sensitivity'), 'sensitivity tab id referenced');
 assert(indexHtml.includes('plot-tab-sensitivity'), '#plot-tab-sensitivity tab in HTML');
-assert(indexHtml.includes('Sensitivity (A5)'), 'Sensitivity tab label in HTML');
+assert(indexHtml.includes('Sensitivity'), 'Sensitivity tab label in HTML');
 
 // ── A5-3: Robustness badges ───────────────────────────────────────────────────
 console.log('\n▶ A5-3 Robustness Badge Bar');
