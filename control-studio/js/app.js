@@ -2840,6 +2840,9 @@ function refreshAllCharts() {
   renderPoleZeroMap(sys);
   renderComparisonChart();
   scheduleSmokeDiagnostics();
+  // F1-2: keep context bar + triple pane in sync
+  updateContextBar?.();
+  window.refreshTriplePane?.();
 }
 
 function renderDiscreteStepChart(targetId = 'chart-active') {
@@ -13428,4 +13431,192 @@ window.hideAppSkeleton = hideAppSkeleton;
 // Must be the LAST DOMContentLoaded listener so skeleton hides after all init.
 document.addEventListener('DOMContentLoaded', () => {
   initLoadingSkeleton();
+}, { once: true });
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// P59 — F1-2 Context Bar / view-nav / A5-1 Triple Pane
+// ═══════════════════════════════════════════════════════════════════════════════
+
+// ── F1-2: Context Bar ─────────────────────────────────────────────────────────
+function updateContextBar() {
+  const sysEl  = document.getElementById('ctx-sys-name');
+  const chipEl = document.getElementById('ctx-ctrl-chip');
+  const specEl = document.getElementById('ctx-spec-status');
+
+  // System name / order description
+  if (sysEl) {
+    if (state.plant) {
+      if (state.systemMode === 'mimo' && state.mimoPlant) {
+        const [ny, nu] = [state.mimoPlant.C?.length ?? '?', state.mimoPlant.B?.[0]?.length ?? '?'];
+        sysEl.textContent = `MIMO ${ny}×${nu}`;
+      } else {
+        const den = state.plant.den;
+        const order = Array.isArray(den) ? den.length - 1 : '?';
+        const domain = state.domain === 'z' ? 'z' : 's';
+        sysEl.textContent = `G(${domain}) — ${order}階`;
+      }
+    } else {
+      sysEl.textContent = '未載入系統';
+    }
+  }
+
+  // Controller chip — show design source or preset name
+  if (chipEl) {
+    if (state.controller) {
+      const preset = state.controllerDesign?.preset;
+      const src    = state.controllerDesign?.source || 'manual';
+      const label  = preset
+        ? preset.toUpperCase()
+        : src === 'manual' ? '手動' : src.toUpperCase();
+      chipEl.textContent = label;
+      chipEl.style.display = '';
+    } else {
+      chipEl.style.display = 'none';
+    }
+  }
+
+  // Spec status — count pass/fail badges from A2-3 bar
+  if (specEl) {
+    const badges = [...document.querySelectorAll('#spec-compliance-bar .spec-badge')];
+    if (badges.length > 0 && document.getElementById('spec-compliance-bar')?.style.display !== 'none') {
+      const passed = badges.filter(b => b.classList.contains('pass')).length;
+      const failed = badges.filter(b => b.classList.contains('fail')).length;
+      const total  = badges.length;
+      if (failed > 0) {
+        specEl.textContent = `${passed}/${total} 規格通過`;
+        specEl.className = 'ctx-spec fail';
+      } else if (passed > 0) {
+        specEl.textContent = `✓ ${passed}/${total} 規格通過`;
+        specEl.className = 'ctx-spec pass';
+      } else {
+        specEl.textContent = '';
+        specEl.className = 'ctx-spec';
+      }
+    } else {
+      specEl.textContent = '';
+      specEl.className = 'ctx-spec';
+    }
+  }
+}
+window.updateContextBar = updateContextBar;
+
+// ── A5-1: Triple Pane (Step Response + Bode + Nyquist side-by-side) ──────────
+function initTriplePane() {
+  const btn        = document.getElementById('btn-triple-pane');
+  const tripleView = document.getElementById('triple-pane-view');
+  const plotStage  = document.querySelector('.plot-stage');
+  const mimeBar    = document.getElementById('mimo-channel-bar');
+  let   tripleActive = false;
+
+  function renderTripleStep() {
+    if (!state.plant) return;
+    const sys  = state.showClosedLoop ? (state.closedLoop || state.plant) : state.plant;
+    const cfg  = state.simulationConfig;
+    try {
+      const resp = stepResponse(sys, cfg);
+      const layout = {
+        ...PLOTLY_LAYOUT_BASE(),
+        margin: { l: 44, r: 8, t: 8, b: 36 },
+        xaxis: { ...PLOTLY_LAYOUT_BASE().xaxis, title: 'Time (s)' },
+        yaxis: { ...PLOTLY_LAYOUT_BASE().yaxis, title: 'Amplitude' },
+      };
+      Plotly.react('chart-triple-step', [{
+        x: resp.t, y: resp.y, type: 'scatter', mode: 'lines',
+        line: { color: getCSS('--color-stable'), width: 2 }, name: 'Step',
+      }], layout, { responsive: true, displayModeBar: false });
+    } catch(e) { /* system not renderable */ }
+  }
+
+  function renderTripleBode() {
+    if (!state.plant) return;
+    const sys = state.showClosedLoop ? (state.closedLoop || state.plant) : state.plant;
+    try {
+      const range = autoFreqRange(sys);
+      const bd    = bodeData(sys, range.wMin, range.wMax);
+      if (!bd) return;
+      const base = PLOTLY_LAYOUT_BASE();
+      const layout = {
+        ...base,
+        margin: { l: 44, r: 44, t: 8, b: 36 },
+        xaxis:  { ...base.xaxis, type: 'log', title: 'ω (rad/s)' },
+        yaxis:  { ...base.yaxis, title: 'Magnitude (dB)' },
+        yaxis2: { overlaying: 'y', side: 'right', title: 'Phase (deg)', color: '#f97316', showgrid: false },
+        showlegend: false,
+      };
+      Plotly.react('chart-triple-bode', [
+        { x: bd.omega, y: bd.mag_db,    type: 'scatter', mode: 'lines', line: { color: getCSS('--color-accent'), width: 2 }, name: 'Mag (dB)' },
+        { x: bd.omega, y: bd.phase_deg, type: 'scatter', mode: 'lines', line: { color: '#f97316', width: 2 }, name: 'Phase', yaxis: 'y2' },
+      ], layout, { responsive: true, displayModeBar: false });
+    } catch(e) { /* not renderable */ }
+  }
+
+  function renderTripleNyquist() {
+    if (!state.plant) return;
+    const sys = state.showClosedLoop ? (state.closedLoop || state.plant) : state.plant;
+    try {
+      const range = autoFreqRange(sys);
+      const nq    = nyquistData(sys, range.wMin, range.wMax);
+      if (!nq) return;
+      const base = PLOTLY_LAYOUT_BASE();
+      const layout = {
+        ...base,
+        margin: { l: 44, r: 8, t: 8, b: 36 },
+        xaxis: { ...base.xaxis, title: 'Re', zeroline: true, zerolinecolor: 'rgba(255,255,255,0.15)' },
+        yaxis: { ...base.yaxis, title: 'Im', zeroline: true, zerolinecolor: 'rgba(255,255,255,0.15)' },
+        showlegend: false,
+      };
+      Plotly.react('chart-triple-nyquist', [
+        { x: nq.re, y: nq.im, type: 'scatter', mode: 'lines', line: { color: getCSS('--color-accent'), width: 2 }, name: 'Nyquist' },
+        { x: [-1],  y: [0],   type: 'scatter', mode: 'markers', marker: { color: '#ef4444', size: 9, symbol: 'x-open-dot' }, name: '−1' },
+      ], layout, { responsive: true, displayModeBar: false });
+    } catch(e) { /* not renderable */ }
+  }
+
+  function renderAllTriple() {
+    renderTripleStep();
+    renderTripleBode();
+    renderTripleNyquist();
+  }
+
+  function enterTriple() {
+    tripleActive = true;
+    if (tripleView) tripleView.style.display = 'block';
+    if (plotStage)  plotStage.style.display  = 'none';
+    if (mimeBar)    mimeBar.style.display     = 'none';
+    btn?.setAttribute('aria-pressed', 'true');
+    btn?.classList.add('active');
+    if (btn) btn.textContent = '⊞ 單圖';
+    renderAllTriple();
+    updateGlobalStatusBar('三窗格並排模式');
+  }
+
+  function exitTriple() {
+    tripleActive = false;
+    if (tripleView) tripleView.style.display = 'none';
+    if (plotStage)  plotStage.style.display  = 'grid';
+    btn?.setAttribute('aria-pressed', 'false');
+    btn?.classList.remove('active');
+    if (btn) btn.textContent = '⊟ 三窗格';
+    refreshAllCharts();
+  }
+
+  btn?.addEventListener('click', () => tripleActive ? exitTriple() : enterTriple());
+
+  // Exit triple mode on plot tab click (single-chart is cleaner)
+  document.querySelectorAll('.plot-tab[data-plot]').forEach(tab => {
+    tab.addEventListener('click', () => { if (tripleActive) exitTriple(); });
+  });
+
+  // Keyboard: Escape exits triple mode
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && tripleActive) exitTriple();
+  });
+
+  window.refreshTriplePane = () => { if (tripleActive) renderAllTriple(); };
+}
+
+// ── P59 init ──────────────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  initTriplePane();
+  updateContextBar();
 }, { once: true });

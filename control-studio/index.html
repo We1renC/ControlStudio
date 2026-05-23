@@ -40,7 +40,25 @@
     }
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { font-family: 'Inter', sans-serif; background: var(--bg-primary); color: var(--text-primary); height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
-    header { height: 60px; background: var(--bg-secondary); border-bottom: 1px solid var(--border-primary); display: flex; align-items: center; padding: 0 var(--space-6); justify-content: space-between; z-index: 100; }
+    header { height: 60px; background: var(--bg-secondary); border-bottom: 1px solid var(--border-primary); display: flex; align-items: center; padding: 0 var(--space-6); gap: var(--space-3); z-index: 100; }
+    /* F1-2: View nav pills (Dashboard ↔ Block Diagram) */
+    .view-nav { display:flex; gap:2px; background:var(--bg-tertiary); border:1px solid var(--border-primary); border-radius:var(--radius-md); padding:2px; flex-shrink:0; }
+    .view-nav-btn { background:transparent; border:none; font-size:11px; padding:3px 10px; border-radius:calc(var(--radius-md) - 2px); color:var(--text-muted); cursor:pointer; white-space:nowrap; line-height:1.4; font-weight:500; }
+    .view-nav-btn:hover { color:var(--text-primary); background:rgba(255,255,255,0.06); }
+    .view-nav-btn.active { background:var(--color-accent); color:#fff; font-weight:600; }
+    /* F1-2: Context Bar */
+    .ctx-bar { flex:1; display:flex; align-items:center; gap:8px; justify-content:center; min-width:0; overflow:hidden; }
+    .ctx-sys { font-size:12px; font-weight:600; color:var(--text-primary); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:200px; cursor:default; }
+    .ctx-chip { font-size:10px; background:var(--bg-tertiary); border:1px solid var(--border-primary); border-radius:var(--radius-sm); padding:2px 7px; color:var(--text-secondary); white-space:nowrap; }
+    .ctx-spec { font-size:10px; white-space:nowrap; }
+    .ctx-spec.pass { color:#22c55e; }
+    .ctx-spec.fail { color:#ef4444; }
+    /* A5-1: Triple pane layout */
+    .triple-pane-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:var(--space-3); }
+    .triple-pane-cell { background:var(--bg-secondary); border:1px solid var(--border-primary); border-radius:var(--radius-lg); padding:var(--space-3); display:flex; flex-direction:column; min-width:0; }
+    .triple-pane-cell .chart-body { min-height:200px; flex:1; }
+    @media (max-width:1024px) { .triple-pane-grid { grid-template-columns:1fr 1fr; } }
+    @media (max-width:760px) { .triple-pane-grid { grid-template-columns:1fr; } }
     .logo { font-family: 'Outfit', sans-serif; font-size: 20px; font-weight: 700; color: var(--color-accent); display: flex; align-items: center; gap: var(--space-2); }
     .header-actions { display: flex; align-items: center; gap: var(--space-4); }
     .btn { padding: 8px 14px; border-radius: var(--radius-sm); border: 1px solid var(--border-primary); background: var(--bg-tertiary); color: var(--text-primary); font-size: 13px; font-weight: 500; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: all 0.2s; }
@@ -290,6 +308,8 @@
     @media (max-width: 760px) {
       header { padding: 0 var(--space-4); gap: var(--space-2); overflow: hidden; }
       .logo { flex-shrink: 0; }
+      .view-nav { display: none; }
+      .ctx-bar { display: none; }
       .header-actions {
         flex: 1;
         min-width: 0;
@@ -1485,6 +1505,17 @@
       <span>ControlStudio</span>
       <span style="font-size:10px; color:var(--text-muted); margin-left:8px; font-weight:400; border:1px solid var(--border-primary); padding:1px 4px; border-radius:4px;" aria-label="version 1.1">v1.1</span>
       <span class="dirty-dot" id="dirty-dot" title="有未儲存的變更" aria-label="未儲存的變更" role="status"></span>
+    </div>
+    <!-- F1-2: View nav pills (Dashboard ↔ Block Diagram) -->
+    <div class="view-nav" id="view-nav" role="group" aria-label="檢視模式">
+      <button class="view-nav-btn active" id="view-dashboard" aria-pressed="true">儀表板</button>
+      <button class="view-nav-btn" id="view-editor" aria-pressed="false">接線圖</button>
+    </div>
+    <!-- F1-2: Context Bar — shows current system / controller / spec status -->
+    <div class="ctx-bar" id="ctx-bar" aria-label="當前系統上下文" aria-live="polite">
+      <span class="ctx-sys" id="ctx-sys-name">未載入系統</span>
+      <span class="ctx-chip" id="ctx-ctrl-chip" style="display:none"></span>
+      <span class="ctx-spec" id="ctx-spec-status"></span>
     </div>
     <div class="header-actions">
       <div class="divider-v"></div>
@@ -3386,7 +3417,7 @@
 
     <div id="dashboard-view" class="content-area">
       <div class="plot-workspace">
-        <div class="plot-switcher">
+        <div class="plot-switcher" style="display:flex;align-items:center;flex-wrap:wrap;gap:4px;">
           <button class="plot-tab active" data-plot="step">Time Response</button>
           <button class="plot-tab" data-plot="bode">Bode</button>
           <button class="plot-tab s-domain-only" data-plot="nyquist">Nyquist</button>
@@ -3394,6 +3425,25 @@
           <button class="plot-tab s-domain-only" data-plot="rlocus">Root Locus</button>
           <button class="plot-tab" data-plot="pzmap">Pole-Zero</button>
           <button class="plot-tab s-domain-only" data-plot="sensitivity" id="plot-tab-sensitivity">Sensitivity</button>
+          <!-- A5-1: Triple pane toggle -->
+          <button class="btn btn-sm" id="btn-triple-pane" title="三窗格並排：Step / Bode / Nyquist（A5-1）" aria-pressed="false" style="margin-left:auto;font-size:11px;flex-shrink:0;">⊟ 三窗格</button>
+        </div>
+        <!-- A5-1: Triple pane view (Step Response + Bode + Nyquist side-by-side) -->
+        <div id="triple-pane-view" style="display:none;padding:4px 0;" aria-label="三窗格並排顯示">
+          <div class="triple-pane-grid">
+            <div class="triple-pane-cell">
+              <div class="chart-header"><div class="chart-header-info"><span>Step Response</span><span>時域</span></div></div>
+              <div class="chart-body" id="chart-triple-step"></div>
+            </div>
+            <div class="triple-pane-cell">
+              <div class="chart-header"><div class="chart-header-info"><span>Bode Plot</span><span>頻域</span></div></div>
+              <div class="chart-body" id="chart-triple-bode"></div>
+            </div>
+            <div class="triple-pane-cell">
+              <div class="chart-header"><div class="chart-header-info"><span>Nyquist</span><span>穩定度</span></div></div>
+              <div class="chart-body" id="chart-triple-nyquist"></div>
+            </div>
+          </div>
         </div>
 
         <div id="mimo-channel-bar" style="display:none;background:var(--bg-secondary);border:1px solid var(--border-primary);border-radius:var(--radius-lg);padding:10px 14px;">
