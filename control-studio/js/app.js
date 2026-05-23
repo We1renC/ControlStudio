@@ -8819,3 +8819,399 @@ document.addEventListener('DOMContentLoaded', () => {
   initSplitPane();
   initDesignTabs();
 }, { once: true });
+
+// ════════════════════════════════════════════════════════════════════════════════
+// P45 — D3-1~3 FLOP/Memory/Platform + B4-1~2 CSV Import/Export
+// ════════════════════════════════════════════════════════════════════════════════
+
+// ── D3 helpers ────────────────────────────────────────────────────────────────
+
+/**
+ * Estimate FLOP count per control cycle.
+ * @param {string} type  'pid'|'sf'|'kalman_pred'|'kalman_upd'|'mpc'|'hinf'
+ * @param {object} p     { n, m, nc, N } dimensions
+ * @returns {number} FLOP count
+ */
+function estimateFLOPS(type, { n = 1, m = 1, nc = 1, N = 10 } = {}) {
+  switch (type) {
+    case 'pid':         return 6;
+    case 'sf':          return n * n + n;                   // K·x: n²+n
+    case 'kalman_pred': return 2 * n * n + n;               // 2n²+n
+    case 'kalman_upd':  return 3 * n * n + 2 * n * m;      // 3n²+2nm
+    case 'mpc':         return Math.round(N * Math.pow(n + m, 2)); // ~N(n+m)²
+    case 'hinf':        return nc * nc + nc;                // nc²+nc
+    default:            return 6;
+  }
+}
+
+/**
+ * Estimate RAM and Flash memory in bytes.
+ * @returns {{ ram: number, flash: number, rows: Array<{label,val,formula,isFlash}> }}
+ */
+function estimateMemory(type, { n = 1, m = 1, nc = 1, N = 10 } = {}) {
+  const FLOAT = 4;
+  const rows = [];
+  let ram = 0, flash = 0;
+
+  const addRam   = (label, bytes, formula) => { ram += bytes; rows.push({ label, val: bytes, formula, isFlash: false }); };
+  const addFlash = (label, bytes, formula) => { flash += bytes; rows.push({ label, val: bytes, formula, isFlash: true  }); };
+
+  switch (type) {
+    case 'pid':
+      addRam('PID 狀態 (e, integral, prev_e)', 3 * FLOAT, '3 × 4 bytes');
+      addFlash('PID 增益 (Kp, Ki, Kd)', 3 * FLOAT, '3 × 4 bytes');
+      break;
+    case 'sf':
+      addRam(`狀態向量 x (n=${n})`, n * FLOAT, `${n} × 4 bytes`);
+      addFlash(`K 增益矩陣 (m×n)`, m * n * FLOAT, `${m}×${n} × 4 bytes`);
+      break;
+    case 'kalman_pred':
+    case 'kalman_upd': {
+      addRam(`狀態 x̂ (n=${n})`, n * FLOAT, `${n} × 4 bytes`);
+      addRam(`協方差 P (n×n)`, n * n * FLOAT, `${n}² × 4 bytes`);
+      addFlash(`系統矩陣 A (n×n)`, n * n * FLOAT, `${n}² × 4 bytes`);
+      if (type === 'kalman_upd') {
+        addFlash(`觀測矩陣 C (m×n)`, m * n * FLOAT, `${m}×${n} × 4 bytes`);
+        addFlash(`K 卡爾曼增益 (n×m)`, n * m * FLOAT, `${n}×${m} × 4 bytes`);
+      }
+      break;
+    }
+    case 'mpc':
+      addRam(`狀態 x (n=${n})`, n * FLOAT, `${n} × 4 bytes`);
+      addRam(`MPC 軌跡緩存 N×(n+m)`, N * (n + m) * FLOAT, `${N}×(${n}+${m}) × 4`);
+      addFlash(`預測矩陣`, N * n * n * FLOAT, `${N}×${n}² × 4 bytes`);
+      break;
+    case 'hinf':
+      addRam(`控制器狀態 x_c (nc=${nc})`, nc * FLOAT, `${nc} × 4 bytes`);
+      addFlash(`A_c (nc×nc)`, nc * nc * FLOAT, `${nc}² × 4 bytes`);
+      addFlash(`B_c、C_c、D_c`, (nc * n + nc + m * nc) * FLOAT, `nc×(n+1+m) × 4`);
+      break;
+    default:
+      addRam('狀態 (PID)', 3 * FLOAT, '3 × 4 bytes');
+  }
+  return { ram, flash, rows };
+}
+
+/** Platform specs: { id, name, mflops, hasFPU } */
+const PLATFORM_DEFS = [
+  { id: 'cm0',   name: 'Cortex-M0',  mflops: 0.05,  hasFPU: false  },
+  { id: 'stm32f4', name: 'STM32F4',  mflops: 168,   hasFPU: true   },
+  { id: 'stm32h7', name: 'STM32H7',  mflops: 480,   hasFPU: true   },
+  { id: 'rpi4',  name: 'RPi 4',      mflops: 8000,  hasFPU: true   },
+  { id: 'x86',   name: 'x86 PC',     mflops: 200000, hasFPU: true  },
+];
+
+/** Build platform badge elements for a given MFLOP/s requirement. */
+function renderPlatformBadges(requiredMflops, container) {
+  container.innerHTML = '';
+  PLATFORM_DEFS.forEach(p => {
+    const effectiveMflops = p.hasFPU ? p.mflops : p.mflops / 10;
+    const ok = effectiveMflops >= requiredMflops;
+    const ratio = ok ? (effectiveMflops / requiredMflops).toFixed(1) : (requiredMflops / effectiveMflops).toFixed(1);
+    const fpuNote = p.hasFPU ? '' : '（無 FPU, 軟體浮點 ×10 cost）';
+    const tooltipText = `${p.name}：算力 ${p.mflops} MFLOP/s${fpuNote}\n此控制器需要 ${requiredMflops.toFixed(2)} MFLOP/s — ${ok ? `充裕 ✓（${ratio}× 餘裕）` : `不足 ✗（差 ${ratio}×）`}`;
+    const badge = document.createElement('span');
+    badge.className = `platform-badge ${ok ? 'ok' : 'no'}`;
+    badge.innerHTML = `${ok ? '✓' : '✗'} ${p.name}<span class="platform-badge-tooltip" style="white-space:pre-line;">${tooltipText}</span>`;
+    container.appendChild(badge);
+  });
+}
+
+/** Guess controller type from app state. */
+function _guessControllerType() {
+  // Check if MPC
+  if (document.getElementById('btn-mpc-solve')?.offsetParent) return 'mpc';
+  // Check MIMO mode
+  const mimoMode = document.querySelector('.btn-mimo-toggle.active')?.dataset.mode === 'mimo';
+  if (mimoMode) {
+    // Check if H-inf is active
+    if (document.getElementById('hinf-panel')?.offsetParent) return 'hinf';
+    // Check if Kalman observer active
+    if (document.getElementById('btn-kalman-update')?.offsetParent) return 'kalman_upd';
+    return 'sf'; // state feedback
+  }
+  return 'pid';
+}
+
+/** Parse current system dimensions from UI. */
+function _getSystemDims() {
+  // Try to get from state
+  const nEl = document.getElementById('ss-n-states');
+  const n = nEl ? (parseInt(nEl.value) || 1) : 1;
+  const m = 1; // SISO outputs
+  const nc = n; // controller order ≈ system order
+  const N = parseInt(document.getElementById('mpc-horizon')?.value) || 10;
+  return { n, m, nc, N };
+}
+
+/** D3 FLOP Panel initialization */
+function initFLOPPanel() {
+  const btn    = document.getElementById('btn-d3-estimate');
+  const out    = document.getElementById('d3-flop-out');
+  const hint   = document.getElementById('d3-flop-hint');
+  const cntEl  = document.getElementById('d3-flop-count');
+  const freqEl = document.getElementById('d3-flop-freq');
+  const memEl  = document.getElementById('d3-mem-rows');
+  const totEl  = document.getElementById('d3-mem-total');
+  const platEl = document.getElementById('d3-platform-badges');
+  const freqIn = document.getElementById('d3-ctrl-freq');
+  if (!btn) return;
+
+  btn.addEventListener('click', () => {
+    const type = _guessControllerType();
+    const dims = _getSystemDims();
+    const flops = estimateFLOPS(type, dims);
+    const ctrlFreq = parseFloat(freqIn.value) || 1000;
+    const mflopsRequired = (flops * ctrlFreq) / 1e6;
+
+    // FLOP display
+    cntEl.textContent = `${flops} FLOP/cycle`;
+    freqEl.textContent = `${mflopsRequired.toFixed(3)} MFLOP/s @ ${ctrlFreq} Hz`;
+
+    // Memory
+    const mem = estimateMemory(type, dims);
+    memEl.innerHTML = mem.rows.map(r =>
+      `<div class="mem-row">
+        <span>${r.label}</span>
+        <span class="mem-val" title="${r.formula}">${r.val < 1024 ? r.val + ' B' : (r.val / 1024).toFixed(1) + ' KB'} <span class="mem-formula">[${r.formula}]</span></span>
+      </div>`
+    ).join('');
+    const ramKB   = (mem.ram   / 1024).toFixed(1);
+    const flashKB = (mem.flash / 1024).toFixed(1);
+    totEl.innerHTML = `RAM：<b>${ramKB} KB</b> &emsp; Flash（唯讀）：<b>${flashKB} KB</b>`;
+
+    // Platform badges
+    renderPlatformBadges(mflopsRequired, platEl);
+
+    hint.style.display  = 'none';
+    out.style.display   = 'block';
+  });
+}
+
+// ── B4-1: CSV Import ──────────────────────────────────────────────────────────
+
+/** Detect delimiter from first non-empty line. */
+function _detectDelimiter(line) {
+  const counts = { ',': 0, '\t': 0, ';': 0 };
+  for (const ch of line) if (ch in counts) counts[ch]++;
+  return Object.keys(counts).reduce((a, b) => counts[a] >= counts[b] ? a : b);
+}
+
+/**
+ * Parse CSV text.
+ * @returns {{ headers: string[], rows: string[][], delimiter: string }}
+ */
+function parseCSVText(text) {
+  const lines = text.trim().split(/\r?\n/).filter(l => l.trim());
+  if (!lines.length) return { headers: [], rows: [], delimiter: ',' };
+  const delim = _detectDelimiter(lines[0]);
+  const split  = l => l.split(delim).map(c => c.trim().replace(/^"|"$/g, ''));
+  const headers = split(lines[0]);
+  const rows    = lines.slice(1).map(split);
+  return { headers, rows, delimiter: delim };
+}
+
+function initCSVImport() {
+  const modal      = document.getElementById('csv-import-modal');
+  const dropZone   = document.getElementById('csv-drop-zone');
+  const fileInput  = document.getElementById('csv-file-input');
+  const prevTable  = document.getElementById('csv-preview-table');
+  const prevSec    = document.getElementById('csv-preview-section');
+  const colX       = document.getElementById('csv-col-x');
+  const colY       = document.getElementById('csv-col-y');
+  const labelIn    = document.getElementById('csv-label');
+  const colorIn    = document.getElementById('csv-color');
+  const confirmBtn = document.getElementById('csv-confirm-btn');
+  const cancelBtn  = document.getElementById('csv-cancel-btn');
+  const errEl      = document.getElementById('csv-import-err');
+  if (!modal || !dropZone) return;
+
+  let _parsed = null;
+
+  // Add import button to time-domain chart header
+  const activeHeader = document.querySelector('.chart-cell.plot-main .chart-header');
+  if (activeHeader) {
+    const importBtn = document.createElement('button');
+    importBtn.className = 'btn btn-sm';
+    importBtn.id = 'btn-csv-import';
+    importBtn.title = '匯入量測資料 CSV';
+    importBtn.style.cssText = 'padding:3px 8px;font-size:10px;';
+    importBtn.innerHTML = '↑ 匯入';
+    importBtn.addEventListener('click', openModal);
+    activeHeader.appendChild(importBtn);
+  }
+
+  function openModal() {
+    modal.classList.remove('hidden');
+    _parsed = null;
+    prevSec.style.display = 'none';
+    errEl.style.display = 'none';
+    confirmBtn.disabled = true;
+    dropZone.style.display = 'block';
+  }
+  function closeModal() { modal.classList.add('hidden'); }
+
+  cancelBtn.addEventListener('click', closeModal);
+  modal.addEventListener('click', e => { if (e.target === modal) closeModal(); });
+
+  // Drop zone click → open file picker
+  dropZone.addEventListener('click', () => fileInput.click());
+  dropZone.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') fileInput.click(); });
+
+  // Drag-and-drop
+  dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('dragover'); });
+  dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+  dropZone.addEventListener('drop', e => {
+    e.preventDefault();
+    dropZone.classList.remove('dragover');
+    const file = e.dataTransfer.files[0];
+    if (file) processFile(file);
+  });
+
+  fileInput.addEventListener('change', () => {
+    if (fileInput.files[0]) processFile(fileInput.files[0]);
+    fileInput.value = '';
+  });
+
+  function processFile(file) {
+    const reader = new FileReader();
+    reader.onload = ev => {
+      try {
+        _parsed = parseCSVText(ev.target.result);
+        renderPreview(_parsed);
+        errEl.style.display = 'none';
+      } catch (err) {
+        errEl.textContent = `解析失敗：${err.message}`;
+        errEl.style.display = 'block';
+        _parsed = null;
+        confirmBtn.disabled = true;
+      }
+    };
+    reader.readAsText(file);
+    labelIn.value = file.name.replace(/\.[^.]+$/, '');
+  }
+
+  function renderPreview({ headers, rows }) {
+    // Build preview table
+    const thead = `<thead><tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr></thead>`;
+    const preview = rows.slice(0, 10);
+    const tbody = `<tbody>${preview.map(r => `<tr>${r.map(c => `<td>${c}</td>`).join('')}</tr>`).join('')}</tbody>`;
+    prevTable.innerHTML = thead + tbody;
+
+    // Populate column selectors
+    [colX, colY].forEach(sel => {
+      sel.innerHTML = headers.map((h, i) => `<option value="${i}">${h}</option>`).join('');
+    });
+    if (headers.length > 1) colY.value = '1';
+
+    dropZone.style.display = 'none';
+    prevSec.style.display = 'block';
+    confirmBtn.disabled = false;
+  }
+
+  confirmBtn.addEventListener('click', () => {
+    if (!_parsed) return;
+    const xi = parseInt(colX.value);
+    const yi = parseInt(colY.value);
+    const label = labelIn.value || '量測資料';
+    const color = colorIn.value || '#f97316';
+
+    const xArr = _parsed.rows.map(r => parseFloat(r[xi])).filter(v => !isNaN(v));
+    const yArr = _parsed.rows.map(r => parseFloat(r[yi])).filter(v => !isNaN(v));
+    const len  = Math.min(xArr.length, yArr.length);
+
+    if (len < 2) {
+      errEl.textContent = '資料不足（至少需要 2 行數值）';
+      errEl.style.display = 'block';
+      return;
+    }
+
+    // Overlay onto active Plotly chart
+    const chartEl = document.getElementById('chart-active');
+    if (chartEl && window.Plotly) {
+      window.Plotly.addTraces(chartEl, [{
+        x: xArr.slice(0, len),
+        y: yArr.slice(0, len),
+        mode: 'lines+markers',
+        name: `● ${label}`,
+        line:   { color, width: 1 },
+        marker: { color, size: 4, symbol: 'circle' },
+        type: 'scatter',
+      }]);
+      notify(`已疊加量測資料「${label}」(${len} 點)`, 'success', { duration: 3000 });
+    } else {
+      notify('請先執行模擬以顯示圖表', 'warn', { duration: 3000 });
+    }
+    closeModal();
+  });
+}
+
+// ── B4-2: CSV/JSON Data Export ─────────────────────────────────────────────────
+
+function exportChartCSV() {
+  const chartEl = document.getElementById('chart-active');
+  if (!chartEl?.data?.length) { notify('無圖表資料可匯出', 'warn'); return; }
+
+  const now  = new Date().toISOString().slice(0, 10);
+  const sys  = document.getElementById('tf-num')?.value || 'System';
+  const ctrl = document.getElementById('pid-kp') ? 'PID' : 'Controller';
+  const traces = chartEl.data;
+
+  // Build CSV: first x col, then each y series
+  const xs   = traces[0]?.x || [];
+  const cols  = ['x', ...traces.map(t => t.name || 'y')];
+  const header = [
+    `# ControlStudio Export — ${document.getElementById('active-plot-title')?.textContent || 'Chart Data'}`,
+    `# System: ${sys} | Controller: ${ctrl}`,
+    `# Generated: ${now}`,
+    cols.join(','),
+  ].join('\n');
+
+  const rows = xs.map((x, i) =>
+    [x, ...traces.map(t => t.y?.[i] ?? '')].join(',')
+  );
+  const csv = header + '\n' + rows.join('\n');
+  _downloadBlob(csv, `cs-data-${now}.csv`, 'text/csv');
+  notify('已匯出 CSV 資料', 'success', { duration: 2000 });
+}
+
+function exportChartJSON() {
+  const chartEl = document.getElementById('chart-active');
+  if (!chartEl?.data?.length) { notify('無圖表資料可匯出', 'warn'); return; }
+
+  const now  = new Date().toISOString().slice(0, 10);
+  const sys  = document.getElementById('tf-num')?.value || 'System';
+  const ctrl = document.getElementById('pid-kp') ? 'PID' : 'Controller';
+
+  const payload = {
+    meta:   { system: sys, controller: ctrl, date: now, source: 'ControlStudio' },
+    series: chartEl.data.map(t => ({
+      name: t.name || 'series',
+      x:    Array.from(t.x || []),
+      y:    Array.from(t.y || []),
+    })),
+  };
+  _downloadBlob(JSON.stringify(payload, null, 2), `cs-data-${now}.json`, 'application/json');
+  notify('已匯出 JSON 資料', 'success', { duration: 2000 });
+}
+
+function _downloadBlob(text, filename, mime) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([text], { type: mime }));
+  a.download = filename;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+}
+
+function initDataExport() {
+  // Extend existing export buttons
+  document.getElementById('btn-export-json')?.addEventListener('click', exportChartJSON);
+  document.getElementById('btn-export-csv')?.addEventListener('click',  exportChartCSV);
+}
+
+// ── P45 init ──────────────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  initFLOPPanel();
+  initCSVImport();
+  initDataExport();
+}, { once: true });

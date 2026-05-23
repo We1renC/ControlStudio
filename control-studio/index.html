@@ -904,6 +904,42 @@
     .unit-switcher { display: inline-flex; gap: 2px; background: var(--bg-tertiary); border-radius: 4px; padding: 1px; }
     .unit-btn { font-size: 9px; font-weight: 700; padding: 2px 6px; border-radius: 3px; border: 0; background: transparent; color: var(--text-muted); cursor: pointer; letter-spacing: 0.3px; transition: all 0.12s; }
     .unit-btn.active { background: var(--bg-secondary); color: var(--color-accent); box-shadow: 0 1px 2px rgba(0,0,0,0.15); }
+
+    /* ==================================================================
+       P45 — D3 FLOP/Memory/Platform + B4 CSV import/export
+       ================================================================== */
+    /* D3-1~3: FLOP panel */
+    .flop-count-big { font-size: 24px; font-weight: 800; color: var(--color-accent); font-family: ui-monospace, monospace; line-height: 1.1; }
+    .flop-freq-line { font-size: 11px; color: var(--text-muted); margin-top: 2px; margin-bottom: 10px; }
+    .flop-section-title { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); margin-bottom: 6px; margin-top: 12px; }
+    .mem-row { display: flex; justify-content: space-between; align-items: center; font-size: 11px; padding: 3px 0; border-bottom: 1px solid var(--border-primary); color: var(--text-secondary); }
+    .mem-row:last-child { border-bottom: 0; }
+    .mem-row .mem-val { font-family: ui-monospace, monospace; color: var(--text-primary); font-weight: 600; }
+    .mem-row .mem-formula { font-size: 10px; color: var(--text-muted); cursor: default; }
+    .platform-badge-row { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 8px; }
+    .platform-badge { display: inline-flex; align-items: center; gap: 4px; font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 4px; cursor: default; user-select: none; transition: opacity 0.15s; position: relative; }
+    .platform-badge.ok { background: rgba(16,185,129,0.15); color: #10b981; border: 1px solid rgba(16,185,129,0.25); }
+    .platform-badge.no { background: rgba(239,68,68,0.12); color: #ef4444; border: 1px solid rgba(239,68,68,0.2); }
+    .platform-badge-tooltip { position: absolute; bottom: calc(100% + 6px); left: 50%; transform: translateX(-50%); background: var(--bg-secondary); border: 1px solid var(--border-primary); border-radius: 6px; padding: 8px 10px; font-size: 10px; font-weight: 400; color: var(--text-secondary); white-space: nowrap; pointer-events: none; opacity: 0; transition: opacity 0.12s; z-index: 200; box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
+    .platform-badge:hover .platform-badge-tooltip { opacity: 1; }
+    .flop-ctrl-freq-row { display: flex; align-items: center; gap: 6px; margin-bottom: 10px; }
+    .flop-ctrl-freq-row label { font-size: 11px; color: var(--text-muted); white-space: nowrap; }
+    /* B4-1: CSV import */
+    .csv-drop-zone { border: 2px dashed var(--border-primary); border-radius: var(--radius-md); padding: 16px; text-align: center; font-size: 11px; color: var(--text-muted); cursor: pointer; transition: border-color 0.15s, background 0.15s; }
+    .csv-drop-zone:hover, .csv-drop-zone.dragover { border-color: var(--color-accent); background: rgba(99,102,241,0.04); color: var(--text-primary); }
+    .csv-import-modal { position: fixed; inset: 0; z-index: 10000; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.6); }
+    .csv-import-modal.hidden { display: none; }
+    .csv-import-box { background: var(--bg-secondary); border: 1px solid var(--border-primary); border-radius: var(--radius-lg); padding: 20px; width: 560px; max-width: 95vw; max-height: 80vh; display: flex; flex-direction: column; gap: 12px; }
+    .csv-import-box h3 { font-size: 14px; font-weight: 700; color: var(--text-primary); margin: 0; }
+    .csv-preview-table { width: 100%; font-size: 10px; border-collapse: collapse; overflow: auto; }
+    .csv-preview-table th, .csv-preview-table td { padding: 3px 6px; text-align: left; border-bottom: 1px solid var(--border-primary); font-family: ui-monospace, monospace; white-space: nowrap; }
+    .csv-preview-table th { background: var(--bg-tertiary); color: var(--text-muted); font-weight: 700; text-transform: uppercase; font-size: 9px; }
+    .csv-preview-wrap { max-height: 180px; overflow: auto; border: 1px solid var(--border-primary); border-radius: var(--radius-sm); }
+    .csv-col-select { display: flex; gap: 10px; flex-wrap: wrap; }
+    .csv-col-select label { font-size: 11px; color: var(--text-muted); }
+    .csv-col-select select { font-size: 11px; background: var(--bg-tertiary); color: var(--text-primary); border: 1px solid var(--border-primary); border-radius: 4px; padding: 4px 8px; }
+    /* B4-2: data export toolbar */
+    .data-export-row { display: flex; gap: 6px; margin-top: 6px; }
   </style>
 </head>
 <body>
@@ -1654,6 +1690,30 @@
       </div>
 
       <div class="sidebar-panel" id="panel-advisor">
+
+        <!-- D3-1~3: FLOP Count / Memory / Platform Suitability -->
+        <section class="section-panel" id="d3-flop-panel">
+          <div class="section-title">即時性評估 (D3)</div>
+          <p style="font-size:11px;color:var(--text-muted);line-height:1.5;margin-bottom:10px;">
+            估算控制器每週期浮點運算量、記憶體需求，並評估目標平台可行性。
+          </p>
+          <div class="flop-ctrl-freq-row">
+            <label for="d3-ctrl-freq">控制頻率 (Hz)</label>
+            <input type="number" id="d3-ctrl-freq" value="1000" min="1" step="100" style="width:90px;font-size:12px;background:var(--bg-tertiary);color:var(--text-primary);border:1px solid var(--border-primary);border-radius:4px;padding:4px 8px;">
+            <button class="btn btn-sm" id="btn-d3-estimate" style="justify-content:center;">估算</button>
+          </div>
+          <div id="d3-flop-out" style="display:none;">
+            <div class="flop-section-title">每週期 FLOP</div>
+            <div class="flop-count-big" id="d3-flop-count">—</div>
+            <div class="flop-freq-line" id="d3-flop-freq">— MFLOP/s @ 1000 Hz</div>
+            <div class="flop-section-title">記憶體估算</div>
+            <div id="d3-mem-rows"></div>
+            <div id="d3-mem-total" style="margin-top:6px;font-size:11px;font-weight:700;color:var(--text-primary);"></div>
+            <div class="flop-section-title">平台適用性</div>
+            <div class="platform-badge-row" id="d3-platform-badges"></div>
+          </div>
+          <div id="d3-flop-hint" style="font-size:11px;color:var(--text-muted);">請先輸入 Plant 並完成設計。</div>
+        </section>
 
         <!-- D1: Code Generation Preview Panel -->
         <section class="section-panel" id="code-preview-panel">
@@ -2881,6 +2941,35 @@
     </div>
   </div>
 
-  <script type="module" src="js/app.js?v=p38"></script>
+  <!-- B4-1: CSV Import Modal -->
+  <div class="csv-import-modal hidden" id="csv-import-modal" role="dialog" aria-modal="true" aria-labelledby="csv-import-title">
+    <div class="csv-import-box">
+      <h3 id="csv-import-title">↑ 匯入量測資料 (CSV)</h3>
+      <div class="csv-drop-zone" id="csv-drop-zone" tabindex="0" aria-label="拖放 CSV 檔案或點擊選擇檔案">
+        <div>拖放 CSV 檔案到此處，或 <u>點擊選擇檔案</u></div>
+        <div style="font-size:10px;margin-top:4px;opacity:0.6;">支援 comma / tab / semicolon 分隔符</div>
+      </div>
+      <input type="file" id="csv-file-input" accept=".csv,.txt,text/csv,text/plain" style="display:none;">
+      <div id="csv-preview-section" style="display:none;">
+        <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px;">預覽（前 10 行）</div>
+        <div class="csv-preview-wrap"><table class="csv-preview-table" id="csv-preview-table"></table></div>
+        <div class="csv-col-select" style="margin-top:10px;">
+          <div><label>X 欄（時間）</label><br><select id="csv-col-x"></select></div>
+          <div><label>Y 欄（輸出）</label><br><select id="csv-col-y"></select></div>
+          <div><label>資料標籤</label><br><input type="text" id="csv-label" value="量測資料" style="font-size:11px;background:var(--bg-tertiary);color:var(--text-primary);border:1px solid var(--border-primary);border-radius:4px;padding:4px 8px;width:100px;"></div>
+          <div><label>顏色</label><br><input type="color" id="csv-color" value="#f97316" style="width:42px;height:30px;border:none;cursor:pointer;border-radius:4px;background:transparent;"></div>
+        </div>
+      </div>
+      <div id="csv-import-err" style="font-size:11px;color:#ef4444;display:none;"></div>
+      <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:4px;">
+        <button class="btn btn-sm" id="csv-cancel-btn" type="button">取消</button>
+        <button class="btn btn-primary btn-sm" id="csv-confirm-btn" type="button" disabled>疊加到圖表</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- B4-2: CSV import trigger (inline button injected by JS) -->
+
+  <script type="module" src="js/app.js?v=p45"></script>
 </body>
 </html>
