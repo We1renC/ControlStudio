@@ -63,15 +63,17 @@
 | **P33** | **Productization & interop: codegen / report / python-control bridge** | Done | `verify_p33_productization.mjs` |
 | **P34** | **UI/UX experience & design system** | Done | `verify_p34_ui.mjs` |
 | **P35** | **UI/UX plan P1 foundation: status bar / toast / empty state** | Done | `verify_p35_uiux_foundation.mjs` |
+| **P36** | **UI/UX plan P1 remaining: slider / confirmDialog / skeleton / codeBlock / 3-way theme / SideNav icons / code preview / unit switcher** | Done | `verify_p36_uiux_p1_remaining.mjs` |
+| **P37** | **UI/UX plan P2: command palette / keyboard shortcut modal / unit switcher behaviour / print theme** | Done | `verify_p37_uiux_p2.mjs` |
 
-## Verification Suite Status (2026-05-22)
+## Verification Suite Status (2026-05-23)
 
-**50/50 scripts pass** — run via `bash scripts/run_all_verify.sh`
+**52/52 scripts pass** — run via `bash scripts/run_all_verify.sh`
 
 | Group | Scripts | Pass |
 | --- | --- | --- |
 | Phase 9/10/11 foundations | 11 | 11 |
-| Phase 14–35 advanced control / UI | 35 | 35 |
+| Phase 14–37 advanced control / UI | 37 | 37 |
 | General math & PID | 4 | 4 |
 
 ## Remaining Dirty Worktree
@@ -91,6 +93,30 @@
 | P35-03 High-frequency action feedback | Done | Share, theme, project export/load, compare snapshot actions |
 | P35-04 Empty-state action style | Done | `.empty-state-actions` |
 | P35-05 Regression guard | Done | `verify_p35_uiux_foundation.mjs`, `run_all_verify.sh` |
+
+### P36 — UI/UX Plan P1 Remaining Items
+
+| Item | Status | Evidence |
+| --- | --- | --- |
+| P36-01 A3-1 `slider()` component | Done | `js/ui/components.js` — linear/log, aria-value* attributes |
+| P36-02 G12 `confirmDialog()` component | Done | `js/ui/components.js` — accessible modal HTML generator |
+| P36-03 G11 `skeleton()` / `skeletonBlock()` | Done | `js/ui/components.js` — CSS pulse animation in `index.html` |
+| P36-04 D1 `codeBlock()` component | Done | `js/ui/components.js` — lang header + copy button |
+| P36-05 F4-1 Three-way theme (Dark/Light/Print) | Done | `THEME_CYCLE`, `toggleTheme()`, print CSS in `index.html` |
+| P36-06 F1-1 SideNav tabs with SVG icons | Done | `index.html` sidebar-tabs with `.tab-label` + icons |
+| P36-07 G1 Frequency unit switcher | Done | `#freq-unit-switcher` in status bar, `state._freqUnit` |
+| P36-08 D1 Live code preview panel | Done | `#code-preview-panel` in Design tab, `refreshCodePreview()` |
+
+### P37 — UI/UX Plan P2 Items
+
+| Item | Status | Evidence |
+| --- | --- | --- |
+| P37-01 G3 Command Palette | Done | `#cmd-overlay`, `COMMANDS` registry, Ctrl+K, keyboard nav |
+| P37-02 G13 Keyboard shortcuts modal | Done | `#shortcuts-modal`, shortcut table, Ctrl+? |
+| P37-03 G11 Skeleton CSS | Done | `.cs-skeleton`, `@keyframes cs-skeleton-pulse` |
+| P37-04 G1 Unit switcher behaviour | Done | `state._freqUnit`, refreshAllCharts on toggle |
+| P37-05 D1 Code preview MATLAB/Python | Done | `refreshCodePreview()`, `buildCodegenPayload()` |
+| P37-06 F4-1 Print theme CSS | Done | `[data-theme="print"]`, `@media print` |
 
 ## Phase Details
 

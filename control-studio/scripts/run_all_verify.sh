@@ -101,6 +101,8 @@ run_script "P32 nonlinear advanced"     "node scripts/verify_p32_nonlinear_advan
 run_script "P33 productization"         "node scripts/verify_p33_productization.mjs"
 run_script "P34 UI/UX experience"       "node scripts/verify_p34_ui.mjs"
 run_script "P35 UI/UX P1 foundation"    "node scripts/verify_p35_uiux_foundation.mjs"
+run_script "P36 UI/UX P1 remaining"    "node scripts/verify_p36_uiux_p1_remaining.mjs"
+run_script "P37 UI/UX P2"              "node scripts/verify_p37_uiux_p2.mjs"
 echo ""
 
 # ── General Math & PID ───────────────────────────────────────────────────────

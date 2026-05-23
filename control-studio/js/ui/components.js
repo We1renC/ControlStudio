@@ -307,3 +307,189 @@ export function kvList(items, opts = {}) {
   ).join('\n');
   return `<dl class="cs-kv-list"${idAttr}>\n${entries}\n</dl>`;
 }
+
+// ── Slider (A3-1) ─────────────────────────────────────────────────────────────
+
+/**
+ * Accessible range slider with linear/logarithmic scale.
+ *
+ * The `<output>` element mirrors the current value; for log scale the raw
+ * slider position is the exponent (e.g. value = log10(param)).
+ *
+ * @param {string} id          Unique element id for the <input>.
+ * @param {object} [opts]
+ * @param {string} [opts.label='']          Human-readable label.
+ * @param {number} [opts.min=0]             Slider minimum (raw position for log).
+ * @param {number} [opts.max=1]             Slider maximum.
+ * @param {number} [opts.step=0.01]         Step size.
+ * @param {number} [opts.value=0]           Initial raw value.
+ * @param {string} [opts.unit='']           Unit string appended to display value.
+ * @param {'linear'|'log'} [opts.scale='linear']
+ * @param {string} [opts.ariaLabel]         Falls back to opts.label.
+ * @param {string} [opts.onInput='']        Inline oninput handler string.
+ * @returns {string}
+ */
+export function slider(id, opts = {}) {
+  const {
+    label = '',
+    min = 0,
+    max = 1,
+    step = 0.01,
+    value = 0,
+    unit = '',
+    scale = 'linear',
+    ariaLabel = label,
+    onInput = '',
+  } = opts;
+
+  const displayVal =
+    scale === 'log'
+      ? Math.pow(10, Number(value)).toFixed(3)
+      : Number(value).toFixed(Number(step) < 0.01 ? 4 : 2);
+
+  const inputAttrs = [
+    `type="range"`,
+    `class="cs-slider__input"`,
+    `id="${esc(id)}"`,
+    `min="${esc(String(min))}"`,
+    `max="${esc(String(max))}"`,
+    `step="${esc(String(step))}"`,
+    `value="${esc(String(value))}"`,
+    `aria-label="${esc(ariaLabel || label)}"`,
+    `aria-valuemin="${esc(String(min))}"`,
+    `aria-valuemax="${esc(String(max))}"`,
+    `aria-valuenow="${esc(String(value))}"`,
+    onInput ? `oninput="${esc(onInput)}"` : '',
+  ].filter(Boolean).join(' ');
+
+  return (
+    `<div class="cs-slider" data-scale="${esc(scale)}" data-unit="${esc(unit)}">\n` +
+    `  <div class="cs-slider__header">\n` +
+    `    <label class="cs-slider__label" for="${esc(id)}">${esc(label)}</label>\n` +
+    `    <output class="cs-slider__value" for="${esc(id)}" id="${esc(id)}-val">${esc(displayVal)}${esc(unit)}</output>\n` +
+    `  </div>\n` +
+    `  <input ${inputAttrs}>\n` +
+    `</div>`
+  );
+}
+
+// ── ConfirmDialog (G12) ───────────────────────────────────────────────────────
+
+/**
+ * Accessible confirmation modal overlay (returns static HTML).
+ *
+ * Wire up behaviour using the `csConfirm()` helper in app.js, which shows
+ * this overlay and returns a `Promise<boolean>`.
+ *
+ * @param {string} [id='confirm-modal']
+ * @param {object} [opts]
+ * @param {string} [opts.title='確認動作']
+ * @param {string} [opts.message='確定要執行這個動作嗎？']
+ * @param {string} [opts.okText='確認']
+ * @param {string} [opts.cancelText='取消']
+ * @returns {string}
+ */
+export function confirmDialog(id = 'confirm-modal', opts = {}) {
+  const {
+    title      = '確認動作',
+    message    = '確定要執行這個動作嗎？',
+    okText     = '確認',
+    cancelText = '取消',
+  } = opts;
+
+  return (
+    `<div class="modal-overlay" id="${esc(id)}" role="dialog" aria-modal="true" ` +
+    `aria-labelledby="${esc(id)}-title" aria-hidden="true">\n` +
+    `  <div class="modal" style="max-width:420px;">\n` +
+    `    <div class="modal-header">\n` +
+    `      <div class="modal-title" id="${esc(id)}-title">${esc(title)}</div>\n` +
+    `    </div>\n` +
+    `    <div class="modal-body">\n` +
+    `      <p id="${esc(id)}-message" style="margin-bottom:0;">${esc(message)}</p>\n` +
+    `    </div>\n` +
+    `    <div class="modal-footer">\n` +
+    `      <button class="btn btn-sm" id="${esc(id)}-cancel" type="button">${esc(cancelText)}</button>\n` +
+    `      <button class="btn btn-sm btn-primary" id="${esc(id)}-ok" type="button">${esc(okText)}</button>\n` +
+    `    </div>\n` +
+    `  </div>\n` +
+    `</div>`
+  );
+}
+
+// ── Skeleton (G11) ────────────────────────────────────────────────────────────
+
+/**
+ * Skeleton loading placeholder — animated pulse block.
+ *
+ * @param {'line'|'block'|'circle'} [type='line']
+ * @param {object} [opts]
+ * @param {string} [opts.width='100%']
+ * @param {string} [opts.height='14px']
+ * @param {string} [opts.radius]     Defaults to '4px' for line/block, '50%' for circle.
+ * @param {string} [opts.id]
+ * @returns {string}
+ */
+export function skeleton(type = 'line', opts = {}) {
+  const {
+    width  = '100%',
+    height = type === 'circle' ? '40px' : '14px',
+    radius = type === 'circle' ? '50%'  : '4px',
+    id     = '',
+  } = opts;
+
+  const style = [
+    `width:${esc(String(width))}`,
+    `height:${esc(String(height))}`,
+    `border-radius:${esc(radius)}`,
+  ].join(';');
+
+  const idAttr = id ? ` id="${esc(id)}"` : '';
+  return `<div class="cs-skeleton"${idAttr} style="${style}" aria-hidden="true" role="presentation"></div>`;
+}
+
+/**
+ * Multi-line skeleton block (convenience wrapper).
+ *
+ * @param {number} [lines=3]
+ * @param {object} [opts]
+ * @returns {string}
+ */
+export function skeletonBlock(lines = 3, opts = {}) {
+  const rows = Array.from({ length: lines }, (_, i) =>
+    skeleton('line', { ...opts, width: i === lines - 1 ? '70%' : '100%' })
+  );
+  return `<div class="cs-skeleton-block" style="display:grid;gap:8px;">${rows.join('\n')}</div>`;
+}
+
+// ── CodeBlock (D1) ────────────────────────────────────────────────────────────
+
+/**
+ * Syntax-highlighted code block with copy button.
+ *
+ * @param {string} code         Pre-formatted code string.
+ * @param {object} [opts]
+ * @param {'matlab'|'python'|'text'} [opts.lang='text']
+ * @param {string} [opts.id]
+ * @param {boolean} [opts.copyable=true]
+ * @returns {string}
+ */
+export function codeBlock(code, opts = {}) {
+  const { lang = 'text', id = '', copyable = true } = opts;
+  const idAttr = id ? ` id="${esc(id)}"` : '';
+  const langLabel = { matlab: 'MATLAB', python: 'Python', text: 'Code' }[lang] ?? 'Code';
+
+  const copyBtn = copyable
+    ? `<button class="cs-codeblock__copy" type="button" aria-label="Copy code to clipboard" ` +
+      `onclick="navigator.clipboard.writeText(this.closest('.cs-codeblock').querySelector('code').textContent).then(()=>{this.textContent='✓ Copied';setTimeout(()=>this.textContent='Copy',1800)})">Copy</button>`
+    : '';
+
+  return (
+    `<div class="cs-codeblock cs-codeblock--${esc(lang)}"${idAttr}>\n` +
+    `  <div class="cs-codeblock__header">\n` +
+    `    <span class="cs-codeblock__lang">${esc(langLabel)}</span>\n` +
+    `    ${copyBtn}\n` +
+    `  </div>\n` +
+    `  <pre class="cs-codeblock__pre"><code class="cs-codeblock__code">${esc(code)}</code></pre>\n` +
+    `</div>`
+  );
+}

@@ -448,6 +448,128 @@
 
     /* aria-live error region (visually identical to existing error toast) */
     [role="alert"], [aria-live] { /* no visual override; just semantic */ }
+
+    /* ==================================================================
+       P36 — Slider component (A3-1)
+       ================================================================== */
+    .cs-slider { display: flex; flex-direction: column; gap: 6px; margin-bottom: var(--space-4); }
+    .cs-slider__header { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+    .cs-slider__label { font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
+    .cs-slider__value { font-size: 12px; font-weight: 700; color: var(--text-secondary); font-family: ui-monospace, monospace; min-width: 56px; text-align: right; }
+    .cs-slider__input { -webkit-appearance: none; appearance: none; width: 100%; height: 4px; background: var(--border-secondary); border-radius: 2px; outline: none; cursor: pointer; }
+    .cs-slider__input::-webkit-slider-thumb { -webkit-appearance: none; width: 16px; height: 16px; border-radius: 50%; background: var(--color-accent); cursor: pointer; box-shadow: 0 0 0 3px rgba(99,102,241,0.18); transition: box-shadow 0.15s; }
+    .cs-slider__input::-webkit-slider-thumb:hover { box-shadow: 0 0 0 5px rgba(99,102,241,0.28); }
+    .cs-slider__input:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 3px; border-radius: 4px; }
+    .cs-slider__input::-moz-range-thumb { width: 16px; height: 16px; border-radius: 50%; background: var(--color-accent); border: none; cursor: pointer; }
+
+    /* ==================================================================
+       P36 — Skeleton (G11)
+       ================================================================== */
+    @keyframes cs-skeleton-pulse {
+      0%, 100% { opacity: 1; }
+      50%       { opacity: 0.4; }
+    }
+    .cs-skeleton {
+      background: var(--bg-tertiary);
+      border-radius: 4px;
+      animation: cs-skeleton-pulse 1.5s ease-in-out infinite;
+      display: block;
+    }
+
+    /* ==================================================================
+       P36 — CodeBlock (D1)
+       ================================================================== */
+    .cs-codeblock { border: 1px solid var(--border-primary); border-radius: var(--radius-md); overflow: hidden; background: rgba(15,17,23,0.55); }
+    .cs-codeblock__header { display: flex; align-items: center; justify-content: space-between; padding: 6px 12px; background: var(--bg-tertiary); border-bottom: 1px solid var(--border-primary); }
+    .cs-codeblock__lang { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px; color: var(--text-muted); }
+    .cs-codeblock__copy { font-size: 10px; font-weight: 600; background: transparent; border: 1px solid var(--border-primary); border-radius: 4px; padding: 2px 8px; color: var(--text-muted); cursor: pointer; transition: all 0.15s; }
+    .cs-codeblock__copy:hover { background: var(--bg-secondary); color: var(--text-primary); }
+    .cs-codeblock__pre { margin: 0; padding: 10px 12px; overflow-x: auto; max-height: 260px; }
+    .cs-codeblock__code { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 11px; line-height: 1.65; color: var(--text-secondary); white-space: pre; display: block; }
+
+    /* Code panel lang tabs */
+    .code-lang-tabs { display: flex; gap: 4px; margin-bottom: 8px; }
+    .code-lang-tab { font-size: 11px; font-weight: 600; padding: 4px 10px; border-radius: var(--radius-sm); border: 1px solid var(--border-primary); background: var(--bg-tertiary); color: var(--text-secondary); cursor: pointer; }
+    .code-lang-tab.active { background: var(--color-accent); border-color: var(--color-accent); color: white; }
+
+    /* ==================================================================
+       P36 — Three-way theme toggle (F4-1)
+       ================================================================== */
+    .theme-cycle-btn { position: relative; }
+    .theme-cycle-label { font-size: 10px; font-weight: 700; letter-spacing: 0.4px; }
+
+    /* Print theme */
+    [data-theme="print"] {
+      --bg-primary: #ffffff; --bg-secondary: #f8f8f8; --bg-tertiary: #f0f0f0;
+      --text-primary: #111111; --text-secondary: #333333; --text-muted: #666666;
+      --border-primary: #cccccc; --border-secondary: #aaaaaa;
+      --color-accent: #1a1aff; --color-stable: #006600; --color-unstable: #cc0000;
+      --chart-grid: #eeeeee; --chart-axis: #888888;
+    }
+    @media print {
+      header .header-actions { display: none !important; }
+      .app-status-bar { display: none !important; }
+      aside { display: none !important; }
+      .content-area { padding: 0 !important; }
+      .modal-overlay { display: none !important; }
+    }
+
+    /* ==================================================================
+       P36 — SideNav icons (F1-1)
+       ================================================================== */
+    .sidebar-tab { display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 8px 4px; }
+    .sidebar-tab svg { flex-shrink: 0; }
+    .sidebar-tab .tab-label { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.3px; }
+
+    /* ==================================================================
+       P37 — Command Palette (G3)
+       ================================================================== */
+    .cmd-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.55); backdrop-filter: blur(6px);
+      z-index: 9500; display: none; align-items: flex-start; justify-content: center; padding-top: 12vh;
+    }
+    .cmd-overlay.active { display: flex; animation: fade-in 0.12s ease; }
+    .cmd-palette {
+      background: var(--bg-secondary); border: 1px solid var(--border-secondary);
+      border-radius: var(--radius-lg); width: min(600px, calc(100vw - 32px));
+      box-shadow: 0 24px 60px rgba(0,0,0,0.5); overflow: hidden; display: flex; flex-direction: column;
+    }
+    .cmd-search-wrap { display: flex; align-items: center; gap: 10px; padding: 14px 16px; border-bottom: 1px solid var(--border-primary); }
+    .cmd-search-icon { color: var(--text-muted); flex-shrink: 0; }
+    .cmd-search-input { flex: 1; background: transparent; border: 0; outline: none; font-size: 15px; color: var(--text-primary); font-family: inherit; }
+    .cmd-search-input::placeholder { color: var(--text-muted); }
+    .cmd-hint { font-size: 10px; color: var(--text-muted); white-space: nowrap; }
+    .cmd-list { max-height: 380px; overflow-y: auto; padding: 6px; }
+    .cmd-group-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px; color: var(--text-muted); padding: 8px 10px 4px; }
+    .cmd-item {
+      display: flex; align-items: center; gap: 10px; padding: 9px 10px;
+      border-radius: var(--radius-sm); cursor: pointer; transition: background 0.1s;
+    }
+    .cmd-item:hover, .cmd-item.focused { background: rgba(99,102,241,0.12); color: var(--text-primary); }
+    .cmd-item-icon { width: 28px; height: 28px; border-radius: 6px; background: var(--bg-tertiary); display: flex; align-items: center; justify-content: center; font-size: 14px; flex-shrink: 0; }
+    .cmd-item-body { flex: 1; min-width: 0; }
+    .cmd-item-title { font-size: 13px; font-weight: 500; color: var(--text-primary); }
+    .cmd-item-sub { font-size: 11px; color: var(--text-muted); }
+    .cmd-item-kbd { font-size: 10px; color: var(--text-muted); display: flex; gap: 4px; flex-shrink: 0; }
+    .cmd-empty { padding: 28px 16px; text-align: center; font-size: 13px; color: var(--text-muted); }
+
+    /* ==================================================================
+       P37 — Keyboard shortcuts modal (G13)
+       ================================================================== */
+    .shortcut-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    .shortcut-table th { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); padding: 6px 8px; border-bottom: 1px solid var(--border-primary); text-align: left; }
+    .shortcut-table td { padding: 7px 8px; border-bottom: 1px solid rgba(45,51,67,0.5); color: var(--text-secondary); }
+    .shortcut-table tr:last-child td { border-bottom: 0; }
+    .shortcut-table .shortcut-group { background: var(--bg-tertiary); }
+    .shortcut-table .shortcut-group td { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); padding: 8px 8px 4px; }
+    .shortcut-keys { display: flex; gap: 4px; }
+
+    /* ==================================================================
+       P37 — Unit switcher (G1)
+       ================================================================== */
+    .unit-switcher { display: inline-flex; gap: 2px; background: var(--bg-tertiary); border-radius: 4px; padding: 1px; }
+    .unit-btn { font-size: 9px; font-weight: 700; padding: 2px 6px; border-radius: 3px; border: 0; background: transparent; color: var(--text-muted); cursor: pointer; letter-spacing: 0.3px; transition: all 0.12s; }
+    .unit-btn.active { background: var(--bg-secondary); color: var(--color-accent); box-shadow: 0 1px 2px rgba(0,0,0,0.15); }
   </style>
 </head>
 <body>
@@ -470,8 +592,9 @@
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
         <span>Help</span>
       </button>
-      <button class="btn btn-sm" id="theme-toggle" title="Toggle dark/light theme" aria-label="Toggle dark/light theme">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+      <button class="btn btn-sm theme-cycle-btn" id="theme-toggle" title="Cycle theme: Dark → Light → Print" aria-label="Cycle theme">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" id="theme-icon-svg"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+        <span class="theme-cycle-label" id="theme-label">Dark</span>
       </button>
     </div>
   </header>
@@ -483,16 +606,35 @@
     <div class="app-status-item"><span>Plot</span><strong id="status-active-plot">Step</strong></div>
     <div class="app-status-item"><span>Stability</span><strong id="status-stability">Pending</strong></div>
     <div class="app-status-item"><span>Theme</span><strong id="status-theme">Dark</strong></div>
+    <div class="app-status-item" title="Frequency unit (G1: unit switcher)">
+      <span>Freq</span>
+      <div class="unit-switcher" id="freq-unit-switcher" aria-label="Frequency unit">
+        <button class="unit-btn active" data-unit="rads" aria-pressed="true" title="rad/s">rad/s</button>
+        <button class="unit-btn" data-unit="hz" aria-pressed="false" title="Hz">Hz</button>
+      </div>
+    </div>
     <div class="app-status-live" id="global-live-region">Ready</div>
   </div>
 
   <main role="main">
     <aside role="complementary" aria-label="Control system configuration">
       <div class="sidebar-tabs" role="tablist" aria-label="Configuration sections">
-        <button class="sidebar-tab active" data-sidebar="model" role="tab" aria-selected="true" aria-controls="panel-model">Plant</button>
-        <button class="sidebar-tab" data-sidebar="simulate" role="tab" aria-selected="false" aria-controls="panel-simulate">Simulation</button>
-        <button class="sidebar-tab" data-sidebar="advisor" role="tab" aria-selected="false" aria-controls="panel-advisor">Design</button>
-        <button class="sidebar-tab" data-sidebar="compare" role="tab" aria-selected="false" aria-controls="panel-compare">Compare</button>
+        <button class="sidebar-tab active" data-sidebar="model" role="tab" aria-selected="true" aria-controls="panel-model">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg>
+          <span class="tab-label">Plant</span>
+        </button>
+        <button class="sidebar-tab" data-sidebar="simulate" role="tab" aria-selected="false" aria-controls="panel-simulate">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+          <span class="tab-label">Simulate</span>
+        </button>
+        <button class="sidebar-tab" data-sidebar="advisor" role="tab" aria-selected="false" aria-controls="panel-advisor">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+          <span class="tab-label">Design</span>
+        </button>
+        <button class="sidebar-tab" data-sidebar="compare" role="tab" aria-selected="false" aria-controls="panel-compare">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+          <span class="tab-label">Compare</span>
+        </button>
       </div>
 
       <div class="sidebar-panel active" id="panel-model">
@@ -1113,6 +1255,26 @@
       </div>
 
       <div class="sidebar-panel" id="panel-advisor">
+
+        <!-- D1: Code Generation Preview Panel -->
+        <section class="section-panel" id="code-preview-panel">
+          <div class="section-title">Code Preview (D1)</div>
+          <p class="section-copy" style="margin-bottom:8px;">即時預覽現有設計的 MATLAB / Python 程式碼。</p>
+          <div class="code-lang-tabs">
+            <button class="code-lang-tab active" data-codelang="matlab" type="button">MATLAB</button>
+            <button class="code-lang-tab" data-codelang="python" type="button">Python</button>
+          </div>
+          <div id="code-preview-wrap">
+            <div class="cs-codeblock" id="code-preview-block">
+              <div class="cs-codeblock__header">
+                <span class="cs-codeblock__lang" id="code-preview-lang-label">MATLAB</span>
+                <button class="cs-codeblock__copy" id="code-preview-copy" type="button" aria-label="Copy code to clipboard">Copy</button>
+              </div>
+              <pre class="cs-codeblock__pre"><code class="cs-codeblock__code" id="code-preview-code">% 輸入 Plant 後自動更新</code></pre>
+            </div>
+          </div>
+        </section>
+
         <section class="section-panel s-domain-only">
           <div class="section-title">Controller Design (Specs → Controller)</div>
           <p style="font-size:12px;color:var(--text-muted);line-height:1.6;margin-bottom:var(--space-3);">
@@ -2028,6 +2190,53 @@
     </div>
   </div>
 
-  <script type="module" src="js/app.js?v=pid-p2"></script>
+  <!-- Command Palette (G3, Ctrl+K) -->
+  <div class="cmd-overlay" id="cmd-overlay" role="dialog" aria-modal="true" aria-label="命令面板" aria-hidden="true">
+    <div class="cmd-palette">
+      <div class="cmd-search-wrap">
+        <svg class="cmd-search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input class="cmd-search-input" id="cmd-search" type="text" placeholder="輸入指令或功能名稱…" autocomplete="off" aria-autocomplete="list" aria-controls="cmd-list">
+        <span class="cmd-hint"><kbd>Esc</kbd> 關閉</span>
+      </div>
+      <div class="cmd-list" id="cmd-list" role="listbox" aria-label="指令清單"></div>
+    </div>
+  </div>
+
+  <!-- Keyboard Shortcuts Modal (G13) -->
+  <div class="modal-overlay" id="shortcuts-modal" role="dialog" aria-modal="true" aria-labelledby="shortcuts-title" aria-hidden="true">
+    <div class="modal" style="max-width:540px;">
+      <div class="modal-header">
+        <div class="modal-title" id="shortcuts-title">⌨️ 鍵盤快捷鍵</div>
+        <button class="modal-close" data-modal-close="shortcuts-modal" aria-label="關閉">×</button>
+      </div>
+      <div class="modal-body">
+        <table class="shortcut-table">
+          <thead><tr><th>快捷鍵</th><th>功能</th></tr></thead>
+          <tbody>
+            <tr class="shortcut-group"><td colspan="2">導覽 &amp; 檢視</td></tr>
+            <tr><td><div class="shortcut-keys"><kbd>Ctrl</kbd><kbd>/</kbd></div></td><td>開啟 Quick Start</td></tr>
+            <tr><td><div class="shortcut-keys"><kbd>Ctrl</kbd><kbd>K</kbd></div></td><td>命令面板</td></tr>
+            <tr><td><div class="shortcut-keys"><kbd>Ctrl</kbd><kbd>?</kbd></div></td><td>此快捷鍵說明</td></tr>
+            <tr><td><div class="shortcut-keys"><kbd>Esc</kbd></div></td><td>關閉對話框</td></tr>
+            <tr><td><div class="shortcut-keys"><kbd>Alt</kbd><kbd>S</kbd></div></td><td>摺疊 / 展開全部區塊</td></tr>
+            <tr class="shortcut-group"><td colspan="2">專案 &amp; 匯出</td></tr>
+            <tr><td><div class="shortcut-keys"><kbd>Ctrl</kbd><kbd>S</kbd></div></td><td>儲存專案</td></tr>
+            <tr><td><div class="shortcut-keys"><kbd>Ctrl</kbd><kbd>E</kbd></div></td><td>匯出 CSV</td></tr>
+            <tr><td><div class="shortcut-keys"><kbd>Ctrl</kbd><kbd>Z</kbd></div></td><td>Undo</td></tr>
+            <tr><td><div class="shortcut-keys"><kbd>Ctrl</kbd><kbd>Y</kbd></div></td><td>Redo</td></tr>
+            <tr class="shortcut-group"><td colspan="2">圖表切換</td></tr>
+            <tr><td><div class="shortcut-keys"><kbd>1</kbd>–<kbd>8</kbd></div></td><td>快速切換圖表標籤 (Dashboard view)</td></tr>
+            <tr class="shortcut-group"><td colspan="2">主題 &amp; 介面</td></tr>
+            <tr><td><div class="shortcut-keys"><kbd>Ctrl</kbd><kbd>Shift</kbd><kbd>T</kbd></div></td><td>切換主題 (Dark / Light / Print)</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-sm" data-modal-close="shortcuts-modal" type="button">關閉</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="js/app.js?v=p36-p37"></script>
 </body>
 </html>

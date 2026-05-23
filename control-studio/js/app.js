@@ -292,22 +292,32 @@ function initTheme() {
   updateGlobalStatusBar('Theme loaded');
 }
 
+// F4-1: Three-way theme cycle — dark → light → print → dark
+const THEME_CYCLE = ['dark', 'light', 'print'];
+
 function toggleTheme() {
-  state.theme = state.theme === 'dark' ? 'light' : 'dark';
+  const idx = THEME_CYCLE.indexOf(state.theme ?? 'dark');
+  state.theme = THEME_CYCLE[(idx + 1) % THEME_CYCLE.length];
   document.documentElement.setAttribute('data-theme', state.theme);
   localStorage.setItem('cs-theme', state.theme);
   updateThemeIcon();
   if (state.plant) refreshAllCharts();
-  notify(`Theme switched to ${state.theme}`, 'success', { title: 'Theme' });
+  notify(`Theme: ${state.theme}`, 'success', { title: 'Theme' });
   updateGlobalStatusBar(`Theme switched to ${state.theme}`);
 }
 
 function updateThemeIcon() {
   const btn = document.getElementById('theme-toggle');
+  const lbl = document.getElementById('theme-label');
   if (!btn) return;
-  btn.innerHTML = state.theme === 'dark'
-    ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>'
-    : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>';
+  const svgWrap = btn.querySelector('#theme-icon-svg') ?? btn.querySelector('svg');
+  const icons = {
+    dark:  '<circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>',
+    light: '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>',
+    print: '<polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/>',
+  };
+  if (svgWrap) svgWrap.innerHTML = icons[state.theme] ?? icons.dark;
+  if (lbl) lbl.textContent = (state.theme ?? 'dark').charAt(0).toUpperCase() + (state.theme ?? 'dark').slice(1);
 }
 
 function initEventListeners() {
@@ -981,6 +991,43 @@ function initEventListeners() {
   document.addEventListener('keydown', (e) => {
     if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key === 'z') { e.preventDefault(); historyUndo(); }
     if ((e.ctrlKey || e.metaKey) && (e.key === 'y' || (e.shiftKey && e.key === 'z'))) { e.preventDefault(); historyRedo(); }
+    // P36/P37 global shortcuts
+    if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'T') { e.preventDefault(); toggleTheme(); }
+    if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key === 'k') { e.preventDefault(); openCommandPalette(); }
+    if ((e.ctrlKey || e.metaKey) && e.key === '?') { e.preventDefault(); showModal('shortcuts-modal'); }
+  });
+
+  // ── D1: Code Preview Panel ────────────────────────────────────
+  document.querySelectorAll('.code-lang-tab').forEach((tab) => {
+    tab.addEventListener('click', () => {
+      document.querySelectorAll('.code-lang-tab').forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      state._codeLang = tab.dataset.codelang ?? 'matlab';
+      refreshCodePreview();
+    });
+  });
+
+  document.getElementById('code-preview-copy')?.addEventListener('click', () => {
+    const code = document.getElementById('code-preview-code')?.textContent ?? '';
+    navigator.clipboard?.writeText(code).then(() => {
+      const btn = document.getElementById('code-preview-copy');
+      if (btn) { const t = btn.textContent; btn.textContent = '✓ Copied'; setTimeout(() => { btn.textContent = t; }, 1800); }
+    });
+  });
+
+  // ── G1: Frequency unit switcher ───────────────────────────────
+  document.querySelectorAll('#freq-unit-switcher .unit-btn').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('#freq-unit-switcher .unit-btn').forEach(b => {
+        b.classList.remove('active');
+        b.setAttribute('aria-pressed', 'false');
+      });
+      btn.classList.add('active');
+      btn.setAttribute('aria-pressed', 'true');
+      state._freqUnit = btn.dataset.unit; // 'rads' | 'hz'
+      notify(`Frequency unit: ${btn.dataset.unit === 'hz' ? 'Hz' : 'rad/s'}`, 'info', { title: 'Units' });
+      if (state.plant) refreshAllCharts();
+    });
   });
 }
 
@@ -6612,3 +6659,203 @@ window.ControlStudioSmoke = {
   getState: controlStudioSmokeState,
   run: runControlStudioSmoke,
 };
+
+// ============================================================================
+// P36/P37 — Command Palette (G3), Code Preview (D1), Unit Switcher (G1)
+// ============================================================================
+
+// ── D1: Code Preview ─────────────────────────────────────────────────────────
+
+/** Build the payload object for code generation (reuses existing codegen data). */
+function buildCodegenPayload() {
+  const pid = state.controller;
+  return {
+    plant: state.plant ? { num: state.plant.num, den: state.plant.den } : null,
+    controller: pid ? { Kp: pid.Kp ?? 0, Ki: pid.Ki ?? 0, Kd: pid.Kd ?? 0, N: pid.N ?? 100 } : null,
+    delay: state.delay ? { T: state.delay.T, order: state.delay.order ?? 2 } : null,
+    domain: state.domain ?? 's',
+    Ts: state.Ts ?? null,
+    responseType: state.responseType ?? 'step',
+    closedLoop: state.showClosedLoop ?? true,
+  };
+}
+
+/** Refresh the code preview block in the Design panel (D1). */
+function refreshCodePreview() {
+  const codeEl = document.getElementById('code-preview-code');
+  const langLbl = document.getElementById('code-preview-lang-label');
+  if (!codeEl) return;
+  try {
+    const lang = state._codeLang ?? 'matlab';
+    const design = buildCodegenPayload();
+    const code = lang === 'python' ? toPythonScript(design) : toMatlabScript(design);
+    codeEl.textContent = code;
+    if (langLbl) langLbl.textContent = lang === 'python' ? 'Python' : 'MATLAB';
+  } catch (e) {
+    codeEl.textContent = `% Error: ${e.message}`;
+  }
+}
+
+// Auto-refresh code preview whenever plant/controller changes
+const _origUpdateGlobalStatusBar = updateGlobalStatusBar;
+// Patch: refresh code preview on every global status update (debounced)
+let _codePreviewTimer = null;
+function scheduleCodePreviewRefresh() {
+  clearTimeout(_codePreviewTimer);
+  _codePreviewTimer = setTimeout(refreshCodePreview, 400);
+}
+
+// ── G3: Command Palette ───────────────────────────────────────────────────────
+
+/** Registry of all palette commands. */
+const COMMANDS = [
+  { icon: '⚙', group: 'Plant', title: 'SISO 模式',        sub: 'Switch to SISO', keys: [], action: () => document.querySelector('.system-mode-btn[data-mode="siso"]')?.click() },
+  { icon: '⊞', group: 'Plant', title: 'MIMO 模式',        sub: 'Switch to MIMO', keys: [], action: () => document.querySelector('.system-mode-btn[data-mode="mimo"]')?.click() },
+  { icon: '▶', group: 'Plant', title: 'RC Circuit preset', sub: '1/(s+1)',          keys: [], action: () => csUI?.loadPreset?.('rc-circuit') },
+  { icon: '▶', group: 'Plant', title: 'DC Motor preset',   sub: '5/(s²+6s+5)',     keys: [], action: () => csUI?.loadPreset?.('dc-motor') },
+  { icon: '▶', group: 'Plant', title: 'Mass-Spring preset',sub: '1/(s²+0.4s+4)',  keys: [], action: () => csUI?.loadPreset?.('mass-spring') },
+  { icon: '🎨', group: 'Theme', title: 'Theme: Dark',       sub: '',                keys: [], action: () => { if (state.theme !== 'dark') toggleTheme(); } },
+  { icon: '🎨', group: 'Theme', title: 'Theme: Light',      sub: '',                keys: [], action: () => { if (state.theme !== 'light') { if (state.theme === 'dark') toggleTheme(); else toggleTheme(); } } },
+  { icon: '🖨', group: 'Theme', title: 'Theme: Print',      sub: '',                keys: [], action: () => { if (state.theme !== 'print') { if (state.theme === 'dark') { toggleTheme(); toggleTheme(); } else if (state.theme === 'light') toggleTheme(); } } },
+  { icon: '📋', group: 'Export', title: 'Export MATLAB',    sub: '.m script',       keys: [], action: () => document.getElementById('btn-export-matlab')?.click() },
+  { icon: '📋', group: 'Export', title: 'Export Python',    sub: '.py script',      keys: [], action: () => document.getElementById('btn-export-python')?.click() },
+  { icon: '📋', group: 'Export', title: 'Export JSON',      sub: 'Project file',    keys: [], action: () => document.getElementById('btn-export-json')?.click() },
+  { icon: '📋', group: 'Export', title: 'Export CSV',       sub: 'Step response',   keys: ['Ctrl+E'], action: () => document.getElementById('btn-export-csv')?.click() },
+  { icon: '💾', group: 'Project',title: 'Save Project',     sub: 'Ctrl+S',          keys: ['Ctrl+S'], action: () => document.getElementById('btn-save-project')?.click() },
+  { icon: '📂', group: 'Project',title: 'Load Project',     sub: '',                keys: [], action: () => document.getElementById('btn-load-project')?.click() },
+  { icon: '↺',  group: 'History',title: 'Undo',             sub: 'Ctrl+Z',          keys: ['Ctrl+Z'], action: () => historyUndo?.() },
+  { icon: '↻',  group: 'History',title: 'Redo',             sub: 'Ctrl+Y',          keys: ['Ctrl+Y'], action: () => historyRedo?.() },
+  { icon: '⌨',  group: 'Help',   title: 'Keyboard shortcuts',sub: '?',             keys: ['Ctrl+?'], action: () => csUI?.showModal?.('shortcuts-modal') },
+  { icon: '❓',  group: 'Help',   title: 'Quick Start guide', sub: 'Ctrl+/',        keys: ['Ctrl+/'], action: () => csUI?.showModal?.('quickstart-modal') },
+  { icon: '📐', group: 'Navigate',title: 'Go to Plant tab',  sub: '',               keys: [], action: () => switchSidebarPanel?.('model') },
+  { icon: '📊', group: 'Navigate',title: 'Go to Compare tab',sub: '',               keys: [], action: () => switchSidebarPanel?.('compare') },
+  { icon: '✏',  group: 'Navigate',title: 'Go to Design tab', sub: '',               keys: [], action: () => switchSidebarPanel?.('advisor') },
+];
+
+let _cmdFocusIdx = -1;
+
+function openCommandPalette() {
+  const overlay = document.getElementById('cmd-overlay');
+  if (!overlay) return;
+  overlay.classList.add('active');
+  overlay.setAttribute('aria-hidden', 'false');
+  const inp = document.getElementById('cmd-search');
+  if (inp) { inp.value = ''; inp.focus(); }
+  _cmdFocusIdx = -1;
+  renderCommandList('');
+}
+
+function closeCommandPalette() {
+  const overlay = document.getElementById('cmd-overlay');
+  if (!overlay) return;
+  overlay.classList.remove('active');
+  overlay.setAttribute('aria-hidden', 'true');
+}
+
+function renderCommandList(query) {
+  const list = document.getElementById('cmd-list');
+  if (!list) return;
+  const q = (query ?? '').toLowerCase().trim();
+  const filtered = q
+    ? COMMANDS.filter(c => c.title.toLowerCase().includes(q) || c.group.toLowerCase().includes(q) || c.sub.toLowerCase().includes(q))
+    : COMMANDS;
+
+  if (!filtered.length) {
+    list.innerHTML = `<div class="cmd-empty">找不到符合的指令「${escapeHtml(query)}」</div>`;
+    return;
+  }
+
+  // Group
+  const groups = {};
+  filtered.forEach(cmd => { (groups[cmd.group] ??= []).push(cmd); });
+
+  list.innerHTML = Object.entries(groups).map(([grp, cmds]) => {
+    const items = cmds.map((cmd, i) => {
+      const idx = filtered.indexOf(cmd);
+      const keysHtml = cmd.keys.length
+        ? `<div class="cmd-item-kbd">${cmd.keys.map(k => `<kbd>${escapeHtml(k)}</kbd>`).join('')}</div>`
+        : '';
+      return `<div class="cmd-item" tabindex="-1" data-cmd-idx="${idx}" role="option" aria-selected="false">
+        <div class="cmd-item-icon">${cmd.icon}</div>
+        <div class="cmd-item-body">
+          <div class="cmd-item-title">${escapeHtml(cmd.title)}</div>
+          ${cmd.sub ? `<div class="cmd-item-sub">${escapeHtml(cmd.sub)}</div>` : ''}
+        </div>
+        ${keysHtml}
+      </div>`;
+    }).join('');
+    return `<div class="cmd-group-label">${escapeHtml(grp)}</div>${items}`;
+  }).join('');
+
+  _cmdFiltered = filtered;
+  _cmdFocusIdx = -1;
+
+  // Click handlers
+  list.querySelectorAll('.cmd-item').forEach(item => {
+    item.addEventListener('click', () => {
+      const idx = parseInt(item.dataset.cmdIdx ?? '-1', 10);
+      if (_cmdFiltered[idx]) { closeCommandPalette(); _cmdFiltered[idx].action(); }
+    });
+    item.addEventListener('mouseenter', () => {
+      list.querySelectorAll('.cmd-item').forEach(it => it.classList.remove('focused'));
+      item.classList.add('focused');
+      _cmdFocusIdx = parseInt(item.dataset.cmdIdx ?? '-1', 10);
+    });
+  });
+}
+
+let _cmdFiltered = COMMANDS;
+
+// Command palette keyboard navigation
+document.addEventListener('DOMContentLoaded', () => {
+  const overlay = document.getElementById('cmd-overlay');
+  const inp = document.getElementById('cmd-search');
+  if (!overlay || !inp) return;
+
+  inp.addEventListener('input', () => { _cmdFocusIdx = -1; renderCommandList(inp.value); });
+
+  inp.addEventListener('keydown', (e) => {
+    const items = document.querySelectorAll('#cmd-list .cmd-item');
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      _cmdFocusIdx = Math.min(_cmdFocusIdx + 1, items.length - 1);
+      items.forEach((it, i) => it.classList.toggle('focused', i === _cmdFocusIdx));
+      items[_cmdFocusIdx]?.scrollIntoView({ block: 'nearest' });
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      _cmdFocusIdx = Math.max(_cmdFocusIdx - 1, 0);
+      items.forEach((it, i) => it.classList.toggle('focused', i === _cmdFocusIdx));
+      items[_cmdFocusIdx]?.scrollIntoView({ block: 'nearest' });
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      if (_cmdFocusIdx >= 0 && _cmdFiltered[_cmdFocusIdx]) {
+        closeCommandPalette(); _cmdFiltered[_cmdFocusIdx].action();
+      } else if (_cmdFiltered.length === 1) {
+        closeCommandPalette(); _cmdFiltered[0].action();
+      }
+    } else if (e.key === 'Escape') {
+      closeCommandPalette();
+    }
+  });
+
+  overlay.addEventListener('click', (e) => { if (e.target === overlay) closeCommandPalette(); });
+
+  // Shortcuts modal close buttons
+  document.querySelectorAll('[data-modal-close]').forEach(btn => {
+    const id = btn.dataset.modalClose;
+    if (id === 'shortcuts-modal') {
+      btn.addEventListener('click', () => csUI?.hideModal?.(id));
+    }
+  });
+
+  // Auto-refresh code preview on state changes
+  const _origBar = updateGlobalStatusBar;
+  // Listen to plant updates by hooking the global status bar call
+  // (cheapest non-invasive hook that fires after every computation)
+  window.addEventListener('cs-plant-updated', scheduleCodePreviewRefresh);
+  document.addEventListener('cs-state-change', scheduleCodePreviewRefresh);
+}, { once: true });
+
+// Expose for inline use
+window.openCommandPalette = openCommandPalette;
+window.refreshCodePreview = refreshCodePreview;
