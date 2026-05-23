@@ -11819,3 +11819,477 @@ document.addEventListener('DOMContentLoaded', () => {
   initOnboarding();
   initProjectManager();
 }, { once: true });
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// P53 — A1-2 SysID Entry / A1-3 Example Library / A1-4 Health Badge
+// ═══════════════════════════════════════════════════════════════════════════════
+
+// ── A1-2: SysID Entry Panel ───────────────────────────────────────────────────
+let _sysidMethod = 'arx';
+let _sysidData   = null;   // { t, u, y }
+let _sysidModel  = null;   // identified model result
+
+function _parseSysIDCSV(text) {
+  const lines = text.trim().split('\n').filter(l => l.trim() && !l.startsWith('#'));
+  const rows  = lines.map(l => l.split(/[,\t]+/).map(Number));
+  if (!rows.length) throw new Error('CSV 無有效資料');
+  if (rows[0].length === 2) {
+    // time, output (step input assumed)
+    const t = rows.map(r => r[0]);
+    const u = new Array(t.length).fill(1);   // unit step assumed
+    const y = rows.map(r => r[1]);
+    return { t, u, y };
+  } else if (rows[0].length >= 3) {
+    return { t: rows.map(r => r[0]), u: rows.map(r => r[1]), y: rows.map(r => r[2]) };
+  }
+  throw new Error('CSV 格式錯誤：需要 2 或 3 欄');
+}
+
+function _computeFitPercent(yMeas, yMod) {
+  if (!yMeas || !yMod || yMeas.length !== yMod.length) return 0;
+  const mean = yMeas.reduce((s, v) => s + v, 0) / yMeas.length;
+  let ss = 0, sr = 0;
+  for (let i = 0; i < yMeas.length; i++) {
+    ss += (yMeas[i] - mean) ** 2;
+    sr += (yMeas[i] - yMod[i]) ** 2;
+  }
+  return Math.max(0, Math.min(100, (1 - Math.sqrt(sr / Math.max(ss, 1e-12))) * 100));
+}
+
+function _renderSysIDResidual(chartEl, yMeas, yMod) {
+  if (!chartEl || typeof Plotly === 'undefined') return;
+  const residuals = yMeas.map((v, i) => v - (yMod[i] ?? 0));
+  Plotly.react(chartEl, [
+    { x: residuals.map((_, i) => i), y: residuals, type: 'bar', name: '殘差',
+      marker: { color: 'rgba(99,102,241,0.6)' } },
+  ], {
+    margin: { t: 4, b: 24, l: 30, r: 4 }, height: 90,
+    paper_bgcolor: 'transparent', plot_bgcolor: 'transparent',
+    font: { size: 9, color: '#9ca3af' },
+    xaxis: { showgrid: false }, yaxis: { showgrid: false },
+  }, { displayModeBar: false, responsive: true });
+}
+
+function initSysIDEntry() {
+  const dropZone   = document.getElementById('sysid-drop-zone');
+  const dataText   = document.getElementById('sysid-data-text');
+  const pasteBtn   = document.getElementById('sysid-paste-btn');
+  const methodGrid = document.getElementById('sysid-method-grid');
+  const naIn       = document.getElementById('sysid-na');
+  const nbIn       = document.getElementById('sysid-nb');
+  const nkIn       = document.getElementById('sysid-nk');
+  const runBtn     = document.getElementById('btn-sysid-run');
+  const autoBtn    = document.getElementById('btn-sysid-auto');
+  const resultsEl  = document.getElementById('sysid-results');
+  const fitBadge   = document.getElementById('sysid-fit-badge');
+  const whiteBadge = document.getElementById('sysid-whiteness-badge');
+  const modelText  = document.getElementById('sysid-model-text');
+  const acceptBtn  = document.getElementById('btn-sysid-accept');
+
+  if (!dropZone) return;
+
+  // Method selector
+  methodGrid?.querySelectorAll('.sysid-method-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      methodGrid.querySelectorAll('.sysid-method-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      _sysidMethod = btn.dataset.method;
+    });
+  });
+
+  // Paste button → show textarea
+  pasteBtn?.addEventListener('click', e => {
+    e.stopPropagation();
+    dataText.style.display = 'block';
+    dropZone.style.display = 'none';
+    dataText.focus();
+  });
+
+  // Drag and drop
+  dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+  dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+  dropZone.addEventListener('drop', e => {
+    e.preventDefault();
+    dropZone.classList.remove('drag-over');
+    const file = e.dataTransfer.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = ev => {
+      dataText.value   = ev.target.result;
+      dataText.style.display = 'block';
+      dropZone.style.display = 'none';
+    };
+    reader.readAsText(file);
+  });
+  dropZone.addEventListener('keydown', e => {
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); pasteBtn?.click(); }
+  });
+
+  // Auto-order
+  autoBtn?.addEventListener('click', () => {
+    const text = dataText.value.trim();
+    if (!text) { notify('請先提供量測資料', 'warning', { title: 'SysID' }); return; }
+    try {
+      const { u, y, t } = _parseSysIDCSV(text);
+      const Ts = t.length > 1 ? (t[t.length - 1] - t[0]) / (t.length - 1) : 0.1;
+      if (typeof autoARXOrder === 'function') {
+        const { best } = autoARXOrder(u, y, { naMax: 5, nbMax: 5, Ts });
+        if (naIn) naIn.value = best?.na ?? 2;
+        if (nbIn) nbIn.value = best?.nb ?? 2;
+        notify(`自動選階完成：na=${naIn?.value}, nb=${nbIn?.value}`, 'success', { title: 'SysID' });
+      }
+    } catch (err) {
+      notify(`解析失敗：${err.message}`, 'error', { title: 'SysID' });
+    }
+  });
+
+  // Run identification
+  runBtn?.addEventListener('click', () => {
+    const text = dataText.value.trim();
+    if (!text) { notify('請先提供量測資料', 'warning', { title: 'SysID' }); return; }
+    try {
+      const { u, y, t } = _parseSysIDCSV(text);
+      _sysidData = { u, y, t };
+      const Ts = t.length > 1 ? (t[t.length - 1] - t[0]) / (t.length - 1) : 0.1;
+      const na = +(naIn?.value ?? 2), nb = +(nbIn?.value ?? 2), nk = +(nkIn?.value ?? 0);
+
+      let model;
+      switch (_sysidMethod) {
+        case 'armax': model = (typeof identifyARMAX === 'function') ? identifyARMAX(u, y, na, nb, 1, nk, Ts) : null; break;
+        case 'oe':
+        case 'n4sid': // fall back to ARX for OE/N4SID when not available
+        default:      model = (typeof identifyARX === 'function') ? identifyARX(u, y, na, nb, nk, Ts) : null;
+      }
+
+      if (!model) { notify('識別模組未載入', 'error', { title: 'SysID' }); return; }
+      _sysidModel = model;
+
+      // Compute fit
+      const yMod  = u.map((_, i) => model.simulate ? model.simulate(u.slice(0, i + 1)).pop() : 0);
+      const fit   = _computeFitPercent(y, yMod);
+      const fitClass = fit >= 90 ? 'good' : fit >= 75 ? 'warn' : 'poor';
+
+      if (fitBadge)   { fitBadge.textContent = `${fit.toFixed(1)}%`; fitBadge.className = `sysid-fit-badge ${fitClass}`; }
+      if (whiteBadge) { whiteBadge.textContent = fit >= 75 ? '白化 ✓' : '白化 ✗'; whiteBadge.className = `sysid-whiteness-badge ${fit >= 75 ? 'pass' : 'fail'}`; }
+      if (modelText)  {
+        const num = model.num?.map(v => fmtNum(v, 4)).join(', ') ?? '?';
+        const den = model.den?.map(v => fmtNum(v, 4)).join(', ') ?? '?';
+        modelText.textContent = `識別模型：num=[${num}] / den=[${den}]  Ts=${fmtNum(Ts, 3)}s`;
+      }
+
+      const residualChart = document.getElementById('sysid-residual-chart');
+      _renderSysIDResidual(residualChart, y, yMod);
+
+      if (resultsEl) resultsEl.style.display = 'block';
+      notify(`識別完成！擬合度 ${fit.toFixed(1)}%`, fit >= 75 ? 'success' : 'warning', { title: 'SysID' });
+    } catch (err) {
+      notify(`識別失敗：${err.message}`, 'error', { title: 'SysID' });
+    }
+  });
+
+  // Accept model → load into TF fields
+  acceptBtn?.addEventListener('click', () => {
+    if (!_sysidModel) return;
+    const numEl = document.getElementById('tf-num');
+    const denEl = document.getElementById('tf-den');
+    if (numEl) numEl.value = (_sysidModel.num ?? [1]).map(v => fmtNum(v, 4)).join(', ');
+    if (denEl) denEl.value = (_sysidModel.den ?? [1, 1]).map(v => fmtNum(v, 4)).join(', ');
+    // Switch to TF tab
+    document.querySelector('.sys-tab[data-type="tf"]')?.click();
+    notify('模型已載入 — 切換到 TF 輸入', 'success', { title: 'SysID → 精靈' });
+    // Trigger analysis
+    setTimeout(() => document.getElementById('btn-analyze')?.click(), 100);
+  });
+}
+
+// ── A1-3: Example Library ─────────────────────────────────────────────────────
+const EXAMPLE_LIBRARY = [
+  {
+    id: 'dc_motor',     cat: 'classic',
+    name: 'DC Motor 位置控制', order: 2, stable: 'stable',
+    math: 'G(s) = 1 / (s² + 3s + 2)',
+    desc: '最常見的 PID 調參練習。兩個實數極點，響應平穩。',
+    challenge: '設計 PID 使 OS% < 10%，Ts < 2s',
+    num: [1], den: [1, 3, 2], pid: { kp: 5, ki: 1, kd: 0.5 },
+  },
+  {
+    id: 'mass_spring',  cat: 'classic',
+    name: '質量彈簧阻尼', order: 2, stable: 'stable',
+    math: 'G(s) = 1 / (s² + 0.5s + 1)',
+    desc: '欠阻尼二階系統。振盪響應，根軌跡設計佳例。',
+    challenge: '用根軌跡選增益，使阻尼比 ζ = 0.707',
+    num: [1], den: [1, 0.5, 1], pid: { kp: 2, ki: 0.5, kd: 0.2 },
+  },
+  {
+    id: 'double_integrator', cat: 'classic',
+    name: '雙積分器', order: 2, stable: 'marginal',
+    math: 'G(s) = 1 / s²',
+    desc: '臨界穩定。需要超前補償器或微分控制，常見於衛星姿態。',
+    challenge: '設計 Lead 補償器使 PM ≥ 45°',
+    num: [1], den: [1, 0, 0], pid: { kp: 4, ki: 0, kd: 2 },
+  },
+  {
+    id: 'inverted_pendulum', cat: 'academic',
+    name: '倒單擺（線性化）', order: 2, stable: 'unstable',
+    math: 'G(s) = 1 / (s² - 4)',
+    desc: 'RHP 極點（不穩定）。需要狀態反饋或高增益 PID 穩定化。',
+    challenge: '用 LQR 或 PID 將 RHP 極點移至 LHP',
+    num: [1], den: [1, 0, -4], pid: { kp: 10, ki: 2, kd: 3 },
+  },
+  {
+    id: 'heat_exchanger', cat: 'industry',
+    name: '熱交換器（一階+延遲）', order: 1, stable: 'stable',
+    math: 'G(s) = e^{-0.5s} / (2s + 1)',
+    desc: '純延遲系統，Smith Predictor 或 IMC 的標準測試案例。',
+    challenge: '設計 IMC 控制器，比較有無 Smith Predictor 的差異',
+    num: [1], den: [2, 1], pid: { kp: 1, ki: 0.5, kd: 0 },
+  },
+  {
+    id: 'flexible_arm', cat: 'industry',
+    name: '靈活機械臂', order: 4, stable: 'stable',
+    math: 'G(s) = (s² + 4) / (s⁴ + 5s³ + 8s² + 5s)',
+    desc: '含柔性模態的高階系統，適合 H∞ 控制器設計。',
+    challenge: 'H∞ 合成抑制第一柔性模態振動',
+    num: [1, 0, 4], den: [1, 5, 8, 5, 0], pid: { kp: 1, ki: 0.2, kd: 0.5 },
+  },
+  {
+    id: 'first_order', cat: 'classic',
+    name: '一階系統（τ=1）', order: 1, stable: 'stable',
+    math: 'G(s) = 1 / (s + 1)',
+    desc: '最基礎的一階系統，適合初學者入門 PID 調參。',
+    challenge: '試用 Ziegler-Nichols 法計算 PID 參數',
+    num: [1], den: [1, 1], pid: { kp: 2, ki: 1, kd: 0 },
+  },
+  {
+    id: 'unstable_sys', cat: 'academic',
+    name: '不穩定一階系統', order: 1, stable: 'unstable',
+    math: 'G(s) = 1 / (s - 1)',
+    desc: '單一 RHP 極點。需要足夠的比例增益才能穩定。',
+    challenge: '找出臨界增益 Kc 使閉迴路穩定',
+    num: [1], den: [1, -1], pid: { kp: 4, ki: 1, kd: 0.5 },
+  },
+];
+
+let _exampleLibCat = 'all';
+let _exampleLibSearch = '';
+
+function _renderExampleCards() {
+  const container = document.getElementById('example-card-list');
+  if (!container) return;
+  const q = _exampleLibSearch.toLowerCase();
+  const filtered = EXAMPLE_LIBRARY.filter(ex => {
+    const matchCat = _exampleLibCat === 'all' || ex.cat === _exampleLibCat;
+    const matchQ   = !q || ex.name.toLowerCase().includes(q) || ex.desc.toLowerCase().includes(q);
+    return matchCat && matchQ;
+  });
+
+  if (!filtered.length) {
+    container.innerHTML = `<div style="color:var(--text-muted);font-size:11px;text-align:center;padding:16px;">找不到符合條件的範例</div>`;
+    return;
+  }
+
+  container.innerHTML = filtered.map(ex => {
+    const stableLabel = ex.stable === 'stable' ? '✓ 穩定' : ex.stable === 'unstable' ? '✗ 不穩' : '~ 臨界';
+    return `<div class="example-card" data-ex-id="${ex.id}">
+      <div class="example-card-header" tabindex="0" role="button" aria-expanded="false" aria-label="${ex.name}">
+        <span class="example-card-name">${ex.name}</span>
+        <div class="example-card-badges">
+          <span class="ex-order-badge">${ex.order}階</span>
+          <span class="ex-stable-badge ${ex.stable}">${stableLabel}</span>
+        </div>
+        <span style="color:var(--text-muted);font-size:10px;margin-left:4px;">▸</span>
+      </div>
+      <div class="example-card-body">
+        <div class="example-card-math">${ex.math}</div>
+        <div style="font-size:11px;color:var(--text-secondary);margin-bottom:6px;line-height:1.5;">${ex.desc}</div>
+        <div class="example-card-challenge">💡 ${ex.challenge}</div>
+        <button class="btn btn-primary btn-sm" data-load-ex="${ex.id}" style="width:100%;justify-content:center;font-size:11px;">載入此範例</button>
+      </div>
+    </div>`;
+  }).join('');
+
+  // Toggle expand
+  container.querySelectorAll('.example-card-header').forEach(header => {
+    const card = header.closest('.example-card');
+    const toggle = () => {
+      const isOpen = card.classList.toggle('open');
+      header.setAttribute('aria-expanded', String(isOpen));
+      header.querySelector('span:last-child').textContent = isOpen ? '▾' : '▸';
+    };
+    header.addEventListener('click', toggle);
+    header.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(); } });
+  });
+
+  // Load buttons
+  container.querySelectorAll('[data-load-ex]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const ex = EXAMPLE_LIBRARY.find(e => e.id === btn.dataset.loadEx);
+      if (!ex) return;
+      const numEl = document.getElementById('tf-num');
+      const denEl = document.getElementById('tf-den');
+      if (numEl) numEl.value = ex.num.join(', ');
+      if (denEl) denEl.value = ex.den.join(', ');
+      // Set PID if present
+      if (ex.pid) {
+        const kpEl = document.getElementById('pid-kp'); if (kpEl) kpEl.value = ex.pid.kp;
+        const kiEl = document.getElementById('pid-ki'); if (kiEl) kiEl.value = ex.pid.ki;
+        const kdEl = document.getElementById('pid-kd'); if (kdEl) kdEl.value = ex.pid.kd;
+      }
+      document.querySelector('.sys-tab[data-type="tf"]')?.click();
+      notify(`已載入範例：${ex.name}`, 'success', { title: 'A1-3 範例庫' });
+      setTimeout(() => document.getElementById('btn-analyze')?.click(), 100);
+    });
+  });
+}
+
+function initExampleLibrary() {
+  const searchEl = document.getElementById('example-lib-search');
+  const tabsEl   = document.getElementById('example-lib-tabs');
+
+  searchEl?.addEventListener('input', () => {
+    _exampleLibSearch = searchEl.value;
+    _renderExampleCards();
+  });
+
+  tabsEl?.querySelectorAll('.example-lib-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      tabsEl.querySelectorAll('.example-lib-tab').forEach(t => { t.classList.remove('active'); t.setAttribute('aria-selected', 'false'); });
+      tab.classList.add('active');
+      tab.setAttribute('aria-selected', 'true');
+      _exampleLibCat = tab.dataset.cat;
+      _renderExampleCards();
+    });
+  });
+
+  _renderExampleCards();
+}
+
+// ── A1-4: Model Health Badge ──────────────────────────────────────────────────
+function computeModelHealth() {
+  if (!state.plant) return null;
+  const checks = [];
+  const p = state.plant;
+
+  // Stability (TF → poles)
+  try {
+    const poles = (typeof polyroots === 'function') ? polyroots(p.den ?? [1, 1]) : [];
+    const rhpCount = poles.filter(pl => (pl.re ?? pl) > 1e-9).length;
+    checks.push({
+      icon: rhpCount === 0 ? '✓' : '✗',
+      ok:   rhpCount === 0,
+      label: '穩定性',
+      val:  rhpCount === 0 ? `穩定（RHP 極點 ${rhpCount} 個）` : `不穩定（${rhpCount} 個 RHP 極點）`,
+    });
+    // Poles list
+    if (poles.length) {
+      const poleStr = poles.map(pl => {
+        const re = +(pl.re ?? pl).toFixed(3);
+        const im = pl.im != null ? +(pl.im).toFixed(3) : 0;
+        return im ? `${re}${im >= 0 ? '+' : ''}${im}j` : String(re);
+      }).join(', ');
+      checks.push({ icon: '◉', ok: true, label: '極點', val: poleStr });
+    }
+  } catch {}
+
+  // Min-phase (check RHP zeros from numerator)
+  try {
+    const zeros = (typeof polyroots === 'function') ? polyroots(p.num ?? [1]) : [];
+    const rhpZeros = zeros.filter(z => (z.re ?? z) > 1e-9).length;
+    checks.push({
+      icon: rhpZeros === 0 ? '✓' : '⚠',
+      ok:   rhpZeros === 0,
+      label: '最小相位',
+      val:  rhpZeros === 0 ? '✓ 最小相位' : `✗ ${rhpZeros} 個 RHP 零點`,
+    });
+  } catch {}
+
+  // Order
+  const order = (p.den?.length ?? 1) - 1;
+  checks.push({ icon: '◎', ok: true, label: '系統階數', val: String(order) });
+
+  // DC Gain
+  try {
+    const dcNum = (p.num ?? [1]).reduce((a, b) => a + b, 0);
+    const dcDen = (p.den ?? [1]).reduce((a, b) => a + b, 0);
+    const dc = dcDen !== 0 ? dcNum / dcDen : NaN;
+    checks.push({ icon: '◎', ok: true, label: '直流增益', val: Number.isFinite(dc) ? fmtNum(dc, 4) : '∞ (積分型)' });
+  } catch {}
+
+  // Controllability / Observability (SS only)
+  if (p.A && p.B && p.C) {
+    try {
+      const n    = p.A.length;
+      const Cmat = controllabilityMatrix(p.A, p.B);
+      const Omat = observabilityMatrix(p.A, p.C);
+      const rC   = matRank(Cmat);
+      const rO   = matRank(Omat);
+      checks.push({ icon: rC === n ? '✓' : '✗', ok: rC === n, label: '可控性', val: `rank=${rC}/${n}` });
+      checks.push({ icon: rO === n ? '✓' : '✗', ok: rO === n, label: '可觀性', val: `rank=${rO}/${n}` });
+    } catch {}
+  }
+
+  const errorCount = checks.filter(c => !c.ok).length;
+  return { checks, errorCount };
+}
+
+function updateHealthBadge() {
+  const btn = document.getElementById('health-badge-btn');
+  if (!btn) return;
+  if (!state.plant) {
+    btn.className = 'health-badge-btn idle';
+    btn.textContent = '● 健康';
+    return;
+  }
+  const result = computeModelHealth();
+  if (!result) return;
+  const { errorCount } = result;
+  if (errorCount === 0) {
+    btn.className = 'health-badge-btn healthy';
+    btn.textContent = '● 健康';
+  } else {
+    btn.className = 'health-badge-btn warn';
+    btn.textContent = `⚠ ${errorCount} 項警告`;
+  }
+  window._lastHealthResult = result;
+}
+
+function initHealthBadge() {
+  const btn     = document.getElementById('health-badge-btn');
+  const popover = document.getElementById('health-popover');
+  const rowsEl  = document.getElementById('health-popover-rows');
+  if (!btn || !popover) return;
+
+  btn.addEventListener('click', () => {
+    const isOpen = popover.classList.toggle('open');
+    if (!isOpen) return;
+
+    // Position near badge
+    const r = btn.getBoundingClientRect();
+    popover.style.top  = `${r.bottom + 6}px`;
+    popover.style.left = `${Math.min(r.left, window.innerWidth - 310)}px`;
+
+    // Render rows
+    const result = computeModelHealth();
+    if (!result || !rowsEl) { rowsEl.innerHTML = '<div style="color:var(--text-muted);font-size:11px;">無系統資料</div>'; return; }
+    rowsEl.innerHTML = result.checks.map(c => `
+      <div class="health-row">
+        <span class="health-row-icon" style="color:${c.ok ? '#10b981' : '#f59e0b'};">${c.icon}</span>
+        <span class="health-row-label">${c.label}</span>
+        <span class="health-row-val">${c.val}</span>
+      </div>`).join('');
+  });
+
+  document.getElementById('health-popover-close')?.addEventListener('click', () => popover.classList.remove('open'));
+  document.addEventListener('click', e => {
+    if (!popover.contains(e.target) && e.target !== btn) popover.classList.remove('open');
+  });
+
+  window.updateHealthBadge = updateHealthBadge;
+}
+
+// ── P53 init ──────────────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  initSysIDEntry();
+  initExampleLibrary();
+  initHealthBadge();
+}, { once: true });

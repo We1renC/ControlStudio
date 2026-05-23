@@ -1236,6 +1236,63 @@
     .project-item-actions { display: flex; gap: 4px; }
     .project-action-btn { background: transparent; border: 0; cursor: pointer; color: var(--text-muted); font-size: 12px; padding: 2px 4px; border-radius: 3px; }
     .project-action-btn:hover { color: var(--text-primary); background: var(--bg-primary); }
+
+    /* ==================================================================
+       P53 — A1-2 SysID Entry / A1-3 Example Library / A1-4 Health Badge
+       ================================================================== */
+
+    /* A1-2: SysID Entry Panel */
+    .sysid-drop-zone { border: 1.5px dashed var(--border-primary); border-radius: var(--radius-md); padding: 10px; text-align: center; font-size: 11px; color: var(--text-muted); cursor: pointer; min-height: 72px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; transition: border-color 0.15s; }
+    .sysid-drop-zone.drag-over { border-color: var(--color-accent); background: rgba(99,102,241,0.05); }
+    .sysid-method-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; margin: 8px 0; }
+    .sysid-method-btn { border: 1px solid var(--border-primary); border-radius: var(--radius-sm); padding: 4px 6px; font-size: 10px; font-weight: 700; cursor: pointer; background: var(--bg-tertiary); color: var(--text-secondary); text-align: center; }
+    .sysid-method-btn.active { border-color: var(--color-accent); background: rgba(99,102,241,0.12); color: var(--color-accent); }
+    .sysid-param-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 5px; }
+    .sysid-param-row label { font-size: 10px; color: var(--text-muted); }
+    .sysid-fit-badge { display: inline-flex; align-items: center; gap: 4px; font-size: 18px; font-weight: 800; }
+    .sysid-fit-badge.good { color: #10b981; }
+    .sysid-fit-badge.warn { color: #f59e0b; }
+    .sysid-fit-badge.poor { color: #ef4444; }
+    .sysid-whiteness-badge { font-size: 10px; padding: 1px 6px; border-radius: 10px; font-weight: 700; }
+    .sysid-whiteness-badge.pass { background: rgba(16,185,129,0.15); color: #10b981; }
+    .sysid-whiteness-badge.fail { background: rgba(239,68,68,0.12); color: #ef4444; }
+    .sysid-residual-wrap { height: 90px; margin: 6px 0; }
+
+    /* A1-3: Example Library */
+    .example-lib-search { width: 100%; padding: 5px 8px; font-size: 11px; background: var(--bg-tertiary); color: var(--text-primary); border: 1px solid var(--border-primary); border-radius: var(--radius-sm); box-sizing: border-box; }
+    .example-lib-tabs { display: flex; gap: 4px; margin: 6px 0; flex-wrap: wrap; }
+    .example-lib-tab { font-size: 10px; font-weight: 600; padding: 2px 8px; border-radius: 10px; border: 1px solid var(--border-primary); background: var(--bg-tertiary); color: var(--text-muted); cursor: pointer; }
+    .example-lib-tab.active { background: rgba(99,102,241,0.15); border-color: var(--color-accent); color: var(--color-accent); }
+    .example-card-list { display: flex; flex-direction: column; gap: 4px; max-height: 280px; overflow-y: auto; }
+    .example-card { border: 1px solid var(--border-primary); border-radius: var(--radius-sm); background: var(--bg-tertiary); }
+    .example-card-header { display: flex; align-items: center; gap: 6px; padding: 6px 10px; cursor: pointer; user-select: none; }
+    .example-card-header:hover { background: rgba(99,102,241,0.05); }
+    .example-card-name { flex: 1; font-size: 11px; font-weight: 600; color: var(--text-primary); }
+    .example-card-badges { display: flex; gap: 3px; align-items: center; }
+    .ex-order-badge { font-size: 9px; font-weight: 700; padding: 1px 5px; border-radius: 8px; background: rgba(99,102,241,0.15); color: var(--color-accent); }
+    .ex-stable-badge { font-size: 9px; font-weight: 700; padding: 1px 5px; border-radius: 8px; }
+    .ex-stable-badge.stable   { background: rgba(16,185,129,0.15); color: #10b981; }
+    .ex-stable-badge.unstable { background: rgba(239,68,68,0.12);  color: #ef4444; }
+    .ex-stable-badge.marginal { background: rgba(245,158,11,0.15); color: #f59e0b; }
+    .example-card-body { padding: 0 10px 10px; display: none; border-top: 1px solid var(--border-primary); margin-top: 2px; }
+    .example-card.open .example-card-body { display: block; padding-top: 8px; }
+    .example-card-math { font-size: 10px; font-family: ui-monospace, monospace; color: var(--text-secondary); background: var(--bg-primary); padding: 4px 6px; border-radius: var(--radius-sm); margin-bottom: 6px; }
+    .example-card-challenge { font-size: 10px; color: var(--color-accent); background: rgba(99,102,241,0.08); border-radius: var(--radius-sm); padding: 3px 6px; margin-bottom: 6px; }
+
+    /* A1-4: Health Badge + Popover */
+    .health-badge-btn { display: inline-flex; align-items: center; gap: 4px; font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 10px; border: 0; cursor: pointer; white-space: nowrap; }
+    .health-badge-btn.healthy { background: rgba(16,185,129,0.15); color: #10b981; }
+    .health-badge-btn.warn    { background: rgba(245,158,11,0.15);  color: #f59e0b; }
+    .health-badge-btn.error   { background: rgba(239,68,68,0.12);   color: #ef4444; }
+    .health-badge-btn.idle    { background: var(--bg-tertiary);     color: var(--text-muted); }
+    .health-popover { position: fixed; z-index: 5000; width: 290px; background: var(--bg-secondary); border: 1px solid var(--border-primary); border-radius: var(--radius-md); padding: 12px 14px; box-shadow: 0 8px 24px rgba(0,0,0,0.35); display: none; }
+    .health-popover.open { display: block; }
+    .health-popover-title { font-size: 12px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px; display: flex; justify-content: space-between; }
+    .health-row { display: flex; align-items: flex-start; gap: 6px; font-size: 11px; padding: 4px 0; border-bottom: 1px solid var(--border-primary); }
+    .health-row:last-child { border-bottom: 0; }
+    .health-row-icon { flex-shrink: 0; width: 14px; text-align: center; }
+    .health-row-label { flex: 1; color: var(--text-muted); }
+    .health-row-val { color: var(--text-primary); font-size: 10px; font-family: ui-monospace, monospace; max-width: 130px; word-break: break-all; text-align: right; }
   </style>
 </head>
 <body>
@@ -1362,6 +1419,10 @@
         <option value="deuteranopia">綠色盲</option>
         <option value="tritanopia">藍色盲</option>
       </select>
+    </div>
+    <!-- A1-4: Model health badge -->
+    <div class="app-status-item">
+      <button class="health-badge-btn idle" id="health-badge-btn" aria-haspopup="true" aria-label="模型健康診斷" title="A1-4: 模型健康診斷">● 健康</button>
     </div>
     <div class="app-status-live" id="global-live-region" aria-live="polite" aria-atomic="true">Ready</div>
   </div>
@@ -1863,6 +1924,60 @@
           </div>
         </section>
       </div>
+
+        <!-- A1-2: SysID Entry Panel -->
+        <section class="section-panel" id="sysid-entry-panel">
+          <div class="section-title">SysID 入口 <span style="font-size:9px;color:var(--text-muted);">A1-2</span></div>
+          <div class="sysid-drop-zone" id="sysid-drop-zone" tabindex="0" role="button" aria-label="拖放 CSV 或點擊貼上量測數據">
+            <span style="font-size:16px;">📂</span>
+            <span>拖放 .csv 或<button style="background:0;border:0;color:var(--color-accent);cursor:pointer;font-size:11px;padding:0;" id="sysid-paste-btn">點此貼上</button></span>
+            <span style="font-size:9px;">格式：time, output 或 time, input, output</span>
+          </div>
+          <textarea id="sysid-data-text" rows="3" style="display:none;width:100%;font-size:10px;font-family:ui-monospace,monospace;background:var(--bg-tertiary);color:var(--text-primary);border:1px solid var(--border-primary);border-radius:4px;padding:5px;resize:vertical;box-sizing:border-box;" placeholder="time, output&#10;0, 0&#10;0.1, 0.09..."></textarea>
+          <div class="sysid-method-grid" id="sysid-method-grid">
+            <button class="sysid-method-btn active" data-method="arx" title="Auto-Regressive with eXogenous input">ARX</button>
+            <button class="sysid-method-btn" data-method="armax" title="ARX + Moving Average">ARMAX</button>
+            <button class="sysid-method-btn" data-method="oe" title="Output Error model">OE</button>
+            <button class="sysid-method-btn" data-method="n4sid" title="Subspace identification">N4SID</button>
+          </div>
+          <div class="sysid-param-row">
+            <div class="input-group">
+              <label>na</label><input type="number" id="sysid-na" value="2" min="1" max="10" style="width:100%;font-size:11px;">
+            </div>
+            <div class="input-group">
+              <label>nb</label><input type="number" id="sysid-nb" value="2" min="1" max="10" style="width:100%;font-size:11px;">
+            </div>
+            <div class="input-group">
+              <label>nk</label><input type="number" id="sysid-nk" value="0" min="0" max="10" style="width:100%;font-size:11px;">
+            </div>
+          </div>
+          <div style="display:flex;gap:6px;margin-top:8px;">
+            <button class="btn btn-sm" id="btn-sysid-auto" style="font-size:10px;">自動選階</button>
+            <button class="btn btn-sm btn-primary" id="btn-sysid-run" style="font-size:10px;flex:1;">執行識別</button>
+          </div>
+          <div id="sysid-results" style="display:none;margin-top:10px;">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
+              <span id="sysid-fit-badge" class="sysid-fit-badge good">—%</span>
+              <span id="sysid-whiteness-badge" class="sysid-whiteness-badge pass">白化 ✓</span>
+            </div>
+            <div class="sysid-residual-wrap" id="sysid-residual-chart"></div>
+            <div id="sysid-model-text" style="font-size:10px;font-family:ui-monospace,monospace;color:var(--text-muted);margin-bottom:8px;"></div>
+            <button class="btn btn-sm btn-primary" id="btn-sysid-accept" style="width:100%;justify-content:center;font-size:11px;">接受此模型 →</button>
+          </div>
+        </section>
+
+        <!-- A1-3: Example Library Panel -->
+        <section class="section-panel" id="example-library-panel">
+          <div class="section-title">範例庫 <span style="font-size:9px;color:var(--text-muted);">A1-3</span></div>
+          <input class="example-lib-search" id="example-lib-search" type="search" placeholder="搜尋範例名稱…" aria-label="搜尋範例">
+          <div class="example-lib-tabs" id="example-lib-tabs" role="tablist" aria-label="範例分類">
+            <button class="example-lib-tab active" data-cat="all"  role="tab" aria-selected="true">全部</button>
+            <button class="example-lib-tab" data-cat="classic" role="tab" aria-selected="false">經典</button>
+            <button class="example-lib-tab" data-cat="industry" role="tab" aria-selected="false">工業</button>
+            <button class="example-lib-tab" data-cat="academic" role="tab" aria-selected="false">學術</button>
+          </div>
+          <div class="example-card-list" id="example-card-list" aria-label="範例清單"></div>
+        </section>
 
       <div class="sidebar-panel" id="panel-simulate">
         <section class="section-panel" id="stability-snapshot-panel">
@@ -3547,6 +3662,15 @@
         <button class="btn btn-sm" id="kbd-help-close" aria-label="關閉快捷鍵說明">關閉</button>
       </div>
     </div>
+  </div>
+
+  <!-- A1-4: Health diagnosis popover -->
+  <div class="health-popover" id="health-popover" role="dialog" aria-modal="false" aria-labelledby="health-popover-title">
+    <div class="health-popover-title">
+      <span id="health-popover-title">模型健康報告</span>
+      <button style="background:0;border:0;cursor:pointer;color:var(--text-muted);font-size:14px;" id="health-popover-close" aria-label="關閉">✕</button>
+    </div>
+    <div id="health-popover-rows"></div>
   </div>
 
   <!-- G8: Onboarding tour overlay -->
