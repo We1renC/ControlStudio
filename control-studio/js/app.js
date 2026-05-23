@@ -11765,26 +11765,36 @@ function showTourStep(n) {
   // Spotlight target element
   _setTourSpotlight(step.target);
 
-  // Position bubble near target if one exists
-  if (step.target && bubble) {
-    const targetEl = document.querySelector(step.target);
-    if (targetEl) {
-      const r = targetEl.getBoundingClientRect();
-      const bh = 180; // approx bubble height
-      const top = r.bottom + 12 > window.innerHeight - bh
-        ? Math.max(8, r.top - bh - 12)
-        : r.bottom + 12;
-      bubble.style.top  = `${top}px`;
-      bubble.style.left = `${Math.min(r.left, window.innerWidth - 300)}px`;
+  // Position bubble — always reset transform first to avoid stale offset
+  if (bubble) {
+    bubble.style.transform = '';
+    const BW = 288;  // bubble width (280px) + 8px safety margin
+    const BH = bubble.offsetHeight || 200; // measure actual height
+
+    if (step.target) {
+      const targetEl = document.querySelector(step.target);
+      if (targetEl) {
+        const r   = targetEl.getBoundingClientRect();
+        const vw  = window.innerWidth;
+        const vh  = window.innerHeight;
+        // Prefer placing below; if not enough room, place above
+        let top  = r.bottom + 12;
+        if (top + BH > vh - 8) top = Math.max(8, r.top - BH - 12);
+        // Clamp left so bubble stays within viewport
+        let left = r.left;
+        left = Math.max(8, Math.min(left, vw - BW));
+        bubble.style.top  = `${top}px`;
+        bubble.style.left = `${left}px`;
+      } else {
+        // Target not found — centre
+        bubble.style.top  = `${Math.max(8, (window.innerHeight - BH) / 2)}px`;
+        bubble.style.left = `${Math.max(8, (window.innerWidth  - BW) / 2)}px`;
+      }
     } else {
-      bubble.style.top  = '50%';
-      bubble.style.left = '50%';
-      bubble.style.transform = 'translate(-50%,-50%)';
+      // No target (welcome / finish step) — centre
+      bubble.style.top  = `${Math.max(8, (window.innerHeight - BH) / 2)}px`;
+      bubble.style.left = `${Math.max(8, (window.innerWidth  - BW) / 2)}px`;
     }
-  } else if (bubble) {
-    bubble.style.top  = '50%';
-    bubble.style.left = '50%';
-    bubble.style.transform = 'translate(-50%,-50%)';
   }
 
   _renderTourDots(ONBOARDING_STEPS.length, n);
@@ -11798,12 +11808,21 @@ function showTourStep(n) {
 function finishTour() {
   _clearTourSpotlight();
   const overlay = document.getElementById('tour-overlay');
-  overlay?.classList.remove('active');
+  if (overlay) {
+    overlay.classList.remove('active');   // triggers display:none via CSS
+    overlay.setAttribute('aria-hidden', 'true');
+    overlay.removeAttribute('aria-modal');
+  }
   localStorage.setItem('cs-visited', '1');
 }
 
 function startTour() {
   _tourStep = 0;
+  const overlay = document.getElementById('tour-overlay');
+  if (overlay) {
+    overlay.setAttribute('aria-modal', 'true');
+    overlay.removeAttribute('aria-hidden');
+  }
   showTourStep(0);
 }
 
