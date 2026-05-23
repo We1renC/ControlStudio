@@ -1120,9 +1120,101 @@
     .matrix-pd-badge.spd  { background: rgba(245,158,11,0.15);  color: #f59e0b; }
     .matrix-pd-badge.npd  { background: rgba(239,68,68,0.12);   color: #ef4444; }
     .matrix-copy-row { display: flex; gap: 6px; margin-top: 6px; }
+
+    /* ==================================================================
+       P51 — F4-2~4 Brand colors / F5-1~4 Keyboard+A11y / G7 Color-blind
+       ================================================================== */
+
+    /* F4-3: high-contrast theme tokens */
+    [data-theme="high-contrast"] {
+      --bg-primary: #000000; --bg-secondary: #0d0d0d; --bg-tertiary: #1a1a1a;
+      --text-primary: #ffffff; --text-secondary: #eeeeee; --text-muted: #aaaaaa;
+      --border-primary: #ffffff; --border-secondary: #cccccc;
+      --color-accent: #ffff00; --color-stable: #00ff88; --color-unstable: #ff4444;
+      --chart-grid: #333333; --chart-axis: #888888;
+    }
+
+    /* F5-3: forced-colors (Windows High Contrast) */
+    @media (forced-colors: active) {
+      .badge, .btn, .alert, .status-pill { border: 1px solid ButtonText; forced-color-adjust: auto; }
+      .chart-label { fill: CanvasText; }
+      .pole-marker { stroke: ButtonText !important; fill: ButtonText !important; }
+    }
+
+    /* F5-4: Skip link */
+    .skip-link {
+      position: absolute; top: -100%; left: 8px; z-index: 9999;
+      padding: 8px 16px; background: var(--color-accent); color: #000;
+      border-radius: 0 0 6px 6px; font-weight: 600; font-size: 13px;
+      text-decoration: none; transition: top 100ms;
+    }
+    .skip-link:focus { top: 8px; }
+    @media (prefers-reduced-motion: reduce) { .skip-link { transition: none; } }
+
+    /* F5-1: Focus ring */
+    :focus-visible {
+      outline: 2px solid var(--color-accent);
+      outline-offset: 2px;
+      border-radius: 2px;
+    }
+
+    /* G7: Color-blind SVG filter wrappers */
+    .cb-filter-protanopia   { filter: url(#cb-protanopia);   }
+    .cb-filter-deuteranopia { filter: url(#cb-deuteranopia); }
+    .cb-filter-tritanopia   { filter: url(#cb-tritanopia);   }
+
+    /* G7: Color-blind mode selector */
+    .cb-mode-row { display: flex; align-items: center; gap: 6px; font-size: 10px; color: var(--text-muted); padding: 3px 0; }
+    .cb-mode-row select { font-size: 10px; background: var(--bg-tertiary); color: var(--text-primary); border: 1px solid var(--border-primary); border-radius: 4px; padding: 2px 4px; }
+
+    /* F5-1: Keyboard help panel */
+    .kbd-help-panel { position: fixed; inset: 0; z-index: 10200; display: none; align-items: center; justify-content: center; background: rgba(0,0,0,0.65); }
+    .kbd-help-panel.open { display: flex; }
+    .kbd-help-box { background: var(--bg-secondary); border: 1px solid var(--border-primary); border-radius: var(--radius-lg); padding: 20px; width: 480px; max-width: 95vw; max-height: 80vh; overflow-y: auto; }
+    .kbd-help-box h3 { font-size: 14px; font-weight: 700; margin: 0 0 12px; color: var(--text-primary); }
+    .kbd-table { width: 100%; border-collapse: collapse; font-size: 11px; }
+    .kbd-table th { text-align: left; font-size: 10px; font-weight: 700; text-transform: uppercase; color: var(--text-muted); padding: 4px 6px; border-bottom: 1px solid var(--border-primary); }
+    .kbd-table td { padding: 5px 6px; border-bottom: 1px solid var(--border-primary); color: var(--text-secondary); }
+    .kbd-table tr:last-child td { border-bottom: 0; }
+    .kbd-table td:first-child { font-family: ui-monospace, monospace; font-size: 11px; color: var(--color-accent); white-space: nowrap; }
   </style>
 </head>
 <body>
+  <!-- F5-4: Skip links (keyboard / screen-reader navigation) -->
+  <a href="#main-content" class="skip-link">跳至主要內容</a>
+  <a href="#nav" class="skip-link">跳至導覽列</a>
+
+  <!-- G7: SVG color-blind simulation filters (hidden) -->
+  <svg id="cb-svg-filters" aria-hidden="true" focusable="false"
+       style="position:absolute;width:0;height:0;overflow:hidden;">
+    <defs>
+      <!-- Protanopia (red-blind) -->
+      <filter id="cb-protanopia" color-interpolation-filters="linearRGB">
+        <feColorMatrix type="matrix" values="
+          0.567 0.433 0     0 0
+          0.558 0.442 0     0 0
+          0     0.242 0.758 0 0
+          0     0     0     1 0"/>
+      </filter>
+      <!-- Deuteranopia (green-blind) -->
+      <filter id="cb-deuteranopia" color-interpolation-filters="linearRGB">
+        <feColorMatrix type="matrix" values="
+          0.625 0.375 0     0 0
+          0.700 0.300 0     0 0
+          0     0.300 0.700 0 0
+          0     0     0     1 0"/>
+      </filter>
+      <!-- Tritanopia (blue-blind) -->
+      <filter id="cb-tritanopia" color-interpolation-filters="linearRGB">
+        <feColorMatrix type="matrix" values="
+          0.950 0.050 0     0 0
+          0     0.433 0.567 0 0
+          0     0.475 0.525 0 0
+          0     0     0     1 0"/>
+      </filter>
+    </defs>
+  </svg>
+
   <!-- F3-3: Computation progress bar -->
   <div class="calc-progress-wrap" id="calc-progress-wrap" role="progressbar" aria-label="計算中" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
     <div class="calc-progress-bar" id="calc-progress-bar"></div>
@@ -1171,7 +1263,8 @@
       <button class="btn btn-sm" id="btn-prefs" title="偏好設定 (G4)" aria-label="偏好設定" aria-haspopup="dialog">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
       </button>
-      <button class="btn btn-sm theme-cycle-btn" id="theme-toggle" title="Cycle theme: Dark → Light → Print" aria-label="Cycle theme">
+      <button class="btn btn-sm" id="btn-keyboard-help" title="鍵盤快捷鍵 (?)" aria-label="顯示鍵盤快捷鍵" aria-haspopup="dialog" style="font-size:11px;">⌨ 快捷鍵</button>
+      <button class="btn btn-sm theme-cycle-btn" id="theme-toggle" title="Cycle theme: Dark → Light → Print → High-contrast" aria-label="Cycle theme">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" id="theme-icon-svg"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
         <span class="theme-cycle-label" id="theme-label">Dark</span>
       </button>
@@ -1192,11 +1285,20 @@
         <button class="unit-btn" data-unit="hz" aria-pressed="false" title="Hz">Hz</button>
       </div>
     </div>
-    <div class="app-status-live" id="global-live-region">Ready</div>
+    <div class="cb-mode-row" title="G7: 色盲模擬預覽">
+      <span>色覺</span>
+      <select id="cb-mode-select" aria-label="色盲模擬模式">
+        <option value="normal">正常</option>
+        <option value="protanopia">紅色盲</option>
+        <option value="deuteranopia">綠色盲</option>
+        <option value="tritanopia">藍色盲</option>
+      </select>
+    </div>
+    <div class="app-status-live" id="global-live-region" aria-live="polite" aria-atomic="true">Ready</div>
   </div>
 
-  <main role="main">
-    <aside role="complementary" aria-label="Control system configuration">
+  <main role="main" id="main-content">
+    <aside id="nav" role="complementary" aria-label="Control system configuration">
       <div class="sidebar-tabs" role="tablist" aria-label="Configuration sections">
         <button class="sidebar-tab active" data-sidebar="model" role="tab" aria-selected="true" aria-controls="panel-model">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg>
@@ -3348,6 +3450,35 @@
 
   <!-- E3-3: Watermark overlay -->
   <div class="report-watermark" id="report-watermark" aria-hidden="true"></div>
+
+  <!-- F5-1: Keyboard shortcuts help panel -->
+  <div class="kbd-help-panel" id="kbd-help-panel" role="dialog" aria-modal="true" aria-labelledby="kbd-help-title">
+    <div class="kbd-help-box">
+      <h3 id="kbd-help-title">⌨ 鍵盤快捷鍵</h3>
+      <table class="kbd-table" aria-label="鍵盤快捷鍵列表">
+        <thead><tr><th>按鍵</th><th>功能</th></tr></thead>
+        <tbody>
+          <tr><td>Ctrl+Z / Ctrl+Shift+Z</td><td>Undo / Redo 調參</td></tr>
+          <tr><td>Ctrl+S</td><td>儲存草稿</td></tr>
+          <tr><td>Ctrl+E</td><td>複製程式碼</td></tr>
+          <tr><td>Ctrl+P</td><td>生成報告</td></tr>
+          <tr><td>Escape</td><td>關閉 modal / 抽屜</td></tr>
+          <tr><td>F11</td><td>圖表全螢幕</td></tr>
+          <tr><td>G</td><td>跳至 Plant（建模）</td></tr>
+          <tr><td>M</td><td>跳至 Design（設計）</td></tr>
+          <tr><td>D</td><td>跳至 Analyze（分析）</td></tr>
+          <tr><td>A</td><td>跳至 Advisor（顧問）</td></tr>
+          <tr><td>O</td><td>跳至 Compare（比較）</td></tr>
+          <tr><td>?</td><td>顯示此快捷鍵說明</td></tr>
+          <tr><td>Tab / Shift+Tab</td><td>焦點前進 / 後退</td></tr>
+          <tr><td>Enter / Space</td><td>啟動按鈕 / 核取方塊</td></tr>
+        </tbody>
+      </table>
+      <div style="margin-top:12px;text-align:right;">
+        <button class="btn btn-sm" id="kbd-help-close" aria-label="關閉快捷鍵說明">關閉</button>
+      </div>
+    </div>
+  </div>
 
   <!-- A3-4: History Drawer -->
   <div class="history-drawer" id="history-drawer" role="complementary" aria-label="調參歷史">

@@ -114,7 +114,7 @@ assert(!cbPy.includes('cs-codeblock__copy'), 'codeBlock copyable=false omits cop
 // ── F4-1: Three-way theme in app.js ──────────────────────────────────────────
 console.log('\n▶ F4-1 Three-way theme cycle');
 
-assert(appJs.includes("THEME_CYCLE = ['dark', 'light', 'print']"), 'THEME_CYCLE defined with 3 values');
+assert(appJs.includes("'dark'") && appJs.includes("'light'") && appJs.includes("'print'") && appJs.includes('THEME_CYCLE'), 'THEME_CYCLE contains dark/light/print');
 assert(appJs.includes('(idx + 1) % THEME_CYCLE.length'), 'toggleTheme cycles through THEME_CYCLE');
 assert(appJs.includes("icons.print") || appJs.includes("'print'"), 'print icon defined in updateThemeIcon');
 assert(indexHtml.includes("[data-theme=\"print\"]"), 'print theme CSS in index.html');

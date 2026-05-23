@@ -292,8 +292,8 @@ function initTheme() {
   updateGlobalStatusBar('Theme loaded');
 }
 
-// F4-1: Three-way theme cycle — dark → light → print → dark
-const THEME_CYCLE = ['dark', 'light', 'print'];
+// F4-1/F5-3: Four-way theme cycle — dark → light → print → high-contrast → dark
+const THEME_CYCLE = ['dark', 'light', 'print', 'high-contrast'];
 
 function toggleTheme() {
   const idx = THEME_CYCLE.indexOf(state.theme ?? 'dark');
@@ -315,6 +315,7 @@ function updateThemeIcon() {
     dark:  '<circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>',
     light: '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>',
     print: '<polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/>',
+    'high-contrast': '<circle cx="12" cy="12" r="10"/><path d="M12 2a10 10 0 0 1 0 20V2z" fill="currentColor"/>',
   };
   if (svgWrap) svgWrap.innerHTML = icons[state.theme] ?? icons.dark;
   if (lbl) lbl.textContent = (state.theme ?? 'dark').charAt(0).toUpperCase() + (state.theme ?? 'dark').slice(1);
@@ -11257,4 +11258,177 @@ document.addEventListener('DOMContentLoaded', () => {
   initScoringMatrix();
   initReportOutput();
   initDecisionLog();
+}, { once: true });
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// P51 — F4-2~4 Brand colors / 8-color cycle / reduced-motion
+//        F5-1~4 Keyboard nav / Screen reader / High contrast / Skip link
+//        G7    Color-blind palette + SVG filter simulation
+// ═══════════════════════════════════════════════════════════════════════════════
+
+// ── F4-3: Chart 8-color cycle (WCAG AA verified) ──────────────────────────────
+const DARK_COLORS   = ['#3fb950','#58a6ff','#fb923c','#a78bfa',
+                       '#22d3ee','#f472b6','#facc15','#6ee7b7'];
+const PRINT_PATTERNS = ['solid','6,4','2,2','6,2,2,2','10,4','4,4','8,2','3,3'];
+
+function getChartColors(n, theme = 'dark') {
+  if (theme === 'print') return Array.from({ length: n }, () => '#000000');
+  return Array.from({ length: n }, (_, i) => DARK_COLORS[i % DARK_COLORS.length]);
+}
+function getLinePattern(i) { return PRINT_PATTERNS[i % PRINT_PATTERNS.length]; }
+
+// ── F4-4: prefers-reduced-motion ─────────────────────────────────────────────
+const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+function initReducedMotion() {
+  const mql = window.matchMedia('(prefers-reduced-motion: reduce)');
+  window._prefersReduced = mql.matches;
+  mql.addEventListener('change', e => {
+    window._prefersReduced = e.matches;
+    // Pause Nyquist animation if running
+    if (e.matches && typeof window._nyquistAnimStart === 'function') {
+      document.getElementById('nyquist-play-btn')?.dispatchEvent(new Event('click'));
+    }
+  });
+}
+
+// ── F5-1: Keyboard navigation ─────────────────────────────────────────────────
+function initKeyboardNav() {
+  document.addEventListener('keydown', e => {
+    // Skip if focus is in an editable field
+    const tag = e.target.tagName;
+    if (tag === 'INPUT' || tag === 'TEXTAREA' || e.target.isContentEditable) return;
+
+    const cm = e.ctrlKey || e.metaKey;
+
+    if (cm && !e.shiftKey && e.key === 'z') { e.preventDefault(); historyUndo?.(); }
+    if (cm &&  e.shiftKey && e.key === 'z') { e.preventDefault(); historyRedo?.(); }
+    if (cm && e.key === 'y')                { e.preventDefault(); historyRedo?.(); }
+    if (cm && e.key === 's')                { e.preventDefault(); saveDraft?.(); notify('草稿已儲存', 'success', { title: '儲存' }); }
+    if (cm && e.key === 'e')                { e.preventDefault(); document.getElementById('btn-code-copy')?.click(); }
+    if (cm && e.key === 'p')                { e.preventDefault(); document.getElementById('report-meta-modal')?.classList.add('open'); }
+
+    if (e.key === 'Escape') {
+      // Close any open overlay
+      document.querySelectorAll(
+        '.report-meta-modal.open, .kbd-help-panel.open, ' +
+        '.explain-drawer.open, .notes-drawer.open, .history-drawer.open'
+      ).forEach(el => el.classList.remove('open'));
+    }
+
+    if (e.key === 'F11') { e.preventDefault(); document.getElementById('btn-fullscreen')?.click(); }
+
+    // ? → keyboard help
+    if (e.key === '?') { document.getElementById('kbd-help-panel')?.classList.toggle('open'); }
+
+    // Section hotkeys (no modifier)
+    if (!cm && !e.altKey) {
+      const sectionMap = { g: 'model', m: 'design', d: 'analyze', a: 'advisor', o: 'compare' };
+      const target = sectionMap[e.key.toLowerCase()];
+      if (target) {
+        document.querySelector(`.sidebar-tab[data-sidebar="${target}"]`)?.click();
+      }
+    }
+  });
+}
+
+// ── F5-2: Screen reader / chart ARIA text ─────────────────────────────────────
+function chartAltText(type, data = {}) {
+  const fmt1 = v => (v == null ? '—' : (+v).toFixed(1));
+  const fmt2 = v => (v == null ? '—' : (+v).toFixed(2));
+  switch (type) {
+    case 'step':
+      return `步階響應圖。超越量 ${fmt1(data.OS)}%，安定時間 ${fmt2(data.Ts)}s，系統${data.stable ? '穩定' : '不穩定'}。`;
+    case 'bode':
+      return `Bode 圖。相位裕度 ${fmt1(data.PM)}°，增益裕度 ${fmt1(data.GM)}dB。`;
+    case 'rlocus':
+      return `根軌跡圖。系統${data.stable ? '穩定' : '不穩定'}。`;
+    case 'nyquist':
+      return `Nyquist 圖。繞行 -1 點次數：${data.encirclements ?? 0}。`;
+    default:
+      return `控制系統圖表（${type}）。`;
+  }
+}
+
+function updateChartARIA() {
+  const si = state._lastStepInfo   || {};
+  const sm = state._lastMargins    || {};
+  const ids = {
+    'chart-step':   chartAltText('step',    { OS: si.overshoot, Ts: si.settlingTime, stable: !si.unstable }),
+    'chart-bode':   chartAltText('bode',    { PM: sm.phaseMargindeg, GM: sm.gainMargindB }),
+    'chart-rlocus': chartAltText('rlocus',  { stable: !si.unstable }),
+    'chart-nyquist':chartAltText('nyquist', {}),
+  };
+  Object.entries(ids).forEach(([id, label]) => {
+    const el = document.getElementById(id);
+    if (el) el.setAttribute('aria-label', label);
+  });
+}
+
+function initScreenReaderSupport() {
+  // Apply role="img" + initial aria-label to Plotly chart wrappers
+  ['chart-step','chart-bode','chart-rlocus','chart-nyquist','chart-phasePlane',
+   'chart-nyquist-anim','c3-step-preview','c3-sensitivity-chart'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) {
+      if (!el.getAttribute('role')) el.setAttribute('role', 'img');
+      if (!el.getAttribute('aria-label')) el.setAttribute('aria-label', '圖表載入中…');
+    }
+  });
+  // Global live region for async status
+  const lr = document.getElementById('global-live-region');
+  if (lr) { lr.setAttribute('role', 'status'); lr.setAttribute('aria-live', 'polite'); lr.setAttribute('aria-atomic', 'true'); }
+  window.updateChartARIA = updateChartARIA;
+}
+
+// ── F5-1: Keyboard help panel wiring ─────────────────────────────────────────
+function initKeyboardHelpPanel() {
+  const panel = document.getElementById('kbd-help-panel');
+  if (!panel) return;
+  document.getElementById('btn-keyboard-help')?.addEventListener('click', () => panel.classList.add('open'));
+  document.getElementById('kbd-help-close')?.addEventListener('click',   () => panel.classList.remove('open'));
+  panel.addEventListener('click', e => { if (e.target === panel) panel.classList.remove('open'); });
+}
+
+// ── G7: Okabe-Ito color-blind safe palette + SVG filter wiring ────────────────
+const OKABE_ITO = ['#E69F00','#56B4E9','#009E73','#F0E442',
+                   '#0072B2','#D55E00','#CC79A7','#000000'];
+
+function getColorBlindSafeColors(n) {
+  return Array.from({ length: n }, (_, i) => OKABE_ITO[i % OKABE_ITO.length]);
+}
+
+function initColorBlindFilter() {
+  const sel = document.getElementById('cb-mode-select');
+  if (!sel) return;
+  const CHART_IDS = ['chart-step','chart-bode','chart-rlocus','chart-nyquist',
+                     'chart-phasePlane','chart-nyquist-anim','c3-step-preview',
+                     'c3-sensitivity-chart'];
+  sel.addEventListener('change', () => {
+    const mode = sel.value;
+    CHART_IDS.forEach(id => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.classList.remove('cb-filter-protanopia','cb-filter-deuteranopia','cb-filter-tritanopia');
+      if (mode !== 'normal') el.classList.add(`cb-filter-${mode}`);
+    });
+    notify(`色覺模擬：${sel.options[sel.selectedIndex]?.text}`, 'info', { title: 'G7 色盲模式' });
+  });
+  window.getColorBlindSafeColors = getColorBlindSafeColors;
+  window.getChartColors          = getChartColors;
+  window.getLinePattern          = getLinePattern;
+}
+
+// ── initA11y: orchestrate all accessibility inits ─────────────────────────────
+function initA11y() {
+  initReducedMotion();
+  initKeyboardNav();
+  initKeyboardHelpPanel();
+  initScreenReaderSupport();
+  initColorBlindFilter();
+}
+
+// ── P51 init ──────────────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  initA11y();
 }, { once: true });
