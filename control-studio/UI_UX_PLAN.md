@@ -4021,6 +4021,16 @@ P2 小計：**39d**
 
 P3 小計：**71d**
 
+**實作 checkpoint（2026-05-23）**
+
+- Done：P45 完成 D3-1~3 FLOP / memory / platform labels 與 B4 CSV import/export。
+- Done：P46 完成 B5-1~3 calculation steps / tooltip / condition warnings 與 B2-1 matrix expansion。
+- Done：P47 完成 C1-1~3 topic cards 與 C4-1~3 draft / notes / completion badge。
+- Done：P48 完成 A3-2~4 draggable root-locus poles、Bode breakpoint interaction 與 history drawer。
+- Done：P49 完成 C3 interactive animation surfaces。
+- Done：P50 完成 E1~E4 design assessment dashboard、scoring matrix + radar chart、HTML report output、decision log / CSV export / sign-off。
+- Verification：`run_all_verify.sh` 已納入 `verify_p45_d3_b4.mjs` ~ `verify_p50_e1_e4.mjs`，最新基線為 65/65 scripts pass。
+
 ### 工時總覽
 
 | 階段 | 工時 | 內容 |

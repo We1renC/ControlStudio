@@ -72,15 +72,21 @@
 | **P42** | **UI/UX P2 batch 5: B1-2 best-value ★ / sortable compare table / B1-3 diff heatmap + CSV export** | Done | `verify_p42_compare_enhancements.mjs` |
 | **P43** | **UI/UX P2 batch 6: A1-1 system input wizard / A5-2 sensitivity plot / A5-3 robustness badges** | Done | `verify_p43_syswin_a5.mjs` |
 | **P44** | **UI/UX P2 batch 7: F2-1 draggable split pane / F2-2 multi-design tab bar** | Done | `verify_p44_split_tabs.mjs` |
+| **P45** | **UI/UX P3 batch 1: D3 FLOP/memory/platform + B4 CSV import/export** | Done | `verify_p45_d3_b4.mjs` |
+| **P46** | **UI/UX P3 batch 2: B5 calculation steps / tooltip / condition warnings + B2 matrix expand** | Done | `verify_p46_b5_b2.mjs` |
+| **P47** | **UI/UX P3 batch 3: C1 topic cards + C4 drafts/notes/completion** | Done | `verify_p47_c1_c4.mjs` |
+| **P48** | **UI/UX P3 batch 4: A3 draggable poles / Bode breakpoint / history drawer** | Done | `verify_p48_a3.mjs` |
+| **P49** | **UI/UX P3 batch 5: C3 interactive animations** | Done | `verify_p49_c3.mjs` |
+| **P50** | **UI/UX P3 batch 6: E1~E4 dashboard / scoring / report / decision log** | Done | `verify_p50_e1_e4.mjs` |
 
 ## Verification Suite Status (2026-05-23)
 
-**59/59 scripts pass** — run via `bash scripts/run_all_verify.sh`
+**65/65 scripts pass** — run via `bash scripts/run_all_verify.sh`
 
 | Group | Scripts | Pass |
 | --- | --- | --- |
 | Phase 9/10/11 foundations | 11 | 11 |
-| Phase 14–44 advanced control / UI | 44 | 44 |
+| Phase 14–50 advanced control / UI | 50 | 50 |
 | General math & PID | 4 | 4 |
 
 ## P1/P2 UI/UX Completion Summary
@@ -102,6 +108,20 @@ All **P1** and **P2** items from `UI_UX_PLAN.md` have been implemented:
 - A5-2 Sensitivity plot (S/T/KS), A5-3 Robustness badges (PM/GM/Ms/Dm)
 - C2-1 4-step design wizard, C2-2 Field hints, C2-3 Error guidance
 - D2-1~4 Discretization comparison tool
+
+## P3 UI/UX Progress Summary
+
+The following **P3** items from `UI_UX_PLAN.md` are now implemented through P50:
+
+### P3 Items (completed P45–P50)
+- D3-1~3 FLOP, memory, and platform labels; B4 CSV import/export.
+- B5-1~3 calculation steps, tooltip context, and condition warnings; B2 matrix expansion.
+- C1-1~3 topic index cards and example entry points; C4-1~3 draft, notes, and completion badge.
+- A3-2~4 draggable root-locus poles, Bode breakpoint interaction, and history drawer.
+- C3-1~4 interactive animation surfaces for pole sensitivity, phase portrait, and Nyquist-style workflows.
+- E1~E4 assessment dashboard, scoring matrix with radar chart, full HTML report output, and decision log/sign-off workflow.
+
+Remaining P3-oriented UI/UX work should continue from the unchecked portions of `UI_UX_PLAN.md`, with Teaching Mode / Electron / Report Template still paused unless explicitly resumed.
 
 ## Remaining Dirty Worktree
 
