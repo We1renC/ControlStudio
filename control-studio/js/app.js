@@ -12758,3 +12758,260 @@ document.addEventListener('DOMContentLoaded', () => {
   initPythonBridge();
   initLatexGen();
 }, { once: true });
+
+// ── P56 — C2-3: Extended Common Error Hints ───────────────────────────────────
+// Adds a "常見錯誤" FAQ accordion section to the advisor panel.
+const COMMON_ERROR_HINTS = [
+  {
+    q: '輸入多項式後出現「NaN」或「Infinity」結果',
+    a: '分母最高次係數不能為 0；請確認係數列表首項非零。例：「0 1 2」應改為「1 2」。',
+    tag: 'parse',
+  },
+  {
+    q: '步階響應振盪不收斂 / 系統不穩定',
+    a: 'Kp 過大或 Kd 不足導致阻尼不夠。嘗試：降低 Kp 50%，或用 Auto-Tune PID 重新計算。',
+    tag: 'stability',
+  },
+  {
+    q: '閉迴路極點在右半平面',
+    a: 'Plant 本身含 RHP 極點（開路不穩定）。需先用 LQR / H∞ 設計穩定化控制器，再考慮性能規格。',
+    tag: 'rhp',
+  },
+  {
+    q: 'Bode 圖在低頻增益急劇上升',
+    a: '系統含積分器（Type ≥ 1）。DC 增益為 ∞ 是正常的；確認相位裕度 PM > 30° 即可。',
+    tag: 'integrator',
+  },
+  {
+    q: 'LQR 設計後步階響應穩態誤差大',
+    a: 'LQR 不含積分控制。解決方案：啟用「Integral-action LQR」或在 Plant 前串聯積分器。',
+    tag: 'lqr-sse',
+  },
+  {
+    q: 'MPC 執行速度很慢 / 超時',
+    a: 'Horizon N 太長或狀態維度高。建議：N ≤ 20，降低 Ts，或先用模型降階（P25）。',
+    tag: 'mpc-slow',
+  },
+  {
+    q: '狀態空間輸入後矩陣維度不符',
+    a: 'A 必須是 n×n，B 是 n×m，C 是 p×n，D 是 p×m。請用逗號分隔列、分號分隔行。',
+    tag: 'ss-dim',
+  },
+  {
+    q: '比較視圖中曲線顏色看不清楚',
+    a: '啟用無障礙模式（Status Bar → Color-Blind Mode）可切換 Okabe-Ito 色盤，並加入線型區分。',
+    tag: 'color',
+  },
+];
+
+function initCommonErrorHints() {
+  const container = document.getElementById('common-error-hints-list');
+  if (!container) return;
+  container.innerHTML = COMMON_ERROR_HINTS.map((h, i) => `
+    <details class="ceh-item" data-tag="${h.tag}">
+      <summary class="ceh-q">${escapeHtml(h.q)}</summary>
+      <div class="ceh-a">${escapeHtml(h.a)}</div>
+    </details>`).join('');
+
+  // Search filter
+  const searchEl = document.getElementById('ceh-search');
+  searchEl?.addEventListener('input', () => {
+    const q = searchEl.value.toLowerCase();
+    container.querySelectorAll('.ceh-item').forEach(item => {
+      const text = item.textContent.toLowerCase();
+      item.style.display = !q || text.includes(q) ? '' : 'none';
+    });
+  });
+}
+
+// ── P56 — C5-2: Screenshot Tool ───────────────────────────────────────────────
+// Captures the active Plotly chart as PNG and previews it in a mini panel.
+function initScreenshotTool() {
+  const btn     = document.getElementById('btn-screenshot-capture');
+  const dlBtn   = document.getElementById('btn-screenshot-download');
+  const preview = document.getElementById('screenshot-preview');
+  if (!btn || !preview) return;
+
+  let _capturedDataUrl = null;
+
+  btn.addEventListener('click', async () => {
+    // Find the active chart element
+    const chartEl = document.getElementById('chart-active') || document.querySelector('.plotly-chart');
+    if (!chartEl || !window.Plotly) {
+      preview.innerHTML = '<span class="ss-msg">No chart available — run simulation first.</span>';
+      return;
+    }
+    btn.disabled = true;
+    btn.textContent = 'Capturing…';
+    try {
+      const dataUrl = await window.Plotly.toImage(chartEl, { format: 'png', width: 600, height: 400, scale: 2 });
+      _capturedDataUrl = dataUrl;
+      preview.innerHTML = `<img src="${dataUrl}" alt="Chart screenshot" class="ss-preview-img" style="width:100%;border-radius:var(--radius-sm);">`;
+      if (dlBtn) dlBtn.style.display = 'inline-flex';
+    } catch (e) {
+      preview.innerHTML = `<span class="ss-msg">Capture failed: ${escapeHtml(e.message)}</span>`;
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Capture Chart';
+    }
+  });
+
+  dlBtn?.addEventListener('click', () => {
+    if (!_capturedDataUrl) return;
+    const a = document.createElement('a');
+    a.href = _capturedDataUrl;
+    a.download = `controlstudio-chart-${Date.now()}.png`;
+    a.click();
+  });
+}
+
+// ── P56 — C5-3: Result Summary Card ──────────────────────────────────────────
+// Collapsible card summarising stability margins, step metrics, controller params.
+function buildResultSummary() {
+  const rows = [];
+  const fmt  = (v, d = 3) => (typeof v === 'number' && isFinite(v)) ? v.toFixed(d) : '—';
+
+  // Plant info
+  const p = state.plant;
+  if (p) {
+    try {
+      const tf = p.toTransferFunction?.() ?? p;
+      const num = tf.num?.[0]?.[0] ?? tf.numerator ?? [];
+      const den = tf.den?.[0]?.[0] ?? tf.denominator ?? [];
+      rows.push({ label: 'Plant order', value: (den.length - 1).toString() });
+      rows.push({ label: 'Plant poles', value: (state._lastStability?.poles?.map(z => `${z.re.toFixed(2)}${z.im >= 0 ? '+' : ''}${z.im.toFixed(2)}j`).join(', ') || '—') });
+    } catch (_) {}
+  }
+
+  // Stability margins from last computed stability
+  const stab = state._lastStability;
+  if (stab) {
+    rows.push({ label: 'Gain Margin (dB)', value: fmt(stab.gainMarginDb ?? stab.gainMargin) });
+    rows.push({ label: 'Phase Margin (°)', value: fmt(stab.phaseMargin) });
+    rows.push({ label: 'Stable', value: stab.stable ? '✅ Yes' : '❌ No' });
+  }
+
+  // Step response metrics
+  const sim = state._lastSimResult;
+  if (sim) {
+    rows.push({ label: 'Rise Time (s)',   value: fmt(sim.riseTime) });
+    rows.push({ label: 'Settle Time (s)', value: fmt(sim.settleTime) });
+    rows.push({ label: 'Overshoot (%)',   value: fmt(sim.overshoot, 1) });
+    rows.push({ label: 'Steady-State',   value: fmt(sim.steadyState) });
+  }
+
+  // Controller
+  const kp = parseFloat(document.getElementById('pid-Kp')?.value);
+  const ki = parseFloat(document.getElementById('pid-Ki')?.value);
+  const kd = parseFloat(document.getElementById('pid-Kd')?.value);
+  if (!isNaN(kp)) {
+    rows.push({ label: 'Kp', value: fmt(kp) });
+    rows.push({ label: 'Ki', value: fmt(ki) });
+    rows.push({ label: 'Kd', value: fmt(kd) });
+  }
+
+  return rows;
+}
+
+function refreshResultSummary() {
+  const outEl = document.getElementById('result-summary-rows');
+  if (!outEl) return;
+  const rows = buildResultSummary();
+  if (!rows.length) {
+    outEl.innerHTML = '<div class="rs-empty">請先執行模擬或設計。</div>';
+    return;
+  }
+  outEl.innerHTML = rows.map(r => `
+    <div class="rs-row">
+      <span class="rs-label">${escapeHtml(r.label)}</span>
+      <span class="rs-value">${escapeHtml(r.value)}</span>
+    </div>`).join('');
+}
+
+function initResultSummaryCard() {
+  const btn     = document.getElementById('btn-result-summary-refresh');
+  const copyBtn = document.getElementById('btn-result-summary-copy');
+  const outEl   = document.getElementById('result-summary-rows');
+  if (!outEl) return;
+
+  btn?.addEventListener('click', refreshResultSummary);
+  copyBtn?.addEventListener('click', () => {
+    const rows = buildResultSummary();
+    const text = rows.map(r => `${r.label}: ${r.value}`).join('\n');
+    navigator.clipboard.writeText(text).then(() => {
+      const orig = copyBtn.textContent;
+      copyBtn.textContent = 'Copied!';
+      setTimeout(() => { copyBtn.textContent = orig; }, 1500);
+    });
+  });
+
+  // Auto-refresh on simulation events
+  document.addEventListener('simulation:done', refreshResultSummary);
+  document.addEventListener('plant:changed', refreshResultSummary);
+  refreshResultSummary();
+}
+
+window.refreshResultSummary = refreshResultSummary;
+
+// ── P56 — D1-4: Code Generation Options ──────────────────────────────────────
+// Checkboxes that control what the code preview / export generates.
+const CODEGEN_OPTIONS_KEY = 'cs-codegen-opts';
+
+function getCodegenOptions() {
+  try {
+    return JSON.parse(localStorage.getItem(CODEGEN_OPTIONS_KEY) || '{}');
+  } catch (_) { return {}; }
+}
+
+function saveCodegenOptions(opts) {
+  localStorage.setItem(CODEGEN_OPTIONS_KEY, JSON.stringify(opts));
+}
+
+function initCodegenOptions() {
+  const panel = document.getElementById('codegen-options-panel');
+  if (!panel) return;
+
+  // Render checkboxes from CODEGEN_OPTS_DEF
+  const OPTS = [
+    { key: 'comments',   label: 'Include comments',         default: true  },
+    { key: 'validation', label: 'Include validation code',  default: false },
+    { key: 'plots',      label: 'Include plot commands',    default: true  },
+    { key: 'snakeCase',  label: 'snake_case variables',     default: false },
+    { key: 'useSI',      label: 'Add SI unit annotations',  default: false },
+  ];
+
+  const saved = getCodegenOptions();
+  const listEl = document.getElementById('codegen-options-list');
+  if (!listEl) return;
+
+  listEl.innerHTML = OPTS.map(o => {
+    const checked = (o.key in saved ? saved[o.key] : o.default) ? 'checked' : '';
+    return `<label class="codegen-opt-row">
+      <input type="checkbox" class="codegen-opt-cb" data-key="${o.key}" ${checked}>
+      <span>${escapeHtml(o.label)}</span>
+    </label>`;
+  }).join('');
+
+  listEl.querySelectorAll('.codegen-opt-cb').forEach(cb => {
+    cb.addEventListener('change', () => {
+      const opts = getCodegenOptions();
+      opts[cb.dataset.key] = cb.checked;
+      saveCodegenOptions(opts);
+      // Trigger code preview refresh
+      if (typeof refreshCodePreview === 'function') refreshCodePreview();
+      if (typeof buildPythonBridgeCode === 'function' && document.getElementById('python-bridge-code')) {
+        document.getElementById('python-bridge-code').textContent = buildPythonBridgeCode();
+      }
+    });
+  });
+}
+
+window.getCodegenOptions = getCodegenOptions;
+
+// ── P56 init ──────────────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  initCommonErrorHints();
+  initScreenshotTool();
+  initResultSummaryCard();
+  initCodegenOptions();
+}, { once: true });

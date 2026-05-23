@@ -1294,6 +1294,34 @@
     .health-row-label { flex: 1; color: var(--text-muted); }
     .health-row-val { color: var(--text-primary); font-size: 10px; font-family: ui-monospace, monospace; max-width: 130px; word-break: break-all; text-align: right; }
 
+    /* ── P56: C2-3 Common Error Hints ── */
+    .ceh-item { border: 1px solid var(--border-primary); border-radius: var(--radius-sm); margin-bottom: 4px; background: var(--bg-tertiary); }
+    .ceh-q { font-size: 11px; font-weight: 600; color: var(--text-primary); padding: 6px 8px; cursor: pointer; list-style: none; display: flex; align-items: center; gap: 4px; }
+    .ceh-q::before { content: '▶'; font-size: 8px; color: var(--color-accent); transition: transform 0.15s; }
+    .ceh-item[open] .ceh-q::before { transform: rotate(90deg); }
+    .ceh-a { font-size: 11px; color: var(--text-secondary); line-height: 1.6; padding: 0 8px 8px; }
+    .ceh-search { width: 100%; padding: 5px 8px; font-size: 11px; background: var(--bg-tertiary); color: var(--text-primary); border: 1px solid var(--border-primary); border-radius: var(--radius-sm); box-sizing: border-box; margin-bottom: 6px; }
+
+    /* ── P56: C5-2 Screenshot Tool ── */
+    .ss-preview-wrap { min-height: 60px; background: var(--bg-primary); border: 1px solid var(--border-primary); border-radius: var(--radius-sm); margin: 6px 0; padding: 4px; }
+    .ss-msg { font-size: 11px; color: var(--text-muted); display: block; padding: 6px; }
+    .ss-preview-img { display: block; width: 100%; border-radius: var(--radius-sm); }
+
+    /* ── P56: C5-3 Result Summary Card ── */
+    .result-summary-card { background: var(--bg-secondary); border: 1px solid var(--border-primary); border-radius: var(--radius-md); padding: 10px 12px; }
+    .rs-row { display: flex; justify-content: space-between; padding: 3px 0; border-bottom: 1px solid var(--border-primary); font-size: 11px; }
+    .rs-row:last-child { border-bottom: none; }
+    .rs-label { color: var(--text-muted); }
+    .rs-value { color: var(--text-primary); font-family: ui-monospace, monospace; font-weight: 600; }
+    .rs-empty { font-size: 11px; color: var(--text-muted); padding: 4px 0; }
+    .rs-toolbar { display: flex; gap: 6px; margin-bottom: 8px; }
+
+    /* ── P56: D1-4 Code Generation Options ── */
+    .codegen-opt-row { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--text-secondary); padding: 3px 0; cursor: pointer; }
+    .codegen-opt-row:hover { color: var(--text-primary); }
+    .codegen-opt-cb { accent-color: var(--color-accent); cursor: pointer; }
+    #codegen-options-list { padding: 4px 0; }
+
     /* ── P55: B2-4 Gramian Detail ── */
     .gramian-table { width: 100%; border-collapse: collapse; font-size: 10px; margin-bottom: 8px; }
     .gramian-table th { background: var(--bg-tertiary); color: var(--text-muted); font-weight: 600; padding: 3px 6px; text-align: left; }
@@ -2197,6 +2225,36 @@
           </div>
           <div id="chart-d2-bode" style="height:200px;display:none;margin-top:8px;"></div>
         </section>
+
+        <!-- C5-2: Screenshot Tool -->
+        <section class="section-panel" id="screenshot-tool-panel">
+          <div class="section-title">Chart Screenshot (C5-2)</div>
+          <p style="font-size:11px;color:var(--text-muted);line-height:1.5;margin-bottom:8px;">
+            擷取當前 Plotly 圖表為 PNG 預覽圖，並可下載至本機。
+          </p>
+          <div style="display:flex;gap:6px;margin-bottom:6px;">
+            <button class="btn btn-sm" id="btn-screenshot-capture" style="flex:1;justify-content:center;">Capture Chart</button>
+            <button class="btn btn-sm" id="btn-screenshot-download" style="flex:1;justify-content:center;display:none;">Download PNG</button>
+          </div>
+          <div class="ss-preview-wrap" id="screenshot-preview">
+            <span class="ss-msg">按 Capture 截圖目前的 Plotly 圖表。</span>
+          </div>
+        </section>
+
+        <!-- C5-3: Result Summary Card -->
+        <section class="section-panel" id="result-summary-panel">
+          <div class="section-title">Result Summary Card (C5-3)</div>
+          <p style="font-size:11px;color:var(--text-muted);line-height:1.5;margin-bottom:8px;">
+            一覽穩定裕度、步階響應指標與控制器參數。
+          </p>
+          <div class="rs-toolbar">
+            <button class="btn btn-sm" id="btn-result-summary-refresh" style="flex:1;justify-content:center;">Refresh</button>
+            <button class="btn btn-sm" id="btn-result-summary-copy" style="flex:1;justify-content:center;">Copy Text</button>
+          </div>
+          <div class="result-summary-card">
+            <div id="result-summary-rows" aria-live="polite"><div class="rs-empty">請先執行模擬或設計。</div></div>
+          </div>
+        </section>
       </div>
 
       <div class="sidebar-panel" id="panel-advisor">
@@ -2268,6 +2326,22 @@
             <button class="btn btn-sm" id="btn-latex-gen-copy" style="flex:1;justify-content:center;">Copy All</button>
           </div>
           <div id="latex-gen-out" aria-label="LaTeX symbol output" aria-live="polite"></div>
+        </section>
+
+        <!-- D1-4: Code Generation Options -->
+        <section class="section-panel" id="codegen-options-panel">
+          <div class="section-title">Code Generation Options (D1-4)</div>
+          <p style="font-size:11px;color:var(--text-muted);line-height:1.5;margin-bottom:6px;">
+            調整 Code Preview 和 Export 的輸出選項。
+          </p>
+          <div id="codegen-options-list" role="group" aria-label="Code generation options"></div>
+        </section>
+
+        <!-- C2-3: Common Error Hints -->
+        <section class="section-panel" id="common-error-hints-panel">
+          <div class="section-title">常見錯誤說明 (C2-3)</div>
+          <input class="ceh-search" id="ceh-search" type="search" placeholder="搜尋問題…" aria-label="搜尋常見錯誤">
+          <div id="common-error-hints-list" role="list" aria-label="Common error hints list"></div>
         </section>
 
         <section class="section-panel s-domain-only">
