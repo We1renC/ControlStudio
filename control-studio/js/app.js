@@ -7081,6 +7081,20 @@ function initPrefsModal() {
   });
 }
 
+// ── Chart header layout helper ────────────────────────────────────────────────
+// Returns (or creates) the .chart-header-actions container inside a chart-header.
+// All dynamically-added chart buttons should be appended here so they stay
+// right-aligned as a group, separated from the left-side title/subtitle text.
+function getOrCreateHeaderActions(header) {
+  let actions = header.querySelector('.chart-header-actions');
+  if (!actions) {
+    actions = document.createElement('div');
+    actions.className = 'chart-header-actions';
+    header.appendChild(actions);
+  }
+  return actions;
+}
+
 // ── F2-3: Chart fullscreen ────────────────────────────────────────────────────
 
 function initChartFullscreen() {
@@ -7103,7 +7117,7 @@ function initChartFullscreen() {
       btn.innerHTML = document.fullscreenElement === cell ? '⤡' : '⤢';
       btn.title = document.fullscreenElement === cell ? '退出全螢幕' : '全螢幕';
     });
-    header.appendChild(btn);
+    getOrCreateHeaderActions(header).appendChild(btn);
   });
 }
 
@@ -7180,7 +7194,7 @@ function initChartExport() {
 
     wrap.appendChild(btn);
     wrap.appendChild(menu);
-    header.appendChild(wrap);
+    getOrCreateHeaderActions(header).appendChild(wrap);
   });
 }
 
@@ -7363,7 +7377,7 @@ function initAxisRangeControl() {
     btn.title = 'Set axis range';
     btn.setAttribute('aria-label', 'Set axis range');
     btn.innerHTML = '⊞';
-    header.appendChild(btn);
+    getOrCreateHeaderActions(header).appendChild(btn);
 
     // Create popover (appended to cell so position is relative)
     const popover = buildPopover(chartId);
@@ -9143,7 +9157,7 @@ function initCSVImport() {
 
   let _parsed = null;
 
-  // Add import button to time-domain chart header
+  // Add import button to time-domain chart header (right-aligned in actions group)
   const activeHeader = document.querySelector('.chart-cell.plot-main .chart-header');
   if (activeHeader) {
     const importBtn = document.createElement('button');
@@ -9153,7 +9167,7 @@ function initCSVImport() {
     importBtn.style.cssText = 'padding:3px 8px;font-size:10px;';
     importBtn.innerHTML = '↑ 匯入';
     importBtn.addEventListener('click', openModal);
-    activeHeader.appendChild(importBtn);
+    getOrCreateHeaderActions(activeHeader).appendChild(importBtn);
   }
 
   function openModal() {

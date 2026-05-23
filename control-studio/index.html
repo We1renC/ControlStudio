@@ -96,7 +96,19 @@
     aside { width: 340px; background: var(--bg-secondary); border-right: 1px solid var(--border-primary); display: flex; flex-direction: column; overflow-y: auto; padding: var(--space-6); gap: var(--space-4); flex-shrink: 0; }
     .content-area { flex: 1; padding: var(--space-6); overflow-y: auto; display: flex; flex-direction: column; gap: var(--space-6); min-width: 0; min-height: 0; }
     .chart-cell { background: var(--bg-secondary); border: 1px solid var(--border-primary); border-radius: var(--radius-lg); padding: var(--space-4); display: flex; flex-direction: column; position: relative; min-width: 0; }
-    .chart-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--space-2); font-size: 13px; font-weight: 600; color: var(--text-secondary); }
+    .chart-header { display: flex; align-items: center; gap: 8px; margin-bottom: var(--space-2); font-size: 13px; font-weight: 600; color: var(--text-secondary); }
+    /* Text group (title + subtitle) stays left; actions group goes right */
+    .chart-header-info { display: flex; flex-direction: column; gap: 1px; flex: 1; min-width: 0; }
+    .chart-header-info > span:first-child { font-size: 13px; font-weight: 600; color: var(--text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .chart-header-info > span:last-child:not(:first-child) { font-size: 10px; font-weight: 500; color: var(--text-muted); white-space: nowrap; }
+    .chart-header-actions { display: flex; align-items: center; gap: 4px; margin-left: auto; flex-shrink: 0; }
+    /* Fallback: bare spans/buttons in chart-header without wrapper — push buttons right */
+    .chart-header > button:not(:first-child),
+    .chart-header > .chart-export-wrap,
+    .chart-header > .chart-fullscreen-btn,
+    .chart-header > .chart-axis-btn { margin-left: auto; }
+    .chart-header > button:not(:first-child) ~ button,
+    .chart-header > button:not(:first-child) ~ .chart-export-wrap { margin-left: 0; }
     .chart-body { flex: 1; min-height: 200px; }
     .plot-workspace { display:flex; flex-direction:column; gap:var(--space-4); min-height: 0; min-width: 0; }
     .plot-switcher { display:flex; flex-wrap:nowrap; overflow-x:auto; gap:8px; background: var(--bg-secondary); border:1px solid var(--border-primary); border-radius: var(--radius-lg); padding: 10px; scrollbar-width:none; }
@@ -3393,9 +3405,13 @@
         <div class="plot-stage">
           <div class="chart-cell plot-main">
             <div class="chart-header">
-              <span id="active-plot-title">Step Response</span>
-              <span id="active-plot-subtitle">Time-Domain</span>
-              <button class="btn btn-sm" id="btn-bode-compensator" title="Bode 補償器折點拖曳模式 (A3-3)" style="padding:2px 6px;font-size:9px;display:none;">補償器折點</button>
+              <div class="chart-header-info">
+                <span id="active-plot-title">Step Response</span>
+                <span id="active-plot-subtitle">Time-Domain</span>
+              </div>
+              <div class="chart-header-actions">
+                <button class="btn btn-sm" id="btn-bode-compensator" title="Bode 補償器折點拖曳模式 (A3-3)" style="padding:2px 6px;font-size:9px;display:none;">補償器折點</button>
+              </div>
             </div>
             <div class="bode-drag-hint" id="bode-comp-hint">補償器模式：點擊 Bode 圖設定折點頻率</div>
             <div class="chart-body" id="chart-active"></div>
@@ -3466,15 +3482,19 @@
           <div class="plot-side">
             <div class="chart-cell mini-chart">
               <div class="chart-header">
-                <span>Root Locus</span>
-                <span class="mini-context" title="Open-loop root locus — shows where closed-loop poles move as K increases">Open-Loop</span>
-                <button class="btn btn-sm" id="btn-rl-interact" title="啟用根軌跡互動模式 (A3-2)" style="padding:2px 6px;font-size:9px;margin-left:4px;">互動</button>
+                <div class="chart-header-info">
+                  <span>Root Locus</span>
+                  <span class="mini-context" title="Open-loop root locus — shows where closed-loop poles move as K increases">Open-Loop</span>
+                </div>
+                <div class="chart-header-actions">
+                  <button class="btn btn-sm" id="btn-rl-interact" title="啟用根軌跡互動模式 (A3-2)" style="padding:2px 6px;font-size:9px;">互動</button>
+                </div>
               </div>
               <div class="bode-drag-hint" id="rl-interact-hint">互動模式：點擊根軌跡設定增益 K</div>
               <div class="chart-body" id="chart-rlocus"></div>
             </div>
             <div class="chart-cell mini-chart">
-              <div class="chart-header"><span>Pole-Zero Map</span><span class="mini-context" title="Closed-loop pole-zero map — current controller applied">Closed-Loop</span></div>
+              <div class="chart-header"><div class="chart-header-info"><span>Pole-Zero Map</span><span class="mini-context" title="Closed-loop pole-zero map — current controller applied">Closed-Loop</span></div></div>
               <div class="chart-body" id="chart-pzmap"></div>
             </div>
           </div>
@@ -3482,7 +3502,7 @@
       </div>
 
       <div class="chart-cell compare-wide compare-shell" id="compare-section">
-        <div class="chart-header"><span>Comparison Chart</span><span>Snapshot Overlay</span></div>
+        <div class="chart-header"><div class="chart-header-info"><span>Comparison Chart</span><span>Snapshot Overlay</span></div></div>
         <div class="chart-body" id="chart-compare"></div>
         <div id="chart-compare-bode" style="height:200px;margin-top:8px;"></div>
         <div id="compare-metrics-table" style="margin-top:8px;font-size:11px;"></div>
