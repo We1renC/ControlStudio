@@ -7105,7 +7105,7 @@ function initChartFullscreen() {
     btn.className = 'chart-fullscreen-btn';
     btn.title = '全螢幕 (F2-3)';
     btn.setAttribute('aria-label', '全螢幕顯示此圖表');
-    btn.innerHTML = '⤢';
+    btn.innerHTML = '⤢ 全螢幕';
     btn.addEventListener('click', () => {
       if (!document.fullscreenElement) {
         cell.requestFullscreen?.().catch(() => {});
@@ -7114,7 +7114,7 @@ function initChartFullscreen() {
       }
     });
     document.addEventListener('fullscreenchange', () => {
-      btn.innerHTML = document.fullscreenElement === cell ? '⤡' : '⤢';
+      btn.innerHTML = document.fullscreenElement === cell ? '⤡ 退出' : '⤢ 全螢幕';
       btn.title = document.fullscreenElement === cell ? '退出全螢幕' : '全螢幕';
     });
     getOrCreateHeaderActions(header).appendChild(btn);
@@ -7136,7 +7136,7 @@ function initChartExport() {
     btn.className = 'chart-export-btn';
     btn.title = '匯出圖表 (B3-4)';
     btn.setAttribute('aria-label', '匯出圖表');
-    btn.innerHTML = '↓';
+    btn.innerHTML = '↓ 匯出';
 
     const menu = document.createElement('div');
     menu.className = 'chart-export-menu';
@@ -7376,7 +7376,7 @@ function initAxisRangeControl() {
     btn.className = 'chart-axis-btn';
     btn.title = 'Set axis range';
     btn.setAttribute('aria-label', 'Set axis range');
-    btn.innerHTML = '⊞';
+    btn.innerHTML = '⊞ 軸距';
     getOrCreateHeaderActions(header).appendChild(btn);
 
     // Create popover (appended to cell so position is relative)

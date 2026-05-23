@@ -473,8 +473,8 @@
     /* ==================================================================
        P39 — B3-1 Axis range popover
        ================================================================== */
-    .chart-axis-btn { background: transparent; border: 0; color: var(--text-muted); cursor: pointer; padding: 2px 4px; border-radius: 3px; font-size: 12px; line-height: 1; transition: color 0.15s; }
-    .chart-axis-btn:hover { color: var(--text-primary); }
+    .chart-axis-btn { background: var(--bg-tertiary); border: 1px solid var(--border-primary); color: var(--text-muted); cursor: pointer; padding: 3px 8px; border-radius: var(--radius-sm); font-size: 11px; line-height: 1.4; transition: color 0.15s, background 0.15s; white-space: nowrap; }
+    .chart-axis-btn:hover { color: var(--text-primary); background: rgba(99,102,241,0.1); }
     .axis-range-popover {
       position: absolute; right: 0; top: 100%; margin-top: 4px;
       background: var(--bg-secondary); border: 1px solid var(--border-primary);
@@ -764,8 +764,8 @@
     /* ==================================================================
        P38 — F2-3 Fullscreen chart
        ================================================================== */
-    .chart-fullscreen-btn { background: transparent; border: 0; color: var(--text-muted); cursor: pointer; padding: 2px 4px; border-radius: 3px; font-size: 13px; line-height: 1; transition: color 0.15s; }
-    .chart-fullscreen-btn:hover { color: var(--text-primary); }
+    .chart-fullscreen-btn { background: var(--bg-tertiary); border: 1px solid var(--border-primary); color: var(--text-muted); cursor: pointer; padding: 3px 8px; border-radius: var(--radius-sm); font-size: 11px; line-height: 1.4; transition: color 0.15s, background 0.15s; white-space: nowrap; }
+    .chart-fullscreen-btn:hover { color: var(--text-primary); background: rgba(99,102,241,0.1); }
     .chart-cell:fullscreen { border-radius: 0; padding: var(--space-6); }
     .chart-cell:fullscreen .chart-body { min-height: calc(100vh - 80px) !important; }
 
@@ -773,8 +773,8 @@
        P38 — B3-4 Chart export dropdown
        ================================================================== */
     .chart-export-wrap { position: relative; display: inline-block; }
-    .chart-export-btn { background: transparent; border: 0; color: var(--text-muted); cursor: pointer; padding: 2px 4px; border-radius: 3px; font-size: 12px; line-height: 1; transition: color 0.15s; }
-    .chart-export-btn:hover { color: var(--text-primary); }
+    .chart-export-btn { background: var(--bg-tertiary); border: 1px solid var(--border-primary); color: var(--text-muted); cursor: pointer; padding: 3px 8px; border-radius: var(--radius-sm); font-size: 11px; line-height: 1.4; transition: color 0.15s, background 0.15s; white-space: nowrap; }
+    .chart-export-btn:hover { color: var(--text-primary); background: rgba(99,102,241,0.1); }
     .chart-export-menu { position: absolute; right: 0; top: 100%; margin-top: 4px; background: var(--bg-secondary); border: 1px solid var(--border-primary); border-radius: var(--radius-md); box-shadow: 0 8px 24px rgba(0,0,0,0.35); min-width: 160px; z-index: 500; display: none; overflow: hidden; }
     .chart-export-menu.open { display: block; animation: fade-in 0.12s ease; }
     .chart-export-item { display: block; width: 100%; text-align: left; padding: 8px 14px; font-size: 12px; color: var(--text-secondary); background: transparent; border: 0; cursor: pointer; transition: background 0.1s; }
@@ -1488,33 +1488,35 @@
     </div>
     <div class="header-actions">
       <div class="divider-v"></div>
-      <button class="btn btn-sm" id="btn-undo" title="Undo (Ctrl+Z)" aria-label="Undo last change" disabled style="font-size:13px;">&#x21A9;</button>
-      <button class="btn btn-sm" id="btn-redo" title="Redo (Ctrl+Y)" aria-label="Redo last change" disabled style="font-size:13px;">&#x21AA;</button>
+      <button class="btn btn-sm" id="btn-undo" title="Undo (Ctrl+Z)" aria-label="Undo last change" disabled style="font-size:11px;">&#x21A9; 復原</button>
+      <button class="btn btn-sm" id="btn-redo" title="Redo (Ctrl+Y)" aria-label="Redo last change" disabled style="font-size:11px;">&#x21AA; 重做</button>
       <div class="divider-v"></div>
-      <button class="btn btn-sm split-btn" id="btn-split-pane" title="切換分割工作區 (F2-1)" aria-label="分割工作區" style="font-size:13px;">⧉</button>
-      <button class="btn btn-sm" id="btn-new-system" title="新增系統模型 (A1-1)" aria-label="新增系統模型" style="font-size:13px;">＋</button>
-      <button class="btn btn-sm" id="btn-wizard" title="開啟設計精靈 (C2-1)" aria-label="開啟設計精靈" style="font-size:13px;">🧭</button>
-      <button class="btn btn-sm" id="btn-load-example" title="載入範例系統 (C1-3)" aria-label="載入範例" style="font-size:13px;">▶</button>
-      <button class="btn btn-sm" id="btn-explain" title="這是什麼？(C1-2)" aria-label="說明面板" style="font-size:13px;">ⓘ</button>
-      <button class="btn btn-sm" id="btn-notes" title="筆記與書籤 (C4-2)" aria-label="筆記與書籤" style="font-size:13px;">📝</button>
-      <button class="btn btn-sm" id="btn-history" title="調參歷史 (A3-4)" aria-label="調參歷史" style="font-size:13px;">🕘</button>
+      <button class="btn btn-sm split-btn" id="btn-split-pane" title="切換分割工作區 (F2-1)" aria-label="分割工作區" style="font-size:11px;">⧉ 分割</button>
+      <button class="btn btn-sm" id="btn-new-system" title="新增系統模型 (A1-1)" aria-label="新增系統模型" style="font-size:11px;">＋ 系統</button>
+      <button class="btn btn-sm" id="btn-wizard" title="開啟設計精靈 (C2-1)" aria-label="開啟設計精靈" style="font-size:11px;">🧭 精靈</button>
+      <button class="btn btn-sm" id="btn-load-example" title="載入範例系統 (C1-3)" aria-label="載入範例" style="font-size:11px;">▶ 範例</button>
+      <button class="btn btn-sm" id="btn-explain" title="這是什麼？(C1-2)" aria-label="說明面板" style="font-size:11px;">ⓘ 說明</button>
+      <button class="btn btn-sm" id="btn-notes" title="筆記與書籤 (C4-2)" aria-label="筆記與書籤" style="font-size:11px;">📝 筆記</button>
+      <button class="btn btn-sm" id="btn-history" title="調參歷史 (A3-4)" aria-label="調參歷史" style="font-size:11px;">🕘 歷史</button>
       <span id="draft-saved-indicator" style="font-size:10px;color:var(--text-muted);display:none;"></span>
       <div class="divider-v"></div>
-      <button class="btn btn-sm" id="btn-quickstart" title="Quick Start / Help (Ctrl+/)" aria-label="Open Quick Start guide">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+      <button class="btn btn-sm" id="btn-quickstart" title="Quick Start / Help (Ctrl+/)" aria-label="Open Quick Start guide" style="font-size:11px;">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        Help
       </button>
-      <button class="btn btn-sm" id="btn-prefs" title="偏好設定 (G4)" aria-label="偏好設定" aria-haspopup="dialog">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      <button class="btn btn-sm" id="btn-prefs" title="偏好設定 (G4)" aria-label="偏好設定" aria-haspopup="dialog" style="font-size:11px;">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        設定
       </button>
-      <button class="btn btn-sm" id="btn-keyboard-help" title="鍵盤快捷鍵 (?)" aria-label="顯示鍵盤快捷鍵" aria-haspopup="dialog" style="font-size:13px;">⌨</button>
-      <button class="btn btn-sm" id="btn-projects" title="G9: 多專案管理" aria-label="專案管理" aria-haspopup="dialog" style="font-size:13px;">📁</button>
-      <select id="lang-select" aria-label="G5: 介面語言" title="切換介面語言 (G5)" style="font-size:10px;background:var(--bg-tertiary);color:var(--text-primary);border:1px solid var(--border-primary);border-radius:4px;padding:2px 4px;cursor:pointer;">
-        <option value="zh-TW">中</option>
+      <button class="btn btn-sm" id="btn-keyboard-help" title="鍵盤快捷鍵 (?)" aria-label="顯示鍵盤快捷鍵" aria-haspopup="dialog" style="font-size:11px;">⌨ 快捷鍵</button>
+      <button class="btn btn-sm" id="btn-projects" title="G9: 多專案管理" aria-label="專案管理" aria-haspopup="dialog" style="font-size:11px;">📁 專案</button>
+      <select id="lang-select" aria-label="G5: 介面語言" title="切換介面語言 (G5)" style="font-size:10px;background:var(--bg-tertiary);color:var(--text-primary);border:1px solid var(--border-primary);border-radius:4px;padding:2px 6px;cursor:pointer;">
+        <option value="zh-TW">繁中</option>
         <option value="en">EN</option>
       </select>
-      <button class="btn btn-sm theme-cycle-btn" id="theme-toggle" title="Cycle theme: Dark → Light → Print → High-contrast" aria-label="Cycle theme">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" id="theme-icon-svg"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
-        <span class="theme-cycle-label" id="theme-label" style="display:none;">Dark</span>
+      <button class="btn btn-sm theme-cycle-btn" id="theme-toggle" title="Cycle theme: Dark → Light → Print → High-contrast" aria-label="Cycle theme" style="font-size:11px;">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" id="theme-icon-svg"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+        <span class="theme-cycle-label" id="theme-label">主題</span>
       </button>
     </div>
   </header>
