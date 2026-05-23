@@ -7099,6 +7099,7 @@ function getOrCreateHeaderActions(header) {
 
 function initChartFullscreen() {
   document.querySelectorAll('.chart-cell').forEach(cell => {
+    if (cell.classList.contains('mini-chart')) return; // skip narrow mini-charts
     const header = cell.querySelector('.chart-header');
     if (!header) return;
     const btn = document.createElement('button');
@@ -7125,6 +7126,7 @@ function initChartFullscreen() {
 
 function initChartExport() {
   document.querySelectorAll('.chart-cell').forEach(cell => {
+    if (cell.classList.contains('mini-chart')) return; // skip narrow mini-charts
     const plotId = cell.querySelector('[id^="chart-"]')?.id;
     const header = cell.querySelector('.chart-header');
     if (!header || !plotId) return;
@@ -7364,6 +7366,7 @@ function initAxisRangeControl() {
   }
 
   document.querySelectorAll('.chart-cell').forEach(cell => {
+    if (cell.classList.contains('mini-chart')) return; // skip narrow mini-charts
     const header = cell.querySelector('.chart-header');
     if (!header) return;
     // Find the Plotly div inside this cell
