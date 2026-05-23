@@ -450,6 +450,50 @@
     [role="alert"], [aria-live] { /* no visual override; just semantic */ }
 
     /* ==================================================================
+       P39 — B3-1 Axis range popover
+       ================================================================== */
+    .chart-axis-btn { background: transparent; border: 0; color: var(--text-muted); cursor: pointer; padding: 2px 4px; border-radius: 3px; font-size: 12px; line-height: 1; transition: color 0.15s; }
+    .chart-axis-btn:hover { color: var(--text-primary); }
+    .axis-range-popover {
+      position: absolute; right: 0; top: 100%; margin-top: 4px;
+      background: var(--bg-secondary); border: 1px solid var(--border-primary);
+      border-radius: var(--radius-md); padding: 12px 14px; width: 280px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.35); z-index: 600;
+      display: none;
+    }
+    .axis-range-popover.open { display: block; animation: fade-in 0.12s ease; }
+    .axis-range-group { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 8px; }
+    .axis-range-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); margin-bottom: 4px; }
+    .axis-range-input { background: var(--bg-tertiary); border: 1px solid var(--border-primary); border-radius: 4px; padding: 4px 8px; color: var(--text-primary); font-family: ui-monospace, monospace; font-size: 12px; width: 100%; }
+    .axis-range-input.invalid { border-color: var(--color-unstable); }
+    .axis-range-actions { display: flex; gap: 6px; margin-top: 8px; }
+
+    /* ==================================================================
+       P39 — B2-2 Hankel SVD bar chart
+       ================================================================== */
+    .hsv-bar-wrap { display: flex; flex-direction: column; gap: 4px; }
+    .hsv-bar-row { display: flex; align-items: center; gap: 8px; font-size: 10px; }
+    .hsv-bar-label { width: 28px; color: var(--text-muted); text-align: right; flex-shrink: 0; }
+    .hsv-bar-outer { flex: 1; height: 12px; background: var(--bg-tertiary); border-radius: 2px; overflow: hidden; }
+    .hsv-bar-inner { height: 100%; background: linear-gradient(90deg, var(--color-accent), rgba(99,102,241,0.3)); border-radius: 2px; transition: width 0.3s; }
+    .hsv-bar-val { width: 60px; color: var(--text-secondary); font-family: ui-monospace, monospace; font-size: 10px; text-align: right; flex-shrink: 0; }
+    .hsv-truncate-line { border: none; border-left: 2px dashed #f59e0b; height: 100%; position: absolute; pointer-events: none; }
+    .hsv-energy { font-size: 10px; color: var(--color-stable); font-weight: 700; }
+
+    /* ==================================================================
+       P39 — B2-3 PZ map controls
+       ================================================================== */
+    .pz-ctrl-bar { display: flex; gap: 4px; margin-bottom: 6px; flex-wrap: wrap; }
+    .pz-ctrl-btn { font-size: 10px; font-weight: 600; padding: 3px 8px; border-radius: var(--radius-sm); border: 1px solid var(--border-primary); background: var(--bg-tertiary); color: var(--text-muted); cursor: pointer; transition: all 0.12s; }
+    .pz-ctrl-btn.active { background: var(--color-accent); border-color: var(--color-accent); color: white; }
+
+    /* ==================================================================
+       P39 — C2-3 Error guidance
+       ================================================================== */
+    .error-guidance { margin-top: 8px; font-size: 11px; padding: 8px 10px; border-radius: var(--radius-sm); background: rgba(99,102,241,0.08); border: 1px solid rgba(99,102,241,0.2); color: var(--text-secondary); line-height: 1.55; }
+    .error-guidance-action { display: inline-block; margin-top: 4px; font-size: 10px; font-weight: 700; color: var(--color-accent); cursor: pointer; text-decoration: underline; }
+
+    /* ==================================================================
        P38 — F3-2 Dirty indicator
        ================================================================== */
     .dirty-dot {
@@ -1824,6 +1868,19 @@
           <div id="mpc-constrained-out" style="font-size:11px;font-family:monospace;color:var(--text-secondary);background:rgba(15,17,23,.4);padding:8px;border-radius:6px;line-height:1.6;display:none;margin-bottom:8px;"></div>
           <div id="chart-mpc-constrained-x" style="height:160px;"></div>
           <div id="chart-mpc-constrained-u" style="height:130px;margin-top:4px;"></div>
+        </section>
+
+        <!-- B2-2: Hankel Singular Values (model complexity advisor) -->
+        <section class="section-panel" id="hankel-svd-panel">
+          <div class="section-title">Hankel Singular Values (B2-2)</div>
+          <p style="font-size:11px;color:var(--text-muted);line-height:1.5;margin-bottom:10px;">
+            模型複雜度指標：Hankel 奇異值越小，代表對應狀態對輸入→輸出貢獻越小，可安全省略。
+          </p>
+          <button class="btn btn-sm" id="btn-hankel-svd" style="width:100%;justify-content:center;margin-bottom:10px;">Compute Hankel SVs</button>
+          <div id="hankel-svd-wrap" style="display:none;">
+            <div id="hankel-svd-bars" class="hsv-bar-wrap"></div>
+            <div id="hankel-svd-info" style="margin-top:8px;font-size:11px;color:var(--text-muted);font-family:ui-monospace,monospace;"></div>
+          </div>
         </section>
 
         <section class="section-panel" id="robust-panel" data-advisor-mode="siso">

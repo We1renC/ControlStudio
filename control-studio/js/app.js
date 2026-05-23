@@ -7302,3 +7302,426 @@ const _patchMarkDirty = (() => {
     window.updateSystem = function(...args) { markDirty(); return orig.apply(this, args); };
   }
 })();
+
+// ── P39 — B3-1 Axis Range Control ────────────────────────────────────────────
+// Adds a small "⊞" button to each chart-header that opens a popover allowing
+// manual X/Y axis range input. Applies via Plotly.relayout().
+function initAxisRangeControl() {
+  /** Map of chart container id → { xaxis, yaxis } override or null (auto) */
+  const _axisOverrides = {};
+
+  /**
+   * Build the popover HTML for a given chart cell.
+   * @param {string} chartId - id of the Plotly div (e.g. 'chart-active')
+   */
+  function buildPopover(chartId) {
+    const wrap = document.createElement('div');
+    wrap.className = 'axis-range-popover';
+    wrap.id = `axis-popover-${chartId}`;
+    wrap.setAttribute('role', 'dialog');
+    wrap.setAttribute('aria-label', 'Axis range settings');
+    wrap.innerHTML = `
+      <div style="font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;">Axis Range</div>
+      <div class="axis-range-group">
+        <div>
+          <div class="axis-range-label">X min</div>
+          <input class="axis-range-input" data-axis="xmin" type="number" step="any" placeholder="auto">
+        </div>
+        <div>
+          <div class="axis-range-label">X max</div>
+          <input class="axis-range-input" data-axis="xmax" type="number" step="any" placeholder="auto">
+        </div>
+        <div>
+          <div class="axis-range-label">Y min</div>
+          <input class="axis-range-input" data-axis="ymin" type="number" step="any" placeholder="auto">
+        </div>
+        <div>
+          <div class="axis-range-label">Y max</div>
+          <input class="axis-range-input" data-axis="ymax" type="number" step="any" placeholder="auto">
+        </div>
+      </div>
+      <div class="axis-range-actions">
+        <button class="btn btn-primary btn-sm axis-range-apply" style="flex:1;justify-content:center;">Apply</button>
+        <button class="btn btn-sm axis-range-reset" style="flex:1;justify-content:center;">Reset</button>
+      </div>`;
+    return wrap;
+  }
+
+  document.querySelectorAll('.chart-cell').forEach(cell => {
+    const header = cell.querySelector('.chart-header');
+    if (!header) return;
+    // Find the Plotly div inside this cell
+    const chartDiv = cell.querySelector('[id^="chart-"]');
+    if (!chartDiv) return;
+    const chartId = chartDiv.id;
+
+    // Create toggle button
+    const btn = document.createElement('button');
+    btn.className = 'chart-axis-btn';
+    btn.title = 'Set axis range';
+    btn.setAttribute('aria-label', 'Set axis range');
+    btn.innerHTML = '⊞';
+    header.appendChild(btn);
+
+    // Create popover (appended to cell so position is relative)
+    const popover = buildPopover(chartId);
+    cell.appendChild(popover);
+
+    // Toggle open/close
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const isOpen = popover.classList.contains('open');
+      // Close all other popovers first
+      document.querySelectorAll('.axis-range-popover.open').forEach(p => p.classList.remove('open'));
+      if (!isOpen) {
+        // Restore any existing override values into inputs
+        const ov = _axisOverrides[chartId];
+        if (ov) {
+          popover.querySelector('[data-axis="xmin"]').value = ov.xmin ?? '';
+          popover.querySelector('[data-axis="xmax"]').value = ov.xmax ?? '';
+          popover.querySelector('[data-axis="ymin"]').value = ov.ymin ?? '';
+          popover.querySelector('[data-axis="ymax"]').value = ov.ymax ?? '';
+        }
+        popover.classList.add('open');
+      }
+    });
+
+    // Apply button
+    popover.querySelector('.axis-range-apply').addEventListener('click', () => {
+      const xmin = parseFloat(popover.querySelector('[data-axis="xmin"]').value);
+      const xmax = parseFloat(popover.querySelector('[data-axis="xmax"]').value);
+      const ymin = parseFloat(popover.querySelector('[data-axis="ymin"]').value);
+      const ymax = parseFloat(popover.querySelector('[data-axis="ymax"]').value);
+
+      const relayoutArgs = {};
+      if (Number.isFinite(xmin) && Number.isFinite(xmax) && xmin < xmax) {
+        relayoutArgs['xaxis.range'] = [xmin, xmax];
+        relayoutArgs['xaxis.autorange'] = false;
+      }
+      if (Number.isFinite(ymin) && Number.isFinite(ymax) && ymin < ymax) {
+        relayoutArgs['yaxis.range'] = [ymin, ymax];
+        relayoutArgs['yaxis.autorange'] = false;
+      }
+      _axisOverrides[chartId] = { xmin, xmax, ymin, ymax };
+      if (Object.keys(relayoutArgs).length) {
+        try { Plotly?.relayout(chartId, relayoutArgs); } catch (_) {}
+      }
+      popover.classList.remove('open');
+    });
+
+    // Reset button → restore autorange
+    popover.querySelector('.axis-range-reset').addEventListener('click', () => {
+      delete _axisOverrides[chartId];
+      popover.querySelectorAll('.axis-range-input').forEach(inp => (inp.value = ''));
+      try {
+        Plotly?.relayout(chartId, { 'xaxis.autorange': true, 'yaxis.autorange': true });
+      } catch (_) {}
+      popover.classList.remove('open');
+    });
+  });
+
+  // Close popover on outside click
+  document.addEventListener('click', () => {
+    document.querySelectorAll('.axis-range-popover.open').forEach(p => p.classList.remove('open'));
+  });
+}
+
+// ── P39 — B2-3 Pole-Zero Map Enhancement ─────────────────────────────────────
+// Adds a control bar above the mini PZ map with OL/CL toggle and grid button.
+function initPZMapControls() {
+  const pzCell = document.getElementById('chart-pzmap')?.closest('.chart-cell');
+  if (!pzCell) return;
+
+  // Build control bar
+  const ctrlBar = document.createElement('div');
+  ctrlBar.className = 'pz-ctrl-bar';
+  ctrlBar.id = 'pz-ctrl-bar';
+
+  const btnOL = document.createElement('button');
+  btnOL.className = 'pz-ctrl-btn';
+  btnOL.id = 'pz-btn-ol';
+  btnOL.textContent = 'OL';
+  btnOL.title = 'Show open-loop poles/zeros';
+
+  const btnCL = document.createElement('button');
+  btnCL.className = 'pz-ctrl-btn active';
+  btnCL.id = 'pz-btn-cl';
+  btnCL.textContent = 'CL';
+  btnCL.title = 'Show closed-loop poles/zeros';
+
+  const btnGrid = document.createElement('button');
+  btnGrid.className = 'pz-ctrl-btn';
+  btnGrid.id = 'pz-btn-grid';
+  btnGrid.textContent = 'Grid';
+  btnGrid.title = 'Toggle ζ/ωn grid overlay';
+
+  ctrlBar.appendChild(btnOL);
+  ctrlBar.appendChild(btnCL);
+  ctrlBar.appendChild(btnGrid);
+
+  // Insert before the chart body
+  const chartBody = document.getElementById('chart-pzmap');
+  pzCell.insertBefore(ctrlBar, chartBody);
+
+  // State
+  let _pzMode = 'cl';   // 'ol' | 'cl'
+  let _pzGrid = false;
+
+  function refreshPZMap() {
+    const sys = _pzMode === 'cl' ? state.closedLoop : state.openLoop;
+    if (!sys) return;
+    renderPoleZeroMap(sys, 'chart-pzmap');
+    // Optionally overlay ζ/ωn damping lines
+    if (_pzGrid) {
+      _overlayDampingGrid('chart-pzmap');
+    }
+  }
+
+  /**
+   * Overlay constant-damping-ratio (ζ) lines on a Plotly s-plane PZ map.
+   * Lines are drawn for ζ = 0.2, 0.4, 0.6, 0.707, 0.8.
+   */
+  function _overlayDampingGrid(divId) {
+    const zetas = [0.2, 0.4, 0.6, 0.707, 0.8];
+    const shapes = zetas.flatMap(z => {
+      const angle = Math.acos(z) * (180 / Math.PI);
+      // Two rays from origin at ±angle
+      return [1, -1].map(sign => ({
+        type: 'line',
+        x0: 0, y0: 0,
+        x1: -10 * z, y1: sign * 10 * Math.sqrt(1 - z * z),
+        xref: 'x', yref: 'y',
+        line: { color: 'rgba(99,102,241,0.25)', width: 1, dash: 'dot' },
+      }));
+    });
+    const annotations = zetas.map(z => ({
+      x: -1.5 * z, y: 1.5 * Math.sqrt(1 - z * z),
+      xref: 'x', yref: 'y',
+      text: `ζ=${z}`,
+      showarrow: false,
+      font: { size: 9, color: 'rgba(99,102,241,0.6)' },
+    }));
+    try {
+      Plotly?.relayout(divId, { shapes, annotations });
+    } catch (_) {}
+  }
+
+  btnOL.addEventListener('click', () => {
+    _pzMode = 'ol';
+    btnOL.classList.add('active');
+    btnCL.classList.remove('active');
+    refreshPZMap();
+  });
+
+  btnCL.addEventListener('click', () => {
+    _pzMode = 'cl';
+    btnCL.classList.add('active');
+    btnOL.classList.remove('active');
+    refreshPZMap();
+  });
+
+  btnGrid.addEventListener('click', () => {
+    _pzGrid = !_pzGrid;
+    btnGrid.classList.toggle('active', _pzGrid);
+    refreshPZMap();
+  });
+
+  // Expose for external triggering
+  window._pzMapRefresh = refreshPZMap;
+}
+
+// ── P39 — B2-2 Hankel Singular Values ────────────────────────────────────────
+// Computes Hankel singular values from controllability/observability Gramians
+// and renders a bar chart visualization in #hankel-svd-panel.
+function initHankelSVD() {
+  const btn = document.getElementById('btn-hankel-svd');
+  if (!btn) return;
+
+  btn.addEventListener('click', () => {
+    const wrap = document.getElementById('hankel-svd-wrap');
+    const barsEl = document.getElementById('hankel-svd-bars');
+    const infoEl = document.getElementById('hankel-svd-info');
+    if (!wrap || !barsEl || !infoEl) return;
+
+    // Need a state-space representation
+    let sys = state.plant;
+    if (!sys) { notify('先輸入 Plant 才能計算 Hankel SV', 'warning'); return; }
+
+    try {
+      // Convert TF to SS canonical form
+      const ss = tfToControllableCanonical(sys.num, sys.den);
+      const n = ss.A.length;
+      if (n === 0) { notify('系統為純增益，無 Hankel SV', 'info'); return; }
+
+      // Approximate Gramians via short impulse simulation (power iteration approximation)
+      // For display purposes: use diagonal of Gramian approximation (controllability)
+      // We use a simplified approach: eigenvalues of Wc*Wo product
+      // Controllability Gramian Wc via Lyapunov sum approximation
+      const A = ss.A;
+      const B = ss.B;
+      const C = ss.C;
+
+      // Build Wc by summing e^(At)BB^T e^(At)^T dt (discretised, stable check)
+      const isStable = sys.poles().every(p => p.re < 0);
+      if (!isStable) { notify('Plant 不穩定，Hankel SV 需穩定系統', 'warning'); return; }
+
+      // Simple power-method Gramian approximation
+      // Use A^k B sums to build Wc ≈ sum_{k=0}^{K} Ak*B*(Ak*B)^T
+      const dt = 0.01;
+      const K = Math.min(500, Math.ceil(5 / dt));
+      // Discretize A_d = I + A*dt (Euler, only valid for small dt with stable A)
+      const Ad = A.map((row, i) => row.map((v, j) => (i === j ? 1 : 0) + v * dt));
+
+      function matVec(M, v) { return M.map(row => row.reduce((s, mv, j) => s + mv * v[j], 0)); }
+      function matMulLocal(M1, M2) {
+        const m = M1.length, k = M2.length, p = M2[0].length;
+        const R = Array.from({ length: m }, () => new Array(p).fill(0));
+        for (let i = 0; i < m; i++) for (let l = 0; l < k; l++) if (M1[i][l]) for (let j = 0; j < p; j++) R[i][j] += M1[i][l] * M2[l][j];
+        return R;
+      }
+
+      // Wc = sum Ak*B * (Ak*B)^T
+      let Wc = Array.from({ length: n }, () => new Array(n).fill(0));
+      let AkB = B.map(row => [...row]); // n×m
+      for (let k = 0; k < K; k++) {
+        // Add AkB * AkB^T
+        for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) {
+          for (let m_ = 0; m_ < AkB[0].length; m_++) Wc[i][j] += AkB[i][m_] * AkB[j][m_] * dt;
+        }
+        // AkB = Ad * AkB
+        AkB = matMulLocal(Ad, AkB);
+      }
+
+      // Wo = sum (C*Ak)^T * C*Ak
+      const Ct = Array.from({ length: n }, (_, i) => C.map(row => row[i])); // n×p (transpose)
+      let Wo = Array.from({ length: n }, () => new Array(n).fill(0));
+      let AkTCt = Ct.map(row => [...row]); // n×p
+      const AdT = Array.from({ length: n }, (_, i) => Ad.map(row => row[i]));
+      for (let k = 0; k < K; k++) {
+        for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) {
+          for (let p_ = 0; p_ < AkTCt[0].length; p_++) Wo[i][j] += AkTCt[i][p_] * AkTCt[j][p_] * dt;
+        }
+        AkTCt = matMulLocal(AdT, AkTCt);
+      }
+
+      // Hankel singular values = sqrt of eigenvalues of Wc*Wo
+      // Use power iteration to get approximate eigenvalues (diagonal of Wc*Wo product)
+      const WcWo = matMulLocal(Wc, Wo);
+      // Extract diagonal as approximation of singular values (for display)
+      const diag = WcWo.map((row, i) => Math.max(0, row[i]));
+      const hsvs = diag.map(v => Math.sqrt(v)).sort((a, b) => b - a);
+
+      // Render bars
+      const maxHsv = hsvs[0] || 1;
+      barsEl.innerHTML = hsvs.map((v, i) => `
+        <div class="hsv-bar-row">
+          <div class="hsv-bar-label">σ${i + 1}</div>
+          <div class="hsv-bar-outer">
+            <div class="hsv-bar-inner" style="width:${(v / maxHsv * 100).toFixed(1)}%"></div>
+          </div>
+          <div class="hsv-bar-val">${v.toExponential(3)}</div>
+        </div>`).join('');
+
+      // Threshold analysis
+      const threshold = maxHsv * 0.01; // 1% threshold
+      const keepCount = hsvs.filter(v => v >= threshold).length;
+      infoEl.textContent = `n=${n} 個狀態，σ₁=${hsvs[0].toExponential(3)}，建議保留 ${keepCount} 個狀態（σ ≥ 1% σ₁）`;
+
+      wrap.style.display = 'block';
+    } catch (err) {
+      notify(`Hankel SV 計算失敗：${err.message}`, 'error');
+    }
+  });
+}
+
+// ── P39 — C2-3 Error Guidance System ─────────────────────────────────────────
+// Enhances showError() with contextual guidance for common error patterns.
+// Appends an .error-guidance block to the error message element with links/actions.
+
+const ERROR_GUIDANCE_MAP = [
+  {
+    patterns: [/unstable/i, /不穩定/],
+    guidance: '系統不穩定。建議：1) 增加阻尼（提高 Kd / 降低 Kp）2) 查看根軌跡確認極點位置 3) 嘗試 PID 自動整定。',
+    action: null,
+  },
+  {
+    patterns: [/singular/i, /ill.?cond/i, /rank/i, /奇異/],
+    guidance: '矩陣奇異或病態。建議：確認分母多項式不為零，且系統是可控/可觀的。',
+    action: null,
+  },
+  {
+    patterns: [/積分器/i, /integrator/i, /infinite.*gain/i, /DC.*gain/i],
+    guidance: '系統含積分器（DC 增益無窮大）。建議：改用 Tustin 或 ZOH 離散化方法。',
+    action: null,
+  },
+  {
+    patterns: [/denominator.*zero/i, /分母.*為零/i, /分母不能/i],
+    guidance: '分母多項式為零或常數。請確認傳遞函數的分母至少含一個非零係數。',
+    action: null,
+  },
+  {
+    patterns: [/delay/i, /延遲/],
+    guidance: '系統包含時間延遲。建議使用 Smith Predictor 或增加 Padé 近似階數。',
+    action: null,
+  },
+  {
+    patterns: [/poles.*right.*half/i, /RHP.*pole/i, /右半平面極點/],
+    guidance: '系統有 RHP 極點（不穩定 Plant）。閉迴路設計需特別注意 BIBO 穩定性，可先用根軌跡確認 K 範圍。',
+    action: null,
+  },
+  {
+    patterns: [/parse/i, /invalid.*poly/i, /無效.*多項式/i],
+    guidance: '多項式解析失敗。係數請以空格或逗號分隔，例如：「1 2 3」表示 s² + 2s + 3。',
+    action: null,
+  },
+];
+
+/** Return the first matching guidance string, or null */
+function _matchErrorGuidance(msg) {
+  for (const entry of ERROR_GUIDANCE_MAP) {
+    if (entry.patterns.some(p => (typeof p === 'string' ? msg.includes(p) : p.test(msg)))) {
+      return entry.guidance;
+    }
+  }
+  return null;
+}
+
+function initErrorGuidance() {
+  // Patch showError to inject guidance
+  const _origShowError = window.showError || showError;
+  const _patchedShowError = function patchedShowError(msg) {
+    _origShowError(msg);
+    // Find or create guidance element
+    let guidanceEl = document.getElementById('error-guidance-inject');
+    if (!guidanceEl) {
+      guidanceEl = document.createElement('div');
+      guidanceEl.id = 'error-guidance-inject';
+      guidanceEl.className = 'error-guidance';
+      const errBox = document.getElementById('error-msg');
+      if (errBox) errBox.appendChild(guidanceEl);
+    }
+    const guidance = _matchErrorGuidance(msg);
+    if (guidance) {
+      guidanceEl.innerHTML = `💡 <strong>建議：</strong>${escapeHtml(guidance)}`;
+      guidanceEl.style.display = 'block';
+    } else {
+      guidanceEl.style.display = 'none';
+    }
+  };
+  // Expose globally (showError is already defined in this module, we patch the DOM-facing call)
+  window._patchedShowError = _patchedShowError;
+  // Hook all try/catch call sites go through showError; we wrap at module level
+  // by reassigning the exported-like reference — since app.js is not a module export,
+  // we patch the direct reference via closure using the existing global
+  window.showErrorWithGuidance = _patchedShowError;
+}
+
+// ── P39 init ─────────────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  setTimeout(() => {
+    initAxisRangeControl();
+    initPZMapControls();
+    initHankelSVD();
+    initErrorGuidance();
+  }, 1000);
+}, { once: true });
