@@ -10438,3 +10438,441 @@ document.addEventListener('DOMContentLoaded', () => {
   initDraggablePoles();
   initBodeBreakpointDrag();
 }, { once: true });
+
+// ════════════════════════════════════════════════════════════════════════════════
+// P49 — C3-1~4 Interactive Animations
+// ════════════════════════════════════════════════════════════════════════════════
+
+// ── C3-1: Pole drag animation ─────────────────────────────────────────────────
+
+/** Build an SVG complex plane with draggable poles. */
+function _buildPolePlane(container, poles, onUpdate) {
+  const W = container.clientWidth  || 240;
+  const H = container.clientHeight || 180;
+  const cx = W / 2, cy = H / 2;
+  const scale = Math.min(W, H) / 6; // pixels per unit
+
+  const svgNS = 'http://www.w3.org/2000/svg';
+  const svg = document.createElementNS(svgNS, 'svg');
+  svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+  svg.style.cssText = 'width:100%;height:100%;';
+  container.innerHTML = '';
+  container.appendChild(svg);
+
+  // Axes
+  const axisStyle = 'stroke:var(--border-primary);stroke-width:1;';
+  const hLine = document.createElementNS(svgNS, 'line');
+  hLine.setAttribute('x1', 0); hLine.setAttribute('y1', cy);
+  hLine.setAttribute('x2', W); hLine.setAttribute('y2', cy);
+  hLine.setAttribute('style', axisStyle);
+  svg.appendChild(hLine);
+
+  const vLine = document.createElementNS(svgNS, 'line');
+  vLine.setAttribute('x1', cx); vLine.setAttribute('y1', 0);
+  vLine.setAttribute('x2', cx); vLine.setAttribute('y2', H);
+  vLine.setAttribute('style', axisStyle);
+  svg.appendChild(vLine);
+
+  // ζ=0.707 guideline (line through origin, angle = acos(0.707) ≈ 45°)
+  const zetaLine = document.createElementNS(svgNS, 'line');
+  zetaLine.setAttribute('x1', cx); zetaLine.setAttribute('y1', cy);
+  zetaLine.setAttribute('x2', cx - W * 0.45); zetaLine.setAttribute('y2', cy - W * 0.45);
+  zetaLine.setAttribute('stroke', 'var(--text-muted)');
+  zetaLine.setAttribute('stroke-dasharray', '4,3');
+  zetaLine.setAttribute('stroke-width', '0.8');
+  zetaLine.setAttribute('opacity', '0.4');
+  const zetaTip = document.createElementNS(svgNS, 'text');
+  zetaTip.setAttribute('x', cx - W * 0.3); zetaTip.setAttribute('y', cy - W * 0.3 - 5);
+  zetaTip.setAttribute('font-size', '8'); zetaTip.setAttribute('fill', 'var(--text-muted)');
+  zetaTip.textContent = 'ζ=0.707';
+  svg.appendChild(zetaLine); svg.appendChild(zetaTip);
+
+  // Render draggable poles
+  const _poleEls = [];
+  poles.forEach((p, i) => {
+    const px = cx + p.sigma * scale;
+    const py = cy - p.omega * scale;
+    const g = document.createElementNS(svgNS, 'g');
+    g.setAttribute('class', 'pole-marker');
+    g.setAttribute('transform', `translate(${px},${py})`);
+    g.setAttribute('data-pidx', i);
+
+    const size = 7;
+    // × shape
+    const l1 = document.createElementNS(svgNS, 'line');
+    l1.setAttribute('x1', -size); l1.setAttribute('y1', -size);
+    l1.setAttribute('x2',  size); l1.setAttribute('y2',  size);
+    l1.setAttribute('stroke', '#6366f1'); l1.setAttribute('stroke-width', '2');
+    const l2 = document.createElementNS(svgNS, 'line');
+    l2.setAttribute('x1',  size); l2.setAttribute('y1', -size);
+    l2.setAttribute('x2', -size); l2.setAttribute('y2',  size);
+    l2.setAttribute('stroke', '#6366f1'); l2.setAttribute('stroke-width', '2');
+
+    const hitbox = document.createElementNS(svgNS, 'circle');
+    hitbox.setAttribute('r', 12); hitbox.setAttribute('fill', 'transparent');
+
+    g.appendChild(l1); g.appendChild(l2); g.appendChild(hitbox);
+    svg.appendChild(g);
+    _poleEls.push({ g, l1, l2, pole: p });
+
+    // Drag logic
+    let dragging = false, shiftHeld = false;
+    hitbox.addEventListener('mousedown', (e) => {
+      e.preventDefault();
+      dragging = true;
+      shiftHeld = e.shiftKey;
+    });
+    svg.addEventListener('mousemove', (e) => {
+      if (!dragging) return;
+      const rect = svg.getBoundingClientRect();
+      let newPx = e.clientX - rect.left;
+      let newPy = e.clientY - rect.top;
+      if (e.shiftKey) newPy = cy; // snap to real axis
+      const sigma = (newPx - cx) / scale;
+      const omega = (cy - newPy) / scale;
+      p.sigma = sigma; p.omega = omega;
+      g.setAttribute('transform', `translate(${newPx},${newPy})`);
+      // Color unstable (RHP) poles red
+      const isUnstable = sigma > 0;
+      [l1, l2].forEach(l => l.setAttribute('stroke', isUnstable ? '#ef4444' : '#6366f1'));
+      onUpdate(poles);
+    });
+    svg.addEventListener('mouseup', () => { dragging = false; });
+    svg.addEventListener('mouseleave', () => { dragging = false; });
+  });
+
+  return svg;
+}
+
+function initPoleDragAnimation() {
+  const initBtn   = document.getElementById('btn-c3-pole-init');
+  const area      = document.getElementById('c3-pole-drag-area');
+  const planeEl   = document.getElementById('pole-drag-plane');
+  const stepEl    = document.getElementById('c3-step-preview');
+  const alertEl   = document.getElementById('c3-unstable-alert');
+  if (!initBtn) return;
+
+  // Default poles: s = -1 ± j1 (damped oscillatory)
+  let _poles = [
+    { sigma: -1, omega:  1 },
+    { sigma: -1, omega: -1 },
+  ];
+
+  function _updateStepPreview(poles) {
+    const unstable = poles.some(p => p.sigma > 0);
+    if (alertEl) alertEl.classList.toggle('show', unstable);
+
+    if (!stepEl || !window.Plotly) return;
+    // Build denominator from poles: (s-p1)(s-p2) = s²-(p1+p2)s + p1*p2
+    const sumSigma = poles.reduce((s, p) => s + p.sigma, 0);
+    const prodMag  = poles.reduce((s, p) => s + (p.sigma * p.sigma + p.omega * p.omega), 0);
+    const a1 = -sumSigma;
+    const a0 = prodMag / 2;
+
+    // Simple step response: x(t) = e^(σt)(A cos ωt + B sin ωt) approximation
+    const tEnd = unstable ? 3 : 8;
+    const dt   = tEnd / 100;
+    const t    = Array.from({ length: 101 }, (_, i) => i * dt);
+    const zeta = -poles[0].sigma / (Math.hypot(poles[0].sigma, poles[0].omega) || 1);
+    const wn   = Math.hypot(poles[0].sigma, poles[0].omega);
+    const wd   = Math.abs(poles[0].omega);
+    const y    = t.map(tv => {
+      if (unstable) return Math.exp(Math.abs(poles[0].sigma) * tv) * Math.cos(wd * tv) - 1;
+      if (wd < 0.01) return 1 - Math.exp(-wn * tv) * (1 + wn * tv);
+      return 1 - Math.exp(poles[0].sigma * tv) * (Math.cos(wd * tv) - (poles[0].sigma / wd) * Math.sin(wd * tv));
+    });
+
+    window.Plotly.react(stepEl, [{
+      x: t, y,
+      mode: 'lines',
+      line: { color: unstable ? '#ef4444' : '#6366f1', width: 2 },
+    }], {
+      paper_bgcolor: 'transparent', plot_bgcolor: 'transparent',
+      margin: { l: 28, r: 8, t: 8, b: 28 },
+      xaxis: { title: 't (s)', color: 'var(--text-muted)', tickfont: { size: 9 } },
+      yaxis: { title: 'y', color: 'var(--text-muted)', tickfont: { size: 9 },
+        range: unstable ? [-2, 2] : [-0.2, 1.6] },
+      font: { size: 9 },
+    }, { responsive: true, displayModeBar: false });
+  }
+
+  initBtn.addEventListener('click', () => {
+    area.style.display = 'block';
+    initBtn.style.display = 'none';
+    _buildPolePlane(planeEl, _poles, _updateStepPreview);
+    _updateStepPreview(_poles);
+  });
+}
+
+// ── C3-2: Parameter sensitivity scan ─────────────────────────────────────────
+
+function initSensitivityScan() {
+  const scanBtn   = document.getElementById('btn-c3-scan');
+  const chartWrap = document.getElementById('c3-sensitivity-chart');
+  const statusEl  = document.getElementById('c3-scan-status');
+  if (!scanBtn) return;
+
+  scanBtn.addEventListener('click', async () => {
+    const param  = document.getElementById('c3-scan-param')?.value  || 'kp';
+    const minVal = parseFloat(document.getElementById('c3-scan-min')?.value)  || 0.1;
+    const maxVal = parseFloat(document.getElementById('c3-scan-max')?.value)  || 10;
+    const steps  = parseInt(document.getElementById('c3-scan-steps')?.value)  || 20;
+    if (!state.plant) { notify('請先輸入 Plant', 'warn'); return; }
+
+    scanBtn.disabled = true;
+    if (statusEl) statusEl.textContent = '掃描中…';
+
+    const vals   = Array.from({ length: steps }, (_, i) => minVal + (maxVal - minVal) * i / (steps - 1));
+    const osArr  = [], tsArr = [], pmArr = [];
+
+    const savedKp = state.pidParams.Kp;
+    const savedKi = state.pidParams.Ki;
+    const savedKd = state.pidParams.Kd;
+
+    for (let i = 0; i < steps; i++) {
+      const v = vals[i];
+      if (param === 'kp') state.pidParams.Kp = v;
+      if (param === 'ki') state.pidParams.Ki = v;
+      if (param === 'kd') state.pidParams.Kd = v;
+
+      try {
+        const ctrl   = new PIDController(state.pidParams.Kp, state.pidParams.Ki, state.pidParams.Kd, state.pidParams.N);
+        const cl     = ctrl.tf().mul ? ctrl.tf() : state.plant; // simplified
+        const resp   = window.stepResponse ? stepResponse(state.plant, state.pidParams, { tEnd: 10 }) : null;
+        const info   = resp ? stepInfo(resp.t, resp.y) : null;
+        const marg   = stabilityMargins ? stabilityMargins(state.plant.mul(ctrl.tf())) : null;
+        osArr.push(info?.overshoot ?? NaN);
+        tsArr.push(info?.settlingTime ?? NaN);
+        pmArr.push(marg?.phaseMargindeg ?? NaN);
+      } catch (_) {
+        osArr.push(NaN); tsArr.push(NaN); pmArr.push(NaN);
+      }
+    }
+
+    // Restore
+    state.pidParams.Kp = savedKp;
+    state.pidParams.Ki = savedKi;
+    state.pidParams.Kd = savedKd;
+
+    if (chartWrap && window.Plotly) {
+      chartWrap.style.display = 'block';
+      const curVal = param === 'kp' ? savedKp : param === 'ki' ? savedKi : savedKd;
+      window.Plotly.react(chartWrap, [
+        { x: vals, y: osArr, name: 'OS%',  mode: 'lines', line: { color: '#6366f1' } },
+        { x: vals, y: tsArr, name: 'Ts',   mode: 'lines', line: { color: '#10b981' } },
+        { x: vals, y: pmArr, name: 'PM°',  mode: 'lines', line: { color: '#f59e0b' }, yaxis: 'y2' },
+      ], {
+        paper_bgcolor: 'transparent', plot_bgcolor: 'transparent',
+        margin: { l: 36, r: 36, t: 8, b: 28 },
+        xaxis: { title: param.toUpperCase(), color: 'var(--text-muted)', tickfont: { size: 9 } },
+        yaxis:  { title: 'OS%/Ts', color: 'var(--text-muted)', tickfont: { size: 9 } },
+        yaxis2: { title: 'PM°', overlaying: 'y', side: 'right', color: '#f59e0b', tickfont: { size: 9 } },
+        shapes: [{ type: 'line', x0: curVal, x1: curVal, y0: 0, y1: 1, yref: 'paper',
+          line: { color: 'var(--color-accent)', dash: 'dash', width: 1 } }],
+        legend: { font: { size: 9 } },
+        font: { size: 9 },
+      }, { responsive: true, displayModeBar: false });
+    }
+
+    scanBtn.disabled = false;
+    if (statusEl) statusEl.textContent = `完成 ${steps} 步掃描`;
+  });
+}
+
+// ── C3-3: Phase plane click trajectories ─────────────────────────────────────
+
+function initPhasePlaneClickTrajectory() {
+  const btn       = document.getElementById('btn-pp-click-mode');
+  const clearBtn  = document.getElementById('btn-pp-clear');
+  const hint      = document.getElementById('pp-click-hint');
+  const chartEl   = document.getElementById('chart-phase-portrait');
+  const countEl   = document.getElementById('pp-traj-count');
+  if (!btn) return;
+
+  let _clickMode  = false;
+  let _trajCount  = 0;
+  const MAX_TRAJ  = 8;
+  const TRAJ_COLORS = ['#6366f1','#10b981','#f59e0b','#ef4444','#3b82f6','#8b5cf6','#ec4899','#14b8a6'];
+
+  btn.addEventListener('click', () => {
+    _clickMode = !_clickMode;
+    btn.textContent = _clickMode ? '停止點擊模式' : '點擊軌跡';
+    btn.classList.toggle('btn-primary', _clickMode);
+    if (hint) hint.style.display = _clickMode ? 'block' : 'none';
+  });
+
+  clearBtn?.addEventListener('click', () => {
+    _trajCount = 0;
+    if (chartEl && window.Plotly) {
+      // Keep only vector field traces (trace 0), remove added trajectories
+      const data = chartEl.data || [];
+      const vectorTraces = data.slice(0, Math.min(1, data.length));
+      window.Plotly.react(chartEl, vectorTraces, chartEl.layout || {});
+    }
+    if (countEl) countEl.textContent = '';
+  });
+
+  chartEl?.addEventListener('click', e => {
+    if (!_clickMode || !window.Plotly || _trajCount >= MAX_TRAJ) return;
+    const layout = chartEl._fullLayout;
+    if (!layout?.xaxis) return;
+
+    const rect = chartEl.getBoundingClientRect();
+    const px = e.clientX - rect.left - (layout.margin?.l || 60);
+    const py = e.clientY - rect.top  - (layout.margin?.t || 20);
+    const plotW = rect.width  - (layout.margin?.l || 60) - (layout.margin?.r || 20);
+    const plotH = rect.height - (layout.margin?.t || 20) - (layout.margin?.b || 40);
+
+    const x1 = layout.xaxis.range[0] + (px / plotW) * (layout.xaxis.range[1] - layout.xaxis.range[0]);
+    const x2 = layout.yaxis.range[1] - (py / plotH) * (layout.yaxis.range[1] - layout.yaxis.range[0]);
+
+    // Simple Euler integration of linearized system for 2-state
+    const A = window._currentSS?.A;
+    if (!A || A.length !== 2) return;
+
+    const dt = 0.05, steps = 120;
+    let s = [x1, x2];
+    const trajX = [x1], trajY = [x2];
+    for (let i = 0; i < steps; i++) {
+      const dx1 = A[0][0] * s[0] + A[0][1] * s[1];
+      const dx2 = A[1][0] * s[0] + A[1][1] * s[1];
+      s = [s[0] + dt * dx1, s[1] + dt * dx2];
+      trajX.push(s[0]); trajY.push(s[1]);
+    }
+
+    window.Plotly.addTraces(chartEl, [{
+      x: trajX, y: trajY,
+      mode: 'lines',
+      line: { color: TRAJ_COLORS[_trajCount % MAX_TRAJ], width: 1.5 },
+      name: `軌跡 ${_trajCount + 1} (${fmtNum(x1, 2)}, ${fmtNum(x2, 2)})`,
+    }]);
+    _trajCount++;
+    if (countEl) countEl.textContent = `${_trajCount}/${MAX_TRAJ} 條軌跡`;
+  });
+}
+
+// ── C3-4: Nyquist animation ───────────────────────────────────────────────────
+
+function initNyquistAnimation() {
+  const playBtn   = document.getElementById('nyquist-play-btn');
+  const resetBtn  = document.getElementById('nyquist-reset-btn');
+  const progWrap  = document.getElementById('nyquist-progress-wrap');
+  const progBar   = document.getElementById('nyquist-progress-bar');
+  const speedSel  = document.getElementById('nyquist-speed');
+  const freqLabel = document.getElementById('nyquist-freq-label');
+  const chartEl   = document.getElementById('chart-nyquist-anim');
+  const encircleEl= document.getElementById('nyquist-encircle-count');
+  if (!playBtn || !chartEl) return;
+
+  let _playing    = false;
+  let _frame      = 0;
+  let _rafId      = null;
+  let _nyqPoints  = [];
+  let _totalFrames = 0;
+
+  function _buildNyqPoints() {
+    if (!state.plant) return;
+    _nyqPoints = [];
+    try {
+      const logOmega = Array.from({ length: 200 }, (_, i) => Math.pow(10, -2 + 4 * i / 199));
+      logOmega.forEach(w => {
+        const resp = state.plant.evalFreq(w);
+        if (resp) _nyqPoints.push({ w, re: resp.re, im: resp.im });
+      });
+    } catch (_) {}
+    _totalFrames = _nyqPoints.length;
+  }
+
+  function _drawFrame(frameIdx) {
+    if (!window.Plotly || !_nyqPoints.length) return;
+    const speed = parseFloat(speedSel?.value || 1);
+    const shown = _nyqPoints.slice(0, frameIdx + 1);
+    const upcoming = _nyqPoints.slice(frameIdx + 1);
+    const pt = _nyqPoints[frameIdx];
+
+    if (freqLabel) freqLabel.textContent = pt ? `ω = ${fmtNum(pt.w, 3)} r/s` : 'ω = —';
+    if (progBar) progBar.style.width = `${(frameIdx / Math.max(1, _totalFrames - 1)) * 100}%`;
+
+    // Count encirclements of -1 (simplified: count sign changes of Im when Re crosses -1)
+    let encircle = 0;
+    for (let i = 1; i < shown.length; i++) {
+      if (shown[i-1].re < -1 && shown[i].re >= -1 && shown[i-1].im * shown[i].im < 0) encircle++;
+    }
+    if (encircleEl) encircleEl.textContent = encircle ? `繞行 -1 點：${encircle} 次` : '';
+
+    window.Plotly.react(chartEl, [
+      { x: shown.map(p => p.re), y: shown.map(p => p.im), mode: 'lines',
+        name: '已掃描', line: { color: '#6366f1', width: 2 } },
+      { x: upcoming.map(p => p.re), y: upcoming.map(p => p.im), mode: 'lines',
+        name: '待掃描', line: { color: 'var(--text-muted)', width: 1, dash: 'dot' } },
+      ...(pt ? [{ x: [pt.re], y: [pt.im], mode: 'markers',
+        marker: { color: '#6366f1', size: 8 }, name: '游標', showlegend: false }] : []),
+      { x: [-1], y: [0], mode: 'markers', marker: { color: '#ef4444', size: 6, symbol: 'x' },
+        name: '-1 點', showlegend: false },
+    ], {
+      paper_bgcolor: 'transparent', plot_bgcolor: 'transparent',
+      margin: { l: 40, r: 10, t: 10, b: 30 },
+      xaxis: { title: 'Re', color: 'var(--text-muted)', tickfont: { size: 9 },
+        zeroline: true, zerolinecolor: 'var(--border-primary)' },
+      yaxis: { title: 'Im', color: 'var(--text-muted)', tickfont: { size: 9 },
+        zeroline: true, zerolinecolor: 'var(--border-primary)' },
+      legend: { font: { size: 9 } },
+      font: { size: 9 },
+    }, { responsive: true, displayModeBar: false });
+  }
+
+  function _animate() {
+    if (!_playing || _frame >= _totalFrames - 1) {
+      _playing = false;
+      playBtn.textContent = '▶';
+      return;
+    }
+    const speed = parseFloat(speedSel?.value || 1);
+    _frame = Math.min(_frame + Math.ceil(speed), _totalFrames - 1);
+    _drawFrame(_frame);
+    _rafId = requestAnimationFrame(_animate);
+  }
+
+  playBtn.addEventListener('click', () => {
+    if (!_nyqPoints.length) _buildNyqPoints();
+    if (!_nyqPoints.length) { notify('請先輸入 Plant', 'warn'); return; }
+    _playing = !_playing;
+    playBtn.textContent = _playing ? '⏸' : '▶';
+    if (_playing) {
+      if (_frame >= _totalFrames - 1) _frame = 0;
+      _animate();
+    } else {
+      cancelAnimationFrame(_rafId);
+    }
+  });
+
+  resetBtn?.addEventListener('click', () => {
+    _playing = false;
+    cancelAnimationFrame(_rafId);
+    playBtn.textContent = '▶';
+    _frame = 0;
+    _buildNyqPoints();
+    _drawFrame(0);
+    if (progBar) progBar.style.width = '0%';
+  });
+
+  // Click on progress to seek
+  progWrap?.addEventListener('click', e => {
+    if (!_nyqPoints.length) return;
+    const rect = progWrap.getBoundingClientRect();
+    const frac = (e.clientX - rect.left) / rect.width;
+    _frame = Math.round(frac * (_totalFrames - 1));
+    _drawFrame(_frame);
+  });
+
+  // Expose for external triggering
+  window._nyquistAnimStart = () => { if (!_nyqPoints.length) _buildNyqPoints(); _drawFrame(0); };
+}
+
+// ── P49 init ──────────────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  initPoleDragAnimation();
+  initSensitivityScan();
+  initPhasePlaneClickTrajectory();
+  initNyquistAnimation();
+}, { once: true });

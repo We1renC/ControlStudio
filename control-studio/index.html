@@ -942,6 +942,31 @@
     .data-export-row { display: flex; gap: 6px; margin-top: 6px; }
 
     /* ==================================================================
+       P49 — C3-1~4 Interactive Animations
+       ================================================================== */
+    /* C3-1: Pole drag animation */
+    .pole-drag-panel { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .pole-drag-plane { position: relative; background: var(--bg-tertiary); border: 1px solid var(--border-primary); border-radius: var(--radius-sm); overflow: hidden; cursor: crosshair; user-select: none; }
+    .pole-drag-plane svg { width: 100%; height: 100%; display: block; }
+    .pole-marker { cursor: grab; }
+    .pole-marker.unstable { stroke: #ef4444 !important; fill: #ef4444 !important; }
+    .pole-drag-legend { font-size: 10px; color: var(--text-muted); margin-top: 4px; }
+    .c3-unstable-alert { display: none; background: rgba(239,68,68,0.15); color: #ef4444; border: 1px solid rgba(239,68,68,0.3); border-radius: 4px; padding: 4px 8px; font-size: 11px; font-weight: 700; margin-top: 4px; }
+    .c3-unstable-alert.show { display: block; }
+    /* C3-2: Sensitivity scan */
+    .sensitivity-scan-ctrl { display: grid; grid-template-columns: 1fr 1fr auto; gap: 6px; align-items: end; margin-bottom: 8px; }
+    .sensitivity-chart-wrap { height: 160px; margin-top: 8px; }
+    /* C3-3: Phase plane click trajectories */
+    .pp-click-hint { font-size: 10px; color: var(--color-accent); padding: 3px 6px; background: rgba(99,102,241,0.08); border-radius: 3px; margin-bottom: 6px; display: none; }
+    /* C3-4: Nyquist animation player */
+    .nyquist-player { display: flex; align-items: center; gap: 8px; padding: 6px 0; flex-wrap: wrap; }
+    .nyquist-progress-wrap { flex: 1; min-width: 100px; height: 6px; background: var(--bg-tertiary); border-radius: 3px; overflow: hidden; cursor: pointer; }
+    .nyquist-progress-bar  { height: 100%; background: var(--color-accent); width: 0%; transition: width 0.1s linear; border-radius: 3px; }
+    .nyquist-speed-select { font-size: 10px; background: var(--bg-tertiary); color: var(--text-primary); border: 1px solid var(--border-primary); border-radius: 4px; padding: 2px 4px; }
+    .nyquist-freq-label { font-size: 10px; font-family: ui-monospace, monospace; color: var(--color-accent); min-width: 80px; }
+    .nyquist-encircle-count { font-size: 10px; font-weight: 700; color: var(--text-primary); }
+
+    /* ==================================================================
        P48 — A3-2 Draggable Poles + A3-3 Bode Breakpoint + A3-4 History Drawer
        ================================================================== */
     /* A3-2: Root locus interactive mode */
@@ -2481,6 +2506,84 @@
           </div>
         </section>
 
+        <!-- C3-2: Parameter Sensitivity Scan -->
+        <section class="section-panel" id="c3-sensitivity-panel">
+          <div class="section-title">參數敏感度掃描 (C3-2)</div>
+          <p style="font-size:11px;color:var(--text-muted);line-height:1.5;margin-bottom:8px;">
+            掃描某參數範圍，觀察效能指標（OS%、Ts、PM、GM）如何變化。
+          </p>
+          <div class="sensitivity-scan-ctrl">
+            <div class="input-group" style="margin-bottom:0;">
+              <label>掃描參數</label>
+              <select id="c3-scan-param" style="font-size:11px;background:var(--bg-tertiary);color:var(--text-primary);border:1px solid var(--border-primary);border-radius:4px;padding:4px 8px;">
+                <option value="kp">Kp</option>
+                <option value="ki">Ki</option>
+                <option value="kd">Kd</option>
+              </select>
+            </div>
+            <div class="input-group" style="margin-bottom:0;">
+              <label>範圍 (min–max 步數)</label>
+              <div style="display:flex;gap:4px;">
+                <input type="number" id="c3-scan-min" value="0.1" step="0.1" style="width:55px;font-size:11px;background:var(--bg-tertiary);color:var(--text-primary);border:1px solid var(--border-primary);border-radius:4px;padding:3px 6px;">
+                <input type="number" id="c3-scan-max" value="10"  step="0.5" style="width:55px;font-size:11px;background:var(--bg-tertiary);color:var(--text-primary);border:1px solid var(--border-primary);border-radius:4px;padding:3px 6px;">
+                <input type="number" id="c3-scan-steps" value="20" min="5" max="50" style="width:40px;font-size:11px;background:var(--bg-tertiary);color:var(--text-primary);border:1px solid var(--border-primary);border-radius:4px;padding:3px 6px;">
+              </div>
+            </div>
+            <button class="btn btn-sm" id="btn-c3-scan" style="justify-content:center;white-space:nowrap;">執行掃描</button>
+          </div>
+          <div style="font-size:10px;color:var(--text-muted);margin-bottom:4px;">觀察指標：OS% · Ts · PM · GM</div>
+          <div class="sensitivity-chart-wrap" id="c3-sensitivity-chart" style="display:none;"></div>
+          <div id="c3-scan-status" style="font-size:11px;color:var(--text-muted);"></div>
+        </section>
+
+        <!-- C3-1: Pole Drag Animation Panel -->
+        <section class="section-panel" id="c3-pole-drag-panel">
+          <div class="section-title">極點拖曳動畫 (C3-1)</div>
+          <p style="font-size:11px;color:var(--text-muted);line-height:1.5;margin-bottom:8px;">
+            拖移 S 平面上的極點，即時觀察步階響應變化。Shift = 強制實軸。
+          </p>
+          <div class="c3-unstable-alert" id="c3-unstable-alert">⚠ 系統不穩定！極點在 RHP</div>
+          <button class="btn btn-sm" id="btn-c3-pole-init" style="width:100%;justify-content:center;margin-bottom:8px;">啟動極點拖曳</button>
+          <div id="c3-pole-drag-area" style="display:none;">
+            <div class="pole-drag-panel">
+              <div>
+                <div style="font-size:10px;color:var(--text-muted);margin-bottom:4px;">S 平面（拖曳極點）</div>
+                <div class="pole-drag-plane" id="pole-drag-plane" style="height:180px;"></div>
+                <div class="pole-drag-legend">× 極點 · ○ 零點 · 紅色=不穩定</div>
+              </div>
+              <div>
+                <div style="font-size:10px;color:var(--text-muted);margin-bottom:4px;">步階響應</div>
+                <div id="c3-step-preview" style="height:180px;background:var(--bg-tertiary);border:1px solid var(--border-primary);border-radius:4px;"></div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- C3-4: Nyquist Animation Player -->
+        <section class="section-panel" id="nyquist-animation-panel" data-advisor-mode="siso">
+          <div class="section-title">Nyquist 動畫 (C3-4)</div>
+          <p style="font-size:11px;color:var(--text-muted);line-height:1.5;margin-bottom:8px;">
+            動態播放頻率從低到高的 Nyquist 掃描，觀察曲線如何繞過 -1 點。
+          </p>
+          <div class="nyquist-player" id="nyquist-player">
+            <button class="btn btn-sm" id="nyquist-play-btn" style="padding:3px 8px;font-size:11px;">▶</button>
+            <button class="btn btn-sm" id="nyquist-reset-btn" style="padding:3px 8px;font-size:11px;">⏮</button>
+            <div class="nyquist-progress-wrap" id="nyquist-progress-wrap">
+              <div class="nyquist-progress-bar" id="nyquist-progress-bar"></div>
+            </div>
+            <select class="nyquist-speed-select" id="nyquist-speed">
+              <option value="0.5">0.5×</option>
+              <option value="1" selected>1×</option>
+              <option value="2">2×</option>
+              <option value="5">5×</option>
+            </select>
+            <span class="nyquist-freq-label" id="nyquist-freq-label">ω = —</span>
+          </div>
+          <div id="chart-nyquist-anim" style="height:200px;"></div>
+          <div class="nyquist-encircle-count" id="nyquist-encircle-count"></div>
+        </section>
+
+        <!-- C3-3: Phase Plane click trajectories (extends existing panel) -->
         <section class="section-panel" id="phase-portrait-panel" data-advisor-mode="mimo" style="display:none;">
           <div class="section-title">Phase Portrait (2D)</div>
           <p id="phase-portrait-note" style="font-size:11px;color:var(--text-muted);line-height:1.5;margin-bottom:10px;">
@@ -2491,8 +2594,14 @@
             <div class="input-group" style="flex:1;margin-bottom:0;"><label>x2 range</label><input type="number" id="pp-x2-range" value="3" step="0.5"></div>
             <div class="input-group" style="flex:1;margin-bottom:0;"><label>t_max</label><input type="number" id="pp-tmax" value="6" step="0.5"></div>
           </div>
-          <button class="btn btn-sm" id="btn-phase-portrait" type="button" style="width:100%;justify-content:center;margin-bottom:8px;">Plot Phase Portrait</button>
+          <div style="display:flex;gap:6px;margin-bottom:8px;align-items:center;">
+            <button class="btn btn-sm" id="btn-phase-portrait" type="button" style="flex:1;justify-content:center;">Plot Phase Portrait</button>
+            <button class="btn btn-sm" id="btn-pp-click-mode" type="button" title="點擊相平面添加軌跡 (C3-3)" style="justify-content:center;">點擊軌跡</button>
+            <button class="btn btn-sm" id="btn-pp-clear" type="button" style="justify-content:center;">清除</button>
+          </div>
+          <div class="pp-click-hint" id="pp-click-hint">點擊相平面添加軌跡（最多 8 條）</div>
           <div id="chart-phase-portrait" style="height:280px;"></div>
+          <div id="pp-traj-count" style="font-size:10px;color:var(--text-muted);margin-top:4px;"></div>
           <div style="border-top:1px solid var(--border-primary); margin-top:var(--space-4); padding-top:var(--space-3);">
             <div style="font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase;margin-bottom:8px;">Equilibrium Detection &amp; Bifurcation</div>
             <div style="font-size:11px;color:var(--text-muted);margin-bottom:8px;">Finds all equilibria of the current 2-state linearized system and classifies their stability type.</div>
