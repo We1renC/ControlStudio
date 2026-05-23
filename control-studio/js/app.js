@@ -11432,3 +11432,390 @@ function initA11y() {
 document.addEventListener('DOMContentLoaded', () => {
   initA11y();
 }, { once: true });
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// P52 — G5 i18n / G6 Responsive / G8 Onboarding / G9 Multi-project
+// ═══════════════════════════════════════════════════════════════════════════════
+
+// ── G5: Internationalization (i18n) ──────────────────────────────────────────
+const STRINGS = {
+  'zh-TW': {
+    'nav.model':       '建模',    'nav.design':    '設計',
+    'nav.analyze':     '分析',    'nav.advisor':   '顧問',   'nav.compare': '比較',
+    'btn.analyze':     '分析',    'btn.export':    '匯出程式碼',
+    'spec.overshoot':  '超越量',  'spec.settling': '安定時間',
+    'label.stable':    '穩定',    'label.unstable':'不穩定',
+    'msg.no-system':   '尚未載入系統模型',
+    'msg.copied':      '已複製',  'msg.saved':     '已儲存',
+    'msg.lang-switched': '語言已切換為繁體中文',
+  },
+  'en': {
+    'nav.model':       'Plant',   'nav.design':    'Design',
+    'nav.analyze':     'Analyze', 'nav.advisor':   'Advisor', 'nav.compare': 'Compare',
+    'btn.analyze':     'Analyze', 'btn.export':    'Export Code',
+    'spec.overshoot':  'Overshoot','spec.settling': 'Settling Time',
+    'label.stable':    'Stable',  'label.unstable':'Unstable',
+    'msg.no-system':   'No system model loaded',
+    'msg.copied':      'Copied',  'msg.saved':     'Saved',
+    'msg.lang-switched': 'Language switched to English',
+  },
+};
+
+function t(key) {
+  const lang = state.lang ?? 'zh-TW';
+  const val = STRINGS[lang]?.[key] ?? STRINGS['zh-TW']?.[key];
+  if (val == null) { console.warn(`[i18n] missing key: ${key}`); return key; }
+  return val;
+}
+
+function setLang(lang) {
+  if (!STRINGS[lang]) { console.warn(`[i18n] unsupported lang: ${lang}`); return; }
+  state.lang = lang;
+  localStorage.setItem('cs-lang', lang);
+  document.documentElement.setAttribute('lang', lang === 'en' ? 'en' : 'zh-TW');
+  const sel = document.getElementById('lang-select');
+  if (sel) sel.value = lang;
+  notify(t('msg.lang-switched'), 'success', { title: 'G5 i18n' });
+}
+
+function initI18n() {
+  const saved = localStorage.getItem('cs-lang');
+  if (saved && STRINGS[saved]) state.lang = saved;
+  const sel = document.getElementById('lang-select');
+  if (sel) {
+    sel.value = state.lang ?? 'zh-TW';
+    sel.addEventListener('change', () => setLang(sel.value));
+  }
+  window.t       = t;
+  window.setLang = setLang;
+}
+
+// ── G6: Responsive layout (mobile drawer) ────────────────────────────────────
+function initResponsive() {
+  const burgerBtn = document.getElementById('burger-btn');
+  const sidebar   = document.getElementById('nav');           // <aside id="nav">
+  const overlay   = document.getElementById('sidebar-overlay');
+  if (!burgerBtn || !sidebar) return;
+
+  function openSidebar() {
+    sidebar.classList.add('sidebar-open');
+    overlay?.classList.add('active');
+    burgerBtn.setAttribute('aria-expanded', 'true');
+    overlay?.removeAttribute('aria-hidden');
+  }
+  function closeSidebar() {
+    sidebar.classList.remove('sidebar-open');
+    overlay?.classList.remove('active');
+    burgerBtn.setAttribute('aria-expanded', 'false');
+    overlay?.setAttribute('aria-hidden', 'true');
+  }
+
+  burgerBtn.addEventListener('click', () => {
+    sidebar.classList.contains('sidebar-open') ? closeSidebar() : openSidebar();
+  });
+  overlay?.addEventListener('click', closeSidebar);
+
+  // Close sidebar when a tab is selected on mobile
+  document.querySelectorAll('.sidebar-tab').forEach(tab =>
+    tab.addEventListener('click', () => {
+      if (window.innerWidth < 768) closeSidebar();
+    })
+  );
+
+  window.addEventListener('resize', () => {
+    if (window.innerWidth >= 768) closeSidebar();
+  });
+}
+
+// ── G8: Onboarding tour ───────────────────────────────────────────────────────
+const ONBOARDING_STEPS = [
+  { target: null,              title: '歡迎使用 ControlStudio',  body: '這是一個完整的控制系統設計工具。讓我們花 30 秒認識主要區塊。', type: 'welcome' },
+  { target: '#nav',            title: '四大設計流程',            body: '左側導覽列引導你完成：建模 → 設計 → 分析 → 輸出的完整工作流程。' },
+  { target: '#app-status-bar', title: '系統狀態列',              body: '這裡即時顯示目前的穩定性、相位裕度、增益裕度，以及規格合規狀態。' },
+  { target: '#btn-quickstart', title: '快捷功能入口',            body: '按 ? 可查看所有鍵盤快捷鍵。按 ▶ 範例可快速載入示範系統開始練習。' },
+  { target: null,              title: '準備好了！',               body: '你可以從範例系統開始，或自行輸入傳遞函數。祝設計順利！', type: 'finish' },
+];
+
+let _tourStep = 0;
+let _tourSpotlightEl = null;
+
+function _clearTourSpotlight() {
+  _tourSpotlightEl?.classList.remove('tour-spotlight');
+  _tourSpotlightEl = null;
+}
+
+function _setTourSpotlight(selector) {
+  _clearTourSpotlight();
+  if (!selector) return;
+  const el = document.querySelector(selector);
+  if (!el) return;
+  el.classList.add('tour-spotlight');
+  _tourSpotlightEl = el;
+  // Scroll element into view
+  el.scrollIntoView({ block: 'nearest', behavior: window._prefersReduced ? 'auto' : 'smooth' });
+}
+
+function _renderTourDots(total, current) {
+  const row = document.getElementById('tour-dots');
+  if (!row) return;
+  row.innerHTML = Array.from({ length: total }, (_, i) =>
+    `<div class="tour-dot${i === current ? ' active' : ''}"></div>`
+  ).join('');
+}
+
+function showTourStep(n) {
+  const step  = ONBOARDING_STEPS[n];
+  if (!step) return;
+  _tourStep = n;
+
+  const overlay = document.getElementById('tour-overlay');
+  const bubble  = document.getElementById('tour-bubble');
+  const title   = document.getElementById('tour-title');
+  const body    = document.getElementById('tour-body');
+  const prevBtn = document.getElementById('btn-tour-prev');
+  const nextBtn = document.getElementById('btn-tour-next');
+
+  if (!overlay) return;
+  overlay.classList.add('active');
+  if (title) title.textContent = step.title;
+  if (body)  body.textContent  = step.body;
+
+  // Spotlight target element
+  _setTourSpotlight(step.target);
+
+  // Position bubble near target if one exists
+  if (step.target && bubble) {
+    const targetEl = document.querySelector(step.target);
+    if (targetEl) {
+      const r = targetEl.getBoundingClientRect();
+      const bh = 180; // approx bubble height
+      const top = r.bottom + 12 > window.innerHeight - bh
+        ? Math.max(8, r.top - bh - 12)
+        : r.bottom + 12;
+      bubble.style.top  = `${top}px`;
+      bubble.style.left = `${Math.min(r.left, window.innerWidth - 300)}px`;
+    } else {
+      bubble.style.top  = '50%';
+      bubble.style.left = '50%';
+      bubble.style.transform = 'translate(-50%,-50%)';
+    }
+  } else if (bubble) {
+    bubble.style.top  = '50%';
+    bubble.style.left = '50%';
+    bubble.style.transform = 'translate(-50%,-50%)';
+  }
+
+  _renderTourDots(ONBOARDING_STEPS.length, n);
+
+  if (prevBtn) prevBtn.style.display = n === 0 ? 'none' : '';
+  if (nextBtn) {
+    nextBtn.textContent = n === ONBOARDING_STEPS.length - 1 ? '完成 ✓' : '下一步 →';
+  }
+}
+
+function finishTour() {
+  _clearTourSpotlight();
+  const overlay = document.getElementById('tour-overlay');
+  overlay?.classList.remove('active');
+  localStorage.setItem('cs-visited', '1');
+}
+
+function startTour() {
+  _tourStep = 0;
+  showTourStep(0);
+}
+
+function initOnboarding() {
+  const overlay = document.getElementById('tour-overlay');
+  if (!overlay) return;
+
+  document.getElementById('btn-tour-next')?.addEventListener('click', () => {
+    if (_tourStep >= ONBOARDING_STEPS.length - 1) {
+      finishTour();
+    } else {
+      showTourStep(_tourStep + 1);
+    }
+  });
+  document.getElementById('btn-tour-prev')?.addEventListener('click', () => {
+    if (_tourStep > 0) showTourStep(_tourStep - 1);
+  });
+  document.getElementById('btn-tour-skip')?.addEventListener('click', finishTour);
+
+  // Auto-start on first visit
+  if (!localStorage.getItem('cs-visited')) {
+    setTimeout(startTour, 800);
+  }
+
+  window.startTour  = startTour;
+  window.finishTour = finishTour;
+}
+
+// ── G9: Multi-project management ─────────────────────────────────────────────
+const PROJECTS_KEY = 'cs-projects';
+
+function _serializeProject() {
+  return {
+    version:    '1.0',
+    created:    new Date().toISOString(),
+    plant:      state.plant      ?? null,
+    controller: state.controller ?? null,
+    specs:      state.specs      ?? null,
+    notes:      JSON.parse(localStorage.getItem('cs-notes') ?? '[]'),
+    history:    (_history?.stack ?? []).slice(-10),
+    lang:       state.lang ?? 'zh-TW',
+    theme:      state.theme ?? 'dark',
+  };
+}
+
+function _loadProjectList() {
+  try { return JSON.parse(localStorage.getItem(PROJECTS_KEY) ?? '[]'); }
+  catch { return []; }
+}
+
+function _saveProjectList(list) {
+  try { localStorage.setItem(PROJECTS_KEY, JSON.stringify(list)); }
+  catch { notify('儲存失敗：localStorage 空間不足', 'error', { title: 'G9 專案' }); }
+}
+
+function saveProject(name = '') {
+  const list    = _loadProjectList();
+  const projName = name || prompt('專案名稱：', `專案 ${list.length + 1}`) || `專案 ${Date.now()}`;
+  const proj = {
+    id:      Date.now(),
+    name:    projName,
+    updated: new Date().toISOString(),
+    data:    _serializeProject(),
+  };
+  // Replace if same name already exists
+  const idx = list.findIndex(p => p.name === projName);
+  if (idx >= 0) list[idx] = proj; else list.push(proj);
+  _saveProjectList(list);
+  _renderProjectList();
+  notify(`專案「${projName}」已儲存`, 'success', { title: 'G9 專案' });
+}
+
+function loadProject(id) {
+  const list = _loadProjectList();
+  const proj = list.find(p => p.id === id);
+  if (!proj) return;
+  const d = proj.data;
+  if (d.plant)      state.plant      = d.plant;
+  if (d.controller) state.controller = d.controller;
+  if (d.specs)      state.specs      = d.specs;
+  if (d.lang)       state.lang       = d.lang;
+  if (d.theme)      { state.theme = d.theme; document.documentElement.setAttribute('data-theme', d.theme); updateThemeIcon?.(); }
+  if (d.notes)      localStorage.setItem('cs-notes', JSON.stringify(d.notes));
+  notify(`已載入專案「${proj.name}」`, 'success', { title: 'G9 專案' });
+  document.getElementById('project-manager-panel')?.classList.remove('open');
+  if (state.plant) refreshAllCharts?.();
+}
+
+function deleteProject(id) {
+  const list    = _loadProjectList();
+  const proj    = list.find(p => p.id === id);
+  if (!proj) return;
+  if (!window.confirm(`確定要刪除專案「${proj.name}」？此操作無法復原。`)) return;
+  _saveProjectList(list.filter(p => p.id !== id));
+  _renderProjectList();
+  notify(`專案「${proj.name}」已刪除`, 'info', { title: 'G9 專案' });
+}
+
+function exportProject(id) {
+  const list = _loadProjectList();
+  const proj = id ? list.find(p => p.id === id) : { name: '目前專案', data: _serializeProject() };
+  if (!proj) return;
+  _downloadBlob?.(JSON.stringify(proj, null, 2), `${proj.name}.csproj.json`, 'application/json');
+  notify('專案已匯出', 'success', { title: 'G9 匯出' });
+}
+
+function importProject(file) {
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const proj = JSON.parse(e.target.result);
+      if (!proj.data?.version) throw new Error('格式錯誤：缺少 version 欄位');
+      const list = _loadProjectList();
+      proj.id      = Date.now();
+      proj.updated = new Date().toISOString();
+      list.push(proj);
+      _saveProjectList(list);
+      _renderProjectList();
+      notify(`已匯入專案「${proj.name}」`, 'success', { title: 'G9 匯入' });
+    } catch (err) {
+      notify(`匯入失敗：${err.message}`, 'error', { title: 'G9 匯入' });
+    }
+  };
+  reader.readAsText(file);
+}
+
+function _renderProjectList() {
+  const container = document.getElementById('project-list');
+  if (!container) return;
+  const list = _loadProjectList();
+  if (!list.length) {
+    container.innerHTML = '<div style="color:var(--text-muted);font-size:11px;text-align:center;padding:20px;">尚無已儲存的專案</div>';
+    return;
+  }
+  container.innerHTML = list.map(p => {
+    const d = new Date(p.updated).toLocaleString('zh-TW', { dateStyle: 'short', timeStyle: 'short' });
+    return `<div class="project-item" tabindex="0" role="button" aria-label="載入專案 ${p.name}" data-proj-id="${p.id}">
+      <div class="project-item-name">${p.name}</div>
+      <div class="project-item-meta">${d}</div>
+      <div class="project-item-actions">
+        <button class="project-action-btn" data-action="export" data-proj-id="${p.id}" title="匯出" aria-label="匯出 ${p.name}">⬇</button>
+        <button class="project-action-btn" data-action="delete" data-proj-id="${p.id}" title="刪除" aria-label="刪除 ${p.name}">✕</button>
+      </div>
+    </div>`;
+  }).join('');
+
+  // Wire click events
+  container.querySelectorAll('.project-item').forEach(item => {
+    item.addEventListener('click', e => {
+      if (e.target.closest('.project-action-btn')) return; // handled below
+      loadProject(+item.dataset.projId);
+    });
+    item.addEventListener('keydown', e => {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); loadProject(+item.dataset.projId); }
+    });
+  });
+  container.querySelectorAll('[data-action="export"]').forEach(btn =>
+    btn.addEventListener('click', e => { e.stopPropagation(); exportProject(+btn.dataset.projId); })
+  );
+  container.querySelectorAll('[data-action="delete"]').forEach(btn =>
+    btn.addEventListener('click', e => { e.stopPropagation(); deleteProject(+btn.dataset.projId); })
+  );
+}
+
+function initProjectManager() {
+  const panel = document.getElementById('project-manager-panel');
+  if (!panel) return;
+
+  document.getElementById('btn-projects')?.addEventListener('click', () => {
+    _renderProjectList();
+    panel.classList.add('open');
+  });
+  document.getElementById('btn-proj-close')?.addEventListener('click', () => panel.classList.remove('open'));
+  panel.addEventListener('click', e => { if (e.target === panel) panel.classList.remove('open'); });
+
+  document.getElementById('btn-save-project')?.addEventListener('click', () => saveProject());
+
+  const importBtn   = document.getElementById('btn-import-project');
+  const fileInput   = document.getElementById('project-file-input');
+  importBtn?.addEventListener('click', () => fileInput?.click());
+  fileInput?.addEventListener('change', () => { importProject(fileInput.files?.[0]); fileInput.value = ''; });
+
+  window.saveProject   = saveProject;
+  window.loadProject   = loadProject;
+  window.deleteProject = deleteProject;
+  window.exportProject = exportProject;
+  window.importProject = importProject;
+}
+
+// ── P52 init ──────────────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  initI18n();
+  initResponsive();
+  initOnboarding();
+  initProjectManager();
+}, { once: true });

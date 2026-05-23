@@ -117,6 +117,7 @@ run_script "P48 A3 draggable poles + bode + history" "node scripts/verify_p48_a3
 run_script "P49 C3 interactive animations" "node scripts/verify_p49_c3.mjs"
 run_script "P50 E1~E4 dashboard/scoring/report/decision" "node scripts/verify_p50_e1_e4.mjs"
 run_script "P51 F4/F5/G7 a11y/colors/kbd/screen-reader"  "node scripts/verify_p51_a11y.mjs"
+run_script "P52 G5/G6/G8/G9 i18n/responsive/onboarding/multiproject" "node scripts/verify_p52_g5689.mjs"
 echo ""
 
 # ── General Math & PID ───────────────────────────────────────────────────────

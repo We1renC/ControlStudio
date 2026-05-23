@@ -1177,6 +1177,65 @@
     .kbd-table td { padding: 5px 6px; border-bottom: 1px solid var(--border-primary); color: var(--text-secondary); }
     .kbd-table tr:last-child td { border-bottom: 0; }
     .kbd-table td:first-child { font-family: ui-monospace, monospace; font-size: 11px; color: var(--color-accent); white-space: nowrap; }
+
+    /* ==================================================================
+       P52 — G5 i18n / G6 Responsive / G8 Onboarding / G9 Multi-project
+       ================================================================== */
+
+    /* G6: Responsive — burger button (hidden on desktop) */
+    #burger-btn { display: none; background: transparent; border: 0; color: var(--text-primary); cursor: pointer; padding: 6px; font-size: 20px; line-height: 1; }
+    #sidebar-overlay { display: none; position: fixed; inset: 0; z-index: 190; background: rgba(0,0,0,0.4); }
+    #sidebar-overlay.active { display: block; }
+
+    @media (max-width: 767px) {
+      #burger-btn { display: flex; align-items: center; }
+      aside {
+        position: fixed; left: -260px; top: 0; bottom: 0; z-index: 200;
+        width: 260px; overflow-y: auto;
+        transition: left 200ms ease; box-shadow: none;
+      }
+      aside.sidebar-open {
+        left: 0;
+        box-shadow: 4px 0 24px rgba(0,0,0,0.4);
+      }
+      @media (prefers-reduced-motion: reduce) { aside { transition: none; } }
+      .content-area { flex-direction: column; }
+      header { padding: 0 var(--space-3); }
+    }
+
+    /* G5: Language selector */
+    #lang-select { font-size: 10px; background: var(--bg-tertiary); color: var(--text-primary); border: 1px solid var(--border-primary); border-radius: 4px; padding: 2px 5px; }
+
+    /* G8: Onboarding tour overlay */
+    .tour-overlay { position: fixed; inset: 0; z-index: 10300; pointer-events: none; }
+    .tour-overlay.active { pointer-events: all; }
+    .tour-mask { position: absolute; inset: 0; background: rgba(0,0,0,0.6); }
+    .tour-bubble {
+      position: absolute; background: var(--bg-secondary); border: 1px solid var(--border-primary);
+      border-radius: var(--radius-lg); padding: 16px 20px; width: 280px; box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+      z-index: 10301;
+    }
+    .tour-bubble-title { font-size: 13px; font-weight: 700; color: var(--text-primary); margin-bottom: 6px; }
+    .tour-bubble-body  { font-size: 12px; color: var(--text-secondary); line-height: 1.5; margin-bottom: 12px; }
+    .tour-dot-row { display: flex; gap: 5px; justify-content: center; margin-bottom: 10px; }
+    .tour-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--border-primary); }
+    .tour-dot.active { background: var(--color-accent); }
+    .tour-btn-row { display: flex; gap: 6px; justify-content: flex-end; flex-wrap: wrap; }
+    .tour-spotlight { outline: 2px solid var(--color-accent); outline-offset: 3px; z-index: 10302; position: relative; }
+
+    /* G9: Project manager panel */
+    .project-manager-panel { position: fixed; inset: 0; z-index: 10100; display: none; align-items: center; justify-content: center; background: rgba(0,0,0,0.6); }
+    .project-manager-panel.open { display: flex; }
+    .project-manager-box { background: var(--bg-secondary); border: 1px solid var(--border-primary); border-radius: var(--radius-lg); padding: 20px; width: 520px; max-width: 95vw; max-height: 80vh; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; }
+    .project-manager-box h3 { font-size: 14px; font-weight: 700; margin: 0; color: var(--text-primary); }
+    .project-list { display: flex; flex-direction: column; gap: 6px; max-height: 320px; overflow-y: auto; }
+    .project-item { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border: 1px solid var(--border-primary); border-radius: var(--radius-sm); background: var(--bg-tertiary); font-size: 11px; cursor: pointer; }
+    .project-item:hover { border-color: var(--color-accent); }
+    .project-item-name { flex: 1; font-weight: 600; color: var(--text-primary); }
+    .project-item-meta { color: var(--text-muted); font-size: 10px; }
+    .project-item-actions { display: flex; gap: 4px; }
+    .project-action-btn { background: transparent; border: 0; cursor: pointer; color: var(--text-muted); font-size: 12px; padding: 2px 4px; border-radius: 3px; }
+    .project-action-btn:hover { color: var(--text-primary); background: var(--bg-primary); }
   </style>
 </head>
 <body>
@@ -1232,7 +1291,12 @@
     </div>
   </div>
 
+  <!-- G6: Sidebar overlay (mobile drawer) -->
+  <div id="sidebar-overlay" aria-hidden="true"></div>
+
   <header role="banner">
+    <!-- G6: Hamburger button (visible on mobile only) -->
+    <button id="burger-btn" aria-label="切換導覽選單" aria-expanded="false" aria-controls="nav">☰</button>
     <div class="logo">
       <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 2v20M2 12h20"/></svg>
       <span>ControlStudio</span>
@@ -1264,6 +1328,11 @@
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
       </button>
       <button class="btn btn-sm" id="btn-keyboard-help" title="鍵盤快捷鍵 (?)" aria-label="顯示鍵盤快捷鍵" aria-haspopup="dialog" style="font-size:11px;">⌨ 快捷鍵</button>
+      <button class="btn btn-sm" id="btn-projects" title="G9: 多專案管理" aria-label="專案管理" aria-haspopup="dialog" style="font-size:11px;">📁 專案</button>
+      <select id="lang-select" aria-label="G5: 介面語言" title="切換介面語言 (G5)">
+        <option value="zh-TW">繁中</option>
+        <option value="en">EN</option>
+      </select>
       <button class="btn btn-sm theme-cycle-btn" id="theme-toggle" title="Cycle theme: Dark → Light → Print → High-contrast" aria-label="Cycle theme">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" id="theme-icon-svg"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
         <span class="theme-cycle-label" id="theme-label">Dark</span>
@@ -3476,6 +3545,40 @@
       </table>
       <div style="margin-top:12px;text-align:right;">
         <button class="btn btn-sm" id="kbd-help-close" aria-label="關閉快捷鍵說明">關閉</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- G8: Onboarding tour overlay -->
+  <div class="tour-overlay" id="tour-overlay" aria-modal="true" role="dialog" aria-labelledby="tour-title">
+    <div class="tour-mask" id="tour-mask"></div>
+    <div class="tour-bubble" id="tour-bubble">
+      <div class="tour-bubble-title" id="tour-title">歡迎使用 ControlStudio</div>
+      <div class="tour-bubble-body"  id="tour-body">這是一個完整的控制系統設計工具。</div>
+      <div class="tour-dot-row"      id="tour-dots"></div>
+      <div class="tour-btn-row">
+        <button class="btn btn-sm" id="btn-tour-skip"  style="font-size:10px;">略過導覽</button>
+        <button class="btn btn-sm" id="btn-tour-prev"  style="font-size:10px;">← 上一步</button>
+        <button class="btn btn-primary btn-sm" id="btn-tour-next" style="font-size:10px;">下一步 →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- G9: Project manager panel -->
+  <div class="project-manager-panel" id="project-manager-panel" role="dialog" aria-modal="true" aria-labelledby="proj-mgr-title">
+    <div class="project-manager-box">
+      <h3 id="proj-mgr-title">📁 專案管理</h3>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;">
+        <button class="btn btn-sm btn-primary" id="btn-new-project" style="font-size:11px;">＋ 新專案</button>
+        <button class="btn btn-sm" id="btn-import-project" style="font-size:11px;">📥 匯入 .csproj</button>
+        <input type="file" id="project-file-input" accept=".json,.csproj.json" style="display:none;" aria-label="選擇專案檔">
+      </div>
+      <div class="project-list" id="project-list" aria-label="專案列表">
+        <div style="color:var(--text-muted);font-size:11px;text-align:center;padding:20px;">尚無已儲存的專案</div>
+      </div>
+      <div style="display:flex;gap:6px;justify-content:space-between;align-items:center;flex-wrap:wrap;">
+        <button class="btn btn-sm" id="btn-save-project" style="font-size:11px;">💾 儲存目前專案</button>
+        <button class="btn btn-sm" id="btn-proj-close" style="font-size:11px;">關閉</button>
       </div>
     </div>
   </div>
