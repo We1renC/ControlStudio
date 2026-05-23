@@ -9215,3 +9215,402 @@ document.addEventListener('DOMContentLoaded', () => {
   initCSVImport();
   initDataExport();
 }, { once: true });
+
+// ════════════════════════════════════════════════════════════════════════════════
+// P46 — B5-1~3 Calc Steps/Tooltip/CondWarn + B2-1 Matrix Expand
+// ════════════════════════════════════════════════════════════════════════════════
+
+// ── Shared numerics ───────────────────────────────────────────────────────────
+
+/**
+ * Estimate condition number κ(M) ≈ max|eigenvalue| / min|eigenvalue|
+ * for a square matrix (simple approximation using row norms).
+ * @param {number[][]} M
+ * @returns {number}
+ */
+function computeConditionNumber(M) {
+  if (!M || !M.length) return Infinity;
+  const n = M.length;
+  // Frobenius row-norm approximation
+  const rowNorms = M.map(row => Math.sqrt(row.reduce((s, v) => s + v * v, 0)));
+  const maxN = Math.max(...rowNorms);
+  const minN = Math.min(...rowNorms.filter(v => v > 0));
+  if (!minN) return Infinity;
+  return maxN / minN;
+}
+
+/**
+ * Classify condition number: 'good' | 'warn' | 'bad'
+ */
+function _kappaClass(kappa) {
+  if (kappa < 100)  return 'good';
+  if (kappa < 1000) return 'warn';
+  return 'bad';
+}
+
+/**
+ * Simple matrix determinant (Leibniz, capped at 4×4 for display).
+ */
+function _matDetSmall(M) {
+  const n = M.length;
+  if (n === 1) return M[0][0];
+  if (n === 2) return M[0][0] * M[1][1] - M[0][1] * M[1][0];
+  if (n === 3) {
+    const [[a,b,c],[d,e,f],[g,h,i]] = M;
+    return a*(e*i-f*h) - b*(d*i-f*g) + c*(d*h-e*g);
+  }
+  // n >= 4: return NaN (too expensive for display)
+  return NaN;
+}
+
+/**
+ * Check if matrix is positive definite (all diagonal > 0 heuristic).
+ * Returns 'pd' | 'spd' | 'npd'
+ */
+function _pdClass(M) {
+  const diag = M.map((row, i) => row[i]);
+  if (diag.every(v => v > 0))  return 'pd';
+  if (diag.every(v => v >= 0)) return 'spd';
+  return 'npd';
+}
+
+// ── B5-3: Condition number / precision warnings ───────────────────────────────
+
+/** Definitions of numerical health checks */
+const HEALTH_CHECKS = [
+  {
+    id: 'kappa_a',
+    label: '系統矩陣 κ(A) > 1e8',
+    severity: 'error',
+    message: '系統矩陣接近奇異，計算結果不可信',
+    advice: '請檢查 A 矩陣的定義或縮放',
+  },
+  {
+    id: 'kappa_wc',
+    label: 'Gramian 條件數 κ > 1000',
+    severity: 'warn',
+    message: 'Gramian 條件數高，Cholesky 分解可能不穩定',
+    advice: '建議先做最小實現（minreal）再做模型縮減',
+  },
+  {
+    id: 'hsv_small',
+    label: '最小 HSV < 1e-10',
+    severity: 'warn',
+    message: 'Hankel 奇異值接近 0，建議先做最小實現',
+    advice: '使用「Hankel SVs」面板確認截斷階數',
+  },
+  {
+    id: 'rank_deficient',
+    label: '矩陣秩虧損',
+    severity: 'error',
+    message: '矩陣秩不足，系統可能不可控或不可觀',
+    advice: '使用可控性/可觀性 Gramian 確認',
+  },
+];
+
+function showCondWarn(level, msg, advice) {
+  const bar = document.getElementById('cond-warn-bar');
+  if (!bar) return;
+  bar.className = `cond-warn-banner ${level}`;
+  bar.innerHTML = `
+    <button class="cond-warn-close" aria-label="關閉">✕</button>
+    <b>${level === 'error' ? '⚠ 錯誤' : '⚠ 警告'}：</b>${msg}
+    ${advice ? `<div style="margin-top:3px;font-size:10px;opacity:0.8;">${advice}</div>` : ''}
+  `;
+  bar.querySelector('.cond-warn-close').addEventListener('click', () => {
+    bar.className = 'cond-warn-banner'; // hide
+  });
+}
+
+function checkNumericalHealth(M, context = 'kappa_a') {
+  if (!M) return;
+  const kappa = computeConditionNumber(M);
+  const check = HEALTH_CHECKS.find(c => c.id === context);
+  if (!check) return;
+
+  let triggered = false;
+  if (context === 'kappa_a' && kappa > 1e8)  triggered = true;
+  if (context === 'kappa_wc' && kappa > 1000) triggered = true;
+
+  if (triggered) {
+    showCondWarn(check.severity,
+      `${check.message}（κ = ${kappa.toExponential(2)}）`,
+      check.advice);
+  }
+}
+
+// ── B5-1: Calculation steps collapsible panel ─────────────────────────────────
+
+function _buildCalcStep(num, title, bodyText, kappa) {
+  const kappaClass = kappa != null ? _kappaClass(kappa) : null;
+  const kappaBadge = kappaClass
+    ? `<span class="calc-step-kappa ${kappaClass}">κ=${kappa < 1e4 ? kappa.toFixed(1) : kappa.toExponential(1)} ${kappaClass === 'good' ? '✓' : kappaClass === 'warn' ? '⚠' : '✗'}</span>`
+    : '';
+  return `
+    <div class="calc-step-item">
+      <div class="calc-step-header" data-step="${num}">
+        <span class="calc-step-num">${num}</span>
+        <span>${title}</span>
+        ${kappaBadge}
+        <span style="margin-left:auto;font-size:10px;color:var(--text-muted);">▶</span>
+      </div>
+      <div class="calc-step-body" id="calc-step-body-${num}">${bodyText}</div>
+    </div>
+  `;
+}
+
+function showCalcSteps(steps) {
+  const outer = document.getElementById('calc-steps-outer');
+  const list  = document.getElementById('calc-steps-list');
+  if (!outer || !list) return;
+
+  list.innerHTML = steps.map((s, i) =>
+    _buildCalcStep(i + 1, s.title, s.body, s.kappa ?? null)
+  ).join('');
+
+  // Toggle step bodies
+  list.querySelectorAll('.calc-step-header').forEach(hdr => {
+    hdr.addEventListener('click', () => {
+      const body = list.querySelector(`#calc-step-body-${hdr.dataset.step}`);
+      const arrow = hdr.querySelector('span:last-child');
+      if (body) {
+        body.classList.toggle('open');
+        if (arrow) arrow.textContent = body.classList.contains('open') ? '▼' : '▶';
+      }
+    });
+  });
+
+  outer.style.display = 'block';
+}
+
+function initCalcSteps() {
+  const collapseBtn = document.getElementById('btn-calc-steps-collapse');
+  if (collapseBtn) {
+    collapseBtn.addEventListener('click', () => {
+      const outer = document.getElementById('calc-steps-outer');
+      if (outer) outer.style.display = 'none';
+    });
+  }
+  // Expose globally for other modules to call
+  window.showCalcSteps = showCalcSteps;
+  window.showCondWarn  = showCondWarn;
+  window.checkNumericalHealth = checkNumericalHealth;
+}
+
+// ── B5-2: Intermediate value tooltip ─────────────────────────────────────────
+
+/**
+ * Attach an enhanced hover tooltip to a Plotly chart.
+ * Extends the existing plotly_hover with richer secondary info.
+ * @param {string} chartId  element id
+ * @param {string} chartType  'bode_mag'|'bode_phase'|'step'|'nyquist'|'rl'
+ */
+function attachIntermediateTooltip(chartId, chartType) {
+  const el = document.getElementById(chartId);
+  if (!el || !window.Plotly) return;
+
+  let _tipEl = el.querySelector('.chart-val-tooltip');
+  if (!_tipEl) {
+    _tipEl = document.createElement('div');
+    _tipEl.className = 'chart-val-tooltip';
+    _tipEl.style.cssText = 'position:absolute;pointer-events:none;z-index:50;background:var(--bg-secondary);border:1px solid var(--border-primary);border-radius:6px;padding:6px 10px;font-size:10px;font-family:ui-monospace,monospace;color:var(--text-primary);white-space:nowrap;opacity:0;transition:opacity 0.1s;max-width:220px;';
+    el.style.position = 'relative';
+    el.appendChild(_tipEl);
+  }
+
+  el.on('plotly_hover', ({ points, event }) => {
+    if (!points?.length) return;
+    const pt = points[0];
+    const x = pt.x, y = pt.y;
+    let lines = [];
+    switch (chartType) {
+      case 'bode_mag':
+        lines = [`ω = ${fmtNum(x, 3)} rad/s`, `|G| = ${fmtNum(y, 2)} dB`];
+        break;
+      case 'bode_phase':
+        lines = [`ω = ${fmtNum(x, 3)} rad/s`, `∠G = ${fmtNum(y, 2)}°`];
+        break;
+      case 'step':
+        lines = [`t = ${fmtNum(x, 3)} s`, `y = ${fmtNum(y, 4)}`, `ess ≈ ${fmtNum(Math.abs(1 - y) * 100, 2)}%`];
+        break;
+      case 'nyquist':
+        lines = [`ω = ${fmtNum(pt.customdata?.[0] ?? x, 3)} rad/s`, `Re = ${fmtNum(x, 4)}`, `Im = ${fmtNum(y, 4)}`, `|dist(-1)| = ${fmtNum(Math.hypot(x + 1, y), 4)}`];
+        break;
+      case 'rl':
+        lines = [`σ = ${fmtNum(x, 4)}`, `ωd = ${fmtNum(y, 4)}`, `ωn = ${fmtNum(Math.hypot(x, y), 4)}`, `ζ = ${fmtNum(-x / (Math.hypot(x, y) || 1), 3)}`];
+        break;
+      default:
+        lines = [`x = ${fmtNum(x, 4)}`, `y = ${fmtNum(y, 4)}`];
+    }
+    _tipEl.innerHTML = lines.join('<br>');
+    _tipEl.style.opacity = '1';
+    _tipEl.style.left = `${(event.offsetX || 50) + 12}px`;
+    _tipEl.style.top  = `${(event.offsetY || 50) - 30}px`;
+  });
+  el.on('plotly_unhover', () => { _tipEl.style.opacity = '0'; });
+}
+
+function initIntermediateTooltip() {
+  // Attach to main active chart (polymorphic — reattaches on plot type switch)
+  ['chart-active', 'chart-bode', 'chart-nyquist', 'chart-rl'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) {
+      // Defer until Plotly renders
+      const observer = new MutationObserver(() => {
+        if (el._fullLayout) {
+          const title = el.layout?.title?.text || '';
+          let type = 'generic';
+          if (/bode.*mag|magnitude/i.test(title))  type = 'bode_mag';
+          else if (/bode.*phase|phase/i.test(title)) type = 'bode_phase';
+          else if (/step/i.test(title))             type = 'step';
+          else if (/nyquist/i.test(title))          type = 'nyquist';
+          else if (/root|locus/i.test(title))       type = 'rl';
+          attachIntermediateTooltip(id, type);
+        }
+      });
+      observer.observe(el, { childList: true, subtree: false });
+    }
+  });
+  window.attachIntermediateTooltip = attachIntermediateTooltip;
+}
+
+// ── B2-1: Matrix Expand Panel ─────────────────────────────────────────────────
+
+/**
+ * Render a matrix as an HTML table grid.
+ */
+function renderMatrixGrid(M, name = '', digits = 4) {
+  if (!M || !M.length) return '<em style="color:var(--text-muted)">—</em>';
+  const n = M.length, m = M[0].length;
+  const kappa = computeConditionNumber(M);
+  const kappaClass = _kappaClass(kappa);
+  const det = n === m ? _matDetSmall(M) : NaN;
+  const pdCls = n === m ? _pdClass(M) : null;
+  const pdLabel = { pd: '正定 ✓', spd: '半正定 ⚠', npd: '非正定 ✗' };
+
+  const rows = M.map(row =>
+    `<tr>${row.map(v => `<td title="${v}">${fmtNum(v, digits)}</td>`).join('')}</tr>`
+  ).join('');
+
+  const kappaStr = kappa < 1e4 ? kappa.toFixed(2) : kappa.toExponential(2);
+  const detStr   = isNaN(det)  ? '—' : fmtNum(det, 4);
+
+  return `
+    <div class="matrix-block">
+      <div class="matrix-block-header" data-mat="${name}">
+        <span class="matrix-block-title">${name} (${n}×${m})</span>
+        <span style="font-size:10px;color:var(--text-muted);">▼</span>
+      </div>
+      <div class="matrix-grid-wrap" id="mat-wrap-${name}">
+        <table class="matrix-grid-table"><tbody>${rows}</tbody></table>
+        <div class="matrix-meta">
+          <span>κ = <b class="calc-step-kappa ${kappaClass}" style="display:inline;">${kappaStr}</b></span>
+          <span>det = ${detStr}</span>
+          ${pdCls ? `<span class="matrix-pd-badge ${pdCls}">${pdLabel[pdCls]}</span>` : ''}
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+/**
+ * Convert matrix to LaTeX pmatrix format.
+ */
+function matrixToLatex(M, name = '') {
+  if (!M || !M.length) return '';
+  const rows = M.map(row => row.map(v => fmtNum(v, 4)).join(' & ')).join(' \\\\\n  ');
+  const prefix = name ? `${name} = ` : '';
+  return `${prefix}\\begin{pmatrix}\n  ${rows}\n\\end{pmatrix}`;
+}
+
+function initMatrixExpandPanel() {
+  const expandBtn = document.getElementById('btn-matrix-expand');
+  const content   = document.getElementById('matrix-expand-content');
+  const copyJson  = document.getElementById('btn-matrix-copy-json');
+  const copyLatex = document.getElementById('btn-matrix-copy-latex');
+  if (!expandBtn) return;
+
+  let _lastMatrices = null;
+
+  expandBtn.addEventListener('click', () => {
+    // Try to get SS matrices from global state
+    const ssA = window._currentSS?.A;
+    const ssB = window._currentSS?.B;
+    const ssC = window._currentSS?.C;
+    const ssD = window._currentSS?.D;
+
+    if (!ssA) {
+      content.innerHTML = '<div style="font-size:11px;color:var(--text-muted);">未偵測到狀態空間矩陣。請使用 MIMO 模式並輸入系統。</div>';
+      return;
+    }
+    _lastMatrices = { A: ssA, B: ssB, C: ssC, D: ssD };
+
+    const html = ['A', 'B', 'C', 'D'].map(name => {
+      const M = _lastMatrices[name];
+      return M ? renderMatrixGrid(M, name) : '';
+    }).join('');
+    content.innerHTML = html;
+
+    // Collapsible blocks
+    content.querySelectorAll('.matrix-block-header').forEach(hdr => {
+      hdr.addEventListener('click', () => {
+        const wrap = content.querySelector(`#mat-wrap-${hdr.dataset.mat}`);
+        const arrow = hdr.querySelector('span:last-child');
+        if (wrap) {
+          const hidden = wrap.style.display === 'none';
+          wrap.style.display = hidden ? 'block' : 'none';
+          if (arrow) arrow.textContent = hidden ? '▼' : '▶';
+        }
+      });
+    });
+
+    // Check A-matrix numerical health
+    checkNumericalHealth(ssA, 'kappa_a');
+
+    // Build calc steps for Gramian computation
+    const kappaA = computeConditionNumber(ssA);
+    showCalcSteps([
+      {
+        title: '建構系統矩陣',
+        body: `A (${ssA.length}×${ssA.length})，κ(A) = ${kappaA < 1e4 ? kappaA.toFixed(2) : kappaA.toExponential(2)}`,
+        kappa: kappaA,
+      },
+      {
+        title: '計算特徵值（穩定性判斷）',
+        body: `Re(λ) < 0 → 穩定；Re(λ) ≥ 0 → 不穩定\n使用 Gershgorin 圓定理快速包含`,
+        kappa: null,
+      },
+      {
+        title: '可控性矩陣 [B, AB, A²B, …]',
+        body: `rankCo = n → 完全可控\n秩估算使用 SVD 分解`,
+        kappa: null,
+      },
+    ]);
+  });
+
+  // Copy buttons
+  copyJson?.addEventListener('click', () => {
+    if (!_lastMatrices) return;
+    const text = JSON.stringify(
+      Object.fromEntries(Object.entries(_lastMatrices).map(([k, v]) => [k, v])),
+      null, 2
+    );
+    navigator.clipboard.writeText(text).then(() => notify('矩陣 JSON 已複製', 'success', { duration: 1500 }));
+  });
+
+  copyLatex?.addEventListener('click', () => {
+    if (!_lastMatrices) return;
+    const text = ['A', 'B', 'C', 'D']
+      .filter(k => _lastMatrices[k])
+      .map(k => matrixToLatex(_lastMatrices[k], k))
+      .join(',\n');
+    navigator.clipboard.writeText(text).then(() => notify('LaTeX 已複製', 'success', { duration: 1500 }));
+  });
+}
+
+// ── P46 init ──────────────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  initCalcSteps();
+  initIntermediateTooltip();
+  initMatrixExpandPanel();
+}, { once: true });

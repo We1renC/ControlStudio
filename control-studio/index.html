@@ -940,6 +940,45 @@
     .csv-col-select select { font-size: 11px; background: var(--bg-tertiary); color: var(--text-primary); border: 1px solid var(--border-primary); border-radius: 4px; padding: 4px 8px; }
     /* B4-2: data export toolbar */
     .data-export-row { display: flex; gap: 6px; margin-top: 6px; }
+
+    /* ==================================================================
+       P46 — B5 Calc Steps/Tooltip/CondWarn + B2-1 Matrix Expand
+       ================================================================== */
+    /* B5-1: Calculation steps panel */
+    .calc-steps-panel { border-left: 3px solid var(--color-accent); background: var(--bg-secondary); border-radius: 0 var(--radius-md) var(--radius-md) 0; padding: 10px 14px; margin-top: 10px; }
+    .calc-steps-title { display: flex; justify-content: space-between; align-items: center; font-size: 11px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+    .calc-step-item { border-bottom: 1px solid var(--border-primary); padding: 5px 0; }
+    .calc-step-item:last-child { border-bottom: 0; }
+    .calc-step-header { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--text-primary); cursor: pointer; padding: 3px 0; user-select: none; }
+    .calc-step-header:hover { color: var(--color-accent); }
+    .calc-step-num { display: inline-flex; align-items: center; justify-content: center; width: 18px; height: 18px; border-radius: 50%; background: var(--bg-tertiary); font-size: 9px; font-weight: 800; color: var(--color-accent); flex-shrink: 0; }
+    .calc-step-body { display: none; padding: 6px 0 6px 24px; font-size: 10px; font-family: ui-monospace, monospace; color: var(--text-secondary); line-height: 1.7; white-space: pre-wrap; }
+    .calc-step-body.open { display: block; }
+    .calc-step-kappa { display: inline-flex; align-items: center; gap: 3px; font-size: 9px; font-weight: 700; padding: 1px 5px; border-radius: 3px; margin-left: 6px; }
+    .calc-step-kappa.good { background: rgba(16,185,129,0.15); color: #10b981; }
+    .calc-step-kappa.warn { background: rgba(245,158,11,0.15); color: #f59e0b; }
+    .calc-step-kappa.bad  { background: rgba(239,68,68,0.12);  color: #ef4444; }
+    /* B5-3: Condition number warning banner */
+    .cond-warn-banner { display: none; padding: 8px 12px; border-radius: var(--radius-sm); font-size: 11px; line-height: 1.5; margin-bottom: 8px; border-left: 3px solid transparent; position: relative; }
+    .cond-warn-banner.warn  { display: block; background: rgba(245,158,11,0.12); border-color: #f59e0b; color: #f59e0b; }
+    .cond-warn-banner.error { display: block; background: rgba(239,68,68,0.12);  border-color: #ef4444; color: #ef4444; }
+    .cond-warn-banner .cond-warn-close { position: absolute; top: 6px; right: 8px; background: none; border: none; cursor: pointer; font-size: 12px; color: inherit; opacity: 0.7; }
+    .cond-warn-banner .cond-warn-close:hover { opacity: 1; }
+    /* B2-1: Matrix expand panel */
+    .matrix-expand-panel { font-size: 11px; }
+    .matrix-block { margin-bottom: 10px; }
+    .matrix-block-header { display: flex; align-items: center; justify-content: space-between; padding: 4px 0; border-bottom: 1px solid var(--border-primary); margin-bottom: 4px; cursor: pointer; }
+    .matrix-block-title { font-weight: 700; color: var(--text-secondary); font-size: 11px; }
+    .matrix-grid-wrap { overflow-x: auto; }
+    .matrix-grid-table { border-collapse: collapse; font-family: ui-monospace, monospace; font-size: 11px; color: var(--text-primary); margin: 4px 0; }
+    .matrix-grid-table td { padding: 2px 8px; text-align: right; min-width: 60px; }
+    .matrix-grid-table td:hover { background: rgba(99,102,241,0.08); cursor: default; }
+    .matrix-meta { font-size: 10px; color: var(--text-muted); margin-top: 3px; display: flex; gap: 10px; flex-wrap: wrap; }
+    .matrix-pd-badge { display: inline-block; font-size: 9px; font-weight: 700; padding: 1px 6px; border-radius: 3px; }
+    .matrix-pd-badge.pd   { background: rgba(16,185,129,0.15); color: #10b981; }
+    .matrix-pd-badge.spd  { background: rgba(245,158,11,0.15);  color: #f59e0b; }
+    .matrix-pd-badge.npd  { background: rgba(239,68,68,0.12);   color: #ef4444; }
+    .matrix-copy-row { display: flex; gap: 6px; margin-top: 6px; }
   </style>
 </head>
 <body>
@@ -2186,6 +2225,33 @@
         </section>
 
         <!-- B2-2: Hankel Singular Values (model complexity advisor) -->
+        <!-- B2-1: Matrix Expand Panel -->
+        <section class="section-panel" id="matrix-expand-panel">
+          <div class="section-title">系統矩陣展開 (B2-1)</div>
+          <p style="font-size:11px;color:var(--text-muted);line-height:1.5;margin-bottom:10px;">
+            展示 A、B、C、D 矩陣數值、條件數、行列式與正定性。僅在 MIMO/狀態空間模式下有效。
+          </p>
+          <div id="cond-warn-bar" class="cond-warn-banner"></div>
+          <div id="matrix-expand-content" class="matrix-expand-panel">
+            <div style="font-size:11px;color:var(--text-muted);">請先輸入 State-Space 系統（A, B, C, D 矩陣）。</div>
+          </div>
+          <div class="matrix-copy-row">
+            <button class="btn btn-sm" id="btn-matrix-copy-json" style="flex:1;justify-content:center;">複製 JSON</button>
+            <button class="btn btn-sm" id="btn-matrix-copy-latex" style="flex:1;justify-content:center;">複製 LaTeX</button>
+          </div>
+          <!-- B5-1: Calc Steps Panel -->
+          <div id="calc-steps-outer" style="display:none;margin-top:12px;">
+            <div class="calc-steps-panel">
+              <div class="calc-steps-title">
+                <span>🔍 計算詳情</span>
+                <button class="btn btn-sm" id="btn-calc-steps-collapse" style="padding:1px 6px;font-size:10px;">收合 ▲</button>
+              </div>
+              <div id="calc-steps-list"></div>
+            </div>
+          </div>
+          <button class="btn btn-sm" id="btn-matrix-expand" style="width:100%;justify-content:center;margin-top:8px;">展開矩陣</button>
+        </section>
+
         <section class="section-panel" id="hankel-svd-panel">
           <div class="section-title">Hankel Singular Values (B2-2)</div>
           <p style="font-size:11px;color:var(--text-muted);line-height:1.5;margin-bottom:10px;">
