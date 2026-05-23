@@ -8587,3 +8587,235 @@ document.addEventListener('DOMContentLoaded', () => {
     renderSensitivityPlot();
   });
 }, { once: true });
+
+// ── P44 — F2-1 Split Pane ────────────────────────────────────────────────────
+// Adds a draggable divider between sidebar (<aside>) and main content area.
+// Sidebar width is stored in localStorage and restored on page load.
+
+const SPLIT_KEY = 'cs-split-width';
+const SPLIT_MIN_PX = 240;
+
+function initSplitPane() {
+  const divider = document.getElementById('workspace-divider');
+  const sidebar = document.querySelector('aside[role="complementary"]');
+  const mainArea = document.getElementById('main-content-area');
+  const btn = document.getElementById('btn-split-pane');
+  if (!divider || !sidebar || !btn) return;
+
+  let _splitEnabled = false;
+
+  // Restore saved width
+  const savedWidth = parseInt(localStorage.getItem(SPLIT_KEY) || '0', 10);
+
+  function enableSplit() {
+    _splitEnabled = true;
+    divider.classList.add('active');
+    btn.classList.add('active');
+    if (savedWidth > SPLIT_MIN_PX) sidebar.style.width = `${savedWidth}px`;
+    sidebar.style.flex = 'none';
+    sidebar.style.minWidth = `${SPLIT_MIN_PX}px`;
+    sidebar.style.resize = 'none';
+    if (mainArea) mainArea.style.flex = '1';
+  }
+
+  function disableSplit() {
+    _splitEnabled = false;
+    divider.classList.remove('active');
+    btn.classList.remove('active');
+    sidebar.style.width = '';
+    sidebar.style.flex = '';
+    sidebar.style.minWidth = '';
+  }
+
+  btn.addEventListener('click', () => {
+    if (_splitEnabled) disableSplit();
+    else enableSplit();
+  });
+
+  // Drag logic
+  let _dragging = false;
+  let _startX = 0;
+  let _startW = 0;
+
+  divider.addEventListener('mousedown', (e) => {
+    e.preventDefault();
+    _dragging = true;
+    _startX = e.clientX;
+    _startW = sidebar.getBoundingClientRect().width;
+    divider.classList.add('dragging');
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+  });
+
+  document.addEventListener('mousemove', (e) => {
+    if (!_dragging) return;
+    requestAnimationFrame(() => {
+      const dx = e.clientX - _startX;
+      const newW = Math.max(SPLIT_MIN_PX, _startW + dx);
+      sidebar.style.width = `${newW}px`;
+    });
+  });
+
+  document.addEventListener('mouseup', () => {
+    if (!_dragging) return;
+    _dragging = false;
+    divider.classList.remove('dragging');
+    document.body.style.cursor = '';
+    document.body.style.userSelect = '';
+    const w = parseInt(sidebar.getBoundingClientRect().width, 10);
+    localStorage.setItem(SPLIT_KEY, String(w));
+  });
+
+  // Double-click: 50/50 reset
+  divider.addEventListener('dblclick', () => {
+    const container = sidebar.parentElement;
+    if (!container) return;
+    const totalW = container.getBoundingClientRect().width;
+    const half = Math.floor(totalW / 2);
+    sidebar.style.width = `${half}px`;
+    localStorage.setItem(SPLIT_KEY, String(half));
+  });
+
+  // Expose
+  window._splitPaneEnabled = () => _splitEnabled;
+}
+
+// ── P44 — F2-2 Design Tab System ─────────────────────────────────────────────
+// Multi-design tab bar. Each tab stores a state snapshot of plant + controller.
+// Switching tabs restores the snapshot and refreshes plots.
+const DESIGN_TABS_KEY = 'cs-design-tabs';
+
+function initDesignTabs() {
+  const bar = document.getElementById('design-tab-bar');
+  const newBtn = document.getElementById('design-tab-new');
+  if (!bar || !newBtn) return;
+
+  // Tab data array: [{ id, name, snapshot }]
+  let _tabs = [];
+  let _activeTabId = null;
+  let _tabSeq = 0;
+
+  function _snap() {
+    return {
+      plant: state.plant ? { num: [...state.plant.num], den: [...state.plant.den] } : null,
+      pidParams: { ...state.pidParams },
+      domain: state.domain,
+      activePlot: state.activePlot,
+    };
+  }
+
+  function _applyTabSnap(snap) {
+    if (!snap) return;
+    try {
+      if (snap.plant) {
+        document.getElementById('tf-num').value = snap.plant.num.join(' ');
+        document.getElementById('tf-den').value = snap.plant.den.join(' ');
+      }
+      Object.assign(state.pidParams, snap.pidParams || {});
+      if (typeof window.updateSystem === 'function') window.updateSystem();
+    } catch (_) {}
+  }
+
+  function renderTabs() {
+    // Remove existing tab elements (keep newBtn)
+    bar.querySelectorAll('.design-tab').forEach(el => el.remove());
+
+    _tabs.forEach(tab => {
+      const el = document.createElement('div');
+      el.className = `design-tab${tab.id === _activeTabId ? ' active' : ''}`;
+      el.dataset.tabId = tab.id;
+      el.setAttribute('role', 'tab');
+      el.setAttribute('aria-selected', tab.id === _activeTabId ? 'true' : 'false');
+
+      const dot = document.createElement('div');
+      dot.className = 'design-tab-dot none';
+
+      const name = document.createElement('div');
+      name.className = 'design-tab-name';
+      name.textContent = tab.name;
+
+      const closeEl = document.createElement('div');
+      closeEl.className = 'design-tab-close';
+      closeEl.textContent = '×';
+      closeEl.title = '關閉此設計分頁';
+      closeEl.addEventListener('click', (e) => {
+        e.stopPropagation();
+        closeTab(tab.id);
+      });
+
+      el.appendChild(dot);
+      el.appendChild(name);
+      el.appendChild(closeEl);
+
+      el.addEventListener('click', () => switchToTab(tab.id));
+
+      // Insert before newBtn
+      bar.insertBefore(el, newBtn);
+    });
+
+    // Show/hide bar
+    bar.classList.toggle('visible', _tabs.length >= 2);
+  }
+
+  function switchToTab(id) {
+    if (_activeTabId === id) return;
+    // Save current state to active tab
+    const cur = _tabs.find(t => t.id === _activeTabId);
+    if (cur) cur.snapshot = _snap();
+    // Switch
+    _activeTabId = id;
+    const next = _tabs.find(t => t.id === id);
+    if (next?.snapshot) _applyTabSnap(next.snapshot);
+    renderTabs();
+  }
+
+  function closeTab(id) {
+    const idx = _tabs.findIndex(t => t.id === id);
+    if (idx === -1) return;
+    // Confirm if active
+    if (id === _activeTabId && _tabs.length > 1) {
+      if (!confirm('關閉此設計分頁？未儲存的變更將會遺失。')) return;
+    }
+    _tabs.splice(idx, 1);
+    if (_activeTabId === id) {
+      _activeTabId = _tabs[Math.min(idx, _tabs.length - 1)]?.id ?? null;
+      const next = _tabs.find(t => t.id === _activeTabId);
+      if (next?.snapshot) _applyTabSnap(next.snapshot);
+    }
+    renderTabs();
+  }
+
+  function addTab(name) {
+    // Save current state to existing active tab first
+    const cur = _tabs.find(t => t.id === _activeTabId);
+    if (cur) cur.snapshot = _snap();
+
+    const id = ++_tabSeq;
+    _tabs.push({ id, name: name || `設計 ${id}`, snapshot: _snap() });
+    if (_tabs.length === 1) _activeTabId = id;
+    _activeTabId = id;
+    renderTabs();
+    notify(`已建立設計分頁「${name || `設計 ${id}`}」`, 'info', { duration: 2000 });
+  }
+
+  newBtn.addEventListener('click', () => {
+    if (_tabs.length === 0) {
+      // Create initial tab for current design
+      addTab('設計 1');
+    }
+    addTab();
+  });
+
+  // Create initial tab
+  addTab('設計 1');
+
+  // Expose
+  window.addDesignTab = addTab;
+  window.switchDesignTab = switchToTab;
+}
+
+// ── P44 init ──────────────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  initSplitPane();
+  initDesignTabs();
+}, { once: true });

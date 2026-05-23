@@ -573,6 +573,62 @@
     .disc-compare-badge.bad { background: rgba(239,68,68,0.2); color: #ef4444; }
 
     /* ==================================================================
+       P44 — F2-1 Split Pane divider
+       ================================================================== */
+    .workspace-divider {
+      width: 8px; background: var(--border-primary); cursor: col-resize; flex-shrink: 0;
+      position: relative; transition: background 0.1s; align-self: stretch;
+      display: none; /* shown only when split enabled */
+    }
+    .workspace-divider.active { display: block; }
+    .workspace-divider:hover, .workspace-divider.dragging { background: var(--color-accent); }
+    .workspace-divider::after {
+      content: ''; position: absolute; top: 50%; left: 50%;
+      transform: translate(-50%, -50%); width: 2px; height: 32px;
+      background: var(--text-muted); border-radius: 1px;
+    }
+
+    /* ==================================================================
+       P44 — F2-2 Design Tabs
+       ================================================================== */
+    .design-tab-bar {
+      display: flex; align-items: center; gap: 0; border-bottom: 1px solid var(--border-primary);
+      background: var(--bg-secondary); overflow-x: auto; scrollbar-width: none; flex-shrink: 0;
+      padding: 0 8px; height: 36px; display: none; /* hidden until user creates ≥2 tabs */
+    }
+    .design-tab-bar.visible { display: flex; }
+    .design-tab-bar::-webkit-scrollbar { display: none; }
+    .design-tab {
+      display: flex; align-items: center; gap: 5px; padding: 0 10px;
+      height: 36px; min-width: 100px; max-width: 180px; flex-shrink: 0;
+      font-size: 12px; font-weight: 500; color: var(--text-muted);
+      border-bottom: 2px solid transparent; cursor: pointer; white-space: nowrap;
+      overflow: hidden; text-overflow: ellipsis; user-select: none;
+      transition: color 0.12s, border-color 0.12s, background 0.12s;
+    }
+    .design-tab:hover:not(.active) { background: rgba(99,102,241,0.06); color: var(--text-secondary); }
+    .design-tab.active { color: var(--text-primary); border-bottom-color: var(--color-accent); background: var(--bg-tertiary); }
+    .design-tab-name { flex: 1; overflow: hidden; text-overflow: ellipsis; }
+    .design-tab-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+    .design-tab-dot.clean { background: #22c55e; }
+    .design-tab-dot.warn { background: #f59e0b; }
+    .design-tab-dot.none { background: var(--border-secondary); }
+    .design-tab-close {
+      width: 16px; height: 16px; border-radius: 3px; display: flex; align-items: center;
+      justify-content: center; font-size: 11px; color: var(--text-muted); flex-shrink: 0;
+      cursor: pointer; transition: background 0.1s, color 0.1s;
+    }
+    .design-tab-close:hover { background: rgba(239,68,68,0.2); color: #ef4444; }
+    .design-tab-new {
+      padding: 0 10px; height: 36px; font-size: 18px; font-weight: 300;
+      color: var(--text-muted); cursor: pointer; flex-shrink: 0;
+      display: flex; align-items: center; border-radius: var(--radius-sm);
+      transition: color 0.12s, background 0.12s;
+    }
+    .design-tab-new:hover { color: var(--color-accent); background: rgba(99,102,241,0.08); }
+    .split-btn { font-size: 11px; padding: 3px 8px; }
+
+    /* ==================================================================
        P43 — A1-1 System Input Wizard modal
        ================================================================== */
     .syswin-modal { display: none; position: fixed; inset: 0; z-index: 3100; align-items: center; justify-content: center; background: rgba(0,0,0,0.55); backdrop-filter: blur(8px); }
@@ -883,6 +939,7 @@
       <div class="divider-v"></div>
       <button class="btn btn-sm" id="btn-undo" title="Undo (Ctrl+Z)" aria-label="Undo last change" disabled style="font-size:11px;">&#x21A9; Undo</button>
       <button class="btn btn-sm" id="btn-redo" title="Redo (Ctrl+Y)" aria-label="Redo last change" disabled style="font-size:11px;">&#x21AA; Redo</button>
+      <button class="btn btn-sm split-btn" id="btn-split-pane" title="切換分割工作區 (F2-1)" aria-label="分割工作區" style="font-size:11px;">⧉ 分割</button>
       <button class="btn btn-sm" id="btn-new-system" title="新增系統模型 (A1-1)" aria-label="新增系統模型" style="font-size:11px;">＋ 系統</button>
       <button class="btn btn-sm" id="btn-wizard" title="開啟設計精靈 (C2-1)" aria-label="開啟設計精靈" style="font-size:11px;">🧭 精靈</button>
       <button class="btn btn-sm" id="btn-share-url" title="Copy share URL to clipboard" aria-label="Copy share URL" style="font-size:11px;">&#x29C9; Share</button>
@@ -2329,6 +2386,15 @@
       </div>
     </aside>
 
+    <!-- F2-1: Drag-resize divider -->
+    <div class="workspace-divider" id="workspace-divider" title="拖移調整寬度；雙擊重設 50/50"></div>
+
+    <div id="main-content-area" style="flex:1;min-width:0;display:flex;flex-direction:column;min-height:0;">
+    <!-- F2-2: Design tab bar -->
+    <div class="design-tab-bar" id="design-tab-bar">
+      <div class="design-tab-new" id="design-tab-new" title="新增設計分頁" aria-label="新增設計分頁">＋</div>
+    </div>
+
     <div id="dashboard-view" class="content-area">
       <div class="plot-workspace">
         <div class="plot-switcher">
@@ -2437,6 +2503,7 @@
         <div id="compare-metrics-table" style="margin-top:8px;font-size:11px;"></div>
       </div>
     </div>
+    </div><!-- /#main-content-area -->
 
     <div id="editor-workspace" class="content-area" style="display:none; position:relative; overflow:hidden; background:var(--bg-secondary);">
       <div class="editor-toolbar">
