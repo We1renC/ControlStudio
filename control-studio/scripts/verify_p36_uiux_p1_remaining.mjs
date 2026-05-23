@@ -154,6 +154,7 @@ assert(indexHtml.includes('code-lang-tab'), 'code language tabs');
 assert(indexHtml.includes('data-codelang="matlab"'), 'MATLAB code tab');
 assert(indexHtml.includes('data-codelang="python"'), 'Python code tab');
 assert(appJs.includes('refreshCodePreview'), 'refreshCodePreview() defined in app.js');
+assert((appJs.match(/function buildCodegenPayload\s*\(/g) ?? []).length === 1, 'buildCodegenPayload declared once');
 assert(appJs.includes('state._codeLang'), 'code lang tracked in state');
 
 // ── CSS classes present ───────────────────────────────────────────────────────

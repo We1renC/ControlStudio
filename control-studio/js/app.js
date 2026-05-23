@@ -6666,20 +6666,6 @@ window.ControlStudioSmoke = {
 
 // ── D1: Code Preview ─────────────────────────────────────────────────────────
 
-/** Build the payload object for code generation (reuses existing codegen data). */
-function buildCodegenPayload() {
-  const pid = state.controller;
-  return {
-    plant: state.plant ? { num: state.plant.num, den: state.plant.den } : null,
-    controller: pid ? { Kp: pid.Kp ?? 0, Ki: pid.Ki ?? 0, Kd: pid.Kd ?? 0, N: pid.N ?? 100 } : null,
-    delay: state.delay ? { T: state.delay.T, order: state.delay.order ?? 2 } : null,
-    domain: state.domain ?? 's',
-    Ts: state.Ts ?? null,
-    responseType: state.responseType ?? 'step',
-    closedLoop: state.showClosedLoop ?? true,
-  };
-}
-
 /** Refresh the code preview block in the Design panel (D1). */
 function refreshCodePreview() {
   const codeEl = document.getElementById('code-preview-code');
