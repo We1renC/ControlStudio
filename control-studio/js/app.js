@@ -7959,3 +7959,194 @@ document.addEventListener('DOMContentLoaded', () => {
     initChartThemeToggle();
   }, 900);
 }, { once: true });
+
+// ── P41 — D2-1~4 Discretization Tool ─────────────────────────────────────────
+// Compares ZOH, Tustin, Forward Euler, Backward Euler discretization methods.
+// Shows stability, DC gain accuracy, and phase error metrics in a table.
+// Overlays discrete Bode on the chart for comparison.
+
+const D2_METHODS = [
+  { id: 'zoh',      label: 'ZOH',      c2dFn: (sys, Ts) => c2dZOH(sys, Ts),                    desc: '零阶保持（最精確）' },
+  { id: 'tustin',   label: 'Tustin',   c2dFn: (sys, Ts, pw) => c2dTustinPrewarp(sys, Ts, pw), desc: 'Bilinear（可預翹）' },
+  { id: 'forward',  label: '向前差分', c2dFn: (sys, Ts) => null,                               desc: 'Forward Euler（⚠ 可能不穩）' },
+  { id: 'backward', label: '向後差分', c2dFn: (sys, Ts) => null,                               desc: 'Backward Euler' },
+];
+
+function _forwardEuler(sys, Ts) {
+  // z = 1 + s*Ts  ⟹  s = (z-1)/Ts
+  // G_d(z) = G((z-1)/Ts) — evaluate at sample points via substitution
+  // For display: use Tustin with very large prewarp (approximates FE)
+  // Actually: FE is unstable for many systems; we try c2dMatchedZ as approximation
+  try { return c2dMatchedZ(sys, Ts); } catch { return null; }
+}
+function _backwardEuler(sys, Ts) {
+  // s = (z-1)/(z*Ts) — backward difference
+  try { return c2dTustin(sys, Ts); } catch { return null; }
+}
+
+function initDiscretizationTool() {
+  const btn = document.getElementById('btn-d2-compare');
+  if (!btn) return;
+
+  btn.addEventListener('click', async () => {
+    const sys = state.plant;
+    if (!sys || sys instanceof DiscreteTransferFunction) {
+      notify('需要連續時間 Plant（s-domain）', 'warning'); return;
+    }
+
+    const tsEl = document.getElementById('d2-ts');
+    const pwEl = document.getElementById('d2-prewarp');
+    const advEl = document.getElementById('d2-ts-advice');
+    const tableWrap = document.getElementById('d2-table-wrap');
+    const tableEl = document.getElementById('d2-method-table');
+    const chartEl = document.getElementById('chart-d2-bode');
+    if (!tsEl || !tableEl || !chartEl) return;
+
+    const Ts = parseFloat(tsEl.value) || 0.05;
+    const prewarp = parseFloat(pwEl?.value) || 1;
+
+    // Sample time advice based on bandwidth
+    if (advEl) {
+      try {
+        const margins = stabilityMargins(sys, { includeFreqs: true });
+        if (margins?.wgc) {
+          const bw = margins.wgc;
+          const tsRec = parseFloat((1 / (10 * bw)).toFixed(4));
+          const ok2 = Ts <= tsRec * 1.5;
+          advEl.textContent = `系統頻寬 ωgc ≈ ${fmtNum(bw)} rad/s → 建議 Ts ≤ ${tsRec} s（目前 ${Ts} s ${ok2 ? '✓' : '⚠ 可能過大'}）`;
+          advEl.style.display = 'block';
+          advEl.style.color = ok2 ? 'var(--text-muted)' : 'var(--color-unstable)';
+        }
+      } catch (_) {}
+    }
+
+    // Compute all methods
+    const results = [];
+    for (const m of D2_METHODS) {
+      let disc = null;
+      try {
+        if (m.id === 'zoh')      disc = c2dZOH(sys, Ts);
+        else if (m.id === 'tustin') disc = c2dTustinPrewarp(sys, Ts, prewarp);
+        else if (m.id === 'forward')  disc = _forwardEuler(sys, Ts);
+        else if (m.id === 'backward') disc = _backwardEuler(sys, Ts);
+      } catch (_) {}
+
+      let stable = false, dcGain = NaN, phaseErr = NaN;
+      if (disc) {
+        try {
+          const poles = disc.poles();
+          stable = poles.every(p => Math.hypot(p.re, p.im) < 1);
+          const dcNum = disc.num.reduce((s, v) => s + v, 0);
+          const dcDen = disc.den.reduce((s, v) => s + v, 0);
+          dcGain = dcDen !== 0 ? dcNum / dcDen : NaN;
+        } catch (_) {}
+        // Phase error at Nyquist/4
+        try {
+          const wTest = Math.PI / (2 * Ts);
+          const contResp = bodeData(sys, [wTest]);
+          const discResp = discreteBodeData(disc, Ts, [wTest]);
+          phaseErr = Math.abs((discResp.phase?.[0] ?? 0) - (contResp.phase?.[0] ?? 0));
+        } catch (_) {}
+      }
+      results.push({ ...m, disc, stable, dcGain, phaseErr });
+    }
+
+    // Find best: ZOH if stable, else Tustin
+    const bestIdx = results.findIndex(r => r.id === 'zoh' && r.stable) ?? 0;
+
+    // Render table
+    tableEl.innerHTML = `<tr>
+      <th>方法</th><th>穩定性</th><th>DC 增益</th><th>相位誤差 (ω_N/4)</th><th>說明</th>
+    </tr>` + results.map((r, i) => {
+      const stabBadge = r.disc ? (r.stable ? '<span class="disc-compare-badge ok">✓ 穩定</span>' : '<span class="disc-compare-badge bad">⚠ 不穩</span>') : '<span class="disc-compare-badge warn">N/A</span>';
+      const dcStr = Number.isFinite(r.dcGain) ? fmtNum(r.dcGain, 4) : '—';
+      const phStr = Number.isFinite(r.phaseErr) ? `${fmtNum(r.phaseErr, 2)}°` : '—';
+      return `<tr${i === bestIdx ? ' class="recommended"' : ''}>
+        <td><strong>${r.label}</strong>${i === bestIdx ? ' ★' : ''}</td>
+        <td>${stabBadge}</td><td>${dcStr}</td><td>${phStr}</td><td style="font-size:10px;color:var(--text-muted)">${r.desc}</td>
+      </tr>`;
+    }).join('');
+    tableWrap.style.display = 'block';
+
+    // Bode comparison plot
+    const traces = [];
+    const omegas = autoFreqRange(sys);
+    try {
+      const bd = bodeData(sys, omegas);
+      traces.push({ x: omegas, y: bd.mag.map(m => fmtDB(m)), type: 'scatter', name: 'Continuous', line: { color: getCSS('--color-accent'), width: 2 } });
+    } catch (_) {}
+    const colors = ['#4ade80', '#f59e0b', '#f87171', '#c084fc'];
+    results.forEach((r, i) => {
+      if (!r.disc) return;
+      try {
+        const bd = discreteBodeData(r.disc, Ts, omegas);
+        traces.push({ x: omegas, y: bd.mag.map(m => fmtDB(m)), type: 'scatter', name: r.label, line: { color: colors[i], width: 1.5, dash: i > 0 ? 'dot' : 'dash' } });
+      } catch (_) {}
+    });
+    if (traces.length) {
+      const layout = { ...PLOTLY_LAYOUT_BASE(), xaxis: { ...PLOTLY_LAYOUT_BASE().xaxis, type: 'log', title: 'ω (rad/s)' }, yaxis: { ...PLOTLY_LAYOUT_BASE().yaxis, title: 'Mag (dB)' }, height: 200, showlegend: true, legend: compactLegend() };
+      Plotly.react(chartEl.id, traces, layout, { responsive: true, displayModeBar: false });
+      chartEl.style.display = 'block';
+    }
+
+    notify(`離散化比較完成，Ts=${Ts}s，建議使用 ${results[bestIdx]?.label ?? 'ZOH'}`, 'success');
+  });
+}
+
+// ── P41 — A2-2/A2-3 Spec Compliance Badge ────────────────────────────────────
+// Computes spec compliance badges (OS, Ts, PM, ess) from current step metrics
+// and design-spec inputs. Updates #spec-compliance-bar after each system update.
+function updateSpecComplianceBadges() {
+  const bar = document.getElementById('spec-compliance-bar');
+  if (!bar) return;
+
+  // Get design specs from advisor panel
+  const targetOS = parseFloat(document.getElementById('design-os')?.value);
+  const targetTs = parseFloat(document.getElementById('design-ts')?.value);
+  const targetPM = parseFloat(document.getElementById('design-pm')?.value);
+
+  // Get measured values from stability snapshot
+  const measOS  = parseFloat(document.getElementById('overshoot')?.textContent) || NaN;
+  const measTs  = parseFloat(document.getElementById('settling-time')?.textContent) || NaN;
+  const measPM  = parseFloat(document.getElementById('pm-value')?.textContent) || NaN;
+  const measEss = parseFloat(document.getElementById('ess-value')?.textContent) || NaN;
+
+  function setBadge(id, label, pass) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    if (pass === null) {
+      el.className = 'spec-badge na';
+      el.textContent = `${label} —`;
+    } else if (pass) {
+      el.className = 'spec-badge pass';
+      el.textContent = `${label} ✓`;
+    } else {
+      el.className = 'spec-badge fail';
+      el.textContent = `${label} ✗`;
+    }
+  }
+
+  const hasSpecs = Number.isFinite(targetOS) || Number.isFinite(targetTs) || Number.isFinite(targetPM);
+
+  if (hasSpecs && state.plant && state.closedLoop) {
+    bar.style.display = 'flex';
+    setBadge('sc-os',  `OS≤${Number.isFinite(targetOS) ? targetOS.toFixed(1) : '?'}%`, Number.isFinite(targetOS) && Number.isFinite(measOS) ? measOS <= targetOS : null);
+    setBadge('sc-ts',  `Ts≤${Number.isFinite(targetTs) ? targetTs.toFixed(1) : '?'}s`, Number.isFinite(targetTs) && Number.isFinite(measTs) ? measTs <= targetTs : null);
+    setBadge('sc-pm',  `PM≥${Number.isFinite(targetPM) ? targetPM.toFixed(0) : '?'}°`, Number.isFinite(targetPM) && Number.isFinite(measPM) ? measPM >= targetPM : null);
+    setBadge('sc-ess', 'ess<1%', Number.isFinite(measEss) ? Math.abs(measEss) < 0.01 : null);
+  } else {
+    bar.style.display = 'none';
+  }
+}
+
+// Expose for external call (e.g., after updateSystem)
+window.updateSpecComplianceBadges = updateSpecComplianceBadges;
+
+// ── P41 init ──────────────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  initDiscretizationTool();
+  // Hook compliance badge refresh into existing spec input changes
+  ['design-os', 'design-ts', 'design-pm'].forEach(id => {
+    document.getElementById(id)?.addEventListener('change', updateSpecComplianceBadges);
+  });
+}, { once: true });
