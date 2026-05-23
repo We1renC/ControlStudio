@@ -52,10 +52,10 @@
 | P22 | Verification infrastructure / cross-tool regression / CI | Done | `run_all_verify.sh`, `compare_python_control.py`, `.github/workflows/ci.yml` |
 | P23 | SysID gap closure: FRF, model order, MISO ARX | Mostly Done | `verify_p23_*.mjs` |
 | P24 | Advanced MPC: NMPC, EMPC, Tube MPC, Explicit MPC | Done | `verify_p24_nmpc.mjs`, `verify_p24_empc.mjs`, `verify_p24_tube_explicit_mpc.mjs` |
-| P25 | Model order reduction: minreal SS + balanced truncation | Mostly Done | `verify_p25_model_reduction.mjs` |
-| P26 | Nonlinear control: gain scheduling + SMC | Mostly Done | `verify_p26_nonlinear.mjs` |
-| P27 | H∞ extensions: MIMO H∞ verify + loop shaping | Mostly Done | `verify_p27_mimo_hinf.mjs`, `verify_p27_loop_shaping.mjs` |
-| P28 | Infrastructure quality: TS definitions + benchmark | Mostly Done | `control-studio/types/control-studio.d.ts`, `benchmark.mjs` |
+| P25 | Model order reduction: minreal SS + balanced truncation + Hankel norm | Done | `verify_p25_model_reduction.mjs`, `verify_p25_hankel.mjs` |
+| P26 | Nonlinear control: gain scheduling + SMC + LPV | Done | `verify_p26_nonlinear.mjs`, `verify_p29_lpv.mjs` |
+| P27 | H∞ extensions: MIMO H∞ verify + loop shaping + D-K | Done | `verify_p27_mimo_hinf.mjs`, `verify_p27_loop_shaping.mjs`, `verify_p29_dk.mjs` |
+| P28 | Infrastructure quality: TS definitions + JSDoc API docs + benchmark | Done | `control-studio/types/control-studio.d.ts`, `docs/api/index.html`, `benchmark.mjs` |
 | **P29** | **Numerical optimization core: QP / LP / SDP-LMI** | Done | `verify_p29_{qp,lp,sdp,lpv,dk}.mjs` — 43 scripts total |
 | **P30** | **Adaptive & learning control: RLS / MRAC / STR / ILC** | Done | `verify_p30_adaptive.mjs` |
 | **P31** | **Estimation & monitoring: MHE / particle filter / FDD / FTC** | Done | `verify_p31_estimation.mjs` |
@@ -78,15 +78,24 @@
 | **P48** | **UI/UX P3 batch 4: A3 draggable poles / Bode breakpoint / history drawer** | Done | `verify_p48_a3.mjs` |
 | **P49** | **UI/UX P3 batch 5: C3 interactive animations** | Done | `verify_p49_c3.mjs` |
 | **P50** | **UI/UX P3 batch 6: E1~E4 dashboard / scoring / report / decision log** | Done | `verify_p50_e1_e4.mjs` |
+| **P51** | **F4/F5/G7 accessibility: colors / keyboard / screen-reader** | Done | `verify_p51_a11y.mjs` |
+| **P52** | **G5/G6/G8/G9 i18n skeleton / responsive / onboarding / multi-project** | Done | `verify_p52_g5689.mjs` |
+| **P53** | **A1-2/A1-3/A1-4 SysID entry / example library / health badge** | Done | `verify_p53_a1234.mjs` |
+| **P54** | **A4-1/A4-2/A4-3 design wizard / complexity indicator / AI explain** | Done | `verify_p54_a4.mjs` |
+| **P55** | **B2-4/B4-3/B4-4 Gramian / Python bridge / LaTeX export** | Done | `verify_p55_b24_b43_b44.mjs` |
+| **P56** | **C2-3/C5-2/C5-3/D1-4 error hints / screenshot / summary / codegen** | Done | `verify_p56_c23_c52_c53_d14.mjs` |
+| **P57** | **D4/D5 unit-test / diff / HIL / docs / wiring / warnings** | Done | `verify_p57_d4_d5.mjs` |
+| **P58** | **G11 app-loading skeleton screen** | Done | `verify_p58_g11.mjs` |
+| **P59** | **F1-2 Context Bar / view-nav / A5-1 Triple Pane (Step+Bode+Nyquist)** | Done | `verify_p59_ctxbar_triple.mjs` |
 
-## Verification Suite Status (2026-05-23)
+## Verification Suite Status (2026-05-24)
 
-**65/65 scripts pass** — run via `bash scripts/run_all_verify.sh`
+**74/74 scripts pass** — run via `bash scripts/run_all_verify.sh`
 
 | Group | Scripts | Pass |
 | --- | --- | --- |
 | Phase 9/10/11 foundations | 11 | 11 |
-| Phase 14–50 advanced control / UI | 50 | 50 |
+| Phase 14–59 advanced control / UI | 59 | 59 |
 | General math & PID | 4 | 4 |
 
 ## P1/P2 UI/UX Completion Summary
