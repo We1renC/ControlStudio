@@ -113,6 +113,7 @@ run_script "P44 F2-1 split + F2-2 tabs" "node scripts/verify_p44_split_tabs.mjs"
 run_script "P45 D3 FLOP/mem/platform + B4 CSV" "node scripts/verify_p45_d3_b4.mjs"
 run_script "P46 B5 calc/tooltip/cond + B2-1 matrix" "node scripts/verify_p46_b5_b2.mjs"
 run_script "P47 C1 topic cards + C4 draft/notes" "node scripts/verify_p47_c1_c4.mjs"
+run_script "P48 A3 draggable poles + bode + history" "node scripts/verify_p48_a3.mjs"
 echo ""
 
 # ── General Math & PID ───────────────────────────────────────────────────────

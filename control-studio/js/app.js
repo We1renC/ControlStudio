@@ -10207,3 +10207,234 @@ document.addEventListener('DOMContentLoaded', () => {
   initNotesSystem();
   initCompletionBadge();
 }, { once: true });
+
+// ════════════════════════════════════════════════════════════════════════════════
+// P48 — A3-2 Draggable RL Poles + A3-3 Bode Breakpoint + A3-4 History Drawer
+// ════════════════════════════════════════════════════════════════════════════════
+
+// ── A3-4: History drawer (extends existing _history) ─────────────────────────
+
+/** Enhanced history entry with metadata */
+const _historyMeta = []; // parallel array to _history.stack: { time, label, starred, name }
+
+function pushHistoryEntry(label = '') {
+  historySave();
+  const t = new Date().toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  _historyMeta.splice(_history.idx + 1);
+  _historyMeta.push({ time: t, label: label || '調參', starred: false, name: '' });
+  if (_historyMeta.length > 50) _historyMeta.shift();
+  _renderHistoryList();
+}
+
+function _renderHistoryList() {
+  const list = document.getElementById('history-list');
+  if (!list) return;
+  const items = _history.stack;
+  if (!items.length) {
+    list.innerHTML = '<div style="padding:16px;font-size:11px;color:var(--text-muted);">尚無歷史紀錄</div>';
+    return;
+  }
+  list.innerHTML = [...items].reverse().map((snap, revIdx) => {
+    const idx = items.length - 1 - revIdx;
+    const meta = _historyMeta[idx] || { time: '—', label: '調參', starred: false, name: '' };
+    const isCur = idx === _history.idx;
+    const kp = snap?.Kp != null ? `Kp=${fmtNum(snap.Kp, 2)}` : '';
+    const ki = snap?.Ki != null ? `Ki=${fmtNum(snap.Ki, 2)}` : '';
+    return `
+      <div class="history-item ${isCur ? 'current' : ''}" data-hidx="${idx}" role="button" tabindex="0" title="${isCur ? '目前狀態' : '點擊恢復'}">
+        <span class="history-item-star">${meta.starred ? '⭐' : ''}</span>
+        <div style="flex:1;min-width:0;">
+          <div class="history-item-label">${meta.label}${meta.name ? ` <span class="history-name-badge">${meta.name}</span>` : ''}</div>
+          <div class="history-item-time">${meta.time} ${[kp, ki].filter(Boolean).join(' ')}</div>
+        </div>
+        <button class="btn btn-sm history-star-btn" data-hidx="${idx}" title="加星標" style="padding:1px 4px;font-size:10px;opacity:0.5;">★</button>
+      </div>
+    `;
+  }).join('');
+
+  list.querySelectorAll('.history-item').forEach(item => {
+    item.addEventListener('click', e => {
+      if (e.target.classList.contains('history-star-btn')) return;
+      const idx = parseInt(item.dataset.hidx);
+      _history.idx = idx;
+      _applySnapshot(_history.stack[idx]);
+      _renderHistoryList();
+    });
+  });
+  list.querySelectorAll('.history-star-btn').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      const idx = parseInt(btn.dataset.hidx);
+      if (_historyMeta[idx]) _historyMeta[idx].starred = !_historyMeta[idx].starred;
+      _renderHistoryList();
+    });
+  });
+}
+
+function initHistoryDrawer() {
+  const drawer   = document.getElementById('history-drawer');
+  const openBtn  = document.getElementById('btn-history');
+  const closeBtn = document.getElementById('history-close-btn');
+  if (!drawer || !openBtn) return;
+
+  openBtn.addEventListener('click', () => {
+    drawer.classList.toggle('open');
+    if (drawer.classList.contains('open')) _renderHistoryList();
+  });
+  closeBtn?.addEventListener('click', () => drawer.classList.remove('open'));
+
+  // Hook into historySave to also update meta
+  const _origHistorySave = window.historySave || historySave;
+  // Expose for external use
+  window.pushHistoryEntry = pushHistoryEntry;
+  window._renderHistoryList = _renderHistoryList;
+}
+
+// ── A3-2: Draggable poles on root locus (interactive mode) ───────────────────
+
+function initDraggablePoles() {
+  const btn      = document.getElementById('btn-rl-interact');
+  const hint     = document.getElementById('rl-interact-hint');
+  const chartEl  = document.getElementById('chart-rlocus');
+  const floatBadge = document.getElementById('rl-k-float-badge');
+  if (!btn || !chartEl) return;
+
+  let _interactiveMode = false;
+
+  btn.addEventListener('click', () => {
+    _interactiveMode = !_interactiveMode;
+    btn.textContent = _interactiveMode ? '退出互動' : '互動';
+    btn.classList.toggle('btn-primary', _interactiveMode);
+    chartEl.classList.toggle('rl-interact-active', _interactiveMode);
+    if (hint) hint.style.display = _interactiveMode ? 'block' : 'none';
+    if (!_interactiveMode && floatBadge) floatBadge.style.display = 'none';
+  });
+
+  // Click on chart → set K
+  chartEl.addEventListener('click', e => {
+    if (!_interactiveMode || !window.Plotly) return;
+    const layout = chartEl._fullLayout;
+    if (!layout) return;
+
+    const xaxis = layout.xaxis;
+    const yaxis = layout.yaxis;
+    if (!xaxis || !yaxis) return;
+
+    const rect = chartEl.getBoundingClientRect();
+    const px = e.clientX - rect.left - (layout.margin?.l || 60);
+    const py = e.clientY - rect.top  - (layout.margin?.t || 20);
+    const plotW = rect.width  - (layout.margin?.l || 60) - (layout.margin?.r || 20);
+    const plotH = rect.height - (layout.margin?.t || 20) - (layout.margin?.b || 40);
+
+    const xFrac = px / plotW;
+    const yFrac = 1 - py / plotH;
+    const sigma = xaxis.range[0] + xFrac * (xaxis.range[1] - xaxis.range[0]);
+    const omega = yaxis.range[0] + yFrac * (yaxis.range[1] - yaxis.range[0]);
+
+    // Approximate K from pole distance ratio (simplified: K ≈ product of |s-pi| / product |s-zi|)
+    // Just update the rl-k-slider to the nearest feasible value based on real-part click
+    const sliderEl = document.getElementById('rl-k-slider');
+    if (sliderEl) {
+      // Map sigma to slider (assume sigma∈[min,0] range)
+      const minSigma = xaxis.range[0];
+      const frac = Math.max(0, Math.min(1, sigma / minSigma));
+      const newVal = sliderEl.min * frac + sliderEl.max * (1 - frac);
+      const clampedVal = Math.max(parseFloat(sliderEl.min), Math.min(parseFloat(sliderEl.max), newVal));
+      sliderEl.value = clampedVal;
+      sliderEl.dispatchEvent(new Event('input'));
+
+      if (floatBadge) {
+        floatBadge.textContent = `σ=${fmtNum(sigma, 2)} + j${fmtNum(omega, 2)}  K≈${fmtNum(clampedVal, 3)}`;
+        floatBadge.style.left = `${e.clientX - chartEl.getBoundingClientRect().left + 10}px`;
+        floatBadge.style.top  = `${e.clientY - chartEl.getBoundingClientRect().top  - 30}px`;
+        floatBadge.style.display = 'block';
+        setTimeout(() => { if (floatBadge) floatBadge.style.display = 'none'; }, 2000);
+      }
+      pushHistoryEntry(`RL互動 K=${fmtNum(clampedVal, 3)}`);
+    }
+  });
+
+  // Hover shows float badge
+  chartEl.addEventListener('mousemove', e => {
+    if (!_interactiveMode) return;
+    const layout = chartEl._fullLayout;
+    if (!layout) return;
+    const rect = chartEl.getBoundingClientRect();
+    if (floatBadge) {
+      floatBadge.style.left = `${e.clientX - rect.left + 10}px`;
+      floatBadge.style.top  = `${e.clientY - rect.top  - 30}px`;
+    }
+  });
+  chartEl.addEventListener('mouseleave', () => {
+    if (floatBadge && _interactiveMode) floatBadge.style.display = 'none';
+  });
+}
+
+// ── A3-3: Bode breakpoint drag ────────────────────────────────────────────────
+
+function initBodeBreakpointDrag() {
+  const btn     = document.getElementById('btn-bode-compensator');
+  const hint    = document.getElementById('bode-comp-hint');
+  const chartEl = document.getElementById('chart-active');
+  if (!btn) return;
+
+  let _bodeCompMode = false;
+  let _breakpointFreq = 1.0; // rad/s, zero freq
+
+  // Show btn only on Bode tab
+  document.querySelectorAll('.plot-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      const isBode = tab.dataset.plot === 'bode';
+      if (btn) btn.style.display = isBode ? 'inline-flex' : 'none';
+      if (!isBode && _bodeCompMode) {
+        _bodeCompMode = false;
+        btn.textContent = '補償器折點';
+        btn.classList.remove('btn-primary');
+        if (hint) hint.style.display = 'none';
+      }
+    });
+  });
+
+  btn.addEventListener('click', () => {
+    _bodeCompMode = !_bodeCompMode;
+    btn.textContent = _bodeCompMode ? '退出折點模式' : '補償器折點';
+    btn.classList.toggle('btn-primary', _bodeCompMode);
+    if (hint) hint.style.display = _bodeCompMode ? 'block' : 'none';
+    if (chartEl) chartEl.classList.toggle('bode-compensator-active', _bodeCompMode);
+  });
+
+  // Click on Bode chart → set breakpoint frequency
+  chartEl?.addEventListener('click', e => {
+    if (!_bodeCompMode || !window.Plotly) return;
+    const layout = chartEl._fullLayout;
+    if (!layout?.xaxis) return;
+
+    const rect  = chartEl.getBoundingClientRect();
+    const px    = e.clientX - rect.left - (layout.margin?.l || 60);
+    const plotW = rect.width - (layout.margin?.l || 60) - (layout.margin?.r || 20);
+    const xFrac = Math.max(0, Math.min(1, px / plotW));
+
+    const [xMin, xMax] = layout.xaxis.range;
+    // Bode x-axis is log scale: freq in rad/s
+    _breakpointFreq = Math.pow(10, xMin + xFrac * (xMax - xMin));
+
+    // Update lead/lag compensator zero freq
+    const leadZeroEl = document.getElementById('lead-zero-freq') || document.getElementById('comp-zero');
+    if (leadZeroEl) {
+      leadZeroEl.value = fmtNum(_breakpointFreq, 3);
+      leadZeroEl.dispatchEvent(new Event('input'));
+    }
+    notify(`折點設定：ωz = ${fmtNum(_breakpointFreq, 3)} rad/s`, 'info', { duration: 2000 });
+    pushHistoryEntry(`Bode折點 ωz=${fmtNum(_breakpointFreq, 2)}`);
+  });
+
+  // Expose
+  window._bodeBreakpointFreq = () => _breakpointFreq;
+}
+
+// ── P48 init ──────────────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  initHistoryDrawer();
+  initDraggablePoles();
+  initBodeBreakpointDrag();
+}, { once: true });
