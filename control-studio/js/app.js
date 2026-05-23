@@ -7768,6 +7768,20 @@ function initDesignWizard() {
     }
     // Emit hint as notification
     notify(`精靈步驟 ${currentStep + 1}：${WIZARD_STEPS[currentStep].hint}`, 'info', { duration: 4000 });
+    // A4-1: Navigate to the corresponding panel for this step
+    const WIZARD_STEP_PANELS = ['model', 'advisor', 'advisor', 'simulate'];
+    const WIZARD_STEP_SCROLL = [null, 'design-os', 'lqr-q', null];
+    const panelName = WIZARD_STEP_PANELS[currentStep];
+    if (panelName && typeof switchSidebarPanel === 'function') switchSidebarPanel(panelName);
+    const scrollTarget = WIZARD_STEP_SCROLL[currentStep];
+    if (scrollTarget) {
+      setTimeout(() => {
+        const el = document.getElementById(scrollTarget);
+        el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 150);
+    }
+    // Dispatch custom event for integration hooks
+    document.dispatchEvent(new CustomEvent('wizard:step', { detail: { step: currentStep } }));
   }
 
   function openWizard() {
@@ -7799,6 +7813,174 @@ function initDesignWizard() {
     window.COMMANDS.push({ group: 'UI', icon: '🧭', title: '開啟設計精靈', keys: [], action: openWizard });
   }
 }
+
+// ── P54 — A4-2: Method Complexity Labels ──────────────────────────────────────
+// Maps each controller type to a complexity level 1..5
+const METHOD_COMPLEXITY = {
+  pid:       { level: 1, label: 'Simple',   stars: '●○○○○', color: '#10b981' },
+  lead:      { level: 2, label: 'Easy',     stars: '●●○○○', color: '#34d399' },
+  lag:       { level: 2, label: 'Easy',     stars: '●●○○○', color: '#34d399' },
+  leadlag:   { level: 3, label: 'Moderate', stars: '●●●○○', color: '#f59e0b' },
+  lqr:       { level: 3, label: 'Moderate', stars: '●●●○○', color: '#f59e0b' },
+  mpc:       { level: 4, label: 'Advanced', stars: '●●●●○', color: '#fb923c' },
+  hinf:      { level: 5, label: 'Expert',   stars: '●●●●●', color: '#f87171' },
+  adaptive:  { level: 5, label: 'Expert',   stars: '●●●●●', color: '#f87171' },
+};
+
+function initMethodComplexityLabels() {
+  // Map section IDs (in advisor panel) to method keys
+  const SECTION_METHOD_MAP = [
+    { sectionId: 'mpc-panel',     method: 'mpc'   },
+    { sectionId: 'hinf-panel',    method: 'hinf'  },
+    { sectionId: 'robust-panel',  method: 'hinf'  },
+    { sectionId: 'ga-panel',      method: 'adaptive' },
+  ];
+
+  SECTION_METHOD_MAP.forEach(({ sectionId, method }) => {
+    const section = document.getElementById(sectionId);
+    if (!section) return;
+    const titleEl = section.querySelector('.section-title');
+    if (!titleEl) return;
+    const info = METHOD_COMPLEXITY[method];
+    if (!info) return;
+    if (titleEl.querySelector('.method-complexity-badge')) return; // already added
+    const badge = document.createElement('span');
+    badge.className = 'method-complexity-badge';
+    badge.dataset.method = method;
+    badge.dataset.level = info.level;
+    badge.title = `Complexity: ${info.label} (${info.level}/5)`;
+    badge.innerHTML = `<span class="mcb-stars" style="color:${info.color};">${info.stars}</span><span class="mcb-label">${info.label}</span>`;
+    titleEl.appendChild(badge);
+  });
+
+  // Also badge the Controller Design section and PID section
+  const pidSection = document.querySelector('#panel-advisor .s-domain-only .section-title');
+  if (pidSection && !pidSection.querySelector('.method-complexity-badge')) {
+    const info = METHOD_COMPLEXITY['pid'];
+    const badge = document.createElement('span');
+    badge.className = 'method-complexity-badge';
+    badge.dataset.method = 'pid';
+    badge.dataset.level = info.level;
+    badge.title = `PID Complexity: ${info.label}`;
+    badge.innerHTML = `<span class="mcb-stars" style="color:${info.color};">${info.stars}</span><span class="mcb-label">${info.label}</span>`;
+    pidSection.appendChild(badge);
+  }
+}
+
+// ── P54 — A4-3: Recommendation Explanation Panel ──────────────────────────────
+// Why-this-method explanation text for each controller type
+const WHY_EXPLAIN = {
+  pid: {
+    title: 'PID 控制器',
+    icon: '⚙',
+    why: '最廣泛使用的工業控制器，設計直覺、調整簡單、實作成本低。',
+    when_good: '穩定、低階（1~2 階）的 SISO 系統，或對實作資源有限制時。',
+    caution: '高階/非線性/MIMO 系統效果有限，積分飽和需加 anti-windup。',
+    complexity: 1,
+  },
+  lead: {
+    title: 'Lead 補償器',
+    icon: '📈',
+    why: '增加相位裕度，改善暫態響應速度，比 PID 更精準控制頻域特性。',
+    when_good: '需要提升相位裕度或加快響應，系統在特定頻率範圍內工作。',
+    caution: '高頻雜訊放大，需確認 sensor 雜訊水準。',
+    complexity: 2,
+  },
+  lag: {
+    title: 'Lag 補償器',
+    icon: '📉',
+    why: '降低稳態誤差、改善穩健性，適合需要高增益的低頻系統。',
+    when_good: '靜差要求嚴格，或需提升低頻增益的 Type 0 系統。',
+    caution: '會減慢動態響應，注意 phase lag 對穩定裕度的影響。',
+    complexity: 2,
+  },
+  leadlag: {
+    title: 'Lead-Lag 補償器',
+    icon: '🔀',
+    why: '結合 Lead 和 Lag 優點：改善暫態響應並降低穩態誤差。',
+    when_good: '同時有靜差和響應速度要求，且系統為低~中階 SISO。',
+    caution: '參數較多，需系統性調整；對不穩定系統需謹慎。',
+    complexity: 3,
+  },
+  lqr: {
+    title: 'LQR 最優狀態回授',
+    icon: '🎯',
+    why: '最小化二次性能指標 J = ∫(xᵀQx + uᵀRu)dt，保證穩定且有良好增益/相位裕度。',
+    when_good: '狀態可完全量測（或有觀測器），系統為線性，有明確 Q/R 權重設定。',
+    caution: '需要全狀態量測或觀測器；對參數不確定性的穩健性需另外驗證。',
+    complexity: 3,
+  },
+  mpc: {
+    title: 'Model Predictive Control (MPC)',
+    icon: '🔮',
+    why: '在線上滾動時域內求解最優化，自然處理輸入/輸出約束，適合多目標控制。',
+    when_good: '有明確約束（輸入飽和、狀態限制），慢動態過程（化工、建築），MIMO 系統。',
+    caution: '每個取樣週期需線上求解 QP；計算資源需求高，即時性可能受限。',
+    complexity: 4,
+  },
+  hinf: {
+    title: 'H∞ 魯棒控制',
+    icon: '🛡',
+    why: '最小化最壞情況下的干擾放大增益，對模型不確定性具有強鳥棒保證。',
+    when_good: '高確定性需求（航空、精密製造），有顯著模型不確定性或外部干擾。',
+    caution: '設計複雜（需 Riccati / LMI 求解），控制器階數可能很高，建議做模型降階。',
+    complexity: 5,
+  },
+  adaptive: {
+    title: '自適應控制 (MRAC/GA)',
+    icon: '🤖',
+    why: '參數或結構在線上自動調整，適應系統時變特性或初始不確定性大的場景。',
+    when_good: '系統參數明顯時變（航空器不同飛行包絡），或初始模型精度低。',
+    caution: '穩定性分析複雜，調整不當可能造成參數漂移；不適合快速動態系統。',
+    complexity: 5,
+  },
+};
+
+function showRecommendExplain(method) {
+  const panel = document.getElementById('recommend-explain-panel');
+  if (!panel) return;
+  const info = WHY_EXPLAIN[method];
+  if (!info) { panel.style.display = 'none'; return; }
+  const dots = '●'.repeat(info.complexity) + '○'.repeat(5 - info.complexity);
+  panel.innerHTML = `
+    <div class="rec-explain-header">
+      <span class="rec-explain-icon">${info.icon}</span>
+      <strong class="rec-explain-title">${info.title}</strong>
+      <span class="rec-explain-complexity" title="Complexity ${info.complexity}/5">${dots}</span>
+      <button class="rec-explain-close" id="rec-explain-close" aria-label="關閉解釋">✕</button>
+    </div>
+    <div class="rec-explain-body">
+      <div class="rec-explain-row"><span class="rec-explain-label">為何推薦</span><span>${info.why}</span></div>
+      <div class="rec-explain-row"><span class="rec-explain-label">適用情境</span><span>${info.when_good}</span></div>
+      <div class="rec-explain-row rec-caution"><span class="rec-explain-label">注意事項</span><span>${info.caution}</span></div>
+    </div>`;
+  panel.style.display = 'block';
+  panel.querySelector('#rec-explain-close')?.addEventListener('click', () => { panel.style.display = 'none'; });
+}
+
+function initRecommendExplain() {
+  // Wire up "Why?" button in scoring matrix / advisor panels
+  document.addEventListener('click', e => {
+    const btn = e.target.closest('[data-rec-explain]');
+    if (btn) showRecommendExplain(btn.dataset.recExplain);
+  });
+
+  // Listen for method selection in compare/scoring panels to show explanation
+  document.getElementById('compare-method-select')?.addEventListener('change', e => {
+    showRecommendExplain(e.target.value);
+  });
+
+  // Watch wizard step events — on step 2 (design), show current method explain
+  document.addEventListener('wizard:step', e => {
+    if (e.detail.step === 2) {
+      const sel = document.getElementById('compare-method-select');
+      if (sel) showRecommendExplain(sel.value);
+    }
+  });
+}
+
+window.showRecommendExplain = showRecommendExplain;
+window.METHOD_COMPLEXITY    = METHOD_COMPLEXITY;
 
 // ── P40 — B3-2 Chart Cursor Readout ──────────────────────────────────────────
 // Adds a crosshair readout overlay to Plotly chart cells, triggered by
@@ -12292,4 +12474,10 @@ document.addEventListener('DOMContentLoaded', () => {
   initSysIDEntry();
   initExampleLibrary();
   initHealthBadge();
+}, { once: true });
+
+// ── P54 init ──────────────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  initMethodComplexityLabels();
+  initRecommendExplain();
 }, { once: true });

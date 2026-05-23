@@ -1293,6 +1293,24 @@
     .health-row-icon { flex-shrink: 0; width: 14px; text-align: center; }
     .health-row-label { flex: 1; color: var(--text-muted); }
     .health-row-val { color: var(--text-primary); font-size: 10px; font-family: ui-monospace, monospace; max-width: 130px; word-break: break-all; text-align: right; }
+
+    /* ── P54: A4-2 Method Complexity Badge ── */
+    .method-complexity-badge { display: inline-flex; align-items: center; gap: 4px; margin-left: 8px; vertical-align: middle; }
+    .mcb-stars { font-size: 9px; letter-spacing: 0; }
+    .mcb-label { font-size: 9px; font-weight: 600; color: var(--text-muted); background: var(--bg-tertiary); border: 1px solid var(--border-primary); border-radius: 8px; padding: 1px 5px; }
+
+    /* ── P54: A4-3 Recommendation Explanation Panel ── */
+    #recommend-explain-panel { display: none; margin: 8px 0; border: 1px solid var(--color-accent); border-radius: var(--radius-md); background: rgba(99,102,241,0.06); padding: 10px 12px; }
+    .rec-explain-header { display: flex; align-items: center; gap: 6px; margin-bottom: 8px; }
+    .rec-explain-icon { font-size: 16px; }
+    .rec-explain-title { font-size: 12px; font-weight: 700; color: var(--text-primary); flex: 1; }
+    .rec-explain-complexity { font-size: 10px; color: var(--color-accent); letter-spacing: 0; }
+    .rec-explain-close { background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 14px; line-height: 1; padding: 0 2px; }
+    .rec-explain-body { display: flex; flex-direction: column; gap: 5px; }
+    .rec-explain-row { display: flex; gap: 6px; font-size: 11px; line-height: 1.5; color: var(--text-secondary); }
+    .rec-explain-label { font-weight: 700; color: var(--text-primary); white-space: nowrap; min-width: 52px; }
+    .rec-explain-row.rec-caution .rec-explain-label { color: #f59e0b; }
+    .rec-explain-row.rec-caution { color: var(--text-muted); }
   </style>
 </head>
 <body>
@@ -2207,6 +2225,8 @@
 
         <section class="section-panel s-domain-only">
           <div class="section-title">Controller Design (Specs → Controller)</div>
+          <!-- A4-3: Recommendation Explanation Panel -->
+          <div id="recommend-explain-panel" role="region" aria-label="方法推薦說明" aria-live="polite"></div>
           <p style="font-size:12px;color:var(--text-muted);line-height:1.6;margin-bottom:var(--space-3);">
             輸入閉迴路目標規格 → 自動轉換為主導極點 / Lead 補償器。
           </p>
