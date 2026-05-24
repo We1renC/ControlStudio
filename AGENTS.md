@@ -23,6 +23,12 @@
 - `configs/model_registry.json`：模型能力、角色、endpoint、實測狀態。
 - `configs/task_profiles.json`：任務 profile、階段拆解、rubric。
 
+## UI 設計規則
+- **禁止在 UI 中使用 emoji / 象形圖示**（如 📌 📄 ⚙ 🔗 ✓ ✗ 等 Unicode emoji）作為按鈕文字、標注符號、狀態指示器或任何介面元件。
+- 允許使用純 ASCII 符號（`+`、`-`、`×`、`⊕`、`▾`、`◆` 等標準 Unicode 幾何字元）或純文字。
+- 圖示需求應以 SVG inline icon 或 CSS pseudo-element 實作，不依賴 emoji 字型渲染。
+- 此規則適用於 `index.html`、`js/app.js`、`js/ui/*.js` 所有前端程式碼，以及由 JS 動態注入的 DOM 文字。
+
 ## 控制系統開發規則
 - 若修改 `control-studio/`、`workflows/control_advisor_workflow.py`、`test_control.js`，先讀 `control-studio/ROADMAP.md` 與 `docs/src/control-studio/plan.md`。
 - 控制系統功能開發先以 `control-studio/ROADMAP.md` 的當前 phase 順序為準，產品範圍再對照 `docs/src/control-studio/plan.md`；不要直接跳做高複雜度進階控制功能。
