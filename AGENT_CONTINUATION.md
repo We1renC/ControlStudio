@@ -9,7 +9,7 @@
 - 已建立獨立 git repo，避免被 `/Users/w.rc` 外層 git 混入。
 - 控制系統目前同步基線：
   - Branch: `main`
-  - Latest active line: `c5db6cf feat(ui): P50 — E1~E4 dashboard/scoring/report/decision-log`
+  - Latest active line: `7ea48fe chore(ui): remove triple-pane plot workspace and keep active-plot crosshair routing`
   - Full phase audit checkpoints:
     - `7a318b3 fix(control): harden phase 7-9 theory diagnostics`
     - `46e20da fix(control): harden phase 0-6 theory checks`
@@ -17,7 +17,7 @@
   - Post Phase 17 最新數學核心 hardening：`a2a89d3` 修正 `complex.js` magnitude overflow/underflow 風險、`polynomial.js` ill-conditioned conjugate root pairing、`realschur.js` Hamiltonian dead computation 與 real Schur 1x1 block swap / eigenvalue order 問題。
   - 本輪文件同步時同步修正 `rootsToRealPoly()` unpaired complex root error message，保留 `conjugate pairs` regression contract，讓 `./nv-agent doctor` / `test_control.js` 可正確分類錯誤。
   - 2026-05-22 UI/UX 計畫 P1 foundation 已開始落地：全域狀態列、toast notification infrastructure、empty-state action style、Share/Theme/Project/Compare 高頻動作通知，新增 `verify_p35_uiux_foundation.mjs` 並納入 `run_all_verify.sh`。
-  - 2026-05-23 UI/UX 計畫已推進到 P50：P35~P44 完成 P1/P2，P45~P50 完成 P3 的 D3/B4、B5/B2、C1/C4、A3、C3、E1~E4 dashboard/scoring/report/decision-log；`run_all_verify.sh` 最新基線為 65/65 scripts pass。
+  - 2026-05-24 UI/UX 計畫已推進到 P59 之後的整體整理階段：P35~P59 均已落地，包含 plot workspace、context bar、dashboard/scoring/report/decision-log，以及後續的 browser-driven layout cleanup；`run_all_verify.sh` 最新基線為 `79/79 scripts pass`。
 - 已完成 NVIDIA Build Models 資料集中管理。
 - 已新增 agent 入口文件：
   - `AGENTS.md`：專案規則、標準流程、擴充規則與品質判準。
@@ -280,10 +280,11 @@ git log --oneline -5
 - 2026-05-23 browser UI check 發現 `buildCodegenPayload()` 重複宣告造成 browser module 初始化中止，已移除 P36/P37 區塊的重複宣告並讓 Code Preview 共用 P15 payload；`verify_p36_uiux_p1_remaining.mjs` 已新增 single-declaration regression guard。瀏覽器 walkthrough 覆蓋 SISO step / Bode legend / MIMO switch / P50 E1~E4 / mobile overflow，結果無 console/page error。
 - 2026-05-24 browser UI audit 補做 workflow / mode / plot tabs 全面操作檢查：workflow tab routing 已穩定，plot workspace companion charts 已加大到約 `404×276` / `404×250`，`Stability Map` 現在會顯示 `穩定邊界 + 當前設計點 + 顏色註記`，且 `NVIDIA Control Advisor` 已恢復為 MIMO-only（SISO 隱藏 panel 與 response container）。`bash control-studio/scripts/run_all_verify.sh` 維持 `79/79 passed`。
 - 2026-05-24 首次進站 UX 已再修正：移除 Quick Start 自動跳出，現在第一次進站只顯示 onboarding；結束導覽後以 toast 提示 `▶ 範例 / Ctrl+/` 入口，避免 onboarding + quickstart 連續雙重 blocking。
+- 2026-05-24 sidebar IA 已補做結構整理：workflow sidebar 依任務分為 `Core / ID / Reuse`、`Core / Specs / Advanced`、`Sim / Deploy / QA` 等群組；對次要 panel 套用 default collapsed preset，並將 `Controller Tuning`、`Simulation` 兩個最長卡片再拆成 nested subsections。Browser 實測 `Design` tab nav scroll height 約由 `6225` 降到 `2052`，切 workflow / mode / search 後分類標籤仍能正確跟隨可見面板刷新。
 
 ## 後續可做
 1. 決定 `package.json` / `package-lock.json` 的 dependency policy；若 TypeScript workflow 正式化才提交 lockfile，`node_modules/` 永不提交。
-2. UI/UX 下一步依 `control-studio/UI_UX_PLAN.md` 檢查 P3 尚未覆蓋項目，優先聚焦 D4/D5、F4-2~4、F5、G5~G9；Teaching Mode / Electron / Report Template 仍維持暫停。
+2. UI/UX 下一步先延續 sidebar information architecture：檢查是否仍有單一卡片高度過長、是否需要把 `Analyse` 下的 model diagnostics 再拆成更細 group，並評估把 group collapse state 做成 user preference；Teaching Mode / Electron / Report Template 仍維持暫停。
 3. 下一個控制理論主線做 P27 full D-K iteration；不要把目前 structured μ surrogate 說成完整 μ-synthesis。
 4. 補 P23 continuous-time identification、P25 Hankel norm approximation、P26 LPV synthesis、P28 JSDoc API docs。
 5. 使用 `control-studio-system-auditor` 審查下一個控制設計缺口，並用 `control-studio-benchmark-author` 補 benchmark fixture。

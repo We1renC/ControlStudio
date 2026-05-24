@@ -1185,6 +1185,7 @@ function switchWorkflowTab(tabId) {
   document.querySelectorAll('.section-panel[data-wf]').forEach(section => {
     section.classList.toggle('wf-hidden', section.dataset.wf !== tabId);
   });
+  csUI?.refreshSidebarGroups?.();
 
   // Scroll sidebar to top
   document.getElementById('nav')?.scrollTo?.(0, 0);
@@ -1347,6 +1348,7 @@ function _runSidebarSearch(query) {
     document.querySelectorAll('.section-panel[data-wf]').forEach(s => {
       s.classList.toggle('wf-hidden', s.dataset.wf !== state.sidebarTab);
     });
+    csUI?.refreshSidebarGroups?.();
     return;
   }
   // Search mode: show all sections matching query across all tabs
@@ -1356,6 +1358,7 @@ function _runSidebarSearch(query) {
     s.classList.toggle('wf-hidden', !matches);
     if (matches && s.classList.contains('collapsed')) s.classList.remove('collapsed');
   });
+  csUI?.refreshSidebarGroups?.();
 }
 
 // ── Backward-compat shim: switchSidebarPanel ─────────────────────────────────
@@ -1794,6 +1797,7 @@ function syncAdvisorModeVisibility() {
   note.textContent = eligible
     ? '使用目前 2-state MIMO plant 繪製狀態平面向量場與軌跡。'
     : '僅 MIMO 模式且 n=2（2 個狀態變數）時可繪製。請先建立 2-state MIMO plant。';
+  csUI?.refreshSidebarGroups?.();
 }
 
 function setPIDFromController(controller, source) {
@@ -5861,6 +5865,7 @@ function switchSystemMode(mode) {
       applyMIMOChannel();
     }
   }
+  csUI?.refreshSidebarGroups?.();
   updateGlobalStatusBar(`${mode.toUpperCase()} mode active`);
 }
 
@@ -7042,6 +7047,84 @@ function scheduleSmokeDiagnostics() {
 // ============================================================
 const csUI = (() => {
   const COLLAPSE_KEY = 'controlStudio.collapsedSections';
+  const SIDEBAR_LAYOUT_PRESET_KEY = 'controlStudio.sidebarLayoutPreset.v1';
+  const SIDEBAR_GROUP_SPECS = Object.freeze({
+    identify: [
+      { id: 'identify-core', kicker: 'Core', label: '系統建立', sections: ['system-mode-panel', 'siso-input-panel', 'mimo-input-panel'] },
+      { id: 'identify-id', kicker: 'ID', label: '識別與轉換', sections: ['sysid-panel', 'c2d-panel', 'sysid-entry-panel'] },
+      { id: 'identify-lib', kicker: 'Reuse', label: '範例與重用', sections: ['example-library-panel'] },
+    ],
+    design: [
+      { id: 'design-core', kicker: 'Core', label: '基礎控制器', sections: ['controller-tuning-panel', 'control-equations-panel', 'warnings-panel'] },
+      { id: 'design-spec', kicker: 'Specs', label: '規格導向設計', sections: ['design-wizard-panel'] },
+      { id: 'design-advanced', kicker: 'Advanced', label: '進階設計與建議', sections: ['mimo-analysis-panel', 'mpc-panel', 'mimo-hinf-panel', 'hinf-panel', 'ga-panel', 'c3-pole-drag-panel', 'ai-advisor-panel'] },
+    ],
+    analyse: [
+      { id: 'analyse-core', kicker: 'Core', label: '穩定性總覽', sections: ['stability-snapshot-panel', 'result-summary-panel'] },
+      { id: 'analyse-model', kicker: 'Model', label: '模型診斷', sections: ['matrix-expand-panel', 'hankel-svd-panel', 'gramian-detail-panel'] },
+      { id: 'analyse-advanced', kicker: 'Advanced', label: '魯棒與幾何分析', sections: ['robust-panel', 'c3-sensitivity-panel', 'nyquist-animation-panel', 'phase-portrait-panel'] },
+    ],
+    implement: [
+      { id: 'implement-sim', kicker: 'Sim', label: '模擬與輸出', sections: ['simulation-settings-panel', 'd2-disc-tool-panel', 'screenshot-tool-panel'] },
+      { id: 'implement-code', kicker: 'Deploy', label: '部署準備', sections: ['d3-flop-panel', 'code-preview-panel', 'python-bridge-panel', 'latex-gen-panel', 'codegen-options-panel', 'hil-export-panel'] },
+      { id: 'implement-qa', kicker: 'QA', label: '驗證資產', sections: ['unit-test-panel', 'code-diff-panel'] },
+    ],
+    learn: [
+      { id: 'learn-guidance', kicker: 'Guide', label: '說明與參考', sections: ['common-error-hints-panel', 'init-docs-panel', 'wiring-diagram-panel'] },
+      { id: 'learn-review', kicker: 'Review', label: '比較與決策', sections: ['e1-dashboard-section', 'e2-scoring-section', 'e4-decision-section', 'result-comparison-panel'] },
+    ],
+  });
+  const DEFAULT_COLLAPSED_SECTION_IDS = new Set([
+    'sysid-panel',
+    'c2d-panel',
+    'sysid-entry-panel',
+    'example-library-panel',
+    'control-equations-panel',
+    'mpc-panel',
+    'mimo-hinf-panel',
+    'hinf-panel',
+    'ga-panel',
+    'c3-pole-drag-panel',
+    'matrix-expand-panel',
+    'hankel-svd-panel',
+    'gramian-detail-panel',
+    'robust-panel',
+    'c3-sensitivity-panel',
+    'nyquist-animation-panel',
+    'phase-portrait-panel',
+    'd2-disc-tool-panel',
+    'screenshot-tool-panel',
+    'd3-flop-panel',
+    'python-bridge-panel',
+    'latex-gen-panel',
+    'unit-test-panel',
+    'code-diff-panel',
+    'hil-export-panel',
+    'init-docs-panel',
+    'wiring-diagram-panel',
+    'e1-dashboard-section',
+    'e2-scoring-section',
+    'e4-decision-section',
+  ]);
+  const PANEL_SUBSECTION_SPECS = Object.freeze([
+    {
+      panelId: 'controller-tuning-panel',
+      groups: [
+        { id: 'ctrl-basic', kicker: 'Core', label: 'PID 基本調整', start: '.section-copy', end: '#pid-preset', defaultOpen: true },
+        { id: 'ctrl-presets', kicker: 'Assist', label: 'Preset 與自動調參', start: '#pid-preset', end: '#enable-2dof', defaultOpen: false },
+        { id: 'ctrl-structure', kicker: 'Structure', label: '2-DOF 與飽和設定', start: '#enable-2dof', end: '#comp-mode', defaultOpen: false },
+        { id: 'ctrl-comp', kicker: 'Comp', label: '補償器與 Lead/Lag 設計', start: '#comp-mode', end: null, defaultOpen: false },
+      ],
+    },
+    {
+      panelId: 'simulation-settings-panel',
+      groups: [
+        { id: 'sim-core', kicker: 'Core', label: '輸入與時間基準', start: '.input-group', end: '#sim-disturbance-type', defaultOpen: true },
+        { id: 'sim-dist', kicker: 'Disturbance', label: '干擾與初始條件', start: '#sim-disturbance-type', end: '#analysis-source', defaultOpen: false },
+        { id: 'sim-export', kicker: 'Export', label: '儲存、匯出與 session', start: '#analysis-source', end: null, defaultOpen: false },
+      ],
+    },
+  ]);
 
   // -------- Modal management --------
   function showModal(id) {
@@ -7139,6 +7222,17 @@ const csUI = (() => {
   function panelKey(panel) {
     return panel.id || panel.querySelector('.section-title')?.textContent?.trim()?.slice(0, 40) || 'anon';
   }
+  function _closestDirectChild(body, selector) {
+    if (!body || !selector) return null;
+    const target = body.querySelector(selector);
+    if (!target) return null;
+    return Array.from(body.children).find((child) => child === target || child.contains(target)) || null;
+  }
+  function _setSubsectionOpen(block, open) {
+    block.classList.toggle('collapsed', !open);
+    const toggle = block.querySelector('.subsection-toggle');
+    if (toggle) toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+  }
   function wrapSectionBodies() {
     document.querySelectorAll('.section-panel').forEach((panel) => {
       // Already wrapped?
@@ -7175,6 +7269,95 @@ const csUI = (() => {
         });
       }
     });
+  }
+  function buildPanelSubsections() {
+    PANEL_SUBSECTION_SPECS.forEach((spec) => {
+      const panel = document.getElementById(spec.panelId);
+      const body = panel?.querySelector(':scope > .section-body');
+      if (!body || body.dataset.subsectionsBuilt === '1') return;
+
+      spec.groups.forEach((group) => {
+        const startChild = _closestDirectChild(body, group.start);
+        if (!startChild) return;
+
+        const children = Array.from(body.children);
+        const startIdx = children.indexOf(startChild);
+        if (startIdx < 0) return;
+
+        let endIdx = children.length;
+        if (group.end) {
+          const endChild = _closestDirectChild(body, group.end);
+          if (endChild) {
+            endIdx = Array.from(body.children).indexOf(endChild);
+          }
+        }
+        if (endIdx <= startIdx) return;
+
+        const block = document.createElement('div');
+        block.className = 'subsection-accordion';
+        block.dataset.subsectionId = group.id;
+
+        const toggle = document.createElement('button');
+        toggle.type = 'button';
+        toggle.className = 'subsection-toggle';
+        toggle.innerHTML = `<span class="subsection-kicker">${escapeHtml(group.kicker)}</span><span class="subsection-name">${escapeHtml(group.label)}</span>`;
+
+        const content = document.createElement('div');
+        content.className = 'subsection-body';
+        const movingChildren = children.slice(startIdx, endIdx);
+
+        body.insertBefore(block, startChild);
+        block.appendChild(toggle);
+        block.appendChild(content);
+
+        movingChildren.forEach((child) => content.appendChild(child));
+
+        toggle.addEventListener('click', () => _setSubsectionOpen(block, block.classList.contains('collapsed')));
+        _setSubsectionOpen(block, group.defaultOpen !== false);
+      });
+
+      body.dataset.subsectionsBuilt = '1';
+    });
+  }
+  function injectSidebarGroups() {
+    document.querySelectorAll('.section-group-label').forEach((node) => node.remove());
+    Object.entries(SIDEBAR_GROUP_SPECS).forEach(([workflow, groups]) => {
+      groups.forEach((group) => {
+        const firstPanel = group.sections.map((id) => document.getElementById(id)).find(Boolean);
+        if (!firstPanel?.parentNode) return;
+        const label = document.createElement('div');
+        label.className = 'section-group-label';
+        label.dataset.workflow = workflow;
+        label.dataset.groupId = group.id;
+        label.dataset.groupSections = group.sections.join(',');
+        label.innerHTML = `<span class="section-group-kicker">${escapeHtml(group.kicker)}</span><span class="section-group-name">${escapeHtml(group.label)}</span>`;
+        firstPanel.parentNode.insertBefore(label, firstPanel);
+      });
+    });
+  }
+  function refreshSidebarGroups() {
+    document.querySelectorAll('.section-group-label').forEach((label) => {
+      const ids = (label.dataset.groupSections || '').split(',').filter(Boolean);
+      const visible = ids.some((id) => {
+        const panel = document.getElementById(id);
+        return panel && getComputedStyle(panel).display !== 'none' && !panel.classList.contains('wf-hidden');
+      });
+      label.style.display = visible ? '' : 'none';
+    });
+  }
+  function applyDefaultSidebarCollapsePreset() {
+    try {
+      if (localStorage.getItem(SIDEBAR_LAYOUT_PRESET_KEY) === '1') return;
+      const map = loadCollapseState();
+      DEFAULT_COLLAPSED_SECTION_IDS.forEach((id) => {
+        const legacyKey = `cs-acc-${id}`;
+        if (map[id] !== undefined || localStorage.getItem(legacyKey) !== null) return;
+        map[id] = true;
+        localStorage.setItem(legacyKey, '1');
+      });
+      saveCollapseState(map);
+      localStorage.setItem(SIDEBAR_LAYOUT_PRESET_KEY, '1');
+    } catch { /* noop */ }
   }
   function togglePanel(panel, collapsed = null) {
     const willCollapse = collapsed === null ? !panel.classList.contains('collapsed') : collapsed;
@@ -7585,7 +7768,11 @@ const csUI = (() => {
   // -------- Init --------
   function init() {
     wrapSectionBodies();
+    buildPanelSubsections();
+    injectSidebarGroups();
+    applyDefaultSidebarCollapsePreset();
     restoreCollapseState();
+    refreshSidebarGroups();
     applyTooltips();
     initMatrixValidators();
     initQuickStart();
@@ -7597,7 +7784,7 @@ const csUI = (() => {
     updateGlobalStatusBar('Ready');
   }
 
-  return { init, showModal, hideModal, confirm, setLoading, withLoading, collapseAll, expandAll, loadPreset, notify, updateGlobalStatusBar };
+  return { init, showModal, hideModal, confirm, setLoading, withLoading, collapseAll, expandAll, loadPreset, notify, updateGlobalStatusBar, refreshSidebarGroups };
 })();
 
 window.toggleTheme = toggleTheme;

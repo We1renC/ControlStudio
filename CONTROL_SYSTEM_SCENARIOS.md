@@ -713,3 +713,19 @@ Date: 2026-05-24
 | PW-3 | Done | plot workspace 下排 companion charts 放大；實測 `chart-rlocus=404×276`、`chart-pzmap=404×250` | `Time Response / Bode / Nyquist / Nichols / Root Locus / Pole-Zero / Sensitivity / 穩定地圖` 皆無局部圖形過小 |
 | PW-4 | Done | `Stability Map` 新增穩定邊界、當前設計點、顏色註記與 legend，避免主圖只剩無說明的小點 | Browser walkthrough：legend 顯示 `穩定邊界 / 當前設計點`，annotation 顯示 `綠色 = 穩定裕度較高，紅色 = 不穩定` |
 | PW-5 | Done | `NVIDIA Control Advisor` 重新限制為 MIMO-only；SISO 隱藏 panel 與回覆容器，MIMO 才顯示 panel | Browser walkthrough：SISO=`advisor hidden`，MIMO=`advisor visible` |
+
+### Sidebar Information Architecture Audit（2026-05-24）
+
+針對使用者回報「side bar panel 過長、需要一直滾動」追加做一輪結構性整理，不是只調整 spacing，而是直接重組資訊層級。
+
+| # | 狀態 | 修復方式 | Browser result |
+| - | - | - | - |
+| SB-1 | Done | workflow sidebar 新增 category grouping：`識別=Core/ID/Reuse`、`設計=Core/Specs/Advanced`、`分析=Core/Model/Advanced`、`實作=Sim/Deploy/QA`、`學習=Guide/Review` | 每個 workflow tab 都能一眼辨識面板群組，不再是長串無分段 section |
+| SB-2 | Done | 對次要 panel 套用 default collapsed preset，例如 `SysID`、`Convert to Discrete`、`Robustness`、`Nyquist 動畫`、`HIL CSV` 等進階或次要內容預設收合 | `Identify / Analyse / Implement` 首屏可見主流程面板，次要工具保留但不搶版面 |
+| SB-3 | Done | `Controller Tuning` 拆成 `PID 基本調整 / Preset 與自動調參 / 2-DOF 與飽和 / 補償器設計` 四個 nested subsections | `Design` tab scroll height 約由 `6225` 降到 `2052`，主要 PID 內容可直接操作，其餘進階設定按需展開 |
+| SB-4 | Done | `Simulation` 拆成 `輸入與時間基準 / 干擾與初始條件 / 儲存與匯出` 三段 nested subsections | `Implement` tab 不再把干擾、session、匯出全部堆成單一長卡片 |
+| SB-5 | Done | 切 workflow / search filter / SISO↔MIMO 後同步刷新 group label 與 visible state，避免分類標籤和實際顯示脫節 | Browser walkthrough：切 tab、切 mode、做 sidebar search 後，group label 與 visible panel 一致 |
+
+### Sidebar IA Outcome
+
+這輪整理後，sidebar 的問題已從「靠捲動找功能」改成「先依任務群組定位，再決定是否展開細節」。目前仍保留全部功能，但次要面板不再和主流程搶第一屏。

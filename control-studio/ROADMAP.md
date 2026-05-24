@@ -1,7 +1,7 @@
 # ControlStudio Development Roadmap
 
 > Last updated: 2026-05-24
-> Current committed baseline: `d14dfc2 feat(ui): P44 — F2-1 split pane divider, F2-2 multi-design tab system`
+> Current committed baseline: `7ea48fe chore(ui): remove triple-pane plot workspace and keep active-plot crosshair routing`
 > Scope: this is the canonical execution roadmap for ControlStudio implementation status.
 > Do not use this file for product vision, proof derivations, or handoff notes; see the document workflow below.
 
@@ -90,12 +90,12 @@
 
 ## Verification Suite Status (2026-05-24)
 
-**74/74 scripts pass** — run via `bash scripts/run_all_verify.sh`
+**79/79 scripts pass** — run via `bash scripts/run_all_verify.sh`
 
 | Group | Scripts | Pass |
 | --- | --- | --- |
 | Phase 9/10/11 foundations | 11 | 11 |
-| Phase 14–59 advanced control / UI | 59 | 59 |
+| Phase 14–65 advanced control / UI | 64 | 64 |
 | General math & PID | 4 | 4 |
 
 ## P1/P2 UI/UX Completion Summary
@@ -149,6 +149,15 @@ Remaining P3-oriented UI/UX work should continue from the unchecked portions of 
 | P35-03 High-frequency action feedback | Done | Share, theme, project export/load, compare snapshot actions |
 | P35-04 Empty-state action style | Done | `.empty-state-actions` |
 | P35-05 Regression guard | Done | `verify_p35_uiux_foundation.mjs`, `run_all_verify.sh` |
+
+### Post-P59 UI Refinement — Sidebar Information Architecture
+
+| Item | Status | Evidence |
+| --- | --- | --- |
+| Workflow-specific group headers | Done | `SIDEBAR_GROUP_SPECS`, `.section-group-label`, grouped sidebar sections by `identify/design/analyse/implement/learn` |
+| Default collapsed preset for secondary panels | Done | `DEFAULT_COLLAPSED_SECTION_IDS`, `applyDefaultSidebarCollapsePreset()` |
+| Nested subsections for oversized panels | Done | `PANEL_SUBSECTION_SPECS`, `buildPanelSubsections()` |
+| Group visibility refresh on tab/search/mode change | Done | `refreshSidebarGroups()` wired from workflow tab switch, sidebar search, system-mode switch, advisor visibility sync |
 
 ### P36 — UI/UX Plan P1 Remaining Items
 
