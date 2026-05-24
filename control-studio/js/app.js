@@ -325,9 +325,8 @@ function initEventListeners() {
   document.getElementById('view-dashboard')?.addEventListener('click', () => switchView('dashboard'));
   document.getElementById('view-editor')?.addEventListener('click', () => switchView('editor'));
   document.getElementById('theme-toggle')?.addEventListener('click', toggleTheme);
-  document.querySelectorAll('.sidebar-tab').forEach((tab) => {
-    tab.addEventListener('click', () => switchSidebarPanel(tab.dataset.sidebar));
-  });
+  // P60: init new 5-tab workflow sidebar (replaces old .sidebar-tab binding)
+  initWorkflowTabs();
   document.querySelectorAll('.plot-tab').forEach((tab) => {
     tab.addEventListener('click', () => switchPlot(tab.dataset.plot));
   });
@@ -1063,32 +1062,294 @@ function switchView(viewName) {
   updateGlobalStatusBar(`${viewName === 'editor' ? 'Block Diagram' : 'Dashboard'} view active`);
 }
 
-function switchSidebarPanel(panelName) {
-  document.querySelectorAll('.sidebar-tab').forEach((tab) => {
-    const isActive = tab.dataset.sidebar === panelName;
-    tab.classList.toggle('active', isActive);
-    tab.setAttribute('aria-selected', isActive ? 'true' : 'false');
-  });
-  document.querySelectorAll('.sidebar-panel').forEach((panel) => {
-    panel.classList.toggle('active', panel.id === `panel-${panelName}`);
+// ── P60 Workflow Tab System ───────────────────────────────────────────────────
+// Maps section IDs → workflow tab. Sections not in this map are visible on ALL tabs.
+const WF_SECTION_TAB = {
+  // 識別（identify）: Plant definition & system identification
+  'system-mode-panel':        'identify',
+  'siso-input-panel':         'identify',
+  'mimo-input-panel':         'identify',
+  'sysid-panel':              'identify',
+  'c2d-panel':                'identify',
+  'sysid-entry-panel':        'identify',
+  'example-library-panel':    'identify',
+  // 設計（design）: Controller tuning & design
+  'controller-tuning-panel':  'design',
+  'control-equations-panel':  'design',
+  'warnings-panel':           'design',
+  'design-wizard-panel':      'design',
+  'mimo-analysis-panel':      'design',
+  'mpc-panel':                'design',
+  'mimo-hinf-panel':          'design',
+  'hinf-panel':               'design',
+  'ga-panel':                 'design',
+  'c3-pole-drag-panel':       'design',
+  'ai-advisor-panel':         'design',
+  // 分析（analyse）: Stability analysis & metrics
+  'stability-snapshot-panel': 'analyse',
+  'result-summary-panel':     'analyse',
+  'matrix-expand-panel':      'analyse',
+  'hankel-svd-panel':         'analyse',
+  'gramian-detail-panel':     'analyse',
+  'robust-panel':             'analyse',
+  'c3-sensitivity-panel':     'analyse',
+  'nyquist-animation-panel':  'analyse',
+  'phase-portrait-panel':     'analyse',
+  // 實作（implement）: Code generation & export
+  'simulation-settings-panel':'implement',
+  'd2-disc-tool-panel':       'implement',
+  'screenshot-tool-panel':    'implement',
+  'd3-flop-panel':            'implement',
+  'code-preview-panel':       'implement',
+  'python-bridge-panel':      'implement',
+  'latex-gen-panel':          'implement',
+  'codegen-options-panel':    'implement',
+  'unit-test-panel':          'implement',
+  'code-diff-panel':          'implement',
+  'hil-export-panel':         'implement',
+  // 學習（learn）: Compare, review & reference
+  'common-error-hints-panel': 'learn',
+  'init-docs-panel':          'learn',
+  'wiring-diagram-panel':     'learn',
+  'e1-dashboard-section':     'learn',
+  'e2-scoring-section':       'learn',
+  'e4-decision-section':      'learn',
+  'result-comparison-panel':  'learn',
+};
+
+// Legacy sidebar-name → workflow-tab mapping
+const _PANEL_TO_WF = { model: 'identify', simulate: 'analyse', advisor: 'design', compare: 'learn' };
+
+function initWorkflowTabs() {
+  // Assign data-wf attributes to all mapped sections
+  Object.entries(WF_SECTION_TAB).forEach(([id, tab]) => {
+    const el = document.getElementById(id);
+    if (el) el.dataset.wf = tab;
   });
 
-  // Close interactive sub-panels that belong to specific sidebar tabs.
-  // Root-locus gain info and z-pole info are only relevant in the Simulate/Plot view.
-  if (panelName !== 'simulate' && panelName !== 'model') {
-    const rlGain = document.getElementById('rl-gain-info');
-    const zpole  = document.getElementById('zpole-info');
-    if (rlGain) rlGain.style.display = 'none';
-    if (zpole)  zpole.style.display  = 'none';
-  }
-  // Sensitivity chart sub-panel belongs to simulate context
-  if (panelName !== 'simulate') {
-    const sensChart = document.getElementById('c3-sensitivity-chart');
-    if (sensChart) sensChart.style.display = 'none';
-  }
+  // Bind click handlers
+  document.querySelectorAll('.wf-tab').forEach(btn => {
+    btn.addEventListener('click', () => switchWorkflowTab(btn.dataset.wf));
+    btn.addEventListener('keydown', (e) => {
+      const tabs = [...document.querySelectorAll('.wf-tab')];
+      const idx = tabs.indexOf(btn);
+      if (e.key === 'ArrowRight') { tabs[(idx + 1) % tabs.length]?.focus(); e.preventDefault(); }
+      if (e.key === 'ArrowLeft')  { tabs[(idx - 1 + tabs.length) % tabs.length]?.focus(); e.preventDefault(); }
+    });
+  });
+
+  // Alt+1–5 keyboard shortcuts (global)
+  document.addEventListener('keydown', (e) => {
+    if (!e.altKey || e.ctrlKey || e.metaKey) return;
+    const wfOrder = ['identify', 'design', 'analyse', 'implement', 'learn'];
+    const n = parseInt(e.key, 10);
+    if (n >= 1 && n <= 5) { switchWorkflowTab(wfOrder[n - 1]); e.preventDefault(); }
+  });
+
+  // Restore from localStorage or default to 'identify'
+  const saved = localStorage.getItem('cs-sidebar-tab') || 'identify';
+  switchWorkflowTab(saved);
+
+  // Init accordion memory
+  initAccordionMemory();
+  // Init sidebar search
+  initSidebarSearch();
+}
+
+function switchWorkflowTab(tabId) {
+  if (!tabId) return;
+  state.sidebarTab = tabId;
+  localStorage.setItem('cs-sidebar-tab', tabId);
+
+  // Update tab button ARIA states
+  document.querySelectorAll('.wf-tab').forEach(btn => {
+    const isActive = btn.dataset.wf === tabId;
+    btn.classList.toggle('active', isActive);
+    btn.setAttribute('aria-selected', isActive ? 'true' : 'false');
+  });
+
+  // Show/hide sections: sections with data-wf only show when their tab is active
+  document.querySelectorAll('.section-panel[data-wf]').forEach(section => {
+    section.classList.toggle('wf-hidden', section.dataset.wf !== tabId);
+  });
+
+  // Scroll sidebar to top
+  document.getElementById('nav')?.scrollTo?.(0, 0);
+
+  // Update badges & smart warning banner
+  updateTabBadges();
+  updateSmartWarningBanner();
 
   saveSessionToStorage();
-  updateGlobalStatusBar(`${panelName} panel active`);
+  updateGlobalStatusBar(`${tabId} tab active`);
+}
+
+// ── H1-3: Tab Badge System ────────────────────────────────────────────────────
+function updateTabBadges() {
+  const counts = {
+    identify:  0,
+    design:    _countDesignTabBadges(),
+    analyse:   _countAnalysisTabBadges(),
+    implement: 0,
+    learn:     0,
+  };
+  Object.entries(counts).forEach(([tab, count]) => {
+    const el = document.getElementById(`wf-badge-${tab}`);
+    if (!el) return;
+    if (count > 0) {
+      el.textContent = count > 9 ? '9+' : String(count);
+      el.style.display = 'flex';
+    } else {
+      el.style.display = 'none';
+    }
+  });
+}
+function _countAnalysisTabBadges() {
+  let n = 0;
+  if (state._lastStability?.status === 'unstable') n++;
+  const gm = state._lastStability?.gainMarginDb;
+  if (isFinite(gm) && gm < 6) n++;
+  const pm = state._lastStability?.phaseMargin;
+  if (isFinite(pm) && pm < 30) n++;
+  return n;
+}
+function _countDesignTabBadges() {
+  let n = 0;
+  if (state.plant && !state.controller) n++;  // No controller applied
+  return n;
+}
+
+// ── K1-3: Smart Warning Banner ────────────────────────────────────────────────
+const _SMART_WARNINGS = [
+  {
+    id: 'unstable', priority: 1,
+    condition: () => state._lastStability?.status === 'unstable',
+    level: 'error',
+    message: () => {
+      const poles = (state._lastStability?.poles ?? []).filter(p => (p.re ?? 0) > 1e-9);
+      return `⛔ 閉迴路不穩定：${poles.length} 個 RHP 極點`;
+    },
+    suggestion: '嘗試降低 Kp 50% 後重新驗證。',
+    action: { label: '前往分析', fn: () => switchWorkflowTab('analyse') },
+  },
+  {
+    id: 'low-gm', priority: 2,
+    condition: () => { const gm = state._lastStability?.gainMarginDb; return isFinite(gm) && gm < 6; },
+    level: 'warning',
+    message: () => `⚠ GM = ${state._lastStability.gainMarginDb.toFixed(1)} dB（建議 > 6 dB）`,
+    suggestion: '降低 Kp 可提升 GM；或加入 Lead 補償器。',
+    action: { label: '前往設計', fn: () => switchWorkflowTab('design') },
+  },
+  {
+    id: 'low-pm', priority: 3,
+    condition: () => { const pm = state._lastStability?.phaseMargin; return isFinite(pm) && pm < 30; },
+    level: 'warning',
+    message: () => `⚠ PM = ${state._lastStability.phaseMargin.toFixed(1)}°（建議 > 45°）`,
+    suggestion: '增加 Kd 或 Lead 補償器可提升 PM。',
+  },
+  {
+    id: 'rhp-zeros', priority: 4,
+    condition: () => { try { return (state.plant?.zeros?.() ?? []).some(z => (z.re ?? 0) > 1e-9); } catch { return false; } },
+    level: 'info',
+    message: () => 'ℹ Plant 含 RHP 零點（非最小相位），閉迴路頻寬受限。',
+  },
+];
+const _dismissedWarnings = new Set();
+
+function updateSmartWarningBanner() {
+  const banner = document.getElementById('smart-warning-banner');
+  if (!banner) return;
+  const active = _SMART_WARNINGS
+    .filter(w => !_dismissedWarnings.has(w.id) && w.condition())
+    .sort((a, b) => a.priority - b.priority)[0];
+  if (!active) { banner.style.display = 'none'; banner.className = ''; return; }
+  banner.className = `sw-${active.level}`;
+  banner.style.cssText = 'display:block;margin:6px 8px;padding:8px 10px;border-radius:var(--radius-sm);font-size:11px;line-height:1.5;';
+  const actionHtml = active.action
+    ? `<button class="btn btn-sm" style="margin-top:4px;font-size:10px;" data-sw-action="${active.id}"> ${active.action.label}</button>`
+    : '';
+  banner.innerHTML = `<div style="display:flex;align-items:flex-start;gap:6px;"><div style="flex:1;"><div style="font-weight:600;">${active.message()}</div>${active.suggestion ? `<div style="font-size:10px;color:var(--text-muted);margin-top:2px;">${active.suggestion}</div>` : ''}${actionHtml}</div><button data-sw-dismiss="${active.id}" style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:16px;padding:0;line-height:1;flex-shrink:0;" aria-label="關閉警示">×</button></div>`;
+  // Bind action buttons
+  banner.querySelector('[data-sw-action]')?.addEventListener('click', () => active.action?.fn?.());
+  banner.querySelector('[data-sw-dismiss]')?.addEventListener('click', () => { _dismissedWarnings.add(active.id); updateSmartWarningBanner(); });
+}
+// Smart dismiss exposed for fallback
+window._csSmartDismiss = (id) => { _dismissedWarnings.add(id); updateSmartWarningBanner(); };
+
+// ── H1-2: Accordion localStorage Persistence ──────────────────────────────────
+function initAccordionMemory() {
+  document.querySelectorAll('.section-panel.collapsible').forEach(section => {
+    const id = section.id;
+    if (!id) return;
+    const key = `cs-acc-${id}`;
+    if (localStorage.getItem(key) === '1') section.classList.add('collapsed');
+    const title = section.querySelector('.section-title');
+    if (title) {
+      title.addEventListener('click', () => {
+        requestAnimationFrame(() => {
+          localStorage.setItem(key, section.classList.contains('collapsed') ? '1' : '0');
+        });
+      });
+    }
+  });
+}
+
+// ── H1-5: Sidebar Search ──────────────────────────────────────────────────────
+let _searchTimer = null;
+function initSidebarSearch() {
+  const input = document.getElementById('sidebar-search');
+  const clearBtn = document.getElementById('sidebar-search-clear');
+  if (!input) return;
+
+  input.addEventListener('input', () => {
+    clearTimeout(_searchTimer);
+    _searchTimer = setTimeout(() => _runSidebarSearch(input.value), 150);
+    if (clearBtn) clearBtn.style.display = input.value ? 'block' : 'none';
+  });
+  clearBtn?.addEventListener('click', () => {
+    input.value = ''; input.dispatchEvent(new Event('input')); input.focus();
+  });
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      input.value = ''; input.dispatchEvent(new Event('input'));
+      document.getElementById('sidebar-search-wrap').style.display = 'none';
+    }
+  });
+
+  // Ctrl+F within sidebar opens search
+  document.getElementById('nav')?.addEventListener('keydown', (e) => {
+    if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
+      const wrap = document.getElementById('sidebar-search-wrap');
+      if (wrap) { wrap.style.display = 'block'; input.focus(); e.preventDefault(); }
+    }
+  });
+  // Search icon on last wf-tab also reveals it (optional: click search icon)
+}
+
+function _runSidebarSearch(query) {
+  const q = query.trim().toLowerCase();
+  if (!q) {
+    // Restore workflow tab view
+    document.querySelectorAll('.section-panel[data-wf]').forEach(s => {
+      s.classList.toggle('wf-hidden', s.dataset.wf !== state.sidebarTab);
+    });
+    return;
+  }
+  // Search mode: show all sections matching query across all tabs
+  document.querySelectorAll('.section-panel[data-wf]').forEach(s => {
+    const text = s.textContent.toLowerCase();
+    const matches = text.includes(q);
+    s.classList.toggle('wf-hidden', !matches);
+    if (matches && s.classList.contains('collapsed')) s.classList.remove('collapsed');
+  });
+}
+
+// ── Backward-compat shim: switchSidebarPanel ─────────────────────────────────
+function switchSidebarPanel(panelName) {
+  const wfTab = _PANEL_TO_WF[panelName];
+  if (wfTab) { switchWorkflowTab(wfTab); return; }
+  // Fallback: unknown panel name, just log
+  console.warn('[CS] switchSidebarPanel: unknown panel', panelName);
 }
 
 // ── Mini Root Locus: adaptive context panel ──────────────────────────────────
@@ -2978,6 +3239,10 @@ function refreshAllCharts() {
   // F1-2: keep context bar + triple pane in sync
   updateContextBar?.();
   window.refreshTriplePane?.();
+
+  // P60: update workflow tab badges & smart warning banner
+  try { updateTabBadges(); } catch (_) {}
+  try { updateSmartWarningBanner(); } catch (_) {}
 }
 
 function renderDiscreteStepChart(targetId = 'chart-active') {
@@ -8067,7 +8332,7 @@ function initDesignWizard() {
     // Emit hint as notification
     notify(`精靈步驟 ${currentStep + 1}：${WIZARD_STEPS[currentStep].hint}`, 'info', { duration: 4000 });
     // A4-1: Navigate to the corresponding panel for this step
-    const WIZARD_STEP_PANELS = ['model', 'advisor', 'advisor', 'simulate'];
+    const WIZARD_STEP_PANELS = ['identify', 'design', 'design', 'analyse'];
     const WIZARD_STEP_SCROLL = [null, 'design-os', 'lqr-q', null];
     const panelName = WIZARD_STEP_PANELS[currentStep];
     if (panelName && typeof switchSidebarPanel === 'function') switchSidebarPanel(panelName);
@@ -10231,7 +10496,7 @@ function initExplainPanel() {
 
   openBtn.addEventListener('click', () => {
     // Detect current context from active panel/tab
-    const activeTab = document.querySelector('.sidebar-tab[aria-selected="true"]')?.dataset.sidebar || 'simulate';
+    const activeTab = state.sidebarTab || 'analyse';
     const key = activeTab === 'advisor' ? 'lqr' : 'pid';
     openExplain(key);
   });
@@ -10553,7 +10818,7 @@ function initNotesSystem() {
   bmarkBtn?.addEventListener('click', () => {
     const arr = loadBookmarks();
     const t = new Date().toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit' });
-    const page = document.querySelector('.sidebar-tab[aria-selected="true"]')?.textContent?.trim() || 'Main';
+    const page = state.sidebarTab || 'Main';
     arr.push({ page, time: t });
     saveBookmarks(arr);
     renderBookmarks();
@@ -11758,13 +12023,11 @@ function initKeyboardNav() {
     // ? → keyboard help
     if (e.key === '?') { document.getElementById('kbd-help-panel')?.classList.toggle('open'); }
 
-    // Section hotkeys (no modifier)
+    // Section hotkeys (no modifier) — P60: map to new workflow tabs
     if (!cm && !e.altKey) {
-      const sectionMap = { g: 'model', m: 'design', d: 'analyze', a: 'advisor', o: 'compare' };
+      const sectionMap = { g: 'identify', m: 'design', d: 'analyse', a: 'design', o: 'learn' };
       const target = sectionMap[e.key.toLowerCase()];
-      if (target) {
-        document.querySelector(`.sidebar-tab[data-sidebar="${target}"]`)?.click();
-      }
+      if (target) switchWorkflowTab?.(target);
     }
   });
 }
@@ -11923,8 +12186,8 @@ function initResponsive() {
   });
   overlay?.addEventListener('click', closeSidebar);
 
-  // Close sidebar when a tab is selected on mobile
-  document.querySelectorAll('.sidebar-tab').forEach(tab =>
+  // Close sidebar when a wf-tab is selected on mobile (P60)
+  document.querySelectorAll('.wf-tab').forEach(tab =>
     tab.addEventListener('click', () => {
       if (window.innerWidth < 768) closeSidebar();
     })

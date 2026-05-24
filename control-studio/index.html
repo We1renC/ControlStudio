@@ -144,13 +144,29 @@
     .plot-main .chart-body { min-height: clamp(280px, 48vh, 480px); }
     .plot-side { display:flex; flex-direction:column; gap:var(--space-4); min-width: 0; }
     .mini-chart .chart-body { min-height: 150px; }
+    /* ── P60 Workflow Tab Bar ─────────────────────────────────── */
+    .wf-tab-bar { display: grid; grid-template-columns: repeat(5,1fr); background: var(--bg-tertiary); border-bottom: 1px solid var(--border-primary); flex-shrink: 0; }
+    .wf-tab { border: 0; background: transparent; color: var(--text-muted); padding: 8px 2px 5px; font-size: 9px; font-weight: 700; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 2px; position: relative; transition: color 0.15s, background 0.15s; border-bottom: 3px solid transparent; text-transform: none; line-height: 1.2; }
+    .wf-tab:hover:not(.active) { background: rgba(99,102,241,0.07); color: var(--text-secondary); }
+    .wf-tab.active { color: var(--color-accent); border-bottom: 3px solid var(--color-accent); background: rgba(99,102,241,0.09); }
+    .wf-tab:focus-visible { outline: 2px solid var(--color-accent); outline-offset: -2px; }
+    .wf-tab-label { font-size: 9px; font-weight: 700; }
+    .wf-badge { position: absolute; top: 3px; right: 3px; background: #ef4444; color: #fff; font-size: 8px; font-weight: 700; min-width: 13px; height: 13px; border-radius: 7px; display: flex; align-items: center; justify-content: center; padding: 0 2px; pointer-events: none; }
+    /* All sidebar panels always visible; sections filtered by .wf-hidden */
     .sidebar-tabs { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; background: var(--bg-tertiary); padding: 4px; border-radius: var(--radius-md); }
     .sidebar-tab { border: 0; background: transparent; color: var(--text-secondary); padding: 8px 6px; font-size: 12px; font-weight: 600; border-radius: var(--radius-sm); cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 3px; }
     .sidebar-tab.active { background: var(--bg-secondary); color: var(--color-accent); }
-    /* Keep tab icons, show minimal labels below */
     .tab-label { font-size: 10px; font-weight: 600; letter-spacing: 0.3px; }
-    .sidebar-panel { display: none; gap: var(--space-4); }
-    .sidebar-panel.active { display: flex; flex-direction: column; }
+    .sidebar-panel { display: flex; flex-direction: column; gap: var(--space-4); }
+    .section-panel.wf-hidden { display: none !important; }
+    /* Smart warning banner */
+    #smart-warning-banner { border-radius: var(--radius-sm); font-size: 11px; line-height: 1.5; }
+    #smart-warning-banner.sw-error { background: rgba(239,68,68,0.13); border-left: 3px solid #ef4444; }
+    #smart-warning-banner.sw-warning { background: rgba(245,158,11,0.13); border-left: 3px solid #f59e0b; }
+    #smart-warning-banner.sw-info { background: rgba(59,130,246,0.12); border-left: 3px solid #3b82f6; }
+    /* Sidebar search */
+    #sidebar-search:focus { border-color: var(--color-accent); box-shadow: 0 0 0 2px rgba(99,102,241,0.2); outline: none; }
+    .search-highlight { background: rgba(250,204,21,0.25); border-radius: 2px; font-weight: 600; }
     .section-panel { background: var(--bg-tertiary); border: 1px solid var(--border-primary); border-radius: var(--radius-md); padding: var(--space-4); }
     .section-title { font-size: 12px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; margin-bottom: var(--space-4); letter-spacing: 0.4px; }
     .section-copy { font-size: 12px; line-height: 1.6; color: var(--text-secondary); margin-bottom: var(--space-4); }
@@ -351,7 +367,7 @@
     .btn:disabled, .btn[disabled] { opacity: 0.45; cursor: not-allowed !important; filter: grayscale(0.4); }
     .btn:disabled:hover, .btn[disabled]:hover { background: var(--bg-tertiary); border-color: var(--border-primary); }
 
-    /* Sidebar tab — left accent bar when active + ARIA-friendly */
+    /* Sidebar tab — legacy compat; new system uses .wf-tab */
     .sidebar-tab { position: relative; transition: background 0.15s, color 0.15s; }
     .sidebar-tab:hover:not(.active) { background: rgba(99,102,241,0.08); color: var(--text-primary); }
     .sidebar-tab.active { box-shadow: inset 3px 0 0 var(--color-accent); }
@@ -1581,23 +1597,43 @@
 
   <main role="main" id="main-content">
     <aside id="nav" role="complementary" aria-label="Control system configuration">
-      <div class="sidebar-tabs" role="tablist" aria-label="Configuration sections">
-        <button class="sidebar-tab active" data-sidebar="model" role="tab" aria-selected="true" aria-controls="panel-model">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg>
-          <span class="tab-label">Plant</span>
+      <!-- P60 H1-1: 五工作流 Tab Bar -->
+      <div class="wf-tab-bar" role="tablist" aria-label="工作流導覽" id="wf-tab-bar">
+        <button class="wf-tab active" data-wf="identify" role="tab" aria-selected="true" title="識別植物系統（Alt+1）">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <span class="wf-tab-label">識別</span>
+          <span class="wf-badge" id="wf-badge-identify" style="display:none;"></span>
         </button>
-        <button class="sidebar-tab" data-sidebar="simulate" role="tab" aria-selected="false" aria-controls="panel-simulate">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
-          <span class="tab-label">Simulate</span>
+        <button class="wf-tab" data-wf="design" role="tab" aria-selected="false" title="設計控制器（Alt+2）">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+          <span class="wf-tab-label">設計</span>
+          <span class="wf-badge" id="wf-badge-design" style="display:none;"></span>
         </button>
-        <button class="sidebar-tab" data-sidebar="advisor" role="tab" aria-selected="false" aria-controls="panel-advisor">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
-          <span class="tab-label">Design</span>
+        <button class="wf-tab" data-wf="analyse" role="tab" aria-selected="false" title="分析穩定性（Alt+3）">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+          <span class="wf-tab-label">分析</span>
+          <span class="wf-badge" id="wf-badge-analyse" style="display:none;"></span>
         </button>
-        <button class="sidebar-tab" data-sidebar="compare" role="tab" aria-selected="false" aria-controls="panel-compare">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
-          <span class="tab-label">Compare</span>
+        <button class="wf-tab" data-wf="implement" role="tab" aria-selected="false" title="程式碼與輸出（Alt+4）">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+          <span class="wf-tab-label">實作</span>
+          <span class="wf-badge" id="wf-badge-implement" style="display:none;"></span>
         </button>
+        <button class="wf-tab" data-wf="learn" role="tab" aria-selected="false" title="比較與學習（Alt+5）">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+          <span class="wf-tab-label">學習</span>
+          <span class="wf-badge" id="wf-badge-learn" style="display:none;"></span>
+        </button>
+      </div>
+      <!-- P60 K1-3: 智慧警示橫幅 -->
+      <div id="smart-warning-banner" role="alert" style="display:none;margin:6px 8px;padding:8px 10px;"></div>
+      <!-- P60 H1-5: 側欄搜尋 -->
+      <div id="sidebar-search-wrap" style="display:none;padding:4px 8px 6px;border-bottom:1px solid var(--border-primary);">
+        <div style="position:relative;">
+          <input id="sidebar-search" type="text" placeholder="搜尋功能面板… (Esc 關閉)" aria-label="搜尋側欄功能" style="width:100%;background:var(--bg-tertiary);color:var(--text-primary);border:1px solid var(--border-primary);border-radius:var(--radius-sm);padding:6px 26px 6px 26px;font-size:12px;box-sizing:border-box;">
+          <span style="position:absolute;left:8px;top:50%;transform:translateY(-50%);color:var(--text-muted);font-size:11px;pointer-events:none;" aria-hidden="true">🔍</span>
+          <button id="sidebar-search-clear" aria-label="清除搜尋" style="position:absolute;right:6px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--text-muted);cursor:pointer;display:none;font-size:16px;padding:0;line-height:1;">×</button>
+        </div>
       </div>
 
       <div class="sidebar-panel active" id="panel-model">
@@ -1818,7 +1854,7 @@
           <div id="c2d-analysis" style="display:none; margin-top:var(--space-3); padding:8px 10px; background:var(--bg-tertiary); border-radius:var(--radius-sm); font-size:11px; line-height:1.7; color:var(--text-secondary);"></div>
         </section>
 
-        <section class="section-panel s-domain-only">
+        <section class="section-panel s-domain-only" id="controller-tuning-panel">
           <div class="toolbar-inline">
             <h3 class="section-title" style="margin-bottom:0;">Controller Tuning</h3>
             <div style="display:flex; align-items:center; gap:8px; font-size:11px; color:var(--text-secondary);">
@@ -2061,7 +2097,7 @@
           </div>
         </section>
 
-        <section class="section-panel">
+        <section class="section-panel" id="control-equations-panel">
           <div class="section-title">Current Control Equations</div>
           <p class="section-copy">目前 plant、controller 與 loop 的數學式如下。</p>
           <div class="equation-list">
@@ -2204,7 +2240,7 @@
           <p class="snapshot-footnote">數值來自閉迴路 step response 模擬，與 Compare 快照採用同一公式。</p>
         </section>
 
-        <section class="section-panel">
+        <section class="section-panel" id="simulation-settings-panel">
           <div class="section-title">Simulation</div>
           <div class="input-group">
             <label>Input Waveform</label>
@@ -2512,7 +2548,7 @@
           </div>
         </section>
 
-        <section class="section-panel s-domain-only">
+        <section class="section-panel s-domain-only" id="design-wizard-panel">
           <div class="section-title">Controller Design (Specs → Controller)</div>
           <!-- A4-3: Recommendation Explanation Panel -->
           <div id="recommend-explain-panel" role="region" aria-label="方法推薦說明" aria-live="polite"></div>
@@ -3276,7 +3312,7 @@
           </div>
         </section>
 
-        <section class="section-panel">
+        <section class="section-panel" id="ai-advisor-panel">
           <div class="section-title">NVIDIA Control Advisor</div>
           <p style="font-size:12px; color:var(--text-muted); line-height:1.6; margin-bottom:var(--space-4);">
             根據目前模型、PID 參數與穩定性指標產生調參建議。請先啟動 Unified API（127.0.0.1:8770）。
@@ -3360,7 +3396,7 @@
           </div>
         </section>
 
-        <section class="section-panel">
+        <section class="section-panel" id="result-comparison-panel">
           <div class="toolbar-inline">
             <h3 class="section-title" style="margin-bottom:0;">Result Comparison</h3>
             <button class="btn btn-sm" id="btn-save-snapshot">Save Snapshot</button>

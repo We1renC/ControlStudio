@@ -124,16 +124,18 @@ assert(indexHtml.includes('theme-cycle-label') || indexHtml.includes('theme-labe
 // ── F1-1: SideNav icons ───────────────────────────────────────────────────────
 console.log('\n▶ F1-1 SideNav tabs with icons');
 
-assert(indexHtml.includes('tab-label'), 'sidebar tabs have .tab-label span');
-const tabCount = (indexHtml.match(/class="sidebar-tab/g) ?? []).length;
-assert(tabCount >= 4, `sidebar has ≥4 tabs (found ${tabCount})`);
-assert(indexHtml.includes('data-sidebar="model"'), 'Plant tab present');
-assert(indexHtml.includes('data-sidebar="simulate"'), 'Simulate tab present');
-assert(indexHtml.includes('data-sidebar="advisor"'), 'Design tab present');
-assert(indexHtml.includes('data-sidebar="compare"'), 'Compare tab present');
-// SVG icons inside tabs
-const tabSectionMatch = indexHtml.match(/class="sidebar-tabs"[^]*?<\/div>\s*<div class="sidebar-panel/);
-assert(tabSectionMatch && tabSectionMatch[0].includes('<svg'), 'sidebar tabs contain SVG icons');
+// P60: 5-tab workflow nav replaces old 4-tab sidebar
+assert(indexHtml.includes('wf-tab-label') || indexHtml.includes('tab-label'), 'sidebar tabs have label span');
+const wfTabCount = (indexHtml.match(/class="wf-tab/g) ?? []).length;
+assert(wfTabCount >= 5, `sidebar has ≥5 wf-tabs (found ${wfTabCount})`);
+assert(indexHtml.includes('data-wf="identify"'), '識別 tab present');
+assert(indexHtml.includes('data-wf="design"'),   '設計 tab present');
+assert(indexHtml.includes('data-wf="analyse"'),  '分析 tab present');
+assert(indexHtml.includes('data-wf="implement"'),'實作 tab present');
+assert(indexHtml.includes('data-wf="learn"'),    '學習 tab present');
+// SVG icons inside wf-tabs
+const wfTabBlock = indexHtml.match(/class="wf-tab-bar"[^]*?<div class="sidebar-panel/);
+assert(wfTabBlock && wfTabBlock[0].includes('<svg'), 'wf-tabs contain SVG icons');
 
 // ── G1: Frequency unit switcher ───────────────────────────────────────────────
 console.log('\n▶ G1 Frequency unit switcher');

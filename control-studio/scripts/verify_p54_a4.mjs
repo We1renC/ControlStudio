@@ -31,8 +31,9 @@ assert(appJs.includes('WIZARD_STEP_PANELS'),             'WIZARD_STEP_PANELS def
 assert(appJs.includes('WIZARD_STEP_SCROLL'),             'WIZARD_STEP_SCROLL defined for focus targets');
 assert(appJs.includes("switchSidebarPanel(panelName)"),  'switchSidebarPanel called on step change');
 assert(appJs.includes("wizard:step"),                    'wizard:step custom event dispatched');
-assert(appJs.includes("'model'") && appJs.includes("'simulate'") && appJs.includes('WIZARD_STEP_PANELS'),
-                                                          'model & simulate in WIZARD_STEP_PANELS');
+// P60: WIZARD_STEP_PANELS updated to new workflow tab names (identify/design/analyse)
+assert(appJs.includes("'identify'") && appJs.includes('WIZARD_STEP_PANELS'),
+                                                          'identify in WIZARD_STEP_PANELS (P60 update)');
 assert(appJs.includes('scrollIntoView'),                 'scrollIntoView used for spec focus');
 assert(appJs.includes("dispatchEvent") && appJs.includes("CustomEvent"),
                                                           'CustomEvent dispatched for integration hooks');
