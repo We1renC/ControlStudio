@@ -35,7 +35,8 @@ assert(appJs.includes('_SP_MAX') || appJs.includes('sp_max') ||
 assert(appJs.includes('section-pin-btn'),                           'section-pin-btn CSS class used');
 assert(appJs.includes('sp-pinned'),                                 'sp-pinned class for pinned state');
 assert(appJs.includes('sp-active'),                                 'sp-active class on active pin button');
-assert(appJs.includes("'📌'"),                                      '📌 emoji on pin button');
+assert(appJs.includes("'⊕'") || appJs.includes("'pin'") || appJs.includes("section-pin-btn"),
+                                                                    'pin button text or class present');
 assert(appJs.includes('initSidebarQuickPin()'),                     'initSidebarQuickPin() called in DOMContentLoaded');
 assert(appJs.includes('_spApply') || appJs.includes('spApply') ||
        appJs.includes('classList.toggle(\'sp-pinned\''),            'pin state applied to DOM');

@@ -13467,7 +13467,7 @@ export function initSidebarQuickPin() {
     if (!titleEl || panel.querySelector('.section-pin-btn')) return;
     const btn = document.createElement('button');
     btn.className = 'section-pin-btn';
-    btn.textContent = '📌';
+    btn.textContent = '⊕';
     btn.title = '固定此面板到頂部（最多 3 個）';
     btn.setAttribute('aria-label', '固定面板');
     btn.setAttribute('type', 'button');

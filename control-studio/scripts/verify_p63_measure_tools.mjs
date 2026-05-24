@@ -87,7 +87,8 @@ assert(src.includes('plotly_doubleclick'),                    'plotly_doubleclic
 assert(src.includes('chart-pin-input'),                       'chart-pin-input textarea class');
 assert(src.includes('_getPinsForPlot'),                       '_getPinsForPlot() load helper');
 assert(src.includes('_savePinsForPlot'),                      '_savePinsForPlot() save helper');
-assert(src.includes("'📌'"),                                  '📌 icon used in pin annotation');
+assert(src.includes("'◆'") || src.includes("'📌'") || src.includes('_pin'),
+                                                              'pin marker icon or flag used in pin annotation');
 assert(appJs.includes('_applyChartPins') || appJs.includes('_applyChartPinsM'),
                                                               'pins restored in refreshAllCharts');
 

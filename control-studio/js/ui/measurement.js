@@ -271,7 +271,7 @@ export function _applyChartPins(plotType) {
     const pinAnnotations = pins.map(p => ({
       _pin: true, _pinId: p.id,
       x: p.x, y: p.y, xref: 'x', yref: 'y',
-      text: '📌', showarrow: false,
+      text: '◆', showarrow: false,
       font: { size: 14 }, bgcolor: 'transparent',
     }));
     const existing = (el._fullLayout.annotations || []).filter(a => !a._pin);
