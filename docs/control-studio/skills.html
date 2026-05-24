@@ -2,74 +2,61 @@
 <html lang="zh-TW">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width,initial-scale=1">
 <title>ControlStudio Research Roadmap And Skill Plan — NVIDIA OS Support Docs</title>
 <style>
 :root {
-  --bg: #0f1117; --bg2: #1a1d2e; --bg3: #252840;
-  --border: #2d3155; --accent: #6366f1; --accent2: #818cf8;
-  --text: #e2e8f0; --muted: #94a3b8; --code-bg: #1e2235;
-  --success: #22c55e; --warn: #f59e0b;
+  --bg:#0f1117;--bg2:#1a1d2e;--bg3:#252840;
+  --border:#2d3155;--accent:#6366f1;--accent2:#818cf8;
+  --text:#e2e8f0;--muted:#94a3b8;--code-bg:#1e2235;
+  --ok:#22c55e;--warn:#f59e0b;
 }
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-       background: var(--bg); color: var(--text); line-height: 1.7;
-       display: flex; min-height: 100vh; }
-nav { width: 240px; min-height: 100vh; background: var(--bg2);
-      border-right: 1px solid var(--border); padding: 24px 0;
-      position: sticky; top: 0; height: 100vh; overflow-y: auto;
-      flex-shrink: 0; }
-nav .logo { padding: 0 20px 20px; border-bottom: 1px solid var(--border); margin-bottom: 12px; }
-nav .logo a { text-decoration: none; font-size: 15px; font-weight: 700;
-              color: var(--accent2); }
-nav .section { padding: 6px 20px 2px; font-size: 10px; font-weight: 700;
-               text-transform: uppercase; letter-spacing: 1px; color: var(--muted);
-               margin-top: 8px; }
-nav a { display: block; padding: 5px 20px; font-size: 13px; color: var(--muted);
-        text-decoration: none; border-left: 2px solid transparent;
-        transition: all .15s; }
-nav a:hover, nav a.active { color: var(--text); border-color: var(--accent);
-                              background: rgba(99,102,241,.08); }
-main { flex: 1; padding: 40px 48px; max-width: 900px; min-width: 0; }
-h1 { font-size: 2rem; font-weight: 800; color: var(--text);
-     border-bottom: 2px solid var(--accent); padding-bottom: 12px; margin-bottom: 24px; }
-h2 { font-size: 1.4rem; font-weight: 700; color: var(--accent2);
-     margin: 32px 0 12px; padding-top: 8px; }
-h3 { font-size: 1.1rem; font-weight: 600; color: var(--text); margin: 20px 0 8px; }
-h4, h5, h6 { font-size: 1rem; font-weight: 600; color: var(--muted); margin: 16px 0 6px; }
-p { margin: 8px 0; color: var(--text); }
-a { color: var(--accent2); }
-a:hover { color: #a5b4fc; }
-code { background: var(--code-bg); border: 1px solid var(--border);
-       border-radius: 4px; padding: 1px 5px; font-size: .875em;
-       font-family: 'JetBrains Mono', 'Fira Code', monospace; color: #a5b4fc; }
-pre { background: var(--code-bg); border: 1px solid var(--border);
-      border-radius: 8px; padding: 16px; overflow-x: auto; margin: 12px 0; }
-pre code { background: none; border: none; padding: 0;
-           font-size: .82rem; color: var(--text); }
-blockquote { border-left: 3px solid var(--accent); padding: 8px 16px;
-             background: rgba(99,102,241,.06); margin: 12px 0; border-radius: 0 6px 6px 0; }
-ul, ol { padding-left: 24px; margin: 8px 0; }
-li { margin: 3px 0; }
-table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: .9rem; }
-th { background: var(--bg3); color: var(--accent2); font-weight: 700;
-     padding: 8px 12px; border: 1px solid var(--border); text-align: left; }
-td { padding: 7px 12px; border: 1px solid var(--border); color: var(--text); }
-tr:nth-child(even) td { background: rgba(255,255,255,.02); }
-hr { border: none; border-top: 1px solid var(--border); margin: 24px 0; }
-strong { color: #c7d2fe; }
-del { color: var(--muted); }
-.badge { display: inline-block; font-size: 10px; font-weight: 700; padding: 1px 6px;
-         border-radius: 9px; border: 1px solid; margin: 0 2px; vertical-align: middle; }
-.badge-green { color: var(--success); border-color: var(--success); }
-.badge-warn  { color: var(--warn);    border-color: var(--warn); }
-/* toc sidebar on large screens */
-@media (max-width: 768px) { nav { display: none; } main { padding: 20px 16px; } }
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+     background:var(--bg);color:var(--text);line-height:1.7;
+     display:flex;min-height:100vh}
+nav{width:240px;min-height:100vh;background:var(--bg2);
+    border-right:1px solid var(--border);padding:24px 0;
+    position:sticky;top:0;height:100vh;overflow-y:auto;flex-shrink:0}
+nav .logo{padding:0 20px 20px;border-bottom:1px solid var(--border);margin-bottom:12px}
+nav .logo a{text-decoration:none;font-size:15px;font-weight:700;color:var(--accent2)}
+nav .section{padding:6px 20px 2px;font-size:10px;font-weight:700;
+             text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-top:8px}
+nav a{display:block;padding:5px 20px;font-size:13px;color:var(--muted);
+      text-decoration:none;border-left:2px solid transparent;transition:all .15s}
+nav a:hover,nav a.active{color:var(--text);border-color:var(--accent);background:rgba(99,102,241,.08)}
+main{flex:1;padding:40px 48px;max-width:900px;min-width:0}
+h1{font-size:2rem;font-weight:800;color:var(--text);
+   border-bottom:2px solid var(--accent);padding-bottom:12px;margin-bottom:24px}
+h2{font-size:1.4rem;font-weight:700;color:var(--accent2);margin:32px 0 12px;padding-top:8px}
+h3{font-size:1.1rem;font-weight:600;color:var(--text);margin:20px 0 8px}
+h4,h5,h6{font-size:1rem;font-weight:600;color:var(--muted);margin:16px 0 6px}
+p{margin:8px 0}
+a{color:var(--accent2)}
+a:hover{color:#a5b4fc}
+code{background:var(--code-bg);border:1px solid var(--border);border-radius:4px;
+     padding:1px 5px;font-size:.875em;font-family:'JetBrains Mono','Fira Code',monospace;color:#a5b4fc}
+pre{background:var(--code-bg);border:1px solid var(--border);border-radius:8px;
+    padding:16px;overflow-x:auto;margin:12px 0}
+pre code{background:none;border:none;padding:0;font-size:.82rem;color:var(--text)}
+blockquote{border-left:3px solid var(--accent);padding:8px 16px;
+           background:rgba(99,102,241,.06);margin:12px 0;border-radius:0 6px 6px 0}
+ul,ol{padding-left:24px;margin:8px 0}
+li{margin:3px 0}
+table{width:100%;border-collapse:collapse;margin:16px 0;font-size:.9rem}
+th{background:var(--bg3);color:var(--accent2);font-weight:700;
+   padding:8px 12px;border:1px solid var(--border);text-align:left}
+td{padding:7px 12px;border:1px solid var(--border)}
+tr:nth-child(even) td{background:rgba(255,255,255,.02)}
+hr{border:none;border-top:1px solid var(--border);margin:24px 0}
+strong{color:#c7d2fe}
+del{color:var(--muted)}
+@media(max-width:768px){nav{display:none}main{padding:20px 16px}}
 </style>
 </head>
 <body>
 <nav>
-  <div class="logo"><a href="../index.html">📁 NVIDIA OS Support</a></div>
+  <div class="logo"><a href="../index.html">📁 Docs</a></div>
   <div class="section">Agent 工作文件</div>
   <a href="../agents/usage.html">使用指南</a>
   <a href="../agents/continuation.html">接手狀態</a>
@@ -121,17 +108,21 @@ del { color: var(--muted); }
 
 <h2 id="phase-18-roadmap">Phase 18+ Roadmap</h2>
 
-<table>
-<tr><td>Phase</td><td>Priority</td><td>Status</td><td>Theme</td><td>Goal</td><td>Primary Verification</td></tr>
-<thead>
-<tr><th>Phase 18</th><th>P1</th><th>Done</th><th>Uncertainty + Monte Carlo robust validation</th><th>將 robust analysis 從 nominal 指標推進到不確定性族群驗證</th><th>deterministic uncertainty fixtures、worst-case replay、<code>verify:p18</code></th></tr>
-<tr><td>Phase 19</td><td>P2</td><td>Done baseline / P27 gap remains</td><td>Full H-infinity / mu backend</td><td>已提交 H∞ Riccati synthesis baseline；full D-K iteration 仍列為 P27 gap</td><td><code>verify_p19_hinf_riccati.mjs</code>、P27 roadmap</td></tr>
-<tr><td>Phase 20</td><td>P1</td><td>Done</td><td>MIMO MPC engineering workflow</td><td>完成 offset-free tracking、move suppression、constraints、feasibility diagnostics</td><td><code>verify_p20_mpc_engineering.mjs</code></td></tr>
-<tr><td>Phase 21</td><td>P2</td><td>Done</td><td>Research-grade system identification</td><td>已擴展 ARMAX/OE/BJ/subspace ID、experiment signals 與 uncertainty export</td><td><code>verify_p21_sysid_advanced.mjs</code></td></tr>
-<tr><td>Phase 22</td><td>P1</td><td>Done</td><td>Benchmark + cross-tool validation</td><td>已建立 CI、cross-tool comparison、full verification runner 與 benchmark script</td><td><code>run_all_verify.sh</code>、<code>compare_python_control.py</code>、CI</td></tr>
-<tr><td>Phase 23</td><td>P1</td><td>Mostly Done</td><td>Agentic design review / SysID gap closure</td><td>structured review skills 與 FRF/MISO/model-order 已提交；continuous-time CONTSID/SRIVC 未提交</td><td><code>verify_p23_*.mjs</code>、<code>control-studio/ROADMAP.md</code></td></tr>
+<table><thead>
+<tr><th>Phase</th><th>Priority</th><th>Status</th><th>Theme</th><th>Goal</th><th>Primary Verification</th></tr>
 </thead><tbody>
-</table>
+<tr><td>Phase 18</td><td>P1</td><td>Done</td><td>Uncertainty + Monte Carlo robust validation</td><td>將 robust analysis 從 nominal 指標推進到不確定性族群驗證</td><td>deterministic uncertainty fixtures、worst-case replay、<code>verify:p18</code></td></tr>
+</thead><tbody>
+<tr><td>Phase 19</td><td>P2</td><td>Done baseline / P27 gap remains</td><td>Full H-infinity / mu backend</td><td>已提交 H∞ Riccati synthesis baseline；full D-K iteration 仍列為 P27 gap</td><td><code>verify_p19_hinf_riccati.mjs</code>、P27 roadmap</td></tr>
+</thead><tbody>
+<tr><td>Phase 20</td><td>P1</td><td>Done</td><td>MIMO MPC engineering workflow</td><td>完成 offset-free tracking、move suppression、constraints、feasibility diagnostics</td><td><code>verify_p20_mpc_engineering.mjs</code></td></tr>
+</thead><tbody>
+<tr><td>Phase 21</td><td>P2</td><td>Done</td><td>Research-grade system identification</td><td>已擴展 ARMAX/OE/BJ/subspace ID、experiment signals 與 uncertainty export</td><td><code>verify_p21_sysid_advanced.mjs</code></td></tr>
+</thead><tbody>
+<tr><td>Phase 22</td><td>P1</td><td>Done</td><td>Benchmark + cross-tool validation</td><td>已建立 CI、cross-tool comparison、full verification runner 與 benchmark script</td><td><code>run_all_verify.sh</code>、<code>compare_python_control.py</code>、CI</td></tr>
+</thead><tbody>
+<tr><td>Phase 23</td><td>P1</td><td>Mostly Done</td><td>Agentic design review / SysID gap closure</td><td>structured review skills 與 FRF/MISO/model-order 已提交；continuous-time CONTSID/SRIVC 未提交</td><td><code>verify_p23_*.mjs</code>、<code>control-studio/ROADMAP.md</code></td></tr>
+</tbody></table>
 
 <h2 id="phase-details">Phase Details</h2>
 
@@ -274,20 +265,27 @@ del { color: var(--muted); }
 
 <p>下列項目適合獨立成 skill，因為它們是可重用的工程流程，而不是單一 UI button 或低階數值函式。</p>
 
-<table>
-<tr><td>Skill Candidate</td><td>Priority</td><td>Purpose</td><td>Inputs</td><td>Outputs</td><td>Backing Modules / Docs</td></tr>
-<thead>
-<tr><th><code>control-studio-system-auditor</code></th><th>P1</th><th>盤點 plant / controller 是否具備基本可設計性</th><th>TF/SS/ZPK、controller、mode</th><th>controllability / observability / poles / margins / risks</th><th><code>CONTROL_SYSTEM_PLAN.md</code>, <code>test_control.js</code></th></tr>
-<tr><td><code>control-studio-robust-validator</code></td><td>P1</td><td>建立 uncertainty 與 Monte Carlo robust validation 計畫</td><td>nominal model、uncertainty ranges、specs</td><td>robust pass/fail、worst-case sample、fixtures</td><td>Phase 18</td></tr>
-<tr><td><code>control-studio-mimo-designer</code></td><td>P1</td><td>協助 MIMO pairing、decoupling、loop-shaping 與 diagnostics</td><td>MIMO SS、channels、target bandwidth</td><td>RGA/SV/characteristic loci diagnosis、design sequence</td><td>Phase 9 / 17</td></tr>
-<tr><td><code>control-studio-mpc-designer</code></td><td>P1</td><td>將 state-space plant 轉成 MPC tracking / constraints 設計流程</td><td>A/B/C/D、Ts、horizon、Q/R、constraints</td><td>MPC config、feasibility notes、verification plan</td><td>Phase 10 / 11 / 20</td></tr>
-<tr><td><code>control-studio-stability-prover</code></td><td>P1</td><td>產生 Lyapunov / Riccati / margin 證明摘要</td><td>A/B/C/D、Q/R、closed-loop A</td><td>proof object、residual、applicability warnings</td><td>Phase 7 / 10 / 11</td></tr>
-<tr><td><code>control-studio-sysid-planner</code></td><td>P2</td><td>設計識別實驗與模型選型流程</td><td>experiment goal、sample time、data columns</td><td>experiment signal、candidate models、validation plan</td><td>Phase 15 / 21</td></tr>
-<tr><td><code>control-studio-benchmark-author</code></td><td>P1</td><td>為新控制案例建立數學推導與 regression fixture</td><td>scenario description、plant、controller target</td><td>markdown derivation、fixture skeleton、tolerances</td><td><code>CONTROL_SYSTEM_VERIFICATION_CASES.md</code></td></tr>
-<tr><td><code>control-studio-codegen-reviewer</code></td><td>P2</td><td>審查 MATLAB / Python / embedded codegen 是否與模型一致</td><td>generated code、model config</td><td>mismatch report、runtime caveats</td><td>Phase 15</td></tr>
-<tr><td><code>control-studio-ui-verifier</code></td><td>P2</td><td>用 browser 閉環檢查 SISO/MIMO/Robust/MPC UI 流程</td><td>local URL、workflow checklist</td><td>UI issue list、screenshots、regression notes</td><td><code>control_regression_dashboard.mjs</code></td></tr>
+<table><thead>
+<tr><th>Skill Candidate</th><th>Priority</th><th>Purpose</th><th>Inputs</th><th>Outputs</th><th>Backing Modules / Docs</th></tr>
 </thead><tbody>
-</table>
+<tr><td><code>control-studio-system-auditor</code></td><td>P1</td><td>盤點 plant / controller 是否具備基本可設計性</td><td>TF/SS/ZPK、controller、mode</td><td>controllability / observability / poles / margins / risks</td><td><code>CONTROL_SYSTEM_PLAN.md</code>, <code>test_control.js</code></td></tr>
+</thead><tbody>
+<tr><td><code>control-studio-robust-validator</code></td><td>P1</td><td>建立 uncertainty 與 Monte Carlo robust validation 計畫</td><td>nominal model、uncertainty ranges、specs</td><td>robust pass/fail、worst-case sample、fixtures</td><td>Phase 18</td></tr>
+</thead><tbody>
+<tr><td><code>control-studio-mimo-designer</code></td><td>P1</td><td>協助 MIMO pairing、decoupling、loop-shaping 與 diagnostics</td><td>MIMO SS、channels、target bandwidth</td><td>RGA/SV/characteristic loci diagnosis、design sequence</td><td>Phase 9 / 17</td></tr>
+</thead><tbody>
+<tr><td><code>control-studio-mpc-designer</code></td><td>P1</td><td>將 state-space plant 轉成 MPC tracking / constraints 設計流程</td><td>A/B/C/D、Ts、horizon、Q/R、constraints</td><td>MPC config、feasibility notes、verification plan</td><td>Phase 10 / 11 / 20</td></tr>
+</thead><tbody>
+<tr><td><code>control-studio-stability-prover</code></td><td>P1</td><td>產生 Lyapunov / Riccati / margin 證明摘要</td><td>A/B/C/D、Q/R、closed-loop A</td><td>proof object、residual、applicability warnings</td><td>Phase 7 / 10 / 11</td></tr>
+</thead><tbody>
+<tr><td><code>control-studio-sysid-planner</code></td><td>P2</td><td>設計識別實驗與模型選型流程</td><td>experiment goal、sample time、data columns</td><td>experiment signal、candidate models、validation plan</td><td>Phase 15 / 21</td></tr>
+</thead><tbody>
+<tr><td><code>control-studio-benchmark-author</code></td><td>P1</td><td>為新控制案例建立數學推導與 regression fixture</td><td>scenario description、plant、controller target</td><td>markdown derivation、fixture skeleton、tolerances</td><td><code>CONTROL_SYSTEM_VERIFICATION_CASES.md</code></td></tr>
+</thead><tbody>
+<tr><td><code>control-studio-codegen-reviewer</code></td><td>P2</td><td>審查 MATLAB / Python / embedded codegen 是否與模型一致</td><td>generated code、model config</td><td>mismatch report、runtime caveats</td><td>Phase 15</td></tr>
+</thead><tbody>
+<tr><td><code>control-studio-ui-verifier</code></td><td>P2</td><td>用 browser 閉環檢查 SISO/MIMO/Robust/MPC UI 流程</td><td>local URL、workflow checklist</td><td>UI issue list、screenshots、regression notes</td><td><code>control_regression_dashboard.mjs</code></td></tr>
+</tbody></table>
 
 <h2 id="skill-implementation-contract">Skill Implementation Contract</h2>
 

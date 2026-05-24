@@ -8,25 +8,25 @@
 - 不要建立或更新 `.agent-handoff.md`；本專案接手資訊維護在 `docs/agents/continuation.md`。
 - 進入專案後先跑 `git status --short`，確認工作樹狀態。
 - 修改前先讀相關檔案全文；手動改檔使用 `apply_patch`。
-- 若新增 workflow，必須同步更新 `README.md`、`docs/agents/workflows.md`、`docs/agents/continuation.md`、`scripts/validate_nvidia_model_selector.sh`，再執行 `node docs/build.mjs` 重新生成 HTML。
-- 若修改控制系統功能、數學核心、UI 行為或驗證案例，完成後必須同步相關文件，再 commit；文件同步範圍至少檢查 `control-studio/ROADMAP.md`、`docs/control-studio/plan.md`、`docs/control-studio/backlog.md`、`docs/control-studio/verification.md`、`docs/control-studio/scenarios.md`、`docs/agents/continuation.md`，同步後執行 `node docs/build.mjs`。
+- 若新增 workflow，必須同步更新 `README.md`、`docs/src/agents/workflows.md`、`docs/src/agents/continuation.md`、`scripts/validate_nvidia_model_selector.sh`，再執行 `node docs/build.mjs` 重新生成 HTML。
+- 若修改控制系統功能、數學核心、UI 行為或驗證案例，完成後必須同步相關文件，再 commit；文件同步範圍至少檢查 `control-studio/ROADMAP.md`、`docs/src/control-studio/plan.md`、`docs/src/control-studio/backlog.md`、`docs/src/control-studio/verification.md`、`docs/src/control-studio/scenarios.md`、`docs/src/agents/continuation.md`，同步後執行 `node docs/build.mjs`。
 
 ## 主要入口
 - `./nv-agent`：agent 開發用 CLI。
 - `docs/index.html`：所有文件的 HTML 導覽入口（含工作流關係圖）。
-- `docs/agents/usage.md`：agent 操作手冊。
-- `docs/agents/workflows.md`：workflow 與 API key 使用說明。
-- `docs/agents/continuation.md`：接手狀態與後續建議。
-- `docs/control-studio/plan.md`：控制系統工作台的正式盤點與開發計畫。
+- `docs/src/agents/usage.md`：agent 操作手冊（源碼；閱讀用 agents/usage.html）。
+- `docs/src/agents/workflows.md`：workflow 與 API key 使用說明。
+- `docs/src/agents/continuation.md`：接手狀態與後續建議。
+- `docs/src/control-studio/plan.md`：控制系統工作台的正式盤點與開發計畫。
 - `control-studio/ROADMAP.md`：ControlStudio phase 狀態、下一步開發順序（source of truth）。
-- `docs/control-studio/skills.md`：ControlStudio Phase 18+ 研究路線與可拆成 agent skill 的規劃。
+- `docs/src/control-studio/skills.md`：ControlStudio Phase 18+ 研究路線與可拆成 agent skill 的規劃。
 - `configs/model_registry.json`：模型能力、角色、endpoint、實測狀態。
 - `configs/task_profiles.json`：任務 profile、階段拆解、rubric。
 
 ## 控制系統開發規則
-- 若修改 `control-studio/`、`workflows/control_advisor_workflow.py`、`test_control.js`，先讀 `control-studio/ROADMAP.md` 與 `docs/control-studio/plan.md`。
-- 控制系統功能開發先以 `control-studio/ROADMAP.md` 的當前 phase 順序為準，產品範圍再對照 `docs/control-studio/plan.md`；不要直接跳做高複雜度進階控制功能。
-- 若啟動 Phase 18+ 或把控制流程拆成 skill，先讀 `docs/control-studio/skills.md`，並確認技能邊界、驗證基線與暫停項目。
+- 若修改 `control-studio/`、`workflows/control_advisor_workflow.py`、`test_control.js`，先讀 `control-studio/ROADMAP.md` 與 `docs/src/control-studio/plan.md`。
+- 控制系統功能開發先以 `control-studio/ROADMAP.md` 的當前 phase 順序為準，產品範圍再對照 `docs/src/control-studio/plan.md`；不要直接跳做高複雜度進階控制功能。
+- 若啟動 Phase 18+ 或把控制流程拆成 skill，先讀 `docs/src/control-studio/skills.md`，並確認技能邊界、驗證基線與暫停項目。
 - 控制系統每次完成功能、修正理論/數值錯誤、或補驗證案例後，都要立即用 git 留下明確 checkpoint；不要累積多輪未提交的控制系統變更。
 - 控制系統相關 commit message 需明確標示 phase / scope，例如 `feat(phase9): ...`、`fix(phase9): ...`、`test(phase9): ...`、`docs(control): ...`。
 - 控制系統 checkpoint 前要先做文件同步判斷：若實作狀態、驗證狀態、開發順序、已知限制或 agent 接手資訊有變，必須更新對應文件，避免 code 與文件脫節。

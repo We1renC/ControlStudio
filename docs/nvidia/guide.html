@@ -2,74 +2,61 @@
 <html lang="zh-TW">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width,initial-scale=1">
 <title>NVIDIA Build Models 功能落地操作指南 — NVIDIA OS Support Docs</title>
 <style>
 :root {
-  --bg: #0f1117; --bg2: #1a1d2e; --bg3: #252840;
-  --border: #2d3155; --accent: #6366f1; --accent2: #818cf8;
-  --text: #e2e8f0; --muted: #94a3b8; --code-bg: #1e2235;
-  --success: #22c55e; --warn: #f59e0b;
+  --bg:#0f1117;--bg2:#1a1d2e;--bg3:#252840;
+  --border:#2d3155;--accent:#6366f1;--accent2:#818cf8;
+  --text:#e2e8f0;--muted:#94a3b8;--code-bg:#1e2235;
+  --ok:#22c55e;--warn:#f59e0b;
 }
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-       background: var(--bg); color: var(--text); line-height: 1.7;
-       display: flex; min-height: 100vh; }
-nav { width: 240px; min-height: 100vh; background: var(--bg2);
-      border-right: 1px solid var(--border); padding: 24px 0;
-      position: sticky; top: 0; height: 100vh; overflow-y: auto;
-      flex-shrink: 0; }
-nav .logo { padding: 0 20px 20px; border-bottom: 1px solid var(--border); margin-bottom: 12px; }
-nav .logo a { text-decoration: none; font-size: 15px; font-weight: 700;
-              color: var(--accent2); }
-nav .section { padding: 6px 20px 2px; font-size: 10px; font-weight: 700;
-               text-transform: uppercase; letter-spacing: 1px; color: var(--muted);
-               margin-top: 8px; }
-nav a { display: block; padding: 5px 20px; font-size: 13px; color: var(--muted);
-        text-decoration: none; border-left: 2px solid transparent;
-        transition: all .15s; }
-nav a:hover, nav a.active { color: var(--text); border-color: var(--accent);
-                              background: rgba(99,102,241,.08); }
-main { flex: 1; padding: 40px 48px; max-width: 900px; min-width: 0; }
-h1 { font-size: 2rem; font-weight: 800; color: var(--text);
-     border-bottom: 2px solid var(--accent); padding-bottom: 12px; margin-bottom: 24px; }
-h2 { font-size: 1.4rem; font-weight: 700; color: var(--accent2);
-     margin: 32px 0 12px; padding-top: 8px; }
-h3 { font-size: 1.1rem; font-weight: 600; color: var(--text); margin: 20px 0 8px; }
-h4, h5, h6 { font-size: 1rem; font-weight: 600; color: var(--muted); margin: 16px 0 6px; }
-p { margin: 8px 0; color: var(--text); }
-a { color: var(--accent2); }
-a:hover { color: #a5b4fc; }
-code { background: var(--code-bg); border: 1px solid var(--border);
-       border-radius: 4px; padding: 1px 5px; font-size: .875em;
-       font-family: 'JetBrains Mono', 'Fira Code', monospace; color: #a5b4fc; }
-pre { background: var(--code-bg); border: 1px solid var(--border);
-      border-radius: 8px; padding: 16px; overflow-x: auto; margin: 12px 0; }
-pre code { background: none; border: none; padding: 0;
-           font-size: .82rem; color: var(--text); }
-blockquote { border-left: 3px solid var(--accent); padding: 8px 16px;
-             background: rgba(99,102,241,.06); margin: 12px 0; border-radius: 0 6px 6px 0; }
-ul, ol { padding-left: 24px; margin: 8px 0; }
-li { margin: 3px 0; }
-table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: .9rem; }
-th { background: var(--bg3); color: var(--accent2); font-weight: 700;
-     padding: 8px 12px; border: 1px solid var(--border); text-align: left; }
-td { padding: 7px 12px; border: 1px solid var(--border); color: var(--text); }
-tr:nth-child(even) td { background: rgba(255,255,255,.02); }
-hr { border: none; border-top: 1px solid var(--border); margin: 24px 0; }
-strong { color: #c7d2fe; }
-del { color: var(--muted); }
-.badge { display: inline-block; font-size: 10px; font-weight: 700; padding: 1px 6px;
-         border-radius: 9px; border: 1px solid; margin: 0 2px; vertical-align: middle; }
-.badge-green { color: var(--success); border-color: var(--success); }
-.badge-warn  { color: var(--warn);    border-color: var(--warn); }
-/* toc sidebar on large screens */
-@media (max-width: 768px) { nav { display: none; } main { padding: 20px 16px; } }
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+     background:var(--bg);color:var(--text);line-height:1.7;
+     display:flex;min-height:100vh}
+nav{width:240px;min-height:100vh;background:var(--bg2);
+    border-right:1px solid var(--border);padding:24px 0;
+    position:sticky;top:0;height:100vh;overflow-y:auto;flex-shrink:0}
+nav .logo{padding:0 20px 20px;border-bottom:1px solid var(--border);margin-bottom:12px}
+nav .logo a{text-decoration:none;font-size:15px;font-weight:700;color:var(--accent2)}
+nav .section{padding:6px 20px 2px;font-size:10px;font-weight:700;
+             text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-top:8px}
+nav a{display:block;padding:5px 20px;font-size:13px;color:var(--muted);
+      text-decoration:none;border-left:2px solid transparent;transition:all .15s}
+nav a:hover,nav a.active{color:var(--text);border-color:var(--accent);background:rgba(99,102,241,.08)}
+main{flex:1;padding:40px 48px;max-width:900px;min-width:0}
+h1{font-size:2rem;font-weight:800;color:var(--text);
+   border-bottom:2px solid var(--accent);padding-bottom:12px;margin-bottom:24px}
+h2{font-size:1.4rem;font-weight:700;color:var(--accent2);margin:32px 0 12px;padding-top:8px}
+h3{font-size:1.1rem;font-weight:600;color:var(--text);margin:20px 0 8px}
+h4,h5,h6{font-size:1rem;font-weight:600;color:var(--muted);margin:16px 0 6px}
+p{margin:8px 0}
+a{color:var(--accent2)}
+a:hover{color:#a5b4fc}
+code{background:var(--code-bg);border:1px solid var(--border);border-radius:4px;
+     padding:1px 5px;font-size:.875em;font-family:'JetBrains Mono','Fira Code',monospace;color:#a5b4fc}
+pre{background:var(--code-bg);border:1px solid var(--border);border-radius:8px;
+    padding:16px;overflow-x:auto;margin:12px 0}
+pre code{background:none;border:none;padding:0;font-size:.82rem;color:var(--text)}
+blockquote{border-left:3px solid var(--accent);padding:8px 16px;
+           background:rgba(99,102,241,.06);margin:12px 0;border-radius:0 6px 6px 0}
+ul,ol{padding-left:24px;margin:8px 0}
+li{margin:3px 0}
+table{width:100%;border-collapse:collapse;margin:16px 0;font-size:.9rem}
+th{background:var(--bg3);color:var(--accent2);font-weight:700;
+   padding:8px 12px;border:1px solid var(--border);text-align:left}
+td{padding:7px 12px;border:1px solid var(--border)}
+tr:nth-child(even) td{background:rgba(255,255,255,.02)}
+hr{border:none;border-top:1px solid var(--border);margin:24px 0}
+strong{color:#c7d2fe}
+del{color:var(--muted)}
+@media(max-width:768px){nav{display:none}main{padding:20px 16px}}
 </style>
 </head>
 <body>
 <nav>
-  <div class="logo"><a href="../index.html">📁 NVIDIA OS Support</a></div>
+  <div class="logo"><a href="../index.html">📁 Docs</a></div>
   <div class="section">Agent 工作文件</div>
   <a href="../agents/usage.html">使用指南</a>
   <a href="../agents/continuation.html">接手狀態</a>
@@ -114,256 +101,389 @@ del { color: var(--muted); }
 
 <h2 id="llm-agent-程式碼">LLM / Agent / 程式碼</h2>
 
-<table>
-<tr><td>分類序</td><td>子分類</td><td>模型</td><td>API/服務型態</td><td>典型輸入</td><td>典型輸出</td><td>落地操作步驟</td><td>建議串接位置</td></tr>
-<tr><td>---:</td><td>---</td><td>---</td><td>---</td><td>---</td><td>---</td><td>---</td><td>---</td></tr>
-<tr><td>1</td><td>Coding Agent / 程式碼生成</td><td><a href="https://build.nvidia.com/abacusai/dracarys-llama-3_1-70b-instruct">dracarys-llama-3.1-70b-instruct</a></td><td>Chat / Responses 類 API</td><td>system prompt、user prompt、上下文文件、工具定義或程式碼片段</td><td>文字回答、程式碼 diff、工具呼叫參數、推理/摘要結果</td><td>1. 定義 coding 任務模板（修 bug、產生測試、解釋程式碼）。2. 把 repo 摘要/相關檔案/錯誤日誌放入 prompt。3. 呼叫模型產生 patch 或建議。4. 用 CI/單元測試驗證。5. 人審後合併。</td><td>IDE 助手、CI bot、PR review bot、內部開發平台</td></tr>
-<tr><td>2</td><td>Coding Agent / 程式碼生成</td><td><a href="https://build.nvidia.com/deepseek-ai/deepseek-v4-flash">deepseek-v4-flash</a></td><td>Chat / Responses 類 API</td><td>system prompt、user prompt、上下文文件、工具定義或程式碼片段</td><td>文字回答、程式碼 diff、工具呼叫參數、推理/摘要結果</td><td>1. 定義 coding 任務模板（修 bug、產生測試、解釋程式碼）。2. 把 repo 摘要/相關檔案/錯誤日誌放入 prompt。3. 呼叫模型產生 patch 或建議。4. 用 CI/單元測試驗證。5. 人審後合併。</td><td>IDE 助手、CI bot、PR review bot、內部開發平台</td></tr>
-<tr><td>3</td><td>Coding Agent / 程式碼生成</td><td><a href="https://build.nvidia.com/deepseek-ai/deepseek-v4-pro">deepseek-v4-pro</a></td><td>Chat / Responses 類 API</td><td>system prompt、user prompt、上下文文件、工具定義或程式碼片段</td><td>文字回答、程式碼 diff、工具呼叫參數、推理/摘要結果</td><td>1. 定義 coding 任務模板（修 bug、產生測試、解釋程式碼）。2. 把 repo 摘要/相關檔案/錯誤日誌放入 prompt。3. 呼叫模型產生 patch 或建議。4. 用 CI/單元測試驗證。5. 人審後合併。</td><td>IDE 助手、CI bot、PR review bot、內部開發平台</td></tr>
-<tr><td>4</td><td>Coding Agent / 程式碼生成</td><td><a href="https://build.nvidia.com/google/gemma-2-2b-it">gemma-2-2b-it</a></td><td>Chat / Responses 類 API</td><td>system prompt、user prompt、上下文文件、工具定義或程式碼片段</td><td>文字回答、程式碼 diff、工具呼叫參數、推理/摘要結果</td><td>1. 定義 coding 任務模板（修 bug、產生測試、解釋程式碼）。2. 把 repo 摘要/相關檔案/錯誤日誌放入 prompt。3. 呼叫模型產生 patch 或建議。4. 用 CI/單元測試驗證。5. 人審後合併。</td><td>IDE 助手、CI bot、PR review bot、內部開發平台</td></tr>
-<tr><td>5</td><td>Coding Agent / 程式碼生成</td><td><a href="https://build.nvidia.com/google/gemma-4-31b-it">gemma-4-31b-it</a></td><td>Chat / Responses 類 API</td><td>system prompt、user prompt、上下文文件、工具定義或程式碼片段</td><td>文字回答、程式碼 diff、工具呼叫參數、推理/摘要結果</td><td>1. 定義 coding 任務模板（修 bug、產生測試、解釋程式碼）。2. 把 repo 摘要/相關檔案/錯誤日誌放入 prompt。3. 呼叫模型產生 patch 或建議。4. 用 CI/單元測試驗證。5. 人審後合併。</td><td>IDE 助手、CI bot、PR review bot、內部開發平台</td></tr>
-<tr><td>6</td><td>Coding Agent / 程式碼生成</td><td><a href="https://build.nvidia.com/meta/llama-3_1-70b-instruct">llama-3.1-70b-instruct</a></td><td>Chat / Responses 類 API</td><td>system prompt、user prompt、上下文文件、工具定義或程式碼片段</td><td>文字回答、程式碼 diff、工具呼叫參數、推理/摘要結果</td><td>1. 定義 coding 任務模板（修 bug、產生測試、解釋程式碼）。2. 把 repo 摘要/相關檔案/錯誤日誌放入 prompt。3. 呼叫模型產生 patch 或建議。4. 用 CI/單元測試驗證。5. 人審後合併。</td><td>IDE 助手、CI bot、PR review bot、內部開發平台</td></tr>
-<tr><td>7</td><td>Coding Agent / 程式碼生成</td><td><a href="https://build.nvidia.com/meta/llama-3_1-8b-instruct">llama-3.1-8b-instruct</a></td><td>Chat / Responses 類 API</td><td>system prompt、user prompt、上下文文件、工具定義或程式碼片段</td><td>文字回答、程式碼 diff、工具呼叫參數、推理/摘要結果</td><td>1. 定義 coding 任務模板（修 bug、產生測試、解釋程式碼）。2. 把 repo 摘要/相關檔案/錯誤日誌放入 prompt。3. 呼叫模型產生 patch 或建議。4. 用 CI/單元測試驗證。5. 人審後合併。</td><td>IDE 助手、CI bot、PR review bot、內部開發平台</td></tr>
-<tr><td>8</td><td>Coding Agent / 程式碼生成</td><td><a href="https://build.nvidia.com/meta/llama-3.2-1b-instruct">llama-3.2-1b-instruct</a></td><td>Chat / Responses 類 API</td><td>system prompt、user prompt、上下文文件、工具定義或程式碼片段</td><td>文字回答、程式碼 diff、工具呼叫參數、推理/摘要結果</td><td>1. 定義 coding 任務模板（修 bug、產生測試、解釋程式碼）。2. 把 repo 摘要/相關檔案/錯誤日誌放入 prompt。3. 呼叫模型產生 patch 或建議。4. 用 CI/單元測試驗證。5. 人審後合併。</td><td>IDE 助手、CI bot、PR review bot、內部開發平台</td></tr>
-<tr><td>9</td><td>Coding Agent / 程式碼生成</td><td><a href="https://build.nvidia.com/meta/llama-3.2-3b-instruct">llama-3.2-3b-instruct</a></td><td>Chat / Responses 類 API</td><td>system prompt、user prompt、上下文文件、工具定義或程式碼片段</td><td>文字回答、程式碼 diff、工具呼叫參數、推理/摘要結果</td><td>1. 定義 coding 任務模板（修 bug、產生測試、解釋程式碼）。2. 把 repo 摘要/相關檔案/錯誤日誌放入 prompt。3. 呼叫模型產生 patch 或建議。4. 用 CI/單元測試驗證。5. 人審後合併。</td><td>IDE 助手、CI bot、PR review bot、內部開發平台</td></tr>
-<tr><td>10</td><td>Coding Agent / 程式碼生成</td><td><a href="https://build.nvidia.com/meta/llama-3_3-70b-instruct">llama-3.3-70b-instruct</a></td><td>Chat / Responses 類 API</td><td>system prompt、user prompt、上下文文件、工具定義或程式碼片段</td><td>文字回答、程式碼 diff、工具呼叫參數、推理/摘要結果</td><td>1. 定義 coding 任務模板（修 bug、產生測試、解釋程式碼）。2. 把 repo 摘要/相關檔案/錯誤日誌放入 prompt。3. 呼叫模型產生 patch 或建議。4. 用 CI/單元測試驗證。5. 人審後合併。</td><td>IDE 助手、CI bot、PR review bot、內部開發平台</td></tr>
-<tr><td>11</td><td>Coding Agent / 程式碼生成</td><td><a href="https://build.nvidia.com/microsoft/phi-4-mini-instruct">phi-4-mini-instruct</a></td><td>Chat / Responses 類 API</td><td>system prompt、user prompt、上下文文件、工具定義或程式碼片段</td><td>文字回答、程式碼 diff、工具呼叫參數、推理/摘要結果</td><td>1. 定義 coding 任務模板（修 bug、產生測試、解釋程式碼）。2. 把 repo 摘要/相關檔案/錯誤日誌放入 prompt。3. 呼叫模型產生 patch 或建議。4. 用 CI/單元測試驗證。5. 人審後合併。</td><td>IDE 助手、CI bot、PR review bot、內部開發平台</td></tr>
-<tr><td>12</td><td>Coding Agent / 程式碼生成</td><td><a href="https://build.nvidia.com/minimaxai/minimax-m2.5">minimax-m2.5</a></td><td>Chat / Responses 類 API</td><td>system prompt、user prompt、上下文文件、工具定義或程式碼片段</td><td>文字回答、程式碼 diff、工具呼叫參數、推理/摘要結果</td><td>1. 定義 coding 任務模板（修 bug、產生測試、解釋程式碼）。2. 把 repo 摘要/相關檔案/錯誤日誌放入 prompt。3. 呼叫模型產生 patch 或建議。4. 用 CI/單元測試驗證。5. 人審後合併。</td><td>IDE 助手、CI bot、PR review bot、內部開發平台</td></tr>
-<tr><td>13</td><td>Coding Agent / 程式碼生成</td><td><a href="https://build.nvidia.com/minimaxai/minimax-m2.7">minimax-m2.7</a></td><td>Chat / Responses 類 API</td><td>system prompt、user prompt、上下文文件、工具定義或程式碼片段</td><td>文字回答、程式碼 diff、工具呼叫參數、推理/摘要結果</td><td>1. 定義 coding 任務模板（修 bug、產生測試、解釋程式碼）。2. 把 repo 摘要/相關檔案/錯誤日誌放入 prompt。3. 呼叫模型產生 patch 或建議。4. 用 CI/單元測試驗證。5. 人審後合併。</td><td>IDE 助手、CI bot、PR review bot、內部開發平台</td></tr>
-<tr><td>14</td><td>Coding Agent / 程式碼生成</td><td><a href="https://build.nvidia.com/mistralai/devstral-2-123b-instruct-2512">devstral-2-123b-instruct-2512</a></td><td>Chat / Responses 類 API</td><td>system prompt、user prompt、上下文文件、工具定義或程式碼片段</td><td>文字回答、程式碼 diff、工具呼叫參數、推理/摘要結果</td><td>1. 定義 coding 任務模板（修 bug、產生測試、解釋程式碼）。2. 把 repo 摘要/相關檔案/錯誤日誌放入 prompt。3. 呼叫模型產生 patch 或建議。4. 用 CI/單元測試驗證。5. 人審後合併。</td><td>IDE 助手、CI bot、PR review bot、內部開發平台</td></tr>
-<tr><td>15</td><td>Coding Agent / 程式碼生成</td><td><a href="https://build.nvidia.com/mistralai/magistral-small-2506">magistral-small-2506</a></td><td>Chat / Responses 類 API</td><td>system prompt、user prompt、上下文文件、工具定義或程式碼片段</td><td>文字回答、程式碼 diff、工具呼叫參數、推理/摘要結果</td><td>1. 定義 coding 任務模板（修 bug、產生測試、解釋程式碼）。2. 把 repo 摘要/相關檔案/錯誤日誌放入 prompt。3. 呼叫模型產生 patch 或建議。4. 用 CI/單元測試驗證。5. 人審後合併。</td><td>IDE 助手、CI bot、PR review bot、內部開發平台</td></tr>
-<tr><td>16</td><td>Coding Agent / 程式碼生成</td><td><a href="https://build.nvidia.com/mistralai/mistral-medium-3.5-128b">mistral-medium-3.5-128b</a></td><td>Chat / Responses 類 API</td><td>system prompt、user prompt、上下文文件、工具定義或程式碼片段</td><td>文字回答、程式碼 diff、工具呼叫參數、推理/摘要結果</td><td>1. 定義 coding 任務模板（修 bug、產生測試、解釋程式碼）。2. 把 repo 摘要/相關檔案/錯誤日誌放入 prompt。3. 呼叫模型產生 patch 或建議。4. 用 CI/單元測試驗證。5. 人審後合併。</td><td>IDE 助手、CI bot、PR review bot、內部開發平台</td></tr>
-<tr><td>17</td><td>Coding Agent / 程式碼生成</td><td><a href="https://build.nvidia.com/mistralai/mistral-nemotron">mistral-nemotron</a></td><td>Chat / Responses 類 API</td><td>system prompt、user prompt、上下文文件、工具定義或程式碼片段</td><td>文字回答、程式碼 diff、工具呼叫參數、推理/摘要結果</td><td>1. 定義 coding 任務模板（修 bug、產生測試、解釋程式碼）。2. 把 repo 摘要/相關檔案/錯誤日誌放入 prompt。3. 呼叫模型產生 patch 或建議。4. 用 CI/單元測試驗證。5. 人審後合併。</td><td>IDE 助手、CI bot、PR review bot、內部開發平台</td></tr>
-<tr><td>18</td><td>Coding Agent / 程式碼生成</td><td><a href="https://build.nvidia.com/mistralai/mixtral-8x22b-instruct">mixtral-8x22b-instruct-v0.1</a></td><td>Chat / Responses 類 API</td><td>system prompt、user prompt、上下文文件、工具定義或程式碼片段</td><td>文字回答、程式碼 diff、工具呼叫參數、推理/摘要結果</td><td>1. 定義 coding 任務模板（修 bug、產生測試、解釋程式碼）。2. 把 repo 摘要/相關檔案/錯誤日誌放入 prompt。3. 呼叫模型產生 patch 或建議。4. 用 CI/單元測試驗證。5. 人審後合併。</td><td>IDE 助手、CI bot、PR review bot、內部開發平台</td></tr>
-<tr><td>19</td><td>Coding Agent / 程式碼生成</td><td><a href="https://build.nvidia.com/mistralai/mixtral-8x7b-instruct">mixtral-8x7b-instruct-v0.1</a></td><td>Chat / Responses 類 API</td><td>system prompt、user prompt、上下文文件、工具定義或程式碼片段</td><td>文字回答、程式碼 diff、工具呼叫參數、推理/摘要結果</td><td>1. 定義 coding 任務模板（修 bug、產生測試、解釋程式碼）。2. 把 repo 摘要/相關檔案/錯誤日誌放入 prompt。3. 呼叫模型產生 patch 或建議。4. 用 CI/單元測試驗證。5. 人審後合併。</td><td>IDE 助手、CI bot、PR review bot、內部開發平台</td></tr>
-<tr><td>20</td><td>Coding Agent / 程式碼生成</td><td><a href="https://build.nvidia.com/moonshotai/kimi-k2-instruct">kimi-k2-instruct</a></td><td>Chat / Responses 類 API</td><td>system prompt、user prompt、上下文文件、工具定義或程式碼片段</td><td>文字回答、程式碼 diff、工具呼叫參數、推理/摘要結果</td><td>1. 定義 coding 任務模板（修 bug、產生測試、解釋程式碼）。2. 把 repo 摘要/相關檔案/錯誤日誌放入 prompt。3. 呼叫模型產生 patch 或建議。4. 用 CI/單元測試驗證。5. 人審後合併。</td><td>IDE 助手、CI bot、PR review bot、內部開發平台</td></tr>
-<tr><td>21</td><td>Coding Agent / 程式碼生成</td><td><a href="https://build.nvidia.com/nvidia/nemotron-3-nano-30b-a3b">nemotron-3-nano-30b-a3b</a></td><td>Chat / Responses 類 API</td><td>system prompt、user prompt、上下文文件、工具定義或程式碼片段</td><td>文字回答、程式碼 diff、工具呼叫參數、推理/摘要結果</td><td>1. 定義 coding 任務模板（修 bug、產生測試、解釋程式碼）。2. 把 repo 摘要/相關檔案/錯誤日誌放入 prompt。3. 呼叫模型產生 patch 或建議。4. 用 CI/單元測試驗證。5. 人審後合併。</td><td>IDE 助手、CI bot、PR review bot、內部開發平台</td></tr>
-<tr><td>22</td><td>Coding Agent / 程式碼生成</td><td><a href="https://build.nvidia.com/nvidia/nemotron-3-super-120b-a12b">nemotron-3-super-120b-a12b</a></td><td>Chat / Responses 類 API</td><td>system prompt、user prompt、上下文文件、工具定義或程式碼片段</td><td>文字回答、程式碼 diff、工具呼叫參數、推理/摘要結果</td><td>1. 定義 coding 任務模板（修 bug、產生測試、解釋程式碼）。2. 把 repo 摘要/相關檔案/錯誤日誌放入 prompt。3. 呼叫模型產生 patch 或建議。4. 用 CI/單元測試驗證。5. 人審後合併。</td><td>IDE 助手、CI bot、PR review bot、內部開發平台</td></tr>
-<tr><td>23</td><td>Coding Agent / 程式碼生成</td><td><a href="https://build.nvidia.com/qwen/qwen2_5-coder-32b-instruct">qwen2.5-coder-32b-instruct</a></td><td>Chat / Responses 類 API</td><td>system prompt、user prompt、上下文文件、工具定義或程式碼片段</td><td>文字回答、程式碼 diff、工具呼叫參數、推理/摘要結果</td><td>1. 定義 coding 任務模板（修 bug、產生測試、解釋程式碼）。2. 把 repo 摘要/相關檔案/錯誤日誌放入 prompt。3. 呼叫模型產生 patch 或建議。4. 用 CI/單元測試驗證。5. 人審後合併。</td><td>IDE 助手、CI bot、PR review bot、內部開發平台</td></tr>
-<tr><td>24</td><td>Coding Agent / 程式碼生成</td><td><a href="https://build.nvidia.com/qwen/qwen3-coder-480b-a35b-instruct">qwen3-coder-480b-a35b-instruct</a></td><td>Chat / Responses 類 API</td><td>system prompt、user prompt、上下文文件、工具定義或程式碼片段</td><td>文字回答、程式碼 diff、工具呼叫參數、推理/摘要結果</td><td>1. 定義 coding 任務模板（修 bug、產生測試、解釋程式碼）。2. 把 repo 摘要/相關檔案/錯誤日誌放入 prompt。3. 呼叫模型產生 patch 或建議。4. 用 CI/單元測試驗證。5. 人審後合併。</td><td>IDE 助手、CI bot、PR review bot、內部開發平台</td></tr>
-<tr><td>25</td><td>Coding Agent / 程式碼生成</td><td><a href="https://build.nvidia.com/sarvamai/sarvam-m">sarvam-m</a></td><td>Chat / Responses 類 API</td><td>system prompt、user prompt、上下文文件、工具定義或程式碼片段</td><td>文字回答、程式碼 diff、工具呼叫參數、推理/摘要結果</td><td>1. 定義 coding 任務模板（修 bug、產生測試、解釋程式碼）。2. 把 repo 摘要/相關檔案/錯誤日誌放入 prompt。3. 呼叫模型產生 patch 或建議。4. 用 CI/單元測試驗證。5. 人審後合併。</td><td>IDE 助手、CI bot、PR review bot、內部開發平台</td></tr>
-<tr><td>26</td><td>Coding Agent / 程式碼生成</td><td><a href="https://build.nvidia.com/stepfun-ai/step-3.5-flash">step-3.5-flash</a></td><td>Chat / Responses 類 API</td><td>system prompt、user prompt、上下文文件、工具定義或程式碼片段</td><td>文字回答、程式碼 diff、工具呼叫參數、推理/摘要結果</td><td>1. 定義 coding 任務模板（修 bug、產生測試、解釋程式碼）。2. 把 repo 摘要/相關檔案/錯誤日誌放入 prompt。3. 呼叫模型產生 patch 或建議。4. 用 CI/單元測試驗證。5. 人審後合併。</td><td>IDE 助手、CI bot、PR review bot、內部開發平台</td></tr>
-<tr><td>27</td><td>Coding Agent / 程式碼生成</td><td><a href="https://build.nvidia.com/z-ai/glm-4.7">glm-4.7</a></td><td>Chat / Responses 類 API</td><td>system prompt、user prompt、上下文文件、工具定義或程式碼片段</td><td>文字回答、程式碼 diff、工具呼叫參數、推理/摘要結果</td><td>1. 定義 coding 任務模板（修 bug、產生測試、解釋程式碼）。2. 把 repo 摘要/相關檔案/錯誤日誌放入 prompt。3. 呼叫模型產生 patch 或建議。4. 用 CI/單元測試驗證。5. 人審後合併。</td><td>IDE 助手、CI bot、PR review bot、內部開發平台</td></tr>
-<tr><td>28</td><td>Coding Agent / 程式碼生成</td><td><a href="https://build.nvidia.com/z-ai/glm-5.1">glm-5.1</a></td><td>Chat / Responses 類 API</td><td>system prompt、user prompt、上下文文件、工具定義或程式碼片段</td><td>文字回答、程式碼 diff、工具呼叫參數、推理/摘要結果</td><td>1. 定義 coding 任務模板（修 bug、產生測試、解釋程式碼）。2. 把 repo 摘要/相關檔案/錯誤日誌放入 prompt。3. 呼叫模型產生 patch 或建議。4. 用 CI/單元測試驗證。5. 人審後合併。</td><td>IDE 助手、CI bot、PR review bot、內部開發平台</td></tr>
-<tr><td>29</td><td>通用推理 / 工具呼叫 Agent</td><td><a href="https://build.nvidia.com/bytedance/seed-oss-36b-instruct">seed-oss-36b-instruct</a></td><td>Chat / Responses 類 API</td><td>system prompt、user prompt、上下文文件、工具定義或程式碼片段</td><td>文字回答、程式碼 diff、工具呼叫參數、推理/摘要結果</td><td>1. 定義 agent 任務與工具邊界。2. 設計 prompt、工具 schema、記憶/上下文策略。3. 呼叫模型做規劃/工具選擇/回答。4. 對工具結果二次驗證。5. 上線前加 guardrail、logging、人工接管。</td><td>企業助理、研究助理、客服 agent、工作流自動化</td></tr>
-<tr><td>30</td><td>通用推理 / 工具呼叫 Agent</td><td><a href="https://build.nvidia.com/mistralai/mistral-7b-instruct-v03">mistral-7b-instruct-v0.3</a></td><td>Chat / Responses 類 API</td><td>system prompt、user prompt、上下文文件、工具定義或程式碼片段</td><td>文字回答、程式碼 diff、工具呼叫參數、推理/摘要結果</td><td>1. 定義 agent 任務與工具邊界。2. 設計 prompt、工具 schema、記憶/上下文策略。3. 呼叫模型做規劃/工具選擇/回答。4. 對工具結果二次驗證。5. 上線前加 guardrail、logging、人工接管。</td><td>企業助理、研究助理、客服 agent、工作流自動化</td></tr>
-<tr><td>31</td><td>通用推理 / 工具呼叫 Agent</td><td><a href="https://build.nvidia.com/moonshotai/kimi-k2-thinking">kimi-k2-thinking</a></td><td>Chat / Responses 類 API</td><td>system prompt、user prompt、上下文文件、工具定義或程式碼片段</td><td>文字回答、程式碼 diff、工具呼叫參數、推理/摘要結果</td><td>1. 定義 agent 任務與工具邊界。2. 設計 prompt、工具 schema、記憶/上下文策略。3. 呼叫模型做規劃/工具選擇/回答。4. 對工具結果二次驗證。5. 上線前加 guardrail、logging、人工接管。</td><td>企業助理、研究助理、客服 agent、工作流自動化</td></tr>
-<tr><td>32</td><td>通用推理 / 工具呼叫 Agent</td><td><a href="https://build.nvidia.com/nvidia/llama-3_1-nemotron-nano-8b-v1">llama-3.1-nemotron-nano-8b-v1</a></td><td>Chat / Responses 類 API</td><td>system prompt、user prompt、上下文文件、工具定義或程式碼片段</td><td>文字回答、程式碼 diff、工具呼叫參數、推理/摘要結果</td><td>1. 定義 agent 任務與工具邊界。2. 設計 prompt、工具 schema、記憶/上下文策略。3. 呼叫模型做規劃/工具選擇/回答。4. 對工具結果二次驗證。5. 上線前加 guardrail、logging、人工接管。</td><td>企業助理、研究助理、客服 agent、工作流自動化</td></tr>
-<tr><td>33</td><td>通用推理 / 工具呼叫 Agent</td><td><a href="https://build.nvidia.com/nvidia/llama-3_3-nemotron-super-49b-v1">llama-3.3-nemotron-super-49b-v1</a></td><td>Chat / Responses 類 API</td><td>system prompt、user prompt、上下文文件、工具定義或程式碼片段</td><td>文字回答、程式碼 diff、工具呼叫參數、推理/摘要結果</td><td>1. 定義 agent 任務與工具邊界。2. 設計 prompt、工具 schema、記憶/上下文策略。3. 呼叫模型做規劃/工具選擇/回答。4. 對工具結果二次驗證。5. 上線前加 guardrail、logging、人工接管。</td><td>企業助理、研究助理、客服 agent、工作流自動化</td></tr>
-<tr><td>34</td><td>通用推理 / 工具呼叫 Agent</td><td><a href="https://build.nvidia.com/nvidia/llama-3_3-nemotron-super-49b-v1_5">llama-3.3-nemotron-super-49b-v1.5</a></td><td>Chat / Responses 類 API</td><td>system prompt、user prompt、上下文文件、工具定義或程式碼片段</td><td>文字回答、程式碼 diff、工具呼叫參數、推理/摘要結果</td><td>1. 定義 agent 任務與工具邊界。2. 設計 prompt、工具 schema、記憶/上下文策略。3. 呼叫模型做規劃/工具選擇/回答。4. 對工具結果二次驗證。5. 上線前加 guardrail、logging、人工接管。</td><td>企業助理、研究助理、客服 agent、工作流自動化</td></tr>
-<tr><td>35</td><td>通用推理 / 工具呼叫 Agent</td><td><a href="https://build.nvidia.com/nvidia/nemotron-mini-4b-instruct">nemotron-mini-4b-instruct</a></td><td>Chat / Responses 類 API</td><td>system prompt、user prompt、上下文文件、工具定義或程式碼片段</td><td>文字回答、程式碼 diff、工具呼叫參數、推理/摘要結果</td><td>1. 定義 agent 任務與工具邊界。2. 設計 prompt、工具 schema、記憶/上下文策略。3. 呼叫模型做規劃/工具選擇/回答。4. 對工具結果二次驗證。5. 上線前加 guardrail、logging、人工接管。</td><td>企業助理、研究助理、客服 agent、工作流自動化</td></tr>
-<tr><td>36</td><td>通用推理 / 工具呼叫 Agent</td><td><a href="https://build.nvidia.com/nvidia/nvidia-nemotron-nano-9b-v2">nvidia-nemotron-nano-9b-v2</a></td><td>Chat / Responses 類 API</td><td>system prompt、user prompt、上下文文件、工具定義或程式碼片段</td><td>文字回答、程式碼 diff、工具呼叫參數、推理/摘要結果</td><td>1. 定義 agent 任務與工具邊界。2. 設計 prompt、工具 schema、記憶/上下文策略。3. 呼叫模型做規劃/工具選擇/回答。4. 對工具結果二次驗證。5. 上線前加 guardrail、logging、人工接管。</td><td>企業助理、研究助理、客服 agent、工作流自動化</td></tr>
-<tr><td>37</td><td>通用推理 / 工具呼叫 Agent</td><td><a href="https://build.nvidia.com/openai/gpt-oss-120b">gpt-oss-120b</a></td><td>Chat / Responses 類 API</td><td>system prompt、user prompt、上下文文件、工具定義或程式碼片段</td><td>文字回答、程式碼 diff、工具呼叫參數、推理/摘要結果</td><td>1. 定義 agent 任務與工具邊界。2. 設計 prompt、工具 schema、記憶/上下文策略。3. 呼叫模型做規劃/工具選擇/回答。4. 對工具結果二次驗證。5. 上線前加 guardrail、logging、人工接管。</td><td>企業助理、研究助理、客服 agent、工作流自動化</td></tr>
-<tr><td>38</td><td>通用推理 / 工具呼叫 Agent</td><td><a href="https://build.nvidia.com/openai/gpt-oss-20b">gpt-oss-20b</a></td><td>Chat / Responses 類 API</td><td>system prompt、user prompt、上下文文件、工具定義或程式碼片段</td><td>文字回答、程式碼 diff、工具呼叫參數、推理/摘要結果</td><td>1. 定義 agent 任務與工具邊界。2. 設計 prompt、工具 schema、記憶/上下文策略。3. 呼叫模型做規劃/工具選擇/回答。4. 對工具結果二次驗證。5. 上線前加 guardrail、logging、人工接管。</td><td>企業助理、研究助理、客服 agent、工作流自動化</td></tr>
-<tr><td>39</td><td>通用推理 / 工具呼叫 Agent</td><td><a href="https://build.nvidia.com/qwen/qwen3-next-80b-a3b-instruct">qwen3-next-80b-a3b-instruct</a></td><td>Chat / Responses 類 API</td><td>system prompt、user prompt、上下文文件、工具定義或程式碼片段</td><td>文字回答、程式碼 diff、工具呼叫參數、推理/摘要結果</td><td>1. 定義 agent 任務與工具邊界。2. 設計 prompt、工具 schema、記憶/上下文策略。3. 呼叫模型做規劃/工具選擇/回答。4. 對工具結果二次驗證。5. 上線前加 guardrail、logging、人工接管。</td><td>企業助理、研究助理、客服 agent、工作流自動化</td></tr>
-<tr><td>40</td><td>通用推理 / 工具呼叫 Agent</td><td><a href="https://build.nvidia.com/qwen/qwen3-next-80b-a3b-thinking">qwen3-next-80b-a3b-thinking</a></td><td>Chat / Responses 類 API</td><td>system prompt、user prompt、上下文文件、工具定義或程式碼片段</td><td>文字回答、程式碼 diff、工具呼叫參數、推理/摘要結果</td><td>1. 定義 agent 任務與工具邊界。2. 設計 prompt、工具 schema、記憶/上下文策略。3. 呼叫模型做規劃/工具選擇/回答。4. 對工具結果二次驗證。5. 上線前加 guardrail、logging、人工接管。</td><td>企業助理、研究助理、客服 agent、工作流自動化</td></tr>
-<tr><td>41</td><td>通用推理 / 工具呼叫 Agent</td><td><a href="https://build.nvidia.com/upstage/solar-10_7b-instruct">solar-10.7b-instruct</a></td><td>Chat / Responses 類 API</td><td>system prompt、user prompt、上下文文件、工具定義或程式碼片段</td><td>文字回答、程式碼 diff、工具呼叫參數、推理/摘要結果</td><td>1. 定義 agent 任務與工具邊界。2. 設計 prompt、工具 schema、記憶/上下文策略。3. 呼叫模型做規劃/工具選擇/回答。4. 對工具結果二次驗證。5. 上線前加 guardrail、logging、人工接管。</td><td>企業助理、研究助理、客服 agent、工作流自動化</td></tr>
-<tr><td>42</td><td>多語/主權語言 LLM</td><td><a href="https://build.nvidia.com/stockmark/stockmark-2-100b-instruct">stockmark-2-100b-instruct</a></td><td>Chat / Responses 類 API</td><td>system prompt、user prompt、上下文文件、工具定義或程式碼片段</td><td>文字回答、程式碼 diff、工具呼叫參數、推理/摘要結果</td><td>1. 收集目標語言文件與常見問題。2. 建立摘要/問答/分類 prompt。3. 接入企業文件搜尋或 RAG。4. 用在地語言測試集驗證回答品質。5. 導入客服或知識助理。</td><td>企業知識助理、客服、文件分析平台</td></tr>
+<table><thead>
+<tr><th>分類序</th><th>子分類</th><th>模型</th><th>API/服務型態</th><th>典型輸入</th><th>典型輸出</th><th>落地操作步驟</th><th>建議串接位置</th></tr>
 </thead><tbody>
-</table>
+<tr><td>1</td><td>Coding Agent / 程式碼生成</td><td><a href="https://build.nvidia.com/abacusai/dracarys-llama-3_1-70b-instruct">dracarys-llama-3.1-70b-instruct</a></td><td>Chat / Responses 類 API</td><td>system prompt、user prompt、上下文文件、工具定義或程式碼片段</td><td>文字回答、程式碼 diff、工具呼叫參數、推理/摘要結果</td><td>1. 定義 coding 任務模板（修 bug、產生測試、解釋程式碼）。2. 把 repo 摘要/相關檔案/錯誤日誌放入 prompt。3. 呼叫模型產生 patch 或建議。4. 用 CI/單元測試驗證。5. 人審後合併。</td><td>IDE 助手、CI bot、PR review bot、內部開發平台</td></tr>
+</thead><tbody>
+<tr><td>2</td><td>Coding Agent / 程式碼生成</td><td><a href="https://build.nvidia.com/deepseek-ai/deepseek-v4-flash">deepseek-v4-flash</a></td><td>Chat / Responses 類 API</td><td>system prompt、user prompt、上下文文件、工具定義或程式碼片段</td><td>文字回答、程式碼 diff、工具呼叫參數、推理/摘要結果</td><td>1. 定義 coding 任務模板（修 bug、產生測試、解釋程式碼）。2. 把 repo 摘要/相關檔案/錯誤日誌放入 prompt。3. 呼叫模型產生 patch 或建議。4. 用 CI/單元測試驗證。5. 人審後合併。</td><td>IDE 助手、CI bot、PR review bot、內部開發平台</td></tr>
+</thead><tbody>
+<tr><td>3</td><td>Coding Agent / 程式碼生成</td><td><a href="https://build.nvidia.com/deepseek-ai/deepseek-v4-pro">deepseek-v4-pro</a></td><td>Chat / Responses 類 API</td><td>system prompt、user prompt、上下文文件、工具定義或程式碼片段</td><td>文字回答、程式碼 diff、工具呼叫參數、推理/摘要結果</td><td>1. 定義 coding 任務模板（修 bug、產生測試、解釋程式碼）。2. 把 repo 摘要/相關檔案/錯誤日誌放入 prompt。3. 呼叫模型產生 patch 或建議。4. 用 CI/單元測試驗證。5. 人審後合併。</td><td>IDE 助手、CI bot、PR review bot、內部開發平台</td></tr>
+</thead><tbody>
+<tr><td>4</td><td>Coding Agent / 程式碼生成</td><td><a href="https://build.nvidia.com/google/gemma-2-2b-it">gemma-2-2b-it</a></td><td>Chat / Responses 類 API</td><td>system prompt、user prompt、上下文文件、工具定義或程式碼片段</td><td>文字回答、程式碼 diff、工具呼叫參數、推理/摘要結果</td><td>1. 定義 coding 任務模板（修 bug、產生測試、解釋程式碼）。2. 把 repo 摘要/相關檔案/錯誤日誌放入 prompt。3. 呼叫模型產生 patch 或建議。4. 用 CI/單元測試驗證。5. 人審後合併。</td><td>IDE 助手、CI bot、PR review bot、內部開發平台</td></tr>
+</thead><tbody>
+<tr><td>5</td><td>Coding Agent / 程式碼生成</td><td><a href="https://build.nvidia.com/google/gemma-4-31b-it">gemma-4-31b-it</a></td><td>Chat / Responses 類 API</td><td>system prompt、user prompt、上下文文件、工具定義或程式碼片段</td><td>文字回答、程式碼 diff、工具呼叫參數、推理/摘要結果</td><td>1. 定義 coding 任務模板（修 bug、產生測試、解釋程式碼）。2. 把 repo 摘要/相關檔案/錯誤日誌放入 prompt。3. 呼叫模型產生 patch 或建議。4. 用 CI/單元測試驗證。5. 人審後合併。</td><td>IDE 助手、CI bot、PR review bot、內部開發平台</td></tr>
+</thead><tbody>
+<tr><td>6</td><td>Coding Agent / 程式碼生成</td><td><a href="https://build.nvidia.com/meta/llama-3_1-70b-instruct">llama-3.1-70b-instruct</a></td><td>Chat / Responses 類 API</td><td>system prompt、user prompt、上下文文件、工具定義或程式碼片段</td><td>文字回答、程式碼 diff、工具呼叫參數、推理/摘要結果</td><td>1. 定義 coding 任務模板（修 bug、產生測試、解釋程式碼）。2. 把 repo 摘要/相關檔案/錯誤日誌放入 prompt。3. 呼叫模型產生 patch 或建議。4. 用 CI/單元測試驗證。5. 人審後合併。</td><td>IDE 助手、CI bot、PR review bot、內部開發平台</td></tr>
+</thead><tbody>
+<tr><td>7</td><td>Coding Agent / 程式碼生成</td><td><a href="https://build.nvidia.com/meta/llama-3_1-8b-instruct">llama-3.1-8b-instruct</a></td><td>Chat / Responses 類 API</td><td>system prompt、user prompt、上下文文件、工具定義或程式碼片段</td><td>文字回答、程式碼 diff、工具呼叫參數、推理/摘要結果</td><td>1. 定義 coding 任務模板（修 bug、產生測試、解釋程式碼）。2. 把 repo 摘要/相關檔案/錯誤日誌放入 prompt。3. 呼叫模型產生 patch 或建議。4. 用 CI/單元測試驗證。5. 人審後合併。</td><td>IDE 助手、CI bot、PR review bot、內部開發平台</td></tr>
+</thead><tbody>
+<tr><td>8</td><td>Coding Agent / 程式碼生成</td><td><a href="https://build.nvidia.com/meta/llama-3.2-1b-instruct">llama-3.2-1b-instruct</a></td><td>Chat / Responses 類 API</td><td>system prompt、user prompt、上下文文件、工具定義或程式碼片段</td><td>文字回答、程式碼 diff、工具呼叫參數、推理/摘要結果</td><td>1. 定義 coding 任務模板（修 bug、產生測試、解釋程式碼）。2. 把 repo 摘要/相關檔案/錯誤日誌放入 prompt。3. 呼叫模型產生 patch 或建議。4. 用 CI/單元測試驗證。5. 人審後合併。</td><td>IDE 助手、CI bot、PR review bot、內部開發平台</td></tr>
+</thead><tbody>
+<tr><td>9</td><td>Coding Agent / 程式碼生成</td><td><a href="https://build.nvidia.com/meta/llama-3.2-3b-instruct">llama-3.2-3b-instruct</a></td><td>Chat / Responses 類 API</td><td>system prompt、user prompt、上下文文件、工具定義或程式碼片段</td><td>文字回答、程式碼 diff、工具呼叫參數、推理/摘要結果</td><td>1. 定義 coding 任務模板（修 bug、產生測試、解釋程式碼）。2. 把 repo 摘要/相關檔案/錯誤日誌放入 prompt。3. 呼叫模型產生 patch 或建議。4. 用 CI/單元測試驗證。5. 人審後合併。</td><td>IDE 助手、CI bot、PR review bot、內部開發平台</td></tr>
+</thead><tbody>
+<tr><td>10</td><td>Coding Agent / 程式碼生成</td><td><a href="https://build.nvidia.com/meta/llama-3_3-70b-instruct">llama-3.3-70b-instruct</a></td><td>Chat / Responses 類 API</td><td>system prompt、user prompt、上下文文件、工具定義或程式碼片段</td><td>文字回答、程式碼 diff、工具呼叫參數、推理/摘要結果</td><td>1. 定義 coding 任務模板（修 bug、產生測試、解釋程式碼）。2. 把 repo 摘要/相關檔案/錯誤日誌放入 prompt。3. 呼叫模型產生 patch 或建議。4. 用 CI/單元測試驗證。5. 人審後合併。</td><td>IDE 助手、CI bot、PR review bot、內部開發平台</td></tr>
+</thead><tbody>
+<tr><td>11</td><td>Coding Agent / 程式碼生成</td><td><a href="https://build.nvidia.com/microsoft/phi-4-mini-instruct">phi-4-mini-instruct</a></td><td>Chat / Responses 類 API</td><td>system prompt、user prompt、上下文文件、工具定義或程式碼片段</td><td>文字回答、程式碼 diff、工具呼叫參數、推理/摘要結果</td><td>1. 定義 coding 任務模板（修 bug、產生測試、解釋程式碼）。2. 把 repo 摘要/相關檔案/錯誤日誌放入 prompt。3. 呼叫模型產生 patch 或建議。4. 用 CI/單元測試驗證。5. 人審後合併。</td><td>IDE 助手、CI bot、PR review bot、內部開發平台</td></tr>
+</thead><tbody>
+<tr><td>12</td><td>Coding Agent / 程式碼生成</td><td><a href="https://build.nvidia.com/minimaxai/minimax-m2.5">minimax-m2.5</a></td><td>Chat / Responses 類 API</td><td>system prompt、user prompt、上下文文件、工具定義或程式碼片段</td><td>文字回答、程式碼 diff、工具呼叫參數、推理/摘要結果</td><td>1. 定義 coding 任務模板（修 bug、產生測試、解釋程式碼）。2. 把 repo 摘要/相關檔案/錯誤日誌放入 prompt。3. 呼叫模型產生 patch 或建議。4. 用 CI/單元測試驗證。5. 人審後合併。</td><td>IDE 助手、CI bot、PR review bot、內部開發平台</td></tr>
+</thead><tbody>
+<tr><td>13</td><td>Coding Agent / 程式碼生成</td><td><a href="https://build.nvidia.com/minimaxai/minimax-m2.7">minimax-m2.7</a></td><td>Chat / Responses 類 API</td><td>system prompt、user prompt、上下文文件、工具定義或程式碼片段</td><td>文字回答、程式碼 diff、工具呼叫參數、推理/摘要結果</td><td>1. 定義 coding 任務模板（修 bug、產生測試、解釋程式碼）。2. 把 repo 摘要/相關檔案/錯誤日誌放入 prompt。3. 呼叫模型產生 patch 或建議。4. 用 CI/單元測試驗證。5. 人審後合併。</td><td>IDE 助手、CI bot、PR review bot、內部開發平台</td></tr>
+</thead><tbody>
+<tr><td>14</td><td>Coding Agent / 程式碼生成</td><td><a href="https://build.nvidia.com/mistralai/devstral-2-123b-instruct-2512">devstral-2-123b-instruct-2512</a></td><td>Chat / Responses 類 API</td><td>system prompt、user prompt、上下文文件、工具定義或程式碼片段</td><td>文字回答、程式碼 diff、工具呼叫參數、推理/摘要結果</td><td>1. 定義 coding 任務模板（修 bug、產生測試、解釋程式碼）。2. 把 repo 摘要/相關檔案/錯誤日誌放入 prompt。3. 呼叫模型產生 patch 或建議。4. 用 CI/單元測試驗證。5. 人審後合併。</td><td>IDE 助手、CI bot、PR review bot、內部開發平台</td></tr>
+</thead><tbody>
+<tr><td>15</td><td>Coding Agent / 程式碼生成</td><td><a href="https://build.nvidia.com/mistralai/magistral-small-2506">magistral-small-2506</a></td><td>Chat / Responses 類 API</td><td>system prompt、user prompt、上下文文件、工具定義或程式碼片段</td><td>文字回答、程式碼 diff、工具呼叫參數、推理/摘要結果</td><td>1. 定義 coding 任務模板（修 bug、產生測試、解釋程式碼）。2. 把 repo 摘要/相關檔案/錯誤日誌放入 prompt。3. 呼叫模型產生 patch 或建議。4. 用 CI/單元測試驗證。5. 人審後合併。</td><td>IDE 助手、CI bot、PR review bot、內部開發平台</td></tr>
+</thead><tbody>
+<tr><td>16</td><td>Coding Agent / 程式碼生成</td><td><a href="https://build.nvidia.com/mistralai/mistral-medium-3.5-128b">mistral-medium-3.5-128b</a></td><td>Chat / Responses 類 API</td><td>system prompt、user prompt、上下文文件、工具定義或程式碼片段</td><td>文字回答、程式碼 diff、工具呼叫參數、推理/摘要結果</td><td>1. 定義 coding 任務模板（修 bug、產生測試、解釋程式碼）。2. 把 repo 摘要/相關檔案/錯誤日誌放入 prompt。3. 呼叫模型產生 patch 或建議。4. 用 CI/單元測試驗證。5. 人審後合併。</td><td>IDE 助手、CI bot、PR review bot、內部開發平台</td></tr>
+</thead><tbody>
+<tr><td>17</td><td>Coding Agent / 程式碼生成</td><td><a href="https://build.nvidia.com/mistralai/mistral-nemotron">mistral-nemotron</a></td><td>Chat / Responses 類 API</td><td>system prompt、user prompt、上下文文件、工具定義或程式碼片段</td><td>文字回答、程式碼 diff、工具呼叫參數、推理/摘要結果</td><td>1. 定義 coding 任務模板（修 bug、產生測試、解釋程式碼）。2. 把 repo 摘要/相關檔案/錯誤日誌放入 prompt。3. 呼叫模型產生 patch 或建議。4. 用 CI/單元測試驗證。5. 人審後合併。</td><td>IDE 助手、CI bot、PR review bot、內部開發平台</td></tr>
+</thead><tbody>
+<tr><td>18</td><td>Coding Agent / 程式碼生成</td><td><a href="https://build.nvidia.com/mistralai/mixtral-8x22b-instruct">mixtral-8x22b-instruct-v0.1</a></td><td>Chat / Responses 類 API</td><td>system prompt、user prompt、上下文文件、工具定義或程式碼片段</td><td>文字回答、程式碼 diff、工具呼叫參數、推理/摘要結果</td><td>1. 定義 coding 任務模板（修 bug、產生測試、解釋程式碼）。2. 把 repo 摘要/相關檔案/錯誤日誌放入 prompt。3. 呼叫模型產生 patch 或建議。4. 用 CI/單元測試驗證。5. 人審後合併。</td><td>IDE 助手、CI bot、PR review bot、內部開發平台</td></tr>
+</thead><tbody>
+<tr><td>19</td><td>Coding Agent / 程式碼生成</td><td><a href="https://build.nvidia.com/mistralai/mixtral-8x7b-instruct">mixtral-8x7b-instruct-v0.1</a></td><td>Chat / Responses 類 API</td><td>system prompt、user prompt、上下文文件、工具定義或程式碼片段</td><td>文字回答、程式碼 diff、工具呼叫參數、推理/摘要結果</td><td>1. 定義 coding 任務模板（修 bug、產生測試、解釋程式碼）。2. 把 repo 摘要/相關檔案/錯誤日誌放入 prompt。3. 呼叫模型產生 patch 或建議。4. 用 CI/單元測試驗證。5. 人審後合併。</td><td>IDE 助手、CI bot、PR review bot、內部開發平台</td></tr>
+</thead><tbody>
+<tr><td>20</td><td>Coding Agent / 程式碼生成</td><td><a href="https://build.nvidia.com/moonshotai/kimi-k2-instruct">kimi-k2-instruct</a></td><td>Chat / Responses 類 API</td><td>system prompt、user prompt、上下文文件、工具定義或程式碼片段</td><td>文字回答、程式碼 diff、工具呼叫參數、推理/摘要結果</td><td>1. 定義 coding 任務模板（修 bug、產生測試、解釋程式碼）。2. 把 repo 摘要/相關檔案/錯誤日誌放入 prompt。3. 呼叫模型產生 patch 或建議。4. 用 CI/單元測試驗證。5. 人審後合併。</td><td>IDE 助手、CI bot、PR review bot、內部開發平台</td></tr>
+</thead><tbody>
+<tr><td>21</td><td>Coding Agent / 程式碼生成</td><td><a href="https://build.nvidia.com/nvidia/nemotron-3-nano-30b-a3b">nemotron-3-nano-30b-a3b</a></td><td>Chat / Responses 類 API</td><td>system prompt、user prompt、上下文文件、工具定義或程式碼片段</td><td>文字回答、程式碼 diff、工具呼叫參數、推理/摘要結果</td><td>1. 定義 coding 任務模板（修 bug、產生測試、解釋程式碼）。2. 把 repo 摘要/相關檔案/錯誤日誌放入 prompt。3. 呼叫模型產生 patch 或建議。4. 用 CI/單元測試驗證。5. 人審後合併。</td><td>IDE 助手、CI bot、PR review bot、內部開發平台</td></tr>
+</thead><tbody>
+<tr><td>22</td><td>Coding Agent / 程式碼生成</td><td><a href="https://build.nvidia.com/nvidia/nemotron-3-super-120b-a12b">nemotron-3-super-120b-a12b</a></td><td>Chat / Responses 類 API</td><td>system prompt、user prompt、上下文文件、工具定義或程式碼片段</td><td>文字回答、程式碼 diff、工具呼叫參數、推理/摘要結果</td><td>1. 定義 coding 任務模板（修 bug、產生測試、解釋程式碼）。2. 把 repo 摘要/相關檔案/錯誤日誌放入 prompt。3. 呼叫模型產生 patch 或建議。4. 用 CI/單元測試驗證。5. 人審後合併。</td><td>IDE 助手、CI bot、PR review bot、內部開發平台</td></tr>
+</thead><tbody>
+<tr><td>23</td><td>Coding Agent / 程式碼生成</td><td><a href="https://build.nvidia.com/qwen/qwen2_5-coder-32b-instruct">qwen2.5-coder-32b-instruct</a></td><td>Chat / Responses 類 API</td><td>system prompt、user prompt、上下文文件、工具定義或程式碼片段</td><td>文字回答、程式碼 diff、工具呼叫參數、推理/摘要結果</td><td>1. 定義 coding 任務模板（修 bug、產生測試、解釋程式碼）。2. 把 repo 摘要/相關檔案/錯誤日誌放入 prompt。3. 呼叫模型產生 patch 或建議。4. 用 CI/單元測試驗證。5. 人審後合併。</td><td>IDE 助手、CI bot、PR review bot、內部開發平台</td></tr>
+</thead><tbody>
+<tr><td>24</td><td>Coding Agent / 程式碼生成</td><td><a href="https://build.nvidia.com/qwen/qwen3-coder-480b-a35b-instruct">qwen3-coder-480b-a35b-instruct</a></td><td>Chat / Responses 類 API</td><td>system prompt、user prompt、上下文文件、工具定義或程式碼片段</td><td>文字回答、程式碼 diff、工具呼叫參數、推理/摘要結果</td><td>1. 定義 coding 任務模板（修 bug、產生測試、解釋程式碼）。2. 把 repo 摘要/相關檔案/錯誤日誌放入 prompt。3. 呼叫模型產生 patch 或建議。4. 用 CI/單元測試驗證。5. 人審後合併。</td><td>IDE 助手、CI bot、PR review bot、內部開發平台</td></tr>
+</thead><tbody>
+<tr><td>25</td><td>Coding Agent / 程式碼生成</td><td><a href="https://build.nvidia.com/sarvamai/sarvam-m">sarvam-m</a></td><td>Chat / Responses 類 API</td><td>system prompt、user prompt、上下文文件、工具定義或程式碼片段</td><td>文字回答、程式碼 diff、工具呼叫參數、推理/摘要結果</td><td>1. 定義 coding 任務模板（修 bug、產生測試、解釋程式碼）。2. 把 repo 摘要/相關檔案/錯誤日誌放入 prompt。3. 呼叫模型產生 patch 或建議。4. 用 CI/單元測試驗證。5. 人審後合併。</td><td>IDE 助手、CI bot、PR review bot、內部開發平台</td></tr>
+</thead><tbody>
+<tr><td>26</td><td>Coding Agent / 程式碼生成</td><td><a href="https://build.nvidia.com/stepfun-ai/step-3.5-flash">step-3.5-flash</a></td><td>Chat / Responses 類 API</td><td>system prompt、user prompt、上下文文件、工具定義或程式碼片段</td><td>文字回答、程式碼 diff、工具呼叫參數、推理/摘要結果</td><td>1. 定義 coding 任務模板（修 bug、產生測試、解釋程式碼）。2. 把 repo 摘要/相關檔案/錯誤日誌放入 prompt。3. 呼叫模型產生 patch 或建議。4. 用 CI/單元測試驗證。5. 人審後合併。</td><td>IDE 助手、CI bot、PR review bot、內部開發平台</td></tr>
+</thead><tbody>
+<tr><td>27</td><td>Coding Agent / 程式碼生成</td><td><a href="https://build.nvidia.com/z-ai/glm-4.7">glm-4.7</a></td><td>Chat / Responses 類 API</td><td>system prompt、user prompt、上下文文件、工具定義或程式碼片段</td><td>文字回答、程式碼 diff、工具呼叫參數、推理/摘要結果</td><td>1. 定義 coding 任務模板（修 bug、產生測試、解釋程式碼）。2. 把 repo 摘要/相關檔案/錯誤日誌放入 prompt。3. 呼叫模型產生 patch 或建議。4. 用 CI/單元測試驗證。5. 人審後合併。</td><td>IDE 助手、CI bot、PR review bot、內部開發平台</td></tr>
+</thead><tbody>
+<tr><td>28</td><td>Coding Agent / 程式碼生成</td><td><a href="https://build.nvidia.com/z-ai/glm-5.1">glm-5.1</a></td><td>Chat / Responses 類 API</td><td>system prompt、user prompt、上下文文件、工具定義或程式碼片段</td><td>文字回答、程式碼 diff、工具呼叫參數、推理/摘要結果</td><td>1. 定義 coding 任務模板（修 bug、產生測試、解釋程式碼）。2. 把 repo 摘要/相關檔案/錯誤日誌放入 prompt。3. 呼叫模型產生 patch 或建議。4. 用 CI/單元測試驗證。5. 人審後合併。</td><td>IDE 助手、CI bot、PR review bot、內部開發平台</td></tr>
+</thead><tbody>
+<tr><td>29</td><td>通用推理 / 工具呼叫 Agent</td><td><a href="https://build.nvidia.com/bytedance/seed-oss-36b-instruct">seed-oss-36b-instruct</a></td><td>Chat / Responses 類 API</td><td>system prompt、user prompt、上下文文件、工具定義或程式碼片段</td><td>文字回答、程式碼 diff、工具呼叫參數、推理/摘要結果</td><td>1. 定義 agent 任務與工具邊界。2. 設計 prompt、工具 schema、記憶/上下文策略。3. 呼叫模型做規劃/工具選擇/回答。4. 對工具結果二次驗證。5. 上線前加 guardrail、logging、人工接管。</td><td>企業助理、研究助理、客服 agent、工作流自動化</td></tr>
+</thead><tbody>
+<tr><td>30</td><td>通用推理 / 工具呼叫 Agent</td><td><a href="https://build.nvidia.com/mistralai/mistral-7b-instruct-v03">mistral-7b-instruct-v0.3</a></td><td>Chat / Responses 類 API</td><td>system prompt、user prompt、上下文文件、工具定義或程式碼片段</td><td>文字回答、程式碼 diff、工具呼叫參數、推理/摘要結果</td><td>1. 定義 agent 任務與工具邊界。2. 設計 prompt、工具 schema、記憶/上下文策略。3. 呼叫模型做規劃/工具選擇/回答。4. 對工具結果二次驗證。5. 上線前加 guardrail、logging、人工接管。</td><td>企業助理、研究助理、客服 agent、工作流自動化</td></tr>
+</thead><tbody>
+<tr><td>31</td><td>通用推理 / 工具呼叫 Agent</td><td><a href="https://build.nvidia.com/moonshotai/kimi-k2-thinking">kimi-k2-thinking</a></td><td>Chat / Responses 類 API</td><td>system prompt、user prompt、上下文文件、工具定義或程式碼片段</td><td>文字回答、程式碼 diff、工具呼叫參數、推理/摘要結果</td><td>1. 定義 agent 任務與工具邊界。2. 設計 prompt、工具 schema、記憶/上下文策略。3. 呼叫模型做規劃/工具選擇/回答。4. 對工具結果二次驗證。5. 上線前加 guardrail、logging、人工接管。</td><td>企業助理、研究助理、客服 agent、工作流自動化</td></tr>
+</thead><tbody>
+<tr><td>32</td><td>通用推理 / 工具呼叫 Agent</td><td><a href="https://build.nvidia.com/nvidia/llama-3_1-nemotron-nano-8b-v1">llama-3.1-nemotron-nano-8b-v1</a></td><td>Chat / Responses 類 API</td><td>system prompt、user prompt、上下文文件、工具定義或程式碼片段</td><td>文字回答、程式碼 diff、工具呼叫參數、推理/摘要結果</td><td>1. 定義 agent 任務與工具邊界。2. 設計 prompt、工具 schema、記憶/上下文策略。3. 呼叫模型做規劃/工具選擇/回答。4. 對工具結果二次驗證。5. 上線前加 guardrail、logging、人工接管。</td><td>企業助理、研究助理、客服 agent、工作流自動化</td></tr>
+</thead><tbody>
+<tr><td>33</td><td>通用推理 / 工具呼叫 Agent</td><td><a href="https://build.nvidia.com/nvidia/llama-3_3-nemotron-super-49b-v1">llama-3.3-nemotron-super-49b-v1</a></td><td>Chat / Responses 類 API</td><td>system prompt、user prompt、上下文文件、工具定義或程式碼片段</td><td>文字回答、程式碼 diff、工具呼叫參數、推理/摘要結果</td><td>1. 定義 agent 任務與工具邊界。2. 設計 prompt、工具 schema、記憶/上下文策略。3. 呼叫模型做規劃/工具選擇/回答。4. 對工具結果二次驗證。5. 上線前加 guardrail、logging、人工接管。</td><td>企業助理、研究助理、客服 agent、工作流自動化</td></tr>
+</thead><tbody>
+<tr><td>34</td><td>通用推理 / 工具呼叫 Agent</td><td><a href="https://build.nvidia.com/nvidia/llama-3_3-nemotron-super-49b-v1_5">llama-3.3-nemotron-super-49b-v1.5</a></td><td>Chat / Responses 類 API</td><td>system prompt、user prompt、上下文文件、工具定義或程式碼片段</td><td>文字回答、程式碼 diff、工具呼叫參數、推理/摘要結果</td><td>1. 定義 agent 任務與工具邊界。2. 設計 prompt、工具 schema、記憶/上下文策略。3. 呼叫模型做規劃/工具選擇/回答。4. 對工具結果二次驗證。5. 上線前加 guardrail、logging、人工接管。</td><td>企業助理、研究助理、客服 agent、工作流自動化</td></tr>
+</thead><tbody>
+<tr><td>35</td><td>通用推理 / 工具呼叫 Agent</td><td><a href="https://build.nvidia.com/nvidia/nemotron-mini-4b-instruct">nemotron-mini-4b-instruct</a></td><td>Chat / Responses 類 API</td><td>system prompt、user prompt、上下文文件、工具定義或程式碼片段</td><td>文字回答、程式碼 diff、工具呼叫參數、推理/摘要結果</td><td>1. 定義 agent 任務與工具邊界。2. 設計 prompt、工具 schema、記憶/上下文策略。3. 呼叫模型做規劃/工具選擇/回答。4. 對工具結果二次驗證。5. 上線前加 guardrail、logging、人工接管。</td><td>企業助理、研究助理、客服 agent、工作流自動化</td></tr>
+</thead><tbody>
+<tr><td>36</td><td>通用推理 / 工具呼叫 Agent</td><td><a href="https://build.nvidia.com/nvidia/nvidia-nemotron-nano-9b-v2">nvidia-nemotron-nano-9b-v2</a></td><td>Chat / Responses 類 API</td><td>system prompt、user prompt、上下文文件、工具定義或程式碼片段</td><td>文字回答、程式碼 diff、工具呼叫參數、推理/摘要結果</td><td>1. 定義 agent 任務與工具邊界。2. 設計 prompt、工具 schema、記憶/上下文策略。3. 呼叫模型做規劃/工具選擇/回答。4. 對工具結果二次驗證。5. 上線前加 guardrail、logging、人工接管。</td><td>企業助理、研究助理、客服 agent、工作流自動化</td></tr>
+</thead><tbody>
+<tr><td>37</td><td>通用推理 / 工具呼叫 Agent</td><td><a href="https://build.nvidia.com/openai/gpt-oss-120b">gpt-oss-120b</a></td><td>Chat / Responses 類 API</td><td>system prompt、user prompt、上下文文件、工具定義或程式碼片段</td><td>文字回答、程式碼 diff、工具呼叫參數、推理/摘要結果</td><td>1. 定義 agent 任務與工具邊界。2. 設計 prompt、工具 schema、記憶/上下文策略。3. 呼叫模型做規劃/工具選擇/回答。4. 對工具結果二次驗證。5. 上線前加 guardrail、logging、人工接管。</td><td>企業助理、研究助理、客服 agent、工作流自動化</td></tr>
+</thead><tbody>
+<tr><td>38</td><td>通用推理 / 工具呼叫 Agent</td><td><a href="https://build.nvidia.com/openai/gpt-oss-20b">gpt-oss-20b</a></td><td>Chat / Responses 類 API</td><td>system prompt、user prompt、上下文文件、工具定義或程式碼片段</td><td>文字回答、程式碼 diff、工具呼叫參數、推理/摘要結果</td><td>1. 定義 agent 任務與工具邊界。2. 設計 prompt、工具 schema、記憶/上下文策略。3. 呼叫模型做規劃/工具選擇/回答。4. 對工具結果二次驗證。5. 上線前加 guardrail、logging、人工接管。</td><td>企業助理、研究助理、客服 agent、工作流自動化</td></tr>
+</thead><tbody>
+<tr><td>39</td><td>通用推理 / 工具呼叫 Agent</td><td><a href="https://build.nvidia.com/qwen/qwen3-next-80b-a3b-instruct">qwen3-next-80b-a3b-instruct</a></td><td>Chat / Responses 類 API</td><td>system prompt、user prompt、上下文文件、工具定義或程式碼片段</td><td>文字回答、程式碼 diff、工具呼叫參數、推理/摘要結果</td><td>1. 定義 agent 任務與工具邊界。2. 設計 prompt、工具 schema、記憶/上下文策略。3. 呼叫模型做規劃/工具選擇/回答。4. 對工具結果二次驗證。5. 上線前加 guardrail、logging、人工接管。</td><td>企業助理、研究助理、客服 agent、工作流自動化</td></tr>
+</thead><tbody>
+<tr><td>40</td><td>通用推理 / 工具呼叫 Agent</td><td><a href="https://build.nvidia.com/qwen/qwen3-next-80b-a3b-thinking">qwen3-next-80b-a3b-thinking</a></td><td>Chat / Responses 類 API</td><td>system prompt、user prompt、上下文文件、工具定義或程式碼片段</td><td>文字回答、程式碼 diff、工具呼叫參數、推理/摘要結果</td><td>1. 定義 agent 任務與工具邊界。2. 設計 prompt、工具 schema、記憶/上下文策略。3. 呼叫模型做規劃/工具選擇/回答。4. 對工具結果二次驗證。5. 上線前加 guardrail、logging、人工接管。</td><td>企業助理、研究助理、客服 agent、工作流自動化</td></tr>
+</thead><tbody>
+<tr><td>41</td><td>通用推理 / 工具呼叫 Agent</td><td><a href="https://build.nvidia.com/upstage/solar-10_7b-instruct">solar-10.7b-instruct</a></td><td>Chat / Responses 類 API</td><td>system prompt、user prompt、上下文文件、工具定義或程式碼片段</td><td>文字回答、程式碼 diff、工具呼叫參數、推理/摘要結果</td><td>1. 定義 agent 任務與工具邊界。2. 設計 prompt、工具 schema、記憶/上下文策略。3. 呼叫模型做規劃/工具選擇/回答。4. 對工具結果二次驗證。5. 上線前加 guardrail、logging、人工接管。</td><td>企業助理、研究助理、客服 agent、工作流自動化</td></tr>
+</thead><tbody>
+<tr><td>42</td><td>多語/主權語言 LLM</td><td><a href="https://build.nvidia.com/stockmark/stockmark-2-100b-instruct">stockmark-2-100b-instruct</a></td><td>Chat / Responses 類 API</td><td>system prompt、user prompt、上下文文件、工具定義或程式碼片段</td><td>文字回答、程式碼 diff、工具呼叫參數、推理/摘要結果</td><td>1. 收集目標語言文件與常見問題。2. 建立摘要/問答/分類 prompt。3. 接入企業文件搜尋或 RAG。4. 用在地語言測試集驗證回答品質。5. 導入客服或知識助理。</td><td>企業知識助理、客服、文件分析平台</td></tr>
+</tbody></table>
 
 <h2 id="rag-與檢索">RAG 與檢索</h2>
 
-<table>
-<tr><td>分類序</td><td>子分類</td><td>模型</td><td>API/服務型態</td><td>典型輸入</td><td>典型輸出</td><td>落地操作步驟</td><td>建議串接位置</td></tr>
-<tr><td>---:</td><td>---</td><td>---</td><td>---</td><td>---</td><td>---</td><td>---</td><td>---</td></tr>
-<tr><td>43</td><td>文字 Embedding</td><td><a href="https://build.nvidia.com/baai/bge-m3">bge-m3</a></td><td>Embedding API</td><td>文件段落、查詢文字、程式碼片段，或圖像/文字多模態資料</td><td>向量 embedding</td><td>1. 清理並切分文件。2. 呼叫 embedding 模型產生向量。3. 寫入 vector DB。4. 查詢時把問題也轉向量。5. 取回 top-k 文件給 LLM 生成答案。</td><td>企業搜尋、知識庫問答、客服 RAG、code search</td></tr>
-<tr><td>44</td><td>文字 Embedding</td><td><a href="https://build.nvidia.com/nvidia/llama-3_2-nv-embedqa-1b-v2">llama-3.2-nv-embedqa-1b-v2</a></td><td>Embedding API</td><td>文件段落、查詢文字、程式碼片段，或圖像/文字多模態資料</td><td>向量 embedding</td><td>1. 清理並切分文件。2. 呼叫 embedding 模型產生向量。3. 寫入 vector DB。4. 查詢時把問題也轉向量。5. 取回 top-k 文件給 LLM 生成答案。</td><td>企業搜尋、知識庫問答、客服 RAG、code search</td></tr>
-<tr><td>45</td><td>文字 Embedding</td><td><a href="https://build.nvidia.com/nvidia/llama-3_2-nemoretriever-300m-embed-v1">llama-3_2-nemoretriever-300m-embed-v1</a></td><td>Embedding API</td><td>文件段落、查詢文字、程式碼片段，或圖像/文字多模態資料</td><td>向量 embedding</td><td>1. 清理並切分文件。2. 呼叫 embedding 模型產生向量。3. 寫入 vector DB。4. 查詢時把問題也轉向量。5. 取回 top-k 文件給 LLM 生成答案。</td><td>企業搜尋、知識庫問答、客服 RAG、code search</td></tr>
-<tr><td>46</td><td>文字 Embedding</td><td><a href="https://build.nvidia.com/nvidia/llama-3_2-nemoretriever-300m-embed-v2">llama-3_2-nemoretriever-300m-embed-v2</a></td><td>Embedding API</td><td>文件段落、查詢文字、程式碼片段，或圖像/文字多模態資料</td><td>向量 embedding</td><td>1. 清理並切分文件。2. 呼叫 embedding 模型產生向量。3. 寫入 vector DB。4. 查詢時把問題也轉向量。5. 取回 top-k 文件給 LLM 生成答案。</td><td>企業搜尋、知識庫問答、客服 RAG、code search</td></tr>
-<tr><td>47</td><td>文字 Embedding</td><td><a href="https://build.nvidia.com/nvidia/llama-nemotron-embed-1b-v2">llama-nemotron-embed-1b-v2</a></td><td>Embedding API</td><td>文件段落、查詢文字、程式碼片段，或圖像/文字多模態資料</td><td>向量 embedding</td><td>1. 清理並切分文件。2. 呼叫 embedding 模型產生向量。3. 寫入 vector DB。4. 查詢時把問題也轉向量。5. 取回 top-k 文件給 LLM 生成答案。</td><td>企業搜尋、知識庫問答、客服 RAG、code search</td></tr>
-<tr><td>48</td><td>文字 Embedding</td><td><a href="https://build.nvidia.com/nvidia/nv-embed-v1">nv-embed-v1</a></td><td>Embedding API</td><td>文件段落、查詢文字、程式碼片段，或圖像/文字多模態資料</td><td>向量 embedding</td><td>1. 清理並切分文件。2. 呼叫 embedding 模型產生向量。3. 寫入 vector DB。4. 查詢時把問題也轉向量。5. 取回 top-k 文件給 LLM 生成答案。</td><td>企業搜尋、知識庫問答、客服 RAG、code search</td></tr>
-<tr><td>49</td><td>文字 Embedding</td><td><a href="https://build.nvidia.com/nvidia/nv-embedqa-e5-v5">nv-embedqa-e5-v5</a></td><td>Embedding API</td><td>文件段落、查詢文字、程式碼片段，或圖像/文字多模態資料</td><td>向量 embedding</td><td>1. 清理並切分文件。2. 呼叫 embedding 模型產生向量。3. 寫入 vector DB。4. 查詢時把問題也轉向量。5. 取回 top-k 文件給 LLM 生成答案。</td><td>企業搜尋、知識庫問答、客服 RAG、code search</td></tr>
-<tr><td>50</td><td>多模態 Embedding</td><td><a href="https://build.nvidia.com/nvidia/llama-nemotron-embed-vl-1b-v2">llama-nemotron-embed-vl-1b-v2</a></td><td>Embedding API</td><td>文件段落、查詢文字、程式碼片段，或圖像/文字多模態資料</td><td>向量 embedding</td><td>1. 清理並切分文件。2. 呼叫 embedding 模型產生向量。3. 寫入 vector DB。4. 查詢時把問題也轉向量。5. 取回 top-k 文件給 LLM 生成答案。</td><td>企業搜尋、知識庫問答、客服 RAG、code search</td></tr>
-<tr><td>51</td><td>多模態 Embedding</td><td><a href="https://build.nvidia.com/nvidia/nvclip">nvclip</a></td><td>Embedding API</td><td>文件段落、查詢文字、程式碼片段，或圖像/文字多模態資料</td><td>向量 embedding</td><td>1. 清理並切分文件。2. 呼叫 embedding 模型產生向量。3. 寫入 vector DB。4. 查詢時把問題也轉向量。5. 取回 top-k 文件給 LLM 生成答案。</td><td>企業搜尋、知識庫問答、客服 RAG、code search</td></tr>
-<tr><td>52</td><td>程式碼檢索 Embedding</td><td><a href="https://build.nvidia.com/nvidia/nv-embedcode-7b-v1">nv-embedcode-7b-v1</a></td><td>Embedding API</td><td>文件段落、查詢文字、程式碼片段，或圖像/文字多模態資料</td><td>向量 embedding</td><td>1. 清理並切分文件。2. 呼叫 embedding 模型產生向量。3. 寫入 vector DB。4. 查詢時把問題也轉向量。5. 取回 top-k 文件給 LLM 生成答案。</td><td>企業搜尋、知識庫問答、客服 RAG、code search</td></tr>
-<tr><td>53</td><td>Reranker / 重排序</td><td><a href="https://build.nvidia.com/nvidia/llama-3_2-nemoretriever-500m-rerank-v2">llama-3.2-nemoretriever-500m-rerank-v2</a></td><td>Rerank API</td><td>使用者 query + 候選 passages/documents 清單</td><td>每個 passage 的 relevance score / 排序結果</td><td>1. 先用 BM25/向量搜尋取回 top-k。2. 呼叫 reranker 對候選段落評分。3. 取前 n 段交給 LLM。4. 回答時保留來源引用。5. 追蹤命中率與人工回饋。</td><td>RAG 第二階段排序、搜尋結果精排、客服知識庫</td></tr>
-<tr><td>54</td><td>Reranker / 重排序</td><td><a href="https://build.nvidia.com/nvidia/llama-3_2-nv-rerankqa-1b-v2">llama-3.2-nv-rerankqa-1b-v2</a></td><td>Rerank API</td><td>使用者 query + 候選 passages/documents 清單</td><td>每個 passage 的 relevance score / 排序結果</td><td>1. 先用 BM25/向量搜尋取回 top-k。2. 呼叫 reranker 對候選段落評分。3. 取前 n 段交給 LLM。4. 回答時保留來源引用。5. 追蹤命中率與人工回饋。</td><td>RAG 第二階段排序、搜尋結果精排、客服知識庫</td></tr>
-<tr><td>55</td><td>Reranker / 重排序</td><td><a href="https://build.nvidia.com/nvidia/llama-nemotron-rerank-1b-v2">llama-nemotron-rerank-1b-v2</a></td><td>Rerank API</td><td>使用者 query + 候選 passages/documents 清單</td><td>每個 passage 的 relevance score / 排序結果</td><td>1. 先用 BM25/向量搜尋取回 top-k。2. 呼叫 reranker 對候選段落評分。3. 取前 n 段交給 LLM。4. 回答時保留來源引用。5. 追蹤命中率與人工回饋。</td><td>RAG 第二階段排序、搜尋結果精排、客服知識庫</td></tr>
-<tr><td>56</td><td>Reranker / 重排序</td><td><a href="https://build.nvidia.com/nvidia/llama-nemotron-rerank-vl-1b-v2">llama-nemotron-rerank-vl-1b-v2</a></td><td>Rerank API</td><td>使用者 query + 候選 passages/documents 清單</td><td>每個 passage 的 relevance score / 排序結果</td><td>1. 先用 BM25/向量搜尋取回 top-k。2. 呼叫 reranker 對候選段落評分。3. 取前 n 段交給 LLM。4. 回答時保留來源引用。5. 追蹤命中率與人工回饋。</td><td>RAG 第二階段排序、搜尋結果精排、客服知識庫</td></tr>
-<tr><td>57</td><td>Reranker / 重排序</td><td><a href="https://build.nvidia.com/nvidia/rerank-qa-mistral-4b">rerank-qa-mistral-4b</a></td><td>Rerank API</td><td>使用者 query + 候選 passages/documents 清單</td><td>每個 passage 的 relevance score / 排序結果</td><td>1. 先用 BM25/向量搜尋取回 top-k。2. 呼叫 reranker 對候選段落評分。3. 取前 n 段交給 LLM。4. 回答時保留來源引用。5. 追蹤命中率與人工回饋。</td><td>RAG 第二階段排序、搜尋結果精排、客服知識庫</td></tr>
+<table><thead>
+<tr><th>分類序</th><th>子分類</th><th>模型</th><th>API/服務型態</th><th>典型輸入</th><th>典型輸出</th><th>落地操作步驟</th><th>建議串接位置</th></tr>
 </thead><tbody>
-</table>
+<tr><td>43</td><td>文字 Embedding</td><td><a href="https://build.nvidia.com/baai/bge-m3">bge-m3</a></td><td>Embedding API</td><td>文件段落、查詢文字、程式碼片段，或圖像/文字多模態資料</td><td>向量 embedding</td><td>1. 清理並切分文件。2. 呼叫 embedding 模型產生向量。3. 寫入 vector DB。4. 查詢時把問題也轉向量。5. 取回 top-k 文件給 LLM 生成答案。</td><td>企業搜尋、知識庫問答、客服 RAG、code search</td></tr>
+</thead><tbody>
+<tr><td>44</td><td>文字 Embedding</td><td><a href="https://build.nvidia.com/nvidia/llama-3_2-nv-embedqa-1b-v2">llama-3.2-nv-embedqa-1b-v2</a></td><td>Embedding API</td><td>文件段落、查詢文字、程式碼片段，或圖像/文字多模態資料</td><td>向量 embedding</td><td>1. 清理並切分文件。2. 呼叫 embedding 模型產生向量。3. 寫入 vector DB。4. 查詢時把問題也轉向量。5. 取回 top-k 文件給 LLM 生成答案。</td><td>企業搜尋、知識庫問答、客服 RAG、code search</td></tr>
+</thead><tbody>
+<tr><td>45</td><td>文字 Embedding</td><td><a href="https://build.nvidia.com/nvidia/llama-3_2-nemoretriever-300m-embed-v1">llama-3_2-nemoretriever-300m-embed-v1</a></td><td>Embedding API</td><td>文件段落、查詢文字、程式碼片段，或圖像/文字多模態資料</td><td>向量 embedding</td><td>1. 清理並切分文件。2. 呼叫 embedding 模型產生向量。3. 寫入 vector DB。4. 查詢時把問題也轉向量。5. 取回 top-k 文件給 LLM 生成答案。</td><td>企業搜尋、知識庫問答、客服 RAG、code search</td></tr>
+</thead><tbody>
+<tr><td>46</td><td>文字 Embedding</td><td><a href="https://build.nvidia.com/nvidia/llama-3_2-nemoretriever-300m-embed-v2">llama-3_2-nemoretriever-300m-embed-v2</a></td><td>Embedding API</td><td>文件段落、查詢文字、程式碼片段，或圖像/文字多模態資料</td><td>向量 embedding</td><td>1. 清理並切分文件。2. 呼叫 embedding 模型產生向量。3. 寫入 vector DB。4. 查詢時把問題也轉向量。5. 取回 top-k 文件給 LLM 生成答案。</td><td>企業搜尋、知識庫問答、客服 RAG、code search</td></tr>
+</thead><tbody>
+<tr><td>47</td><td>文字 Embedding</td><td><a href="https://build.nvidia.com/nvidia/llama-nemotron-embed-1b-v2">llama-nemotron-embed-1b-v2</a></td><td>Embedding API</td><td>文件段落、查詢文字、程式碼片段，或圖像/文字多模態資料</td><td>向量 embedding</td><td>1. 清理並切分文件。2. 呼叫 embedding 模型產生向量。3. 寫入 vector DB。4. 查詢時把問題也轉向量。5. 取回 top-k 文件給 LLM 生成答案。</td><td>企業搜尋、知識庫問答、客服 RAG、code search</td></tr>
+</thead><tbody>
+<tr><td>48</td><td>文字 Embedding</td><td><a href="https://build.nvidia.com/nvidia/nv-embed-v1">nv-embed-v1</a></td><td>Embedding API</td><td>文件段落、查詢文字、程式碼片段，或圖像/文字多模態資料</td><td>向量 embedding</td><td>1. 清理並切分文件。2. 呼叫 embedding 模型產生向量。3. 寫入 vector DB。4. 查詢時把問題也轉向量。5. 取回 top-k 文件給 LLM 生成答案。</td><td>企業搜尋、知識庫問答、客服 RAG、code search</td></tr>
+</thead><tbody>
+<tr><td>49</td><td>文字 Embedding</td><td><a href="https://build.nvidia.com/nvidia/nv-embedqa-e5-v5">nv-embedqa-e5-v5</a></td><td>Embedding API</td><td>文件段落、查詢文字、程式碼片段，或圖像/文字多模態資料</td><td>向量 embedding</td><td>1. 清理並切分文件。2. 呼叫 embedding 模型產生向量。3. 寫入 vector DB。4. 查詢時把問題也轉向量。5. 取回 top-k 文件給 LLM 生成答案。</td><td>企業搜尋、知識庫問答、客服 RAG、code search</td></tr>
+</thead><tbody>
+<tr><td>50</td><td>多模態 Embedding</td><td><a href="https://build.nvidia.com/nvidia/llama-nemotron-embed-vl-1b-v2">llama-nemotron-embed-vl-1b-v2</a></td><td>Embedding API</td><td>文件段落、查詢文字、程式碼片段，或圖像/文字多模態資料</td><td>向量 embedding</td><td>1. 清理並切分文件。2. 呼叫 embedding 模型產生向量。3. 寫入 vector DB。4. 查詢時把問題也轉向量。5. 取回 top-k 文件給 LLM 生成答案。</td><td>企業搜尋、知識庫問答、客服 RAG、code search</td></tr>
+</thead><tbody>
+<tr><td>51</td><td>多模態 Embedding</td><td><a href="https://build.nvidia.com/nvidia/nvclip">nvclip</a></td><td>Embedding API</td><td>文件段落、查詢文字、程式碼片段，或圖像/文字多模態資料</td><td>向量 embedding</td><td>1. 清理並切分文件。2. 呼叫 embedding 模型產生向量。3. 寫入 vector DB。4. 查詢時把問題也轉向量。5. 取回 top-k 文件給 LLM 生成答案。</td><td>企業搜尋、知識庫問答、客服 RAG、code search</td></tr>
+</thead><tbody>
+<tr><td>52</td><td>程式碼檢索 Embedding</td><td><a href="https://build.nvidia.com/nvidia/nv-embedcode-7b-v1">nv-embedcode-7b-v1</a></td><td>Embedding API</td><td>文件段落、查詢文字、程式碼片段，或圖像/文字多模態資料</td><td>向量 embedding</td><td>1. 清理並切分文件。2. 呼叫 embedding 模型產生向量。3. 寫入 vector DB。4. 查詢時把問題也轉向量。5. 取回 top-k 文件給 LLM 生成答案。</td><td>企業搜尋、知識庫問答、客服 RAG、code search</td></tr>
+</thead><tbody>
+<tr><td>53</td><td>Reranker / 重排序</td><td><a href="https://build.nvidia.com/nvidia/llama-3_2-nemoretriever-500m-rerank-v2">llama-3.2-nemoretriever-500m-rerank-v2</a></td><td>Rerank API</td><td>使用者 query + 候選 passages/documents 清單</td><td>每個 passage 的 relevance score / 排序結果</td><td>1. 先用 BM25/向量搜尋取回 top-k。2. 呼叫 reranker 對候選段落評分。3. 取前 n 段交給 LLM。4. 回答時保留來源引用。5. 追蹤命中率與人工回饋。</td><td>RAG 第二階段排序、搜尋結果精排、客服知識庫</td></tr>
+</thead><tbody>
+<tr><td>54</td><td>Reranker / 重排序</td><td><a href="https://build.nvidia.com/nvidia/llama-3_2-nv-rerankqa-1b-v2">llama-3.2-nv-rerankqa-1b-v2</a></td><td>Rerank API</td><td>使用者 query + 候選 passages/documents 清單</td><td>每個 passage 的 relevance score / 排序結果</td><td>1. 先用 BM25/向量搜尋取回 top-k。2. 呼叫 reranker 對候選段落評分。3. 取前 n 段交給 LLM。4. 回答時保留來源引用。5. 追蹤命中率與人工回饋。</td><td>RAG 第二階段排序、搜尋結果精排、客服知識庫</td></tr>
+</thead><tbody>
+<tr><td>55</td><td>Reranker / 重排序</td><td><a href="https://build.nvidia.com/nvidia/llama-nemotron-rerank-1b-v2">llama-nemotron-rerank-1b-v2</a></td><td>Rerank API</td><td>使用者 query + 候選 passages/documents 清單</td><td>每個 passage 的 relevance score / 排序結果</td><td>1. 先用 BM25/向量搜尋取回 top-k。2. 呼叫 reranker 對候選段落評分。3. 取前 n 段交給 LLM。4. 回答時保留來源引用。5. 追蹤命中率與人工回饋。</td><td>RAG 第二階段排序、搜尋結果精排、客服知識庫</td></tr>
+</thead><tbody>
+<tr><td>56</td><td>Reranker / 重排序</td><td><a href="https://build.nvidia.com/nvidia/llama-nemotron-rerank-vl-1b-v2">llama-nemotron-rerank-vl-1b-v2</a></td><td>Rerank API</td><td>使用者 query + 候選 passages/documents 清單</td><td>每個 passage 的 relevance score / 排序結果</td><td>1. 先用 BM25/向量搜尋取回 top-k。2. 呼叫 reranker 對候選段落評分。3. 取前 n 段交給 LLM。4. 回答時保留來源引用。5. 追蹤命中率與人工回饋。</td><td>RAG 第二階段排序、搜尋結果精排、客服知識庫</td></tr>
+</thead><tbody>
+<tr><td>57</td><td>Reranker / 重排序</td><td><a href="https://build.nvidia.com/nvidia/rerank-qa-mistral-4b">rerank-qa-mistral-4b</a></td><td>Rerank API</td><td>使用者 query + 候選 passages/documents 清單</td><td>每個 passage 的 relevance score / 排序結果</td><td>1. 先用 BM25/向量搜尋取回 top-k。2. 呼叫 reranker 對候選段落評分。3. 取前 n 段交給 LLM。4. 回答時保留來源引用。5. 追蹤命中率與人工回饋。</td><td>RAG 第二階段排序、搜尋結果精排、客服知識庫</td></tr>
+</tbody></table>
 
 <h2 id="文件理解與資料擷取">文件理解與資料擷取</h2>
 
-<table>
-<tr><td>分類序</td><td>子分類</td><td>模型</td><td>API/服務型態</td><td>典型輸入</td><td>典型輸出</td><td>落地操作步驟</td><td>建議串接位置</td></tr>
-<tr><td>---:</td><td>---</td><td>---</td><td>---</td><td>---</td><td>---</td><td>---</td><td>---</td></tr>
-<tr><td>58</td><td>OCR / 文件解析</td><td><a href="https://build.nvidia.com/baidu/paddleocr">paddleocr</a></td><td>Vision / Document Extraction API</td><td>PDF 頁面截圖、掃描圖、表格圖片、文件影像</td><td>文字、表格、bbox、版面元素、圖表/標題偵測結果</td><td>1. 將 PDF 轉成頁面圖片或直接上傳圖片。2. 呼叫 OCR/parse 模型抽文字、表格與版面。3. 將結果正規化成 Markdown/JSON。4. 切段後送入 RAG。5. 對表格與關鍵欄位做抽樣校驗。</td><td>文件 ingestion pipeline、PDF RAG、財報/合約/報表解析</td></tr>
-<tr><td>59</td><td>OCR / 文件解析</td><td><a href="https://build.nvidia.com/nvidia/nemoretriever-ocr">nemoretriever-ocr</a></td><td>Vision / Document Extraction API</td><td>PDF 頁面截圖、掃描圖、表格圖片、文件影像</td><td>文字、表格、bbox、版面元素、圖表/標題偵測結果</td><td>1. 將 PDF 轉成頁面圖片或直接上傳圖片。2. 呼叫 OCR/parse 模型抽文字、表格與版面。3. 將結果正規化成 Markdown/JSON。4. 切段後送入 RAG。5. 對表格與關鍵欄位做抽樣校驗。</td><td>文件 ingestion pipeline、PDF RAG、財報/合約/報表解析</td></tr>
-<tr><td>60</td><td>OCR / 文件解析</td><td><a href="https://build.nvidia.com/nvidia/nemoretriever-ocr-v1">nemoretriever-ocr-v1</a></td><td>Vision / Document Extraction API</td><td>PDF 頁面截圖、掃描圖、表格圖片、文件影像</td><td>文字、表格、bbox、版面元素、圖表/標題偵測結果</td><td>1. 將 PDF 轉成頁面圖片或直接上傳圖片。2. 呼叫 OCR/parse 模型抽文字、表格與版面。3. 將結果正規化成 Markdown/JSON。4. 切段後送入 RAG。5. 對表格與關鍵欄位做抽樣校驗。</td><td>文件 ingestion pipeline、PDF RAG、財報/合約/報表解析</td></tr>
-<tr><td>61</td><td>OCR / 文件解析</td><td><a href="https://build.nvidia.com/nvidia/nemoretriever-parse">nemoretriever-parse</a></td><td>Vision / Document Extraction API</td><td>PDF 頁面截圖、掃描圖、表格圖片、文件影像</td><td>文字、表格、bbox、版面元素、圖表/標題偵測結果</td><td>1. 將 PDF 轉成頁面圖片或直接上傳圖片。2. 呼叫 OCR/parse 模型抽文字、表格與版面。3. 將結果正規化成 Markdown/JSON。4. 切段後送入 RAG。5. 對表格與關鍵欄位做抽樣校驗。</td><td>文件 ingestion pipeline、PDF RAG、財報/合約/報表解析</td></tr>
-<tr><td>62</td><td>OCR / 文件解析</td><td><a href="https://build.nvidia.com/nvidia/nemotron-ocr-v1">nemotron-ocr-v1</a></td><td>Vision / Document Extraction API</td><td>PDF 頁面截圖、掃描圖、表格圖片、文件影像</td><td>文字、表格、bbox、版面元素、圖表/標題偵測結果</td><td>1. 將 PDF 轉成頁面圖片或直接上傳圖片。2. 呼叫 OCR/parse 模型抽文字、表格與版面。3. 將結果正規化成 Markdown/JSON。4. 切段後送入 RAG。5. 對表格與關鍵欄位做抽樣校驗。</td><td>文件 ingestion pipeline、PDF RAG、財報/合約/報表解析</td></tr>
-<tr><td>63</td><td>OCR / 文件解析</td><td><a href="https://build.nvidia.com/nvidia/nemotron-parse">nemotron-parse</a></td><td>Vision / Document Extraction API</td><td>PDF 頁面截圖、掃描圖、表格圖片、文件影像</td><td>文字、表格、bbox、版面元素、圖表/標題偵測結果</td><td>1. 將 PDF 轉成頁面圖片或直接上傳圖片。2. 呼叫 OCR/parse 模型抽文字、表格與版面。3. 將結果正規化成 Markdown/JSON。4. 切段後送入 RAG。5. 對表格與關鍵欄位做抽樣校驗。</td><td>文件 ingestion pipeline、PDF RAG、財報/合約/報表解析</td></tr>
-<tr><td>64</td><td>版面/表格/圖表偵測</td><td><a href="https://build.nvidia.com/nvidia/nemoretriever-graphic-elements-v1">nemoretriever-graphic-elements-v1</a></td><td>Vision / Document Extraction API</td><td>PDF 頁面截圖、掃描圖、表格圖片、文件影像</td><td>文字、表格、bbox、版面元素、圖表/標題偵測結果</td><td>1. 將文件頁面轉成圖片。2. 呼叫版面偵測模型找表格、圖表、標題、區塊。3. 依 bbox 裁切或建立閱讀順序。4. 接 OCR/parse 抽內容。5. 寫入文件索引或資料庫。</td><td>文件 ingestion pipeline、PDF RAG、財報/合約/報表解析</td></tr>
-<tr><td>65</td><td>版面/表格/圖表偵測</td><td><a href="https://build.nvidia.com/nvidia/nemoretriever-page-elements-v2">nemoretriever-page-elements-v2</a></td><td>Vision / Document Extraction API</td><td>PDF 頁面截圖、掃描圖、表格圖片、文件影像</td><td>文字、表格、bbox、版面元素、圖表/標題偵測結果</td><td>1. 將文件頁面轉成圖片。2. 呼叫版面偵測模型找表格、圖表、標題、區塊。3. 依 bbox 裁切或建立閱讀順序。4. 接 OCR/parse 抽內容。5. 寫入文件索引或資料庫。</td><td>文件 ingestion pipeline、PDF RAG、財報/合約/報表解析</td></tr>
-<tr><td>66</td><td>版面/表格/圖表偵測</td><td><a href="https://build.nvidia.com/nvidia/nemoretriever-page-elements-v3">nemoretriever-page-elements-v3</a></td><td>Vision / Document Extraction API</td><td>PDF 頁面截圖、掃描圖、表格圖片、文件影像</td><td>文字、表格、bbox、版面元素、圖表/標題偵測結果</td><td>1. 將文件頁面轉成圖片。2. 呼叫版面偵測模型找表格、圖表、標題、區塊。3. 依 bbox 裁切或建立閱讀順序。4. 接 OCR/parse 抽內容。5. 寫入文件索引或資料庫。</td><td>文件 ingestion pipeline、PDF RAG、財報/合約/報表解析</td></tr>
-<tr><td>67</td><td>版面/表格/圖表偵測</td><td><a href="https://build.nvidia.com/nvidia/nemoretriever-table-structure-v1">nemoretriever-table-structure-v1</a></td><td>Vision / Document Extraction API</td><td>PDF 頁面截圖、掃描圖、表格圖片、文件影像</td><td>文字、表格、bbox、版面元素、圖表/標題偵測結果</td><td>1. 將文件頁面轉成圖片。2. 呼叫版面偵測模型找表格、圖表、標題、區塊。3. 依 bbox 裁切或建立閱讀順序。4. 接 OCR/parse 抽內容。5. 寫入文件索引或資料庫。</td><td>文件 ingestion pipeline、PDF RAG、財報/合約/報表解析</td></tr>
-<tr><td>68</td><td>版面/表格/圖表偵測</td><td><a href="https://build.nvidia.com/nvidia/nemotron-graphic-elements-v1">nemotron-graphic-elements-v1</a></td><td>Vision / Document Extraction API</td><td>PDF 頁面截圖、掃描圖、表格圖片、文件影像</td><td>文字、表格、bbox、版面元素、圖表/標題偵測結果</td><td>1. 將文件頁面轉成圖片。2. 呼叫版面偵測模型找表格、圖表、標題、區塊。3. 依 bbox 裁切或建立閱讀順序。4. 接 OCR/parse 抽內容。5. 寫入文件索引或資料庫。</td><td>文件 ingestion pipeline、PDF RAG、財報/合約/報表解析</td></tr>
-<tr><td>69</td><td>版面/表格/圖表偵測</td><td><a href="https://build.nvidia.com/nvidia/nemotron-page-elements-v3">nemotron-page-elements-v3</a></td><td>Vision / Document Extraction API</td><td>PDF 頁面截圖、掃描圖、表格圖片、文件影像</td><td>文字、表格、bbox、版面元素、圖表/標題偵測結果</td><td>1. 將文件頁面轉成圖片。2. 呼叫版面偵測模型找表格、圖表、標題、區塊。3. 依 bbox 裁切或建立閱讀順序。4. 接 OCR/parse 抽內容。5. 寫入文件索引或資料庫。</td><td>文件 ingestion pipeline、PDF RAG、財報/合約/報表解析</td></tr>
-<tr><td>70</td><td>版面/表格/圖表偵測</td><td><a href="https://build.nvidia.com/nvidia/nemotron-table-structure-v1">nemotron-table-structure-v1</a></td><td>Vision / Document Extraction API</td><td>PDF 頁面截圖、掃描圖、表格圖片、文件影像</td><td>文字、表格、bbox、版面元素、圖表/標題偵測結果</td><td>1. 將文件頁面轉成圖片。2. 呼叫版面偵測模型找表格、圖表、標題、區塊。3. 依 bbox 裁切或建立閱讀順序。4. 接 OCR/parse 抽內容。5. 寫入文件索引或資料庫。</td><td>文件 ingestion pipeline、PDF RAG、財報/合約/報表解析</td></tr>
-<tr><td>71</td><td>版面/表格/圖表偵測</td><td><a href="https://build.nvidia.com/nvidia/nv-yolox-page-elements-v1">nv-yolox-page-elements-v1</a></td><td>Vision / Document Extraction API</td><td>PDF 頁面截圖、掃描圖、表格圖片、文件影像</td><td>文字、表格、bbox、版面元素、圖表/標題偵測結果</td><td>1. 將文件頁面轉成圖片。2. 呼叫版面偵測模型找表格、圖表、標題、區塊。3. 依 bbox 裁切或建立閱讀順序。4. 接 OCR/parse 抽內容。5. 寫入文件索引或資料庫。</td><td>文件 ingestion pipeline、PDF RAG、財報/合約/報表解析</td></tr>
+<table><thead>
+<tr><th>分類序</th><th>子分類</th><th>模型</th><th>API/服務型態</th><th>典型輸入</th><th>典型輸出</th><th>落地操作步驟</th><th>建議串接位置</th></tr>
 </thead><tbody>
-</table>
+<tr><td>58</td><td>OCR / 文件解析</td><td><a href="https://build.nvidia.com/baidu/paddleocr">paddleocr</a></td><td>Vision / Document Extraction API</td><td>PDF 頁面截圖、掃描圖、表格圖片、文件影像</td><td>文字、表格、bbox、版面元素、圖表/標題偵測結果</td><td>1. 將 PDF 轉成頁面圖片或直接上傳圖片。2. 呼叫 OCR/parse 模型抽文字、表格與版面。3. 將結果正規化成 Markdown/JSON。4. 切段後送入 RAG。5. 對表格與關鍵欄位做抽樣校驗。</td><td>文件 ingestion pipeline、PDF RAG、財報/合約/報表解析</td></tr>
+</thead><tbody>
+<tr><td>59</td><td>OCR / 文件解析</td><td><a href="https://build.nvidia.com/nvidia/nemoretriever-ocr">nemoretriever-ocr</a></td><td>Vision / Document Extraction API</td><td>PDF 頁面截圖、掃描圖、表格圖片、文件影像</td><td>文字、表格、bbox、版面元素、圖表/標題偵測結果</td><td>1. 將 PDF 轉成頁面圖片或直接上傳圖片。2. 呼叫 OCR/parse 模型抽文字、表格與版面。3. 將結果正規化成 Markdown/JSON。4. 切段後送入 RAG。5. 對表格與關鍵欄位做抽樣校驗。</td><td>文件 ingestion pipeline、PDF RAG、財報/合約/報表解析</td></tr>
+</thead><tbody>
+<tr><td>60</td><td>OCR / 文件解析</td><td><a href="https://build.nvidia.com/nvidia/nemoretriever-ocr-v1">nemoretriever-ocr-v1</a></td><td>Vision / Document Extraction API</td><td>PDF 頁面截圖、掃描圖、表格圖片、文件影像</td><td>文字、表格、bbox、版面元素、圖表/標題偵測結果</td><td>1. 將 PDF 轉成頁面圖片或直接上傳圖片。2. 呼叫 OCR/parse 模型抽文字、表格與版面。3. 將結果正規化成 Markdown/JSON。4. 切段後送入 RAG。5. 對表格與關鍵欄位做抽樣校驗。</td><td>文件 ingestion pipeline、PDF RAG、財報/合約/報表解析</td></tr>
+</thead><tbody>
+<tr><td>61</td><td>OCR / 文件解析</td><td><a href="https://build.nvidia.com/nvidia/nemoretriever-parse">nemoretriever-parse</a></td><td>Vision / Document Extraction API</td><td>PDF 頁面截圖、掃描圖、表格圖片、文件影像</td><td>文字、表格、bbox、版面元素、圖表/標題偵測結果</td><td>1. 將 PDF 轉成頁面圖片或直接上傳圖片。2. 呼叫 OCR/parse 模型抽文字、表格與版面。3. 將結果正規化成 Markdown/JSON。4. 切段後送入 RAG。5. 對表格與關鍵欄位做抽樣校驗。</td><td>文件 ingestion pipeline、PDF RAG、財報/合約/報表解析</td></tr>
+</thead><tbody>
+<tr><td>62</td><td>OCR / 文件解析</td><td><a href="https://build.nvidia.com/nvidia/nemotron-ocr-v1">nemotron-ocr-v1</a></td><td>Vision / Document Extraction API</td><td>PDF 頁面截圖、掃描圖、表格圖片、文件影像</td><td>文字、表格、bbox、版面元素、圖表/標題偵測結果</td><td>1. 將 PDF 轉成頁面圖片或直接上傳圖片。2. 呼叫 OCR/parse 模型抽文字、表格與版面。3. 將結果正規化成 Markdown/JSON。4. 切段後送入 RAG。5. 對表格與關鍵欄位做抽樣校驗。</td><td>文件 ingestion pipeline、PDF RAG、財報/合約/報表解析</td></tr>
+</thead><tbody>
+<tr><td>63</td><td>OCR / 文件解析</td><td><a href="https://build.nvidia.com/nvidia/nemotron-parse">nemotron-parse</a></td><td>Vision / Document Extraction API</td><td>PDF 頁面截圖、掃描圖、表格圖片、文件影像</td><td>文字、表格、bbox、版面元素、圖表/標題偵測結果</td><td>1. 將 PDF 轉成頁面圖片或直接上傳圖片。2. 呼叫 OCR/parse 模型抽文字、表格與版面。3. 將結果正規化成 Markdown/JSON。4. 切段後送入 RAG。5. 對表格與關鍵欄位做抽樣校驗。</td><td>文件 ingestion pipeline、PDF RAG、財報/合約/報表解析</td></tr>
+</thead><tbody>
+<tr><td>64</td><td>版面/表格/圖表偵測</td><td><a href="https://build.nvidia.com/nvidia/nemoretriever-graphic-elements-v1">nemoretriever-graphic-elements-v1</a></td><td>Vision / Document Extraction API</td><td>PDF 頁面截圖、掃描圖、表格圖片、文件影像</td><td>文字、表格、bbox、版面元素、圖表/標題偵測結果</td><td>1. 將文件頁面轉成圖片。2. 呼叫版面偵測模型找表格、圖表、標題、區塊。3. 依 bbox 裁切或建立閱讀順序。4. 接 OCR/parse 抽內容。5. 寫入文件索引或資料庫。</td><td>文件 ingestion pipeline、PDF RAG、財報/合約/報表解析</td></tr>
+</thead><tbody>
+<tr><td>65</td><td>版面/表格/圖表偵測</td><td><a href="https://build.nvidia.com/nvidia/nemoretriever-page-elements-v2">nemoretriever-page-elements-v2</a></td><td>Vision / Document Extraction API</td><td>PDF 頁面截圖、掃描圖、表格圖片、文件影像</td><td>文字、表格、bbox、版面元素、圖表/標題偵測結果</td><td>1. 將文件頁面轉成圖片。2. 呼叫版面偵測模型找表格、圖表、標題、區塊。3. 依 bbox 裁切或建立閱讀順序。4. 接 OCR/parse 抽內容。5. 寫入文件索引或資料庫。</td><td>文件 ingestion pipeline、PDF RAG、財報/合約/報表解析</td></tr>
+</thead><tbody>
+<tr><td>66</td><td>版面/表格/圖表偵測</td><td><a href="https://build.nvidia.com/nvidia/nemoretriever-page-elements-v3">nemoretriever-page-elements-v3</a></td><td>Vision / Document Extraction API</td><td>PDF 頁面截圖、掃描圖、表格圖片、文件影像</td><td>文字、表格、bbox、版面元素、圖表/標題偵測結果</td><td>1. 將文件頁面轉成圖片。2. 呼叫版面偵測模型找表格、圖表、標題、區塊。3. 依 bbox 裁切或建立閱讀順序。4. 接 OCR/parse 抽內容。5. 寫入文件索引或資料庫。</td><td>文件 ingestion pipeline、PDF RAG、財報/合約/報表解析</td></tr>
+</thead><tbody>
+<tr><td>67</td><td>版面/表格/圖表偵測</td><td><a href="https://build.nvidia.com/nvidia/nemoretriever-table-structure-v1">nemoretriever-table-structure-v1</a></td><td>Vision / Document Extraction API</td><td>PDF 頁面截圖、掃描圖、表格圖片、文件影像</td><td>文字、表格、bbox、版面元素、圖表/標題偵測結果</td><td>1. 將文件頁面轉成圖片。2. 呼叫版面偵測模型找表格、圖表、標題、區塊。3. 依 bbox 裁切或建立閱讀順序。4. 接 OCR/parse 抽內容。5. 寫入文件索引或資料庫。</td><td>文件 ingestion pipeline、PDF RAG、財報/合約/報表解析</td></tr>
+</thead><tbody>
+<tr><td>68</td><td>版面/表格/圖表偵測</td><td><a href="https://build.nvidia.com/nvidia/nemotron-graphic-elements-v1">nemotron-graphic-elements-v1</a></td><td>Vision / Document Extraction API</td><td>PDF 頁面截圖、掃描圖、表格圖片、文件影像</td><td>文字、表格、bbox、版面元素、圖表/標題偵測結果</td><td>1. 將文件頁面轉成圖片。2. 呼叫版面偵測模型找表格、圖表、標題、區塊。3. 依 bbox 裁切或建立閱讀順序。4. 接 OCR/parse 抽內容。5. 寫入文件索引或資料庫。</td><td>文件 ingestion pipeline、PDF RAG、財報/合約/報表解析</td></tr>
+</thead><tbody>
+<tr><td>69</td><td>版面/表格/圖表偵測</td><td><a href="https://build.nvidia.com/nvidia/nemotron-page-elements-v3">nemotron-page-elements-v3</a></td><td>Vision / Document Extraction API</td><td>PDF 頁面截圖、掃描圖、表格圖片、文件影像</td><td>文字、表格、bbox、版面元素、圖表/標題偵測結果</td><td>1. 將文件頁面轉成圖片。2. 呼叫版面偵測模型找表格、圖表、標題、區塊。3. 依 bbox 裁切或建立閱讀順序。4. 接 OCR/parse 抽內容。5. 寫入文件索引或資料庫。</td><td>文件 ingestion pipeline、PDF RAG、財報/合約/報表解析</td></tr>
+</thead><tbody>
+<tr><td>70</td><td>版面/表格/圖表偵測</td><td><a href="https://build.nvidia.com/nvidia/nemotron-table-structure-v1">nemotron-table-structure-v1</a></td><td>Vision / Document Extraction API</td><td>PDF 頁面截圖、掃描圖、表格圖片、文件影像</td><td>文字、表格、bbox、版面元素、圖表/標題偵測結果</td><td>1. 將文件頁面轉成圖片。2. 呼叫版面偵測模型找表格、圖表、標題、區塊。3. 依 bbox 裁切或建立閱讀順序。4. 接 OCR/parse 抽內容。5. 寫入文件索引或資料庫。</td><td>文件 ingestion pipeline、PDF RAG、財報/合約/報表解析</td></tr>
+</thead><tbody>
+<tr><td>71</td><td>版面/表格/圖表偵測</td><td><a href="https://build.nvidia.com/nvidia/nv-yolox-page-elements-v1">nv-yolox-page-elements-v1</a></td><td>Vision / Document Extraction API</td><td>PDF 頁面截圖、掃描圖、表格圖片、文件影像</td><td>文字、表格、bbox、版面元素、圖表/標題偵測結果</td><td>1. 將文件頁面轉成圖片。2. 呼叫版面偵測模型找表格、圖表、標題、區塊。3. 依 bbox 裁切或建立閱讀順序。4. 接 OCR/parse 抽內容。5. 寫入文件索引或資料庫。</td><td>文件 ingestion pipeline、PDF RAG、財報/合約/報表解析</td></tr>
+</tbody></table>
 
 <h2 id="多模態理解">多模態理解</h2>
 
-<table>
-<tr><td>分類序</td><td>子分類</td><td>模型</td><td>API/服務型態</td><td>典型輸入</td><td>典型輸出</td><td>落地操作步驟</td><td>建議串接位置</td></tr>
-<tr><td>---:</td><td>---</td><td>---</td><td>---</td><td>---</td><td>---</td><td>---</td><td>---</td></tr>
-<tr><td>72</td><td>圖像/影片問答</td><td><a href="https://build.nvidia.com/google/gemma-3-27b-it">gemma-3-27b-it</a></td><td>Multimodal / Vision-Language API</td><td>圖片、影片幀、音訊片段、文字問題或多模態 prompt</td><td>圖片/影片描述、視覺問答、表格/圖表解讀、情境推理結果</td><td>1. 準備圖片/影片幀/音訊與問題。2. 呼叫多模態模型做描述或問答。3. 將輸出結構化成 JSON/文字。4. 對高風險場景加人工複核。5. 接到搜尋、客服或審核流程。</td><td>視覺問答、影片分析、圖表理解、多模態 agent</td></tr>
-<tr><td>73</td><td>圖像/影片問答</td><td><a href="https://build.nvidia.com/google/google-paligemma">paligemma</a></td><td>Multimodal / Vision-Language API</td><td>圖片、影片幀、音訊片段、文字問題或多模態 prompt</td><td>圖片/影片描述、視覺問答、表格/圖表解讀、情境推理結果</td><td>1. 準備圖片/影片幀/音訊與問題。2. 呼叫多模態模型做描述或問答。3. 將輸出結構化成 JSON/文字。4. 對高風險場景加人工複核。5. 接到搜尋、客服或審核流程。</td><td>視覺問答、影片分析、圖表理解、多模態 agent</td></tr>
-<tr><td>74</td><td>圖像/影片問答</td><td><a href="https://build.nvidia.com/meta/llama-3.2-11b-vision-instruct">llama-3.2-11b-vision-instruct</a></td><td>Multimodal / Vision-Language API</td><td>圖片、影片幀、音訊片段、文字問題或多模態 prompt</td><td>圖片/影片描述、視覺問答、表格/圖表解讀、情境推理結果</td><td>1. 準備圖片/影片幀/音訊與問題。2. 呼叫多模態模型做描述或問答。3. 將輸出結構化成 JSON/文字。4. 對高風險場景加人工複核。5. 接到搜尋、客服或審核流程。</td><td>視覺問答、影片分析、圖表理解、多模態 agent</td></tr>
-<tr><td>75</td><td>圖像/影片問答</td><td><a href="https://build.nvidia.com/meta/llama-3.2-90b-vision-instruct">llama-3.2-90b-vision-instruct</a></td><td>Multimodal / Vision-Language API</td><td>圖片、影片幀、音訊片段、文字問題或多模態 prompt</td><td>圖片/影片描述、視覺問答、表格/圖表解讀、情境推理結果</td><td>1. 準備圖片/影片幀/音訊與問題。2. 呼叫多模態模型做描述或問答。3. 將輸出結構化成 JSON/文字。4. 對高風險場景加人工複核。5. 接到搜尋、客服或審核流程。</td><td>視覺問答、影片分析、圖表理解、多模態 agent</td></tr>
-<tr><td>76</td><td>圖像/影片問答</td><td><a href="https://build.nvidia.com/meta/llama-4-maverick-17b-128e-instruct">llama-4-maverick-17b-128e-instruct</a></td><td>Multimodal / Vision-Language API</td><td>圖片、影片幀、音訊片段、文字問題或多模態 prompt</td><td>圖片/影片描述、視覺問答、表格/圖表解讀、情境推理結果</td><td>1. 準備圖片/影片幀/音訊與問題。2. 呼叫多模態模型做描述或問答。3. 將輸出結構化成 JSON/文字。4. 對高風險場景加人工複核。5. 接到搜尋、客服或審核流程。</td><td>視覺問答、影片分析、圖表理解、多模態 agent</td></tr>
-<tr><td>77</td><td>圖像/影片問答</td><td><a href="https://build.nvidia.com/mistralai/ministral-14b-instruct-2512">ministral-14b-instruct-2512</a></td><td>Multimodal / Vision-Language API</td><td>圖片、影片幀、音訊片段、文字問題或多模態 prompt</td><td>圖片/影片描述、視覺問答、表格/圖表解讀、情境推理結果</td><td>1. 準備圖片/影片幀/音訊與問題。2. 呼叫多模態模型做描述或問答。3. 將輸出結構化成 JSON/文字。4. 對高風險場景加人工複核。5. 接到搜尋、客服或審核流程。</td><td>視覺問答、影片分析、圖表理解、多模態 agent</td></tr>
-<tr><td>78</td><td>圖像/影片問答</td><td><a href="https://build.nvidia.com/mistralai/mistral-large-3-675b-instruct-2512">mistral-large-3-675b-instruct-2512</a></td><td>Multimodal / Vision-Language API</td><td>圖片、影片幀、音訊片段、文字問題或多模態 prompt</td><td>圖片/影片描述、視覺問答、表格/圖表解讀、情境推理結果</td><td>1. 準備圖片/影片幀/音訊與問題。2. 呼叫多模態模型做描述或問答。3. 將輸出結構化成 JSON/文字。4. 對高風險場景加人工複核。5. 接到搜尋、客服或審核流程。</td><td>視覺問答、影片分析、圖表理解、多模態 agent</td></tr>
-<tr><td>79</td><td>圖像/影片問答</td><td><a href="https://build.nvidia.com/mistralai/mistral-medium-3-instruct">mistral-medium-3-instruct</a></td><td>Multimodal / Vision-Language API</td><td>圖片、影片幀、音訊片段、文字問題或多模態 prompt</td><td>圖片/影片描述、視覺問答、表格/圖表解讀、情境推理結果</td><td>1. 準備圖片/影片幀/音訊與問題。2. 呼叫多模態模型做描述或問答。3. 將輸出結構化成 JSON/文字。4. 對高風險場景加人工複核。5. 接到搜尋、客服或審核流程。</td><td>視覺問答、影片分析、圖表理解、多模態 agent</td></tr>
-<tr><td>80</td><td>圖像/影片問答</td><td><a href="https://build.nvidia.com/mistralai/mistral-small-4-119b-2603">mistral-small-4-119b-2603</a></td><td>Multimodal / Vision-Language API</td><td>圖片、影片幀、音訊片段、文字問題或多模態 prompt</td><td>圖片/影片描述、視覺問答、表格/圖表解讀、情境推理結果</td><td>1. 準備圖片/影片幀/音訊與問題。2. 呼叫多模態模型做描述或問答。3. 將輸出結構化成 JSON/文字。4. 對高風險場景加人工複核。5. 接到搜尋、客服或審核流程。</td><td>視覺問答、影片分析、圖表理解、多模態 agent</td></tr>
-<tr><td>81</td><td>圖像/影片問答</td><td><a href="https://build.nvidia.com/moonshotai/kimi-k2.6">kimi-k2.6</a></td><td>Multimodal / Vision-Language API</td><td>圖片、影片幀、音訊片段、文字問題或多模態 prompt</td><td>圖片/影片描述、視覺問答、表格/圖表解讀、情境推理結果</td><td>1. 準備圖片/影片幀/音訊與問題。2. 呼叫多模態模型做描述或問答。3. 將輸出結構化成 JSON/文字。4. 對高風險場景加人工複核。5. 接到搜尋、客服或審核流程。</td><td>視覺問答、影片分析、圖表理解、多模態 agent</td></tr>
-<tr><td>82</td><td>圖像/影片問答</td><td><a href="https://build.nvidia.com/nvidia/llama-3.1-nemotron-nano-vl-8b-v1">llama-3.1-nemotron-nano-vl-8b-v1</a></td><td>Multimodal / Vision-Language API</td><td>圖片、影片幀、音訊片段、文字問題或多模態 prompt</td><td>圖片/影片描述、視覺問答、表格/圖表解讀、情境推理結果</td><td>1. 準備圖片/影片幀/音訊與問題。2. 呼叫多模態模型做描述或問答。3. 將輸出結構化成 JSON/文字。4. 對高風險場景加人工複核。5. 接到搜尋、客服或審核流程。</td><td>視覺問答、影片分析、圖表理解、多模態 agent</td></tr>
-<tr><td>83</td><td>圖像/影片問答</td><td><a href="https://build.nvidia.com/nvidia/nemotron-nano-12b-v2-vl">nemotron-nano-12b-v2-vl</a></td><td>Multimodal / Vision-Language API</td><td>圖片、影片幀、音訊片段、文字問題或多模態 prompt</td><td>圖片/影片描述、視覺問答、表格/圖表解讀、情境推理結果</td><td>1. 準備圖片/影片幀/音訊與問題。2. 呼叫多模態模型做描述或問答。3. 將輸出結構化成 JSON/文字。4. 對高風險場景加人工複核。5. 接到搜尋、客服或審核流程。</td><td>視覺問答、影片分析、圖表理解、多模態 agent</td></tr>
-<tr><td>84</td><td>圖像/影片問答</td><td><a href="https://build.nvidia.com/qwen/qwen3.5-122b-a10b">qwen3.5-122b-a10b</a></td><td>Multimodal / Vision-Language API</td><td>圖片、影片幀、音訊片段、文字問題或多模態 prompt</td><td>圖片/影片描述、視覺問答、表格/圖表解讀、情境推理結果</td><td>1. 準備圖片/影片幀/音訊與問題。2. 呼叫多模態模型做描述或問答。3. 將輸出結構化成 JSON/文字。4. 對高風險場景加人工複核。5. 接到搜尋、客服或審核流程。</td><td>視覺問答、影片分析、圖表理解、多模態 agent</td></tr>
-<tr><td>85</td><td>圖像/影片問答</td><td><a href="https://build.nvidia.com/qwen/qwen3.5-397b-a17b">qwen3.5-397b-a17b</a></td><td>Multimodal / Vision-Language API</td><td>圖片、影片幀、音訊片段、文字問題或多模態 prompt</td><td>圖片/影片描述、視覺問答、表格/圖表解讀、情境推理結果</td><td>1. 準備圖片/影片幀/音訊與問題。2. 呼叫多模態模型做描述或問答。3. 將輸出結構化成 JSON/文字。4. 對高風險場景加人工複核。5. 接到搜尋、客服或審核流程。</td><td>視覺問答、影片分析、圖表理解、多模態 agent</td></tr>
-<tr><td>86</td><td>圖像/語音/文字理解</td><td><a href="https://build.nvidia.com/google/gemma-3n-e2b-it">gemma-3n-e2b-it</a></td><td>Multimodal / Vision-Language API</td><td>圖片、影片幀、音訊片段、文字問題或多模態 prompt</td><td>圖片/影片描述、視覺問答、表格/圖表解讀、情境推理結果</td><td>1. 準備圖片/影片幀/音訊與問題。2. 呼叫多模態模型做描述或問答。3. 將輸出結構化成 JSON/文字。4. 對高風險場景加人工複核。5. 接到搜尋、客服或審核流程。</td><td>視覺問答、影片分析、圖表理解、多模態 agent</td></tr>
-<tr><td>87</td><td>圖像/語音/文字理解</td><td><a href="https://build.nvidia.com/google/gemma-3n-e4b-it">gemma-3n-e4b-it</a></td><td>Multimodal / Vision-Language API</td><td>圖片、影片幀、音訊片段、文字問題或多模態 prompt</td><td>圖片/影片描述、視覺問答、表格/圖表解讀、情境推理結果</td><td>1. 準備圖片/影片幀/音訊與問題。2. 呼叫多模態模型做描述或問答。3. 將輸出結構化成 JSON/文字。4. 對高風險場景加人工複核。5. 接到搜尋、客服或審核流程。</td><td>視覺問答、影片分析、圖表理解、多模態 agent</td></tr>
-<tr><td>88</td><td>圖像/語音/文字理解</td><td><a href="https://build.nvidia.com/microsoft/phi-4-multimodal-instruct">phi-4-multimodal-instruct</a></td><td>Multimodal / Vision-Language API</td><td>圖片、影片幀、音訊片段、文字問題或多模態 prompt</td><td>圖片/影片描述、視覺問答、表格/圖表解讀、情境推理結果</td><td>1. 準備圖片/影片幀/音訊與問題。2. 呼叫多模態模型做描述或問答。3. 將輸出結構化成 JSON/文字。4. 對高風險場景加人工複核。5. 接到搜尋、客服或審核流程。</td><td>視覺問答、影片分析、圖表理解、多模態 agent</td></tr>
-<tr><td>89</td><td>圖像/語音/文字理解</td><td><a href="https://build.nvidia.com/nvidia/nemotron-3-nano-omni-30b-a3b-reasoning">nemotron-3-nano-omni-30b-a3b-reasoning</a></td><td>Multimodal / Vision-Language API</td><td>圖片、影片幀、音訊片段、文字問題或多模態 prompt</td><td>圖片/影片描述、視覺問答、表格/圖表解讀、情境推理結果</td><td>1. 準備圖片/影片幀/音訊與問題。2. 呼叫多模態模型做描述或問答。3. 將輸出結構化成 JSON/文字。4. 對高風險場景加人工複核。5. 接到搜尋、客服或審核流程。</td><td>視覺問答、影片分析、圖表理解、多模態 agent</td></tr>
+<table><thead>
+<tr><th>分類序</th><th>子分類</th><th>模型</th><th>API/服務型態</th><th>典型輸入</th><th>典型輸出</th><th>落地操作步驟</th><th>建議串接位置</th></tr>
 </thead><tbody>
-</table>
+<tr><td>72</td><td>圖像/影片問答</td><td><a href="https://build.nvidia.com/google/gemma-3-27b-it">gemma-3-27b-it</a></td><td>Multimodal / Vision-Language API</td><td>圖片、影片幀、音訊片段、文字問題或多模態 prompt</td><td>圖片/影片描述、視覺問答、表格/圖表解讀、情境推理結果</td><td>1. 準備圖片/影片幀/音訊與問題。2. 呼叫多模態模型做描述或問答。3. 將輸出結構化成 JSON/文字。4. 對高風險場景加人工複核。5. 接到搜尋、客服或審核流程。</td><td>視覺問答、影片分析、圖表理解、多模態 agent</td></tr>
+</thead><tbody>
+<tr><td>73</td><td>圖像/影片問答</td><td><a href="https://build.nvidia.com/google/google-paligemma">paligemma</a></td><td>Multimodal / Vision-Language API</td><td>圖片、影片幀、音訊片段、文字問題或多模態 prompt</td><td>圖片/影片描述、視覺問答、表格/圖表解讀、情境推理結果</td><td>1. 準備圖片/影片幀/音訊與問題。2. 呼叫多模態模型做描述或問答。3. 將輸出結構化成 JSON/文字。4. 對高風險場景加人工複核。5. 接到搜尋、客服或審核流程。</td><td>視覺問答、影片分析、圖表理解、多模態 agent</td></tr>
+</thead><tbody>
+<tr><td>74</td><td>圖像/影片問答</td><td><a href="https://build.nvidia.com/meta/llama-3.2-11b-vision-instruct">llama-3.2-11b-vision-instruct</a></td><td>Multimodal / Vision-Language API</td><td>圖片、影片幀、音訊片段、文字問題或多模態 prompt</td><td>圖片/影片描述、視覺問答、表格/圖表解讀、情境推理結果</td><td>1. 準備圖片/影片幀/音訊與問題。2. 呼叫多模態模型做描述或問答。3. 將輸出結構化成 JSON/文字。4. 對高風險場景加人工複核。5. 接到搜尋、客服或審核流程。</td><td>視覺問答、影片分析、圖表理解、多模態 agent</td></tr>
+</thead><tbody>
+<tr><td>75</td><td>圖像/影片問答</td><td><a href="https://build.nvidia.com/meta/llama-3.2-90b-vision-instruct">llama-3.2-90b-vision-instruct</a></td><td>Multimodal / Vision-Language API</td><td>圖片、影片幀、音訊片段、文字問題或多模態 prompt</td><td>圖片/影片描述、視覺問答、表格/圖表解讀、情境推理結果</td><td>1. 準備圖片/影片幀/音訊與問題。2. 呼叫多模態模型做描述或問答。3. 將輸出結構化成 JSON/文字。4. 對高風險場景加人工複核。5. 接到搜尋、客服或審核流程。</td><td>視覺問答、影片分析、圖表理解、多模態 agent</td></tr>
+</thead><tbody>
+<tr><td>76</td><td>圖像/影片問答</td><td><a href="https://build.nvidia.com/meta/llama-4-maverick-17b-128e-instruct">llama-4-maverick-17b-128e-instruct</a></td><td>Multimodal / Vision-Language API</td><td>圖片、影片幀、音訊片段、文字問題或多模態 prompt</td><td>圖片/影片描述、視覺問答、表格/圖表解讀、情境推理結果</td><td>1. 準備圖片/影片幀/音訊與問題。2. 呼叫多模態模型做描述或問答。3. 將輸出結構化成 JSON/文字。4. 對高風險場景加人工複核。5. 接到搜尋、客服或審核流程。</td><td>視覺問答、影片分析、圖表理解、多模態 agent</td></tr>
+</thead><tbody>
+<tr><td>77</td><td>圖像/影片問答</td><td><a href="https://build.nvidia.com/mistralai/ministral-14b-instruct-2512">ministral-14b-instruct-2512</a></td><td>Multimodal / Vision-Language API</td><td>圖片、影片幀、音訊片段、文字問題或多模態 prompt</td><td>圖片/影片描述、視覺問答、表格/圖表解讀、情境推理結果</td><td>1. 準備圖片/影片幀/音訊與問題。2. 呼叫多模態模型做描述或問答。3. 將輸出結構化成 JSON/文字。4. 對高風險場景加人工複核。5. 接到搜尋、客服或審核流程。</td><td>視覺問答、影片分析、圖表理解、多模態 agent</td></tr>
+</thead><tbody>
+<tr><td>78</td><td>圖像/影片問答</td><td><a href="https://build.nvidia.com/mistralai/mistral-large-3-675b-instruct-2512">mistral-large-3-675b-instruct-2512</a></td><td>Multimodal / Vision-Language API</td><td>圖片、影片幀、音訊片段、文字問題或多模態 prompt</td><td>圖片/影片描述、視覺問答、表格/圖表解讀、情境推理結果</td><td>1. 準備圖片/影片幀/音訊與問題。2. 呼叫多模態模型做描述或問答。3. 將輸出結構化成 JSON/文字。4. 對高風險場景加人工複核。5. 接到搜尋、客服或審核流程。</td><td>視覺問答、影片分析、圖表理解、多模態 agent</td></tr>
+</thead><tbody>
+<tr><td>79</td><td>圖像/影片問答</td><td><a href="https://build.nvidia.com/mistralai/mistral-medium-3-instruct">mistral-medium-3-instruct</a></td><td>Multimodal / Vision-Language API</td><td>圖片、影片幀、音訊片段、文字問題或多模態 prompt</td><td>圖片/影片描述、視覺問答、表格/圖表解讀、情境推理結果</td><td>1. 準備圖片/影片幀/音訊與問題。2. 呼叫多模態模型做描述或問答。3. 將輸出結構化成 JSON/文字。4. 對高風險場景加人工複核。5. 接到搜尋、客服或審核流程。</td><td>視覺問答、影片分析、圖表理解、多模態 agent</td></tr>
+</thead><tbody>
+<tr><td>80</td><td>圖像/影片問答</td><td><a href="https://build.nvidia.com/mistralai/mistral-small-4-119b-2603">mistral-small-4-119b-2603</a></td><td>Multimodal / Vision-Language API</td><td>圖片、影片幀、音訊片段、文字問題或多模態 prompt</td><td>圖片/影片描述、視覺問答、表格/圖表解讀、情境推理結果</td><td>1. 準備圖片/影片幀/音訊與問題。2. 呼叫多模態模型做描述或問答。3. 將輸出結構化成 JSON/文字。4. 對高風險場景加人工複核。5. 接到搜尋、客服或審核流程。</td><td>視覺問答、影片分析、圖表理解、多模態 agent</td></tr>
+</thead><tbody>
+<tr><td>81</td><td>圖像/影片問答</td><td><a href="https://build.nvidia.com/moonshotai/kimi-k2.6">kimi-k2.6</a></td><td>Multimodal / Vision-Language API</td><td>圖片、影片幀、音訊片段、文字問題或多模態 prompt</td><td>圖片/影片描述、視覺問答、表格/圖表解讀、情境推理結果</td><td>1. 準備圖片/影片幀/音訊與問題。2. 呼叫多模態模型做描述或問答。3. 將輸出結構化成 JSON/文字。4. 對高風險場景加人工複核。5. 接到搜尋、客服或審核流程。</td><td>視覺問答、影片分析、圖表理解、多模態 agent</td></tr>
+</thead><tbody>
+<tr><td>82</td><td>圖像/影片問答</td><td><a href="https://build.nvidia.com/nvidia/llama-3.1-nemotron-nano-vl-8b-v1">llama-3.1-nemotron-nano-vl-8b-v1</a></td><td>Multimodal / Vision-Language API</td><td>圖片、影片幀、音訊片段、文字問題或多模態 prompt</td><td>圖片/影片描述、視覺問答、表格/圖表解讀、情境推理結果</td><td>1. 準備圖片/影片幀/音訊與問題。2. 呼叫多模態模型做描述或問答。3. 將輸出結構化成 JSON/文字。4. 對高風險場景加人工複核。5. 接到搜尋、客服或審核流程。</td><td>視覺問答、影片分析、圖表理解、多模態 agent</td></tr>
+</thead><tbody>
+<tr><td>83</td><td>圖像/影片問答</td><td><a href="https://build.nvidia.com/nvidia/nemotron-nano-12b-v2-vl">nemotron-nano-12b-v2-vl</a></td><td>Multimodal / Vision-Language API</td><td>圖片、影片幀、音訊片段、文字問題或多模態 prompt</td><td>圖片/影片描述、視覺問答、表格/圖表解讀、情境推理結果</td><td>1. 準備圖片/影片幀/音訊與問題。2. 呼叫多模態模型做描述或問答。3. 將輸出結構化成 JSON/文字。4. 對高風險場景加人工複核。5. 接到搜尋、客服或審核流程。</td><td>視覺問答、影片分析、圖表理解、多模態 agent</td></tr>
+</thead><tbody>
+<tr><td>84</td><td>圖像/影片問答</td><td><a href="https://build.nvidia.com/qwen/qwen3.5-122b-a10b">qwen3.5-122b-a10b</a></td><td>Multimodal / Vision-Language API</td><td>圖片、影片幀、音訊片段、文字問題或多模態 prompt</td><td>圖片/影片描述、視覺問答、表格/圖表解讀、情境推理結果</td><td>1. 準備圖片/影片幀/音訊與問題。2. 呼叫多模態模型做描述或問答。3. 將輸出結構化成 JSON/文字。4. 對高風險場景加人工複核。5. 接到搜尋、客服或審核流程。</td><td>視覺問答、影片分析、圖表理解、多模態 agent</td></tr>
+</thead><tbody>
+<tr><td>85</td><td>圖像/影片問答</td><td><a href="https://build.nvidia.com/qwen/qwen3.5-397b-a17b">qwen3.5-397b-a17b</a></td><td>Multimodal / Vision-Language API</td><td>圖片、影片幀、音訊片段、文字問題或多模態 prompt</td><td>圖片/影片描述、視覺問答、表格/圖表解讀、情境推理結果</td><td>1. 準備圖片/影片幀/音訊與問題。2. 呼叫多模態模型做描述或問答。3. 將輸出結構化成 JSON/文字。4. 對高風險場景加人工複核。5. 接到搜尋、客服或審核流程。</td><td>視覺問答、影片分析、圖表理解、多模態 agent</td></tr>
+</thead><tbody>
+<tr><td>86</td><td>圖像/語音/文字理解</td><td><a href="https://build.nvidia.com/google/gemma-3n-e2b-it">gemma-3n-e2b-it</a></td><td>Multimodal / Vision-Language API</td><td>圖片、影片幀、音訊片段、文字問題或多模態 prompt</td><td>圖片/影片描述、視覺問答、表格/圖表解讀、情境推理結果</td><td>1. 準備圖片/影片幀/音訊與問題。2. 呼叫多模態模型做描述或問答。3. 將輸出結構化成 JSON/文字。4. 對高風險場景加人工複核。5. 接到搜尋、客服或審核流程。</td><td>視覺問答、影片分析、圖表理解、多模態 agent</td></tr>
+</thead><tbody>
+<tr><td>87</td><td>圖像/語音/文字理解</td><td><a href="https://build.nvidia.com/google/gemma-3n-e4b-it">gemma-3n-e4b-it</a></td><td>Multimodal / Vision-Language API</td><td>圖片、影片幀、音訊片段、文字問題或多模態 prompt</td><td>圖片/影片描述、視覺問答、表格/圖表解讀、情境推理結果</td><td>1. 準備圖片/影片幀/音訊與問題。2. 呼叫多模態模型做描述或問答。3. 將輸出結構化成 JSON/文字。4. 對高風險場景加人工複核。5. 接到搜尋、客服或審核流程。</td><td>視覺問答、影片分析、圖表理解、多模態 agent</td></tr>
+</thead><tbody>
+<tr><td>88</td><td>圖像/語音/文字理解</td><td><a href="https://build.nvidia.com/microsoft/phi-4-multimodal-instruct">phi-4-multimodal-instruct</a></td><td>Multimodal / Vision-Language API</td><td>圖片、影片幀、音訊片段、文字問題或多模態 prompt</td><td>圖片/影片描述、視覺問答、表格/圖表解讀、情境推理結果</td><td>1. 準備圖片/影片幀/音訊與問題。2. 呼叫多模態模型做描述或問答。3. 將輸出結構化成 JSON/文字。4. 對高風險場景加人工複核。5. 接到搜尋、客服或審核流程。</td><td>視覺問答、影片分析、圖表理解、多模態 agent</td></tr>
+</thead><tbody>
+<tr><td>89</td><td>圖像/語音/文字理解</td><td><a href="https://build.nvidia.com/nvidia/nemotron-3-nano-omni-30b-a3b-reasoning">nemotron-3-nano-omni-30b-a3b-reasoning</a></td><td>Multimodal / Vision-Language API</td><td>圖片、影片幀、音訊片段、文字問題或多模態 prompt</td><td>圖片/影片描述、視覺問答、表格/圖表解讀、情境推理結果</td><td>1. 準備圖片/影片幀/音訊與問題。2. 呼叫多模態模型做描述或問答。3. 將輸出結構化成 JSON/文字。4. 對高風險場景加人工複核。5. 接到搜尋、客服或審核流程。</td><td>視覺問答、影片分析、圖表理解、多模態 agent</td></tr>
+</tbody></table>
 
 <h2 id="視覺生成與創作">視覺生成與創作</h2>
 
-<table>
-<tr><td>分類序</td><td>子分類</td><td>模型</td><td>API/服務型態</td><td>典型輸入</td><td>典型輸出</td><td>落地操作步驟</td><td>建議串接位置</td></tr>
-<tr><td>---:</td><td>---</td><td>---</td><td>---</td><td>---</td><td>---</td><td>---</td><td>---</td></tr>
-<tr><td>90</td><td>文字生圖</td><td><a href="https://build.nvidia.com/black-forest-labs/flux_1-dev">FLUX.1-dev</a></td><td>Image Generation / Image Edit API</td><td>文字 prompt、參考圖、遮罩、風格/尺寸/種子等參數</td><td>生成圖片或編輯後圖片</td><td>1. 定義品牌/風格 prompt 模板。2. 呼叫模型生成或編輯圖片。3. 自動做安全/版權/品牌規範檢查。4. 人工挑選或再生成。5. 交付到 CMS、設計工具或素材庫。</td><td>設計素材生成、行銷圖、產品草圖、內容創作工具</td></tr>
-<tr><td>91</td><td>文字生圖</td><td><a href="https://build.nvidia.com/black-forest-labs/flux_1-schnell">FLUX.1-schnell</a></td><td>Image Generation / Image Edit API</td><td>文字 prompt、參考圖、遮罩、風格/尺寸/種子等參數</td><td>生成圖片或編輯後圖片</td><td>1. 定義品牌/風格 prompt 模板。2. 呼叫模型生成或編輯圖片。3. 自動做安全/版權/品牌規範檢查。4. 人工挑選或再生成。5. 交付到 CMS、設計工具或素材庫。</td><td>設計素材生成、行銷圖、產品草圖、內容創作工具</td></tr>
-<tr><td>92</td><td>文字生圖</td><td><a href="https://build.nvidia.com/qwen/qwen-image">qwen-image</a></td><td>Image Generation / Image Edit API</td><td>文字 prompt、參考圖、遮罩、風格/尺寸/種子等參數</td><td>生成圖片或編輯後圖片</td><td>1. 定義品牌/風格 prompt 模板。2. 呼叫模型生成或編輯圖片。3. 自動做安全/版權/品牌規範檢查。4. 人工挑選或再生成。5. 交付到 CMS、設計工具或素材庫。</td><td>設計素材生成、行銷圖、產品草圖、內容創作工具</td></tr>
-<tr><td>93</td><td>文字生圖</td><td><a href="https://build.nvidia.com/stabilityai/stable-diffusion-3_5-large">stable-diffusion-3.5-large</a></td><td>Image Generation / Image Edit API</td><td>文字 prompt、參考圖、遮罩、風格/尺寸/種子等參數</td><td>生成圖片或編輯後圖片</td><td>1. 定義品牌/風格 prompt 模板。2. 呼叫模型生成或編輯圖片。3. 自動做安全/版權/品牌規範檢查。4. 人工挑選或再生成。5. 交付到 CMS、設計工具或素材庫。</td><td>設計素材生成、行銷圖、產品草圖、內容創作工具</td></tr>
-<tr><td>94</td><td>圖片編輯 / In-context 編輯</td><td><a href="https://build.nvidia.com/black-forest-labs/flux_1-kontext-dev">FLUX.1-Kontext-dev</a></td><td>Image Generation / Image Edit API</td><td>文字 prompt、參考圖、遮罩、風格/尺寸/種子等參數</td><td>生成圖片或編輯後圖片</td><td>1. 定義品牌/風格 prompt 模板。2. 呼叫模型生成或編輯圖片。3. 自動做安全/版權/品牌規範檢查。4. 人工挑選或再生成。5. 交付到 CMS、設計工具或素材庫。</td><td>設計素材生成、行銷圖、產品草圖、內容創作工具</td></tr>
-<tr><td>95</td><td>圖片編輯 / In-context 編輯</td><td><a href="https://build.nvidia.com/black-forest-labs/flux_2-klein-4b">flux.2-klein-4b</a></td><td>Image Generation / Image Edit API</td><td>文字 prompt、參考圖、遮罩、風格/尺寸/種子等參數</td><td>生成圖片或編輯後圖片</td><td>1. 定義品牌/風格 prompt 模板。2. 呼叫模型生成或編輯圖片。3. 自動做安全/版權/品牌規範檢查。4. 人工挑選或再生成。5. 交付到 CMS、設計工具或素材庫。</td><td>設計素材生成、行銷圖、產品草圖、內容創作工具</td></tr>
-<tr><td>96</td><td>圖片編輯 / In-context 編輯</td><td><a href="https://build.nvidia.com/qwen/qwen-image-edit">qwen-image-edit</a></td><td>Image Generation / Image Edit API</td><td>文字 prompt、參考圖、遮罩、風格/尺寸/種子等參數</td><td>生成圖片或編輯後圖片</td><td>1. 定義品牌/風格 prompt 模板。2. 呼叫模型生成或編輯圖片。3. 自動做安全/版權/品牌規範檢查。4. 人工挑選或再生成。5. 交付到 CMS、設計工具或素材庫。</td><td>設計素材生成、行銷圖、產品草圖、內容創作工具</td></tr>
+<table><thead>
+<tr><th>分類序</th><th>子分類</th><th>模型</th><th>API/服務型態</th><th>典型輸入</th><th>典型輸出</th><th>落地操作步驟</th><th>建議串接位置</th></tr>
 </thead><tbody>
-</table>
+<tr><td>90</td><td>文字生圖</td><td><a href="https://build.nvidia.com/black-forest-labs/flux_1-dev">FLUX.1-dev</a></td><td>Image Generation / Image Edit API</td><td>文字 prompt、參考圖、遮罩、風格/尺寸/種子等參數</td><td>生成圖片或編輯後圖片</td><td>1. 定義品牌/風格 prompt 模板。2. 呼叫模型生成或編輯圖片。3. 自動做安全/版權/品牌規範檢查。4. 人工挑選或再生成。5. 交付到 CMS、設計工具或素材庫。</td><td>設計素材生成、行銷圖、產品草圖、內容創作工具</td></tr>
+</thead><tbody>
+<tr><td>91</td><td>文字生圖</td><td><a href="https://build.nvidia.com/black-forest-labs/flux_1-schnell">FLUX.1-schnell</a></td><td>Image Generation / Image Edit API</td><td>文字 prompt、參考圖、遮罩、風格/尺寸/種子等參數</td><td>生成圖片或編輯後圖片</td><td>1. 定義品牌/風格 prompt 模板。2. 呼叫模型生成或編輯圖片。3. 自動做安全/版權/品牌規範檢查。4. 人工挑選或再生成。5. 交付到 CMS、設計工具或素材庫。</td><td>設計素材生成、行銷圖、產品草圖、內容創作工具</td></tr>
+</thead><tbody>
+<tr><td>92</td><td>文字生圖</td><td><a href="https://build.nvidia.com/qwen/qwen-image">qwen-image</a></td><td>Image Generation / Image Edit API</td><td>文字 prompt、參考圖、遮罩、風格/尺寸/種子等參數</td><td>生成圖片或編輯後圖片</td><td>1. 定義品牌/風格 prompt 模板。2. 呼叫模型生成或編輯圖片。3. 自動做安全/版權/品牌規範檢查。4. 人工挑選或再生成。5. 交付到 CMS、設計工具或素材庫。</td><td>設計素材生成、行銷圖、產品草圖、內容創作工具</td></tr>
+</thead><tbody>
+<tr><td>93</td><td>文字生圖</td><td><a href="https://build.nvidia.com/stabilityai/stable-diffusion-3_5-large">stable-diffusion-3.5-large</a></td><td>Image Generation / Image Edit API</td><td>文字 prompt、參考圖、遮罩、風格/尺寸/種子等參數</td><td>生成圖片或編輯後圖片</td><td>1. 定義品牌/風格 prompt 模板。2. 呼叫模型生成或編輯圖片。3. 自動做安全/版權/品牌規範檢查。4. 人工挑選或再生成。5. 交付到 CMS、設計工具或素材庫。</td><td>設計素材生成、行銷圖、產品草圖、內容創作工具</td></tr>
+</thead><tbody>
+<tr><td>94</td><td>圖片編輯 / In-context 編輯</td><td><a href="https://build.nvidia.com/black-forest-labs/flux_1-kontext-dev">FLUX.1-Kontext-dev</a></td><td>Image Generation / Image Edit API</td><td>文字 prompt、參考圖、遮罩、風格/尺寸/種子等參數</td><td>生成圖片或編輯後圖片</td><td>1. 定義品牌/風格 prompt 模板。2. 呼叫模型生成或編輯圖片。3. 自動做安全/版權/品牌規範檢查。4. 人工挑選或再生成。5. 交付到 CMS、設計工具或素材庫。</td><td>設計素材生成、行銷圖、產品草圖、內容創作工具</td></tr>
+</thead><tbody>
+<tr><td>95</td><td>圖片編輯 / In-context 編輯</td><td><a href="https://build.nvidia.com/black-forest-labs/flux_2-klein-4b">flux.2-klein-4b</a></td><td>Image Generation / Image Edit API</td><td>文字 prompt、參考圖、遮罩、風格/尺寸/種子等參數</td><td>生成圖片或編輯後圖片</td><td>1. 定義品牌/風格 prompt 模板。2. 呼叫模型生成或編輯圖片。3. 自動做安全/版權/品牌規範檢查。4. 人工挑選或再生成。5. 交付到 CMS、設計工具或素材庫。</td><td>設計素材生成、行銷圖、產品草圖、內容創作工具</td></tr>
+</thead><tbody>
+<tr><td>96</td><td>圖片編輯 / In-context 編輯</td><td><a href="https://build.nvidia.com/qwen/qwen-image-edit">qwen-image-edit</a></td><td>Image Generation / Image Edit API</td><td>文字 prompt、參考圖、遮罩、風格/尺寸/種子等參數</td><td>生成圖片或編輯後圖片</td><td>1. 定義品牌/風格 prompt 模板。2. 呼叫模型生成或編輯圖片。3. 自動做安全/版權/品牌規範檢查。4. 人工挑選或再生成。5. 交付到 CMS、設計工具或素材庫。</td><td>設計素材生成、行銷圖、產品草圖、內容創作工具</td></tr>
+</tbody></table>
 
 <h2 id="語音與翻譯">語音與翻譯</h2>
 
-<table>
-<tr><td>分類序</td><td>子分類</td><td>模型</td><td>API/服務型態</td><td>典型輸入</td><td>典型輸出</td><td>落地操作步驟</td><td>建議串接位置</td></tr>
-<tr><td>---:</td><td>---</td><td>---</td><td>---</td><td>---</td><td>---</td><td>---</td><td>---</td></tr>
-<tr><td>97</td><td>語音轉文字 ASR</td><td><a href="https://build.nvidia.com/nvidia/conformer-ctc-asr">conformer-ctc-asr</a></td><td>Speech-to-Text / ASR API</td><td>音訊檔、即時音訊串流、語言/時間戳設定</td><td>逐字稿、時間戳、可能的翻譯文字</td><td>1. 將音訊切段或建立 streaming session。2. 呼叫 ASR/AST 模型。3. 做標點、說話者或章節後處理。4. 存入搜尋索引。5. 接摘要、客服分析或字幕輸出。</td><td>字幕、會議記錄、客服錄音分析、語音資料湖</td></tr>
-<tr><td>98</td><td>語音轉文字 ASR</td><td><a href="https://build.nvidia.com/nvidia/nemotron-asr-streaming">nemotron-asr-streaming</a></td><td>Speech-to-Text / ASR API</td><td>音訊檔、即時音訊串流、語言/時間戳設定</td><td>逐字稿、時間戳、可能的翻譯文字</td><td>1. 將音訊切段或建立 streaming session。2. 呼叫 ASR/AST 模型。3. 做標點、說話者或章節後處理。4. 存入搜尋索引。5. 接摘要、客服分析或字幕輸出。</td><td>字幕、會議記錄、客服錄音分析、語音資料湖</td></tr>
-<tr><td>99</td><td>語音轉文字 ASR</td><td><a href="https://build.nvidia.com/nvidia/parakeet-1_1b-rnnt-multilingual-asr">parakeet-1.1b-rnnt-multilingual-asr</a></td><td>Speech-to-Text / ASR API</td><td>音訊檔、即時音訊串流、語言/時間戳設定</td><td>逐字稿、時間戳、可能的翻譯文字</td><td>1. 將音訊切段或建立 streaming session。2. 呼叫 ASR/AST 模型。3. 做標點、說話者或章節後處理。4. 存入搜尋索引。5. 接摘要、客服分析或字幕輸出。</td><td>字幕、會議記錄、客服錄音分析、語音資料湖</td></tr>
-<tr><td>100</td><td>語音轉文字 ASR</td><td><a href="https://build.nvidia.com/nvidia/parakeet-ctc-0_6b-es">parakeet-ctc-0.6b-es</a></td><td>Speech-to-Text / ASR API</td><td>音訊檔、即時音訊串流、語言/時間戳設定</td><td>逐字稿、時間戳、可能的翻譯文字</td><td>1. 將音訊切段或建立 streaming session。2. 呼叫 ASR/AST 模型。3. 做標點、說話者或章節後處理。4. 存入搜尋索引。5. 接摘要、客服分析或字幕輸出。</td><td>字幕、會議記錄、客服錄音分析、語音資料湖</td></tr>
-<tr><td>101</td><td>語音轉文字 ASR</td><td><a href="https://build.nvidia.com/nvidia/parakeet-ctc-0_6b-vi">parakeet-ctc-0.6b-vi</a></td><td>Speech-to-Text / ASR API</td><td>音訊檔、即時音訊串流、語言/時間戳設定</td><td>逐字稿、時間戳、可能的翻譯文字</td><td>1. 將音訊切段或建立 streaming session。2. 呼叫 ASR/AST 模型。3. 做標點、說話者或章節後處理。4. 存入搜尋索引。5. 接摘要、客服分析或字幕輸出。</td><td>字幕、會議記錄、客服錄音分析、語音資料湖</td></tr>
-<tr><td>102</td><td>語音轉文字 ASR</td><td><a href="https://build.nvidia.com/nvidia/parakeet-ctc-0_6b-zh-cn">parakeet-ctc-0.6b-zh-cn</a></td><td>Speech-to-Text / ASR API</td><td>音訊檔、即時音訊串流、語言/時間戳設定</td><td>逐字稿、時間戳、可能的翻譯文字</td><td>1. 將音訊切段或建立 streaming session。2. 呼叫 ASR/AST 模型。3. 做標點、說話者或章節後處理。4. 存入搜尋索引。5. 接摘要、客服分析或字幕輸出。</td><td>字幕、會議記錄、客服錄音分析、語音資料湖</td></tr>
-<tr><td>103</td><td>語音轉文字 ASR</td><td><a href="https://build.nvidia.com/nvidia/parakeet-ctc-0_6b-zh-tw">parakeet-ctc-0.6b-zh-tw</a></td><td>Speech-to-Text / ASR API</td><td>音訊檔、即時音訊串流、語言/時間戳設定</td><td>逐字稿、時間戳、可能的翻譯文字</td><td>1. 將音訊切段或建立 streaming session。2. 呼叫 ASR/AST 模型。3. 做標點、說話者或章節後處理。4. 存入搜尋索引。5. 接摘要、客服分析或字幕輸出。</td><td>字幕、會議記錄、客服錄音分析、語音資料湖</td></tr>
-<tr><td>104</td><td>語音轉文字 ASR</td><td><a href="https://build.nvidia.com/nvidia/parakeet-ctc-1_1b-asr">parakeet-ctc-1.1b-asr</a></td><td>Speech-to-Text / ASR API</td><td>音訊檔、即時音訊串流、語言/時間戳設定</td><td>逐字稿、時間戳、可能的翻譯文字</td><td>1. 將音訊切段或建立 streaming session。2. 呼叫 ASR/AST 模型。3. 做標點、說話者或章節後處理。4. 存入搜尋索引。5. 接摘要、客服分析或字幕輸出。</td><td>字幕、會議記錄、客服錄音分析、語音資料湖</td></tr>
-<tr><td>105</td><td>語音轉文字 ASR</td><td><a href="https://build.nvidia.com/nvidia/parakeet-tdt-0_6b-v2">parakeet-tdt-0.6b-v2</a></td><td>Speech-to-Text / ASR API</td><td>音訊檔、即時音訊串流、語言/時間戳設定</td><td>逐字稿、時間戳、可能的翻譯文字</td><td>1. 將音訊切段或建立 streaming session。2. 呼叫 ASR/AST 模型。3. 做標點、說話者或章節後處理。4. 存入搜尋索引。5. 接摘要、客服分析或字幕輸出。</td><td>字幕、會議記錄、客服錄音分析、語音資料湖</td></tr>
-<tr><td>106</td><td>語音辨識 + 語音翻譯</td><td><a href="https://build.nvidia.com/nvidia/canary-1b-asr">canary-1b-asr</a></td><td>Speech-to-Text / ASR API</td><td>音訊檔、即時音訊串流、語言/時間戳設定</td><td>逐字稿、時間戳、可能的翻譯文字</td><td>1. 將音訊切段或建立 streaming session。2. 呼叫 ASR/AST 模型。3. 做標點、說話者或章節後處理。4. 存入搜尋索引。5. 接摘要、客服分析或字幕輸出。</td><td>字幕、會議記錄、客服錄音分析、語音資料湖</td></tr>
-<tr><td>107</td><td>語音辨識 + 語音翻譯</td><td><a href="https://build.nvidia.com/nvidia/parakeet-ctc-0_6b-asr">parakeet-ctc-0.6b-asr</a></td><td>Speech-to-Text / ASR API</td><td>音訊檔、即時音訊串流、語言/時間戳設定</td><td>逐字稿、時間戳、可能的翻譯文字</td><td>1. 將音訊切段或建立 streaming session。2. 呼叫 ASR/AST 模型。3. 做標點、說話者或章節後處理。4. 存入搜尋索引。5. 接摘要、客服分析或字幕輸出。</td><td>字幕、會議記錄、客服錄音分析、語音資料湖</td></tr>
-<tr><td>108</td><td>語音辨識 + 語音翻譯</td><td><a href="https://build.nvidia.com/openai/whisper-large-v3">whisper-large-v3</a></td><td>Speech-to-Text / ASR API</td><td>音訊檔、即時音訊串流、語言/時間戳設定</td><td>逐字稿、時間戳、可能的翻譯文字</td><td>1. 將音訊切段或建立 streaming session。2. 呼叫 ASR/AST 模型。3. 做標點、說話者或章節後處理。4. 存入搜尋索引。5. 接摘要、客服分析或字幕輸出。</td><td>字幕、會議記錄、客服錄音分析、語音資料湖</td></tr>
-<tr><td>109</td><td>文字翻譯</td><td><a href="https://build.nvidia.com/nvidia/megatron-1b-nmt">megatron-1b-nmt</a></td><td>Translation API</td><td>來源文字、來源/目標語言、少量範例或術語表</td><td>翻譯後文字</td><td>1. 定義語言方向與術語表。2. 呼叫翻譯模型。3. 做格式保留與品質檢查。4. 對專有名詞做 glossary 校正。5. 接文件在地化或客服系統。</td><td>文件在地化、客服翻譯、多語知識庫</td></tr>
-<tr><td>110</td><td>文字翻譯</td><td><a href="https://build.nvidia.com/nvidia/riva-translate-1_6b">riva-translate-1.6b</a></td><td>Translation API</td><td>來源文字、來源/目標語言、少量範例或術語表</td><td>翻譯後文字</td><td>1. 定義語言方向與術語表。2. 呼叫翻譯模型。3. 做格式保留與品質檢查。4. 對專有名詞做 glossary 校正。5. 接文件在地化或客服系統。</td><td>文件在地化、客服翻譯、多語知識庫</td></tr>
-<tr><td>111</td><td>文字翻譯</td><td><a href="https://build.nvidia.com/nvidia/riva-translate-4b-instruct-v1_1">riva-translate-4b-instruct-v1_1</a></td><td>Translation API</td><td>來源文字、來源/目標語言、少量範例或術語表</td><td>翻譯後文字</td><td>1. 定義語言方向與術語表。2. 呼叫翻譯模型。3. 做格式保留與品質檢查。4. 對專有名詞做 glossary 校正。5. 接文件在地化或客服系統。</td><td>文件在地化、客服翻譯、多語知識庫</td></tr>
-<tr><td>112</td><td>文字轉語音 TTS</td><td><a href="https://build.nvidia.com/nvidia/magpie-tts-multilingual">magpie-tts-multilingual</a></td><td>Text-to-Speech API</td><td>文字、聲音樣本/語者設定、語速/情緒參數</td><td>語音音訊檔或串流</td><td>1. 清理輸入文字並標註語氣。2. 選擇聲音或提供短音檔。3. 呼叫 TTS 生成音訊。4. 做音量/格式轉換。5. 接語音助理、旁白或 IVR。</td><td>語音助理、客服 IVR、旁白、多語內容</td></tr>
-<tr><td>113</td><td>文字轉語音 TTS</td><td><a href="https://build.nvidia.com/nvidia/magpie-tts-zeroshot">magpie-tts-zeroshot</a></td><td>Text-to-Speech API</td><td>文字、聲音樣本/語者設定、語速/情緒參數</td><td>語音音訊檔或串流</td><td>1. 清理輸入文字並標註語氣。2. 選擇聲音或提供短音檔。3. 呼叫 TTS 生成音訊。4. 做音量/格式轉換。5. 接語音助理、旁白或 IVR。</td><td>語音助理、客服 IVR、旁白、多語內容</td></tr>
-<tr><td>114</td><td>即時語音對話</td><td><a href="https://build.nvidia.com/nvidia/nemotron-voicechat">nemotron-voicechat</a></td><td>Realtime Voice / Voicechat API</td><td>麥克風音訊串流 + 對話上下文</td><td>即時語音回覆或文字+語音回覆</td><td>1. 建立前端錄音與串流。2. 串接 voicechat 模型。3. 保存對話狀態。4. 加入中斷、轉人工、敏感資訊遮罩。5. 部署到客服或桌面助理。</td><td>即時語音客服、桌面語音助理、語音 agent</td></tr>
-<tr><td>115</td><td>語音增強/降噪</td><td><a href="https://build.nvidia.com/nvidia/bnr">Background Noise Removal</a></td><td>Audio Enhancement API</td><td>含噪音或低品質語音音訊</td><td>降噪/增強後音訊</td><td>1. 將音訊切段。2. 呼叫降噪/增強模型。3. 正規化音量與格式。4. 送入 ASR 或直接輸出。5. 監控音質與延遲。</td><td>會議音訊處理、Podcast、ASR 前處理、通話品質提升</td></tr>
-<tr><td>116</td><td>語音增強/降噪</td><td><a href="https://build.nvidia.com/nvidia/studiovoice">studiovoice</a></td><td>Audio Enhancement API</td><td>含噪音或低品質語音音訊</td><td>降噪/增強後音訊</td><td>1. 將音訊切段。2. 呼叫降噪/增強模型。3. 正規化音量與格式。4. 送入 ASR 或直接輸出。5. 監控音質與延遲。</td><td>會議音訊處理、Podcast、ASR 前處理、通話品質提升</td></tr>
+<table><thead>
+<tr><th>分類序</th><th>子分類</th><th>模型</th><th>API/服務型態</th><th>典型輸入</th><th>典型輸出</th><th>落地操作步驟</th><th>建議串接位置</th></tr>
 </thead><tbody>
-</table>
+<tr><td>97</td><td>語音轉文字 ASR</td><td><a href="https://build.nvidia.com/nvidia/conformer-ctc-asr">conformer-ctc-asr</a></td><td>Speech-to-Text / ASR API</td><td>音訊檔、即時音訊串流、語言/時間戳設定</td><td>逐字稿、時間戳、可能的翻譯文字</td><td>1. 將音訊切段或建立 streaming session。2. 呼叫 ASR/AST 模型。3. 做標點、說話者或章節後處理。4. 存入搜尋索引。5. 接摘要、客服分析或字幕輸出。</td><td>字幕、會議記錄、客服錄音分析、語音資料湖</td></tr>
+</thead><tbody>
+<tr><td>98</td><td>語音轉文字 ASR</td><td><a href="https://build.nvidia.com/nvidia/nemotron-asr-streaming">nemotron-asr-streaming</a></td><td>Speech-to-Text / ASR API</td><td>音訊檔、即時音訊串流、語言/時間戳設定</td><td>逐字稿、時間戳、可能的翻譯文字</td><td>1. 將音訊切段或建立 streaming session。2. 呼叫 ASR/AST 模型。3. 做標點、說話者或章節後處理。4. 存入搜尋索引。5. 接摘要、客服分析或字幕輸出。</td><td>字幕、會議記錄、客服錄音分析、語音資料湖</td></tr>
+</thead><tbody>
+<tr><td>99</td><td>語音轉文字 ASR</td><td><a href="https://build.nvidia.com/nvidia/parakeet-1_1b-rnnt-multilingual-asr">parakeet-1.1b-rnnt-multilingual-asr</a></td><td>Speech-to-Text / ASR API</td><td>音訊檔、即時音訊串流、語言/時間戳設定</td><td>逐字稿、時間戳、可能的翻譯文字</td><td>1. 將音訊切段或建立 streaming session。2. 呼叫 ASR/AST 模型。3. 做標點、說話者或章節後處理。4. 存入搜尋索引。5. 接摘要、客服分析或字幕輸出。</td><td>字幕、會議記錄、客服錄音分析、語音資料湖</td></tr>
+</thead><tbody>
+<tr><td>100</td><td>語音轉文字 ASR</td><td><a href="https://build.nvidia.com/nvidia/parakeet-ctc-0_6b-es">parakeet-ctc-0.6b-es</a></td><td>Speech-to-Text / ASR API</td><td>音訊檔、即時音訊串流、語言/時間戳設定</td><td>逐字稿、時間戳、可能的翻譯文字</td><td>1. 將音訊切段或建立 streaming session。2. 呼叫 ASR/AST 模型。3. 做標點、說話者或章節後處理。4. 存入搜尋索引。5. 接摘要、客服分析或字幕輸出。</td><td>字幕、會議記錄、客服錄音分析、語音資料湖</td></tr>
+</thead><tbody>
+<tr><td>101</td><td>語音轉文字 ASR</td><td><a href="https://build.nvidia.com/nvidia/parakeet-ctc-0_6b-vi">parakeet-ctc-0.6b-vi</a></td><td>Speech-to-Text / ASR API</td><td>音訊檔、即時音訊串流、語言/時間戳設定</td><td>逐字稿、時間戳、可能的翻譯文字</td><td>1. 將音訊切段或建立 streaming session。2. 呼叫 ASR/AST 模型。3. 做標點、說話者或章節後處理。4. 存入搜尋索引。5. 接摘要、客服分析或字幕輸出。</td><td>字幕、會議記錄、客服錄音分析、語音資料湖</td></tr>
+</thead><tbody>
+<tr><td>102</td><td>語音轉文字 ASR</td><td><a href="https://build.nvidia.com/nvidia/parakeet-ctc-0_6b-zh-cn">parakeet-ctc-0.6b-zh-cn</a></td><td>Speech-to-Text / ASR API</td><td>音訊檔、即時音訊串流、語言/時間戳設定</td><td>逐字稿、時間戳、可能的翻譯文字</td><td>1. 將音訊切段或建立 streaming session。2. 呼叫 ASR/AST 模型。3. 做標點、說話者或章節後處理。4. 存入搜尋索引。5. 接摘要、客服分析或字幕輸出。</td><td>字幕、會議記錄、客服錄音分析、語音資料湖</td></tr>
+</thead><tbody>
+<tr><td>103</td><td>語音轉文字 ASR</td><td><a href="https://build.nvidia.com/nvidia/parakeet-ctc-0_6b-zh-tw">parakeet-ctc-0.6b-zh-tw</a></td><td>Speech-to-Text / ASR API</td><td>音訊檔、即時音訊串流、語言/時間戳設定</td><td>逐字稿、時間戳、可能的翻譯文字</td><td>1. 將音訊切段或建立 streaming session。2. 呼叫 ASR/AST 模型。3. 做標點、說話者或章節後處理。4. 存入搜尋索引。5. 接摘要、客服分析或字幕輸出。</td><td>字幕、會議記錄、客服錄音分析、語音資料湖</td></tr>
+</thead><tbody>
+<tr><td>104</td><td>語音轉文字 ASR</td><td><a href="https://build.nvidia.com/nvidia/parakeet-ctc-1_1b-asr">parakeet-ctc-1.1b-asr</a></td><td>Speech-to-Text / ASR API</td><td>音訊檔、即時音訊串流、語言/時間戳設定</td><td>逐字稿、時間戳、可能的翻譯文字</td><td>1. 將音訊切段或建立 streaming session。2. 呼叫 ASR/AST 模型。3. 做標點、說話者或章節後處理。4. 存入搜尋索引。5. 接摘要、客服分析或字幕輸出。</td><td>字幕、會議記錄、客服錄音分析、語音資料湖</td></tr>
+</thead><tbody>
+<tr><td>105</td><td>語音轉文字 ASR</td><td><a href="https://build.nvidia.com/nvidia/parakeet-tdt-0_6b-v2">parakeet-tdt-0.6b-v2</a></td><td>Speech-to-Text / ASR API</td><td>音訊檔、即時音訊串流、語言/時間戳設定</td><td>逐字稿、時間戳、可能的翻譯文字</td><td>1. 將音訊切段或建立 streaming session。2. 呼叫 ASR/AST 模型。3. 做標點、說話者或章節後處理。4. 存入搜尋索引。5. 接摘要、客服分析或字幕輸出。</td><td>字幕、會議記錄、客服錄音分析、語音資料湖</td></tr>
+</thead><tbody>
+<tr><td>106</td><td>語音辨識 + 語音翻譯</td><td><a href="https://build.nvidia.com/nvidia/canary-1b-asr">canary-1b-asr</a></td><td>Speech-to-Text / ASR API</td><td>音訊檔、即時音訊串流、語言/時間戳設定</td><td>逐字稿、時間戳、可能的翻譯文字</td><td>1. 將音訊切段或建立 streaming session。2. 呼叫 ASR/AST 模型。3. 做標點、說話者或章節後處理。4. 存入搜尋索引。5. 接摘要、客服分析或字幕輸出。</td><td>字幕、會議記錄、客服錄音分析、語音資料湖</td></tr>
+</thead><tbody>
+<tr><td>107</td><td>語音辨識 + 語音翻譯</td><td><a href="https://build.nvidia.com/nvidia/parakeet-ctc-0_6b-asr">parakeet-ctc-0.6b-asr</a></td><td>Speech-to-Text / ASR API</td><td>音訊檔、即時音訊串流、語言/時間戳設定</td><td>逐字稿、時間戳、可能的翻譯文字</td><td>1. 將音訊切段或建立 streaming session。2. 呼叫 ASR/AST 模型。3. 做標點、說話者或章節後處理。4. 存入搜尋索引。5. 接摘要、客服分析或字幕輸出。</td><td>字幕、會議記錄、客服錄音分析、語音資料湖</td></tr>
+</thead><tbody>
+<tr><td>108</td><td>語音辨識 + 語音翻譯</td><td><a href="https://build.nvidia.com/openai/whisper-large-v3">whisper-large-v3</a></td><td>Speech-to-Text / ASR API</td><td>音訊檔、即時音訊串流、語言/時間戳設定</td><td>逐字稿、時間戳、可能的翻譯文字</td><td>1. 將音訊切段或建立 streaming session。2. 呼叫 ASR/AST 模型。3. 做標點、說話者或章節後處理。4. 存入搜尋索引。5. 接摘要、客服分析或字幕輸出。</td><td>字幕、會議記錄、客服錄音分析、語音資料湖</td></tr>
+</thead><tbody>
+<tr><td>109</td><td>文字翻譯</td><td><a href="https://build.nvidia.com/nvidia/megatron-1b-nmt">megatron-1b-nmt</a></td><td>Translation API</td><td>來源文字、來源/目標語言、少量範例或術語表</td><td>翻譯後文字</td><td>1. 定義語言方向與術語表。2. 呼叫翻譯模型。3. 做格式保留與品質檢查。4. 對專有名詞做 glossary 校正。5. 接文件在地化或客服系統。</td><td>文件在地化、客服翻譯、多語知識庫</td></tr>
+</thead><tbody>
+<tr><td>110</td><td>文字翻譯</td><td><a href="https://build.nvidia.com/nvidia/riva-translate-1_6b">riva-translate-1.6b</a></td><td>Translation API</td><td>來源文字、來源/目標語言、少量範例或術語表</td><td>翻譯後文字</td><td>1. 定義語言方向與術語表。2. 呼叫翻譯模型。3. 做格式保留與品質檢查。4. 對專有名詞做 glossary 校正。5. 接文件在地化或客服系統。</td><td>文件在地化、客服翻譯、多語知識庫</td></tr>
+</thead><tbody>
+<tr><td>111</td><td>文字翻譯</td><td><a href="https://build.nvidia.com/nvidia/riva-translate-4b-instruct-v1_1">riva-translate-4b-instruct-v1_1</a></td><td>Translation API</td><td>來源文字、來源/目標語言、少量範例或術語表</td><td>翻譯後文字</td><td>1. 定義語言方向與術語表。2. 呼叫翻譯模型。3. 做格式保留與品質檢查。4. 對專有名詞做 glossary 校正。5. 接文件在地化或客服系統。</td><td>文件在地化、客服翻譯、多語知識庫</td></tr>
+</thead><tbody>
+<tr><td>112</td><td>文字轉語音 TTS</td><td><a href="https://build.nvidia.com/nvidia/magpie-tts-multilingual">magpie-tts-multilingual</a></td><td>Text-to-Speech API</td><td>文字、聲音樣本/語者設定、語速/情緒參數</td><td>語音音訊檔或串流</td><td>1. 清理輸入文字並標註語氣。2. 選擇聲音或提供短音檔。3. 呼叫 TTS 生成音訊。4. 做音量/格式轉換。5. 接語音助理、旁白或 IVR。</td><td>語音助理、客服 IVR、旁白、多語內容</td></tr>
+</thead><tbody>
+<tr><td>113</td><td>文字轉語音 TTS</td><td><a href="https://build.nvidia.com/nvidia/magpie-tts-zeroshot">magpie-tts-zeroshot</a></td><td>Text-to-Speech API</td><td>文字、聲音樣本/語者設定、語速/情緒參數</td><td>語音音訊檔或串流</td><td>1. 清理輸入文字並標註語氣。2. 選擇聲音或提供短音檔。3. 呼叫 TTS 生成音訊。4. 做音量/格式轉換。5. 接語音助理、旁白或 IVR。</td><td>語音助理、客服 IVR、旁白、多語內容</td></tr>
+</thead><tbody>
+<tr><td>114</td><td>即時語音對話</td><td><a href="https://build.nvidia.com/nvidia/nemotron-voicechat">nemotron-voicechat</a></td><td>Realtime Voice / Voicechat API</td><td>麥克風音訊串流 + 對話上下文</td><td>即時語音回覆或文字+語音回覆</td><td>1. 建立前端錄音與串流。2. 串接 voicechat 模型。3. 保存對話狀態。4. 加入中斷、轉人工、敏感資訊遮罩。5. 部署到客服或桌面助理。</td><td>即時語音客服、桌面語音助理、語音 agent</td></tr>
+</thead><tbody>
+<tr><td>115</td><td>語音增強/降噪</td><td><a href="https://build.nvidia.com/nvidia/bnr">Background Noise Removal</a></td><td>Audio Enhancement API</td><td>含噪音或低品質語音音訊</td><td>降噪/增強後音訊</td><td>1. 將音訊切段。2. 呼叫降噪/增強模型。3. 正規化音量與格式。4. 送入 ASR 或直接輸出。5. 監控音質與延遲。</td><td>會議音訊處理、Podcast、ASR 前處理、通話品質提升</td></tr>
+</thead><tbody>
+<tr><td>116</td><td>語音增強/降噪</td><td><a href="https://build.nvidia.com/nvidia/studiovoice">studiovoice</a></td><td>Audio Enhancement API</td><td>含噪音或低品質語音音訊</td><td>降噪/增強後音訊</td><td>1. 將音訊切段。2. 呼叫降噪/增強模型。3. 正規化音量與格式。4. 送入 ASR 或直接輸出。5. 監控音質與延遲。</td><td>會議音訊處理、Podcast、ASR 前處理、通話品質提升</td></tr>
+</tbody></table>
 
 <h2 id="媒體-ai-與影片工具">媒體 AI 與影片工具</h2>
 
-<table>
-<tr><td>分類序</td><td>子分類</td><td>模型</td><td>API/服務型態</td><td>典型輸入</td><td>典型輸出</td><td>落地操作步驟</td><td>建議串接位置</td></tr>
-<tr><td>---:</td><td>---</td><td>---</td><td>---</td><td>---</td><td>---</td><td>---</td><td>---</td></tr>
-<tr><td>117</td><td>AI 合成影片偵測</td><td><a href="https://build.nvidia.com/nvidia/synthetic-video-detector">synthetic-video-detector</a></td><td>Media / Video Processing API</td><td>影片、音訊、參考光源/目標音訊/偵測設定</td><td>處理後影片、偵測分數、說話者區段或視線/嘴型結果</td><td>1. 抽取影片片段或上傳媒體。2. 呼叫對應媒體模型。3. 根據輸出更新剪輯、字幕、審核或後製資料。4. 做人工抽查。5. 匯出成 NLE/CMS 可用格式。</td><td>媒體後製、內容審核、配音在地化、會議/節目分析</td></tr>
-<tr><td>118</td><td>影片人物重打光</td><td><a href="https://build.nvidia.com/nvidia/relighting">NVIDIA AI for Media Relighting</a></td><td>Media / Video Processing API</td><td>影片、音訊、參考光源/目標音訊/偵測設定</td><td>處理後影片、偵測分數、說話者區段或視線/嘴型結果</td><td>1. 抽取影片片段或上傳媒體。2. 呼叫對應媒體模型。3. 根據輸出更新剪輯、字幕、審核或後製資料。4. 做人工抽查。5. 匯出成 NLE/CMS 可用格式。</td><td>媒體後製、內容審核、配音在地化、會議/節目分析</td></tr>
-<tr><td>119</td><td>說話者偵測</td><td><a href="https://build.nvidia.com/nvidia/active-speaker-detection">Active Speaker Detection</a></td><td>Media / Video Processing API</td><td>影片、音訊、參考光源/目標音訊/偵測設定</td><td>處理後影片、偵測分數、說話者區段或視線/嘴型結果</td><td>1. 抽取影片片段或上傳媒體。2. 呼叫對應媒體模型。3. 根據輸出更新剪輯、字幕、審核或後製資料。4. 做人工抽查。5. 匯出成 NLE/CMS 可用格式。</td><td>媒體後製、內容審核、配音在地化、會議/節目分析</td></tr>
-<tr><td>120</td><td>嘴型同步/配音</td><td><a href="https://build.nvidia.com/nvidia/lipsync">LipSync</a></td><td>Media / Video Processing API</td><td>影片、音訊、參考光源/目標音訊/偵測設定</td><td>處理後影片、偵測分數、說話者區段或視線/嘴型結果</td><td>1. 抽取影片片段或上傳媒體。2. 呼叫對應媒體模型。3. 根據輸出更新剪輯、字幕、審核或後製資料。4. 做人工抽查。5. 匯出成 NLE/CMS 可用格式。</td><td>媒體後製、內容審核、配音在地化、會議/節目分析</td></tr>
-<tr><td>121</td><td>視線校正</td><td><a href="https://build.nvidia.com/nvidia/eyecontact">eyecontact</a></td><td>Media / Video Processing API</td><td>影片、音訊、參考光源/目標音訊/偵測設定</td><td>處理後影片、偵測分數、說話者區段或視線/嘴型結果</td><td>1. 抽取影片片段或上傳媒體。2. 呼叫對應媒體模型。3. 根據輸出更新剪輯、字幕、審核或後製資料。4. 做人工抽查。5. 匯出成 NLE/CMS 可用格式。</td><td>媒體後製、內容審核、配音在地化、會議/節目分析</td></tr>
+<table><thead>
+<tr><th>分類序</th><th>子分類</th><th>模型</th><th>API/服務型態</th><th>典型輸入</th><th>典型輸出</th><th>落地操作步驟</th><th>建議串接位置</th></tr>
 </thead><tbody>
-</table>
+<tr><td>117</td><td>AI 合成影片偵測</td><td><a href="https://build.nvidia.com/nvidia/synthetic-video-detector">synthetic-video-detector</a></td><td>Media / Video Processing API</td><td>影片、音訊、參考光源/目標音訊/偵測設定</td><td>處理後影片、偵測分數、說話者區段或視線/嘴型結果</td><td>1. 抽取影片片段或上傳媒體。2. 呼叫對應媒體模型。3. 根據輸出更新剪輯、字幕、審核或後製資料。4. 做人工抽查。5. 匯出成 NLE/CMS 可用格式。</td><td>媒體後製、內容審核、配音在地化、會議/節目分析</td></tr>
+</thead><tbody>
+<tr><td>118</td><td>影片人物重打光</td><td><a href="https://build.nvidia.com/nvidia/relighting">NVIDIA AI for Media Relighting</a></td><td>Media / Video Processing API</td><td>影片、音訊、參考光源/目標音訊/偵測設定</td><td>處理後影片、偵測分數、說話者區段或視線/嘴型結果</td><td>1. 抽取影片片段或上傳媒體。2. 呼叫對應媒體模型。3. 根據輸出更新剪輯、字幕、審核或後製資料。4. 做人工抽查。5. 匯出成 NLE/CMS 可用格式。</td><td>媒體後製、內容審核、配音在地化、會議/節目分析</td></tr>
+</thead><tbody>
+<tr><td>119</td><td>說話者偵測</td><td><a href="https://build.nvidia.com/nvidia/active-speaker-detection">Active Speaker Detection</a></td><td>Media / Video Processing API</td><td>影片、音訊、參考光源/目標音訊/偵測設定</td><td>處理後影片、偵測分數、說話者區段或視線/嘴型結果</td><td>1. 抽取影片片段或上傳媒體。2. 呼叫對應媒體模型。3. 根據輸出更新剪輯、字幕、審核或後製資料。4. 做人工抽查。5. 匯出成 NLE/CMS 可用格式。</td><td>媒體後製、內容審核、配音在地化、會議/節目分析</td></tr>
+</thead><tbody>
+<tr><td>120</td><td>嘴型同步/配音</td><td><a href="https://build.nvidia.com/nvidia/lipsync">LipSync</a></td><td>Media / Video Processing API</td><td>影片、音訊、參考光源/目標音訊/偵測設定</td><td>處理後影片、偵測分數、說話者區段或視線/嘴型結果</td><td>1. 抽取影片片段或上傳媒體。2. 呼叫對應媒體模型。3. 根據輸出更新剪輯、字幕、審核或後製資料。4. 做人工抽查。5. 匯出成 NLE/CMS 可用格式。</td><td>媒體後製、內容審核、配音在地化、會議/節目分析</td></tr>
+</thead><tbody>
+<tr><td>121</td><td>視線校正</td><td><a href="https://build.nvidia.com/nvidia/eyecontact">eyecontact</a></td><td>Media / Video Processing API</td><td>影片、音訊、參考光源/目標音訊/偵測設定</td><td>處理後影片、偵測分數、說話者區段或視線/嘴型結果</td><td>1. 抽取影片片段或上傳媒體。2. 呼叫對應媒體模型。3. 根據輸出更新剪輯、字幕、審核或後製資料。4. 做人工抽查。5. 匯出成 NLE/CMS 可用格式。</td><td>媒體後製、內容審核、配音在地化、會議/節目分析</td></tr>
+</tbody></table>
 
 <h2 id="安全與治理">安全與治理</h2>
 
-<table>
-<tr><td>分類序</td><td>子分類</td><td>模型</td><td>API/服務型態</td><td>典型輸入</td><td>典型輸出</td><td>落地操作步驟</td><td>建議串接位置</td></tr>
-<tr><td>---:</td><td>---</td><td>---</td><td>---</td><td>---</td><td>---</td><td>---</td><td>---</td></tr>
-<tr><td>122</td><td>內容安全與政策審核</td><td><a href="https://build.nvidia.com/meta/llama-guard-4-12b">llama-guard-4-12b</a></td><td>Safety / Guardrail API</td><td>使用者輸入、模型輸出、工具呼叫內容或候選回覆</td><td>安全分類、風險分數、違規類別或阻擋/允許決策</td><td>1. 在 LLM 前後各加一次安全檢查。2. 將輸入/輸出送入 safety 模型。3. 依分類結果允許、拒答、改寫或轉人工。4. 記錄風險事件。5. 定期用真實案例調整 policy。</td><td>LLM gateway、客服平台、agent 工具呼叫前置檢查、合規稽核</td></tr>
-<tr><td>123</td><td>內容安全與政策審核</td><td><a href="https://build.nvidia.com/nvidia/llama-3_1-nemoguard-8b-content-safety">llama-3.1-nemoguard-8b-content-safety</a></td><td>Safety / Guardrail API</td><td>使用者輸入、模型輸出、工具呼叫內容或候選回覆</td><td>安全分類、風險分數、違規類別或阻擋/允許決策</td><td>1. 在 LLM 前後各加一次安全檢查。2. 將輸入/輸出送入 safety 模型。3. 依分類結果允許、拒答、改寫或轉人工。4. 記錄風險事件。5. 定期用真實案例調整 policy。</td><td>LLM gateway、客服平台、agent 工具呼叫前置檢查、合規稽核</td></tr>
-<tr><td>124</td><td>內容安全與政策審核</td><td><a href="https://build.nvidia.com/nvidia/llama-3_1-nemotron-safety-guard-8b-v3">llama-3.1-nemotron-safety-guard-8b-v3</a></td><td>Safety / Guardrail API</td><td>使用者輸入、模型輸出、工具呼叫內容或候選回覆</td><td>安全分類、風險分數、違規類別或阻擋/允許決策</td><td>1. 在 LLM 前後各加一次安全檢查。2. 將輸入/輸出送入 safety 模型。3. 依分類結果允許、拒答、改寫或轉人工。4. 記錄風險事件。5. 定期用真實案例調整 policy。</td><td>LLM gateway、客服平台、agent 工具呼叫前置檢查、合規稽核</td></tr>
-<tr><td>125</td><td>內容安全與政策審核</td><td><a href="https://build.nvidia.com/nvidia/nemotron-3-content-safety">nemotron-3-content-safety</a></td><td>Safety / Guardrail API</td><td>使用者輸入、模型輸出、工具呼叫內容或候選回覆</td><td>安全分類、風險分數、違規類別或阻擋/允許決策</td><td>1. 在 LLM 前後各加一次安全檢查。2. 將輸入/輸出送入 safety 模型。3. 依分類結果允許、拒答、改寫或轉人工。4. 記錄風險事件。5. 定期用真實案例調整 policy。</td><td>LLM gateway、客服平台、agent 工具呼叫前置檢查、合規稽核</td></tr>
-<tr><td>126</td><td>內容安全與政策審核</td><td><a href="https://build.nvidia.com/nvidia/nemotron-content-safety-reasoning-4b">nemotron-content-safety-reasoning-4b</a></td><td>Safety / Guardrail API</td><td>使用者輸入、模型輸出、工具呼叫內容或候選回覆</td><td>安全分類、風險分數、違規類別或阻擋/允許決策</td><td>1. 在 LLM 前後各加一次安全檢查。2. 將輸入/輸出送入 safety 模型。3. 依分類結果允許、拒答、改寫或轉人工。4. 記錄風險事件。5. 定期用真實案例調整 policy。</td><td>LLM gateway、客服平台、agent 工具呼叫前置檢查、合規稽核</td></tr>
-<tr><td>127</td><td>Jailbreak / Prompt Injection 偵測</td><td><a href="https://build.nvidia.com/nvidia/nemoguard-jailbreak-detect">nemoguard-jailbreak-detect</a></td><td>Safety / Guardrail API</td><td>使用者輸入、模型輸出、工具呼叫內容或候選回覆</td><td>安全分類、風險分數、違規類別或阻擋/允許決策</td><td>1. 在 LLM 前後各加一次安全檢查。2. 將輸入/輸出送入 safety 模型。3. 依分類結果允許、拒答、改寫或轉人工。4. 記錄風險事件。5. 定期用真實案例調整 policy。</td><td>LLM gateway、客服平台、agent 工具呼叫前置檢查、合規稽核</td></tr>
-<tr><td>128</td><td>對話主題控管</td><td><a href="https://build.nvidia.com/nvidia/llama-3_1-nemoguard-8b-topic-control">llama-3.1-nemoguard-8b-topic-control</a></td><td>Safety / Guardrail API</td><td>使用者輸入、模型輸出、工具呼叫內容或候選回覆</td><td>安全分類、風險分數、違規類別或阻擋/允許決策</td><td>1. 在 LLM 前後各加一次安全檢查。2. 將輸入/輸出送入 safety 模型。3. 依分類結果允許、拒答、改寫或轉人工。4. 記錄風險事件。5. 定期用真實案例調整 policy。</td><td>LLM gateway、客服平台、agent 工具呼叫前置檢查、合規稽核</td></tr>
-<tr><td>129</td><td>個資偵測</td><td><a href="https://build.nvidia.com/nvidia/gliner-pii">gliner-pii</a></td><td>Safety / Guardrail API</td><td>使用者輸入、模型輸出、工具呼叫內容或候選回覆</td><td>安全分類、風險分數、違規類別或阻擋/允許決策</td><td>1. 在 LLM 前後各加一次安全檢查。2. 將輸入/輸出送入 safety 模型。3. 依分類結果允許、拒答、改寫或轉人工。4. 記錄風險事件。5. 定期用真實案例調整 policy。</td><td>LLM gateway、客服平台、agent 工具呼叫前置檢查、合規稽核</td></tr>
+<table><thead>
+<tr><th>分類序</th><th>子分類</th><th>模型</th><th>API/服務型態</th><th>典型輸入</th><th>典型輸出</th><th>落地操作步驟</th><th>建議串接位置</th></tr>
 </thead><tbody>
-</table>
+<tr><td>122</td><td>內容安全與政策審核</td><td><a href="https://build.nvidia.com/meta/llama-guard-4-12b">llama-guard-4-12b</a></td><td>Safety / Guardrail API</td><td>使用者輸入、模型輸出、工具呼叫內容或候選回覆</td><td>安全分類、風險分數、違規類別或阻擋/允許決策</td><td>1. 在 LLM 前後各加一次安全檢查。2. 將輸入/輸出送入 safety 模型。3. 依分類結果允許、拒答、改寫或轉人工。4. 記錄風險事件。5. 定期用真實案例調整 policy。</td><td>LLM gateway、客服平台、agent 工具呼叫前置檢查、合規稽核</td></tr>
+</thead><tbody>
+<tr><td>123</td><td>內容安全與政策審核</td><td><a href="https://build.nvidia.com/nvidia/llama-3_1-nemoguard-8b-content-safety">llama-3.1-nemoguard-8b-content-safety</a></td><td>Safety / Guardrail API</td><td>使用者輸入、模型輸出、工具呼叫內容或候選回覆</td><td>安全分類、風險分數、違規類別或阻擋/允許決策</td><td>1. 在 LLM 前後各加一次安全檢查。2. 將輸入/輸出送入 safety 模型。3. 依分類結果允許、拒答、改寫或轉人工。4. 記錄風險事件。5. 定期用真實案例調整 policy。</td><td>LLM gateway、客服平台、agent 工具呼叫前置檢查、合規稽核</td></tr>
+</thead><tbody>
+<tr><td>124</td><td>內容安全與政策審核</td><td><a href="https://build.nvidia.com/nvidia/llama-3_1-nemotron-safety-guard-8b-v3">llama-3.1-nemotron-safety-guard-8b-v3</a></td><td>Safety / Guardrail API</td><td>使用者輸入、模型輸出、工具呼叫內容或候選回覆</td><td>安全分類、風險分數、違規類別或阻擋/允許決策</td><td>1. 在 LLM 前後各加一次安全檢查。2. 將輸入/輸出送入 safety 模型。3. 依分類結果允許、拒答、改寫或轉人工。4. 記錄風險事件。5. 定期用真實案例調整 policy。</td><td>LLM gateway、客服平台、agent 工具呼叫前置檢查、合規稽核</td></tr>
+</thead><tbody>
+<tr><td>125</td><td>內容安全與政策審核</td><td><a href="https://build.nvidia.com/nvidia/nemotron-3-content-safety">nemotron-3-content-safety</a></td><td>Safety / Guardrail API</td><td>使用者輸入、模型輸出、工具呼叫內容或候選回覆</td><td>安全分類、風險分數、違規類別或阻擋/允許決策</td><td>1. 在 LLM 前後各加一次安全檢查。2. 將輸入/輸出送入 safety 模型。3. 依分類結果允許、拒答、改寫或轉人工。4. 記錄風險事件。5. 定期用真實案例調整 policy。</td><td>LLM gateway、客服平台、agent 工具呼叫前置檢查、合規稽核</td></tr>
+</thead><tbody>
+<tr><td>126</td><td>內容安全與政策審核</td><td><a href="https://build.nvidia.com/nvidia/nemotron-content-safety-reasoning-4b">nemotron-content-safety-reasoning-4b</a></td><td>Safety / Guardrail API</td><td>使用者輸入、模型輸出、工具呼叫內容或候選回覆</td><td>安全分類、風險分數、違規類別或阻擋/允許決策</td><td>1. 在 LLM 前後各加一次安全檢查。2. 將輸入/輸出送入 safety 模型。3. 依分類結果允許、拒答、改寫或轉人工。4. 記錄風險事件。5. 定期用真實案例調整 policy。</td><td>LLM gateway、客服平台、agent 工具呼叫前置檢查、合規稽核</td></tr>
+</thead><tbody>
+<tr><td>127</td><td>Jailbreak / Prompt Injection 偵測</td><td><a href="https://build.nvidia.com/nvidia/nemoguard-jailbreak-detect">nemoguard-jailbreak-detect</a></td><td>Safety / Guardrail API</td><td>使用者輸入、模型輸出、工具呼叫內容或候選回覆</td><td>安全分類、風險分數、違規類別或阻擋/允許決策</td><td>1. 在 LLM 前後各加一次安全檢查。2. 將輸入/輸出送入 safety 模型。3. 依分類結果允許、拒答、改寫或轉人工。4. 記錄風險事件。5. 定期用真實案例調整 policy。</td><td>LLM gateway、客服平台、agent 工具呼叫前置檢查、合規稽核</td></tr>
+</thead><tbody>
+<tr><td>128</td><td>對話主題控管</td><td><a href="https://build.nvidia.com/nvidia/llama-3_1-nemoguard-8b-topic-control">llama-3.1-nemoguard-8b-topic-control</a></td><td>Safety / Guardrail API</td><td>使用者輸入、模型輸出、工具呼叫內容或候選回覆</td><td>安全分類、風險分數、違規類別或阻擋/允許決策</td><td>1. 在 LLM 前後各加一次安全檢查。2. 將輸入/輸出送入 safety 模型。3. 依分類結果允許、拒答、改寫或轉人工。4. 記錄風險事件。5. 定期用真實案例調整 policy。</td><td>LLM gateway、客服平台、agent 工具呼叫前置檢查、合規稽核</td></tr>
+</thead><tbody>
+<tr><td>129</td><td>個資偵測</td><td><a href="https://build.nvidia.com/nvidia/gliner-pii">gliner-pii</a></td><td>Safety / Guardrail API</td><td>使用者輸入、模型輸出、工具呼叫內容或候選回覆</td><td>安全分類、風險分數、違規類別或阻擋/允許決策</td><td>1. 在 LLM 前後各加一次安全檢查。2. 將輸入/輸出送入 safety 模型。3. 依分類結果允許、拒答、改寫或轉人工。4. 記錄風險事件。5. 定期用真實案例調整 policy。</td><td>LLM gateway、客服平台、agent 工具呼叫前置檢查、合規稽核</td></tr>
+</tbody></table>
 
 <h2 id="physical-ai-自駕-機器人">Physical AI / 自駕 / 機器人</h2>
 
-<table>
-<tr><td>分類序</td><td>子分類</td><td>模型</td><td>API/服務型態</td><td>典型輸入</td><td>典型輸出</td><td>落地操作步驟</td><td>建議串接位置</td></tr>
-<tr><td>---:</td><td>---</td><td>---</td><td>---</td><td>---</td><td>---</td><td>---</td><td>---</td></tr>
-<tr><td>130</td><td>物理一致影片生成</td><td><a href="https://build.nvidia.com/nvidia/cosmos-transfer1-7b">cosmos-transfer1-7b</a></td><td>Physical AI / Simulation / AV API</td><td>影片、相機/雷達資料、HD map、控制條件、模擬場景或 prompt</td><td>合成影片、未來世界狀態、3D 偵測、BEV 結果、規劃/推理結果</td><td>1. 定義場景與感測器資料格式。2. 呼叫模型生成/理解/預測場景。3. 將輸出送入訓練、評估或模擬迴圈。4. 與真實資料比對。5. 對安全關鍵結果保留人工與規則驗證。</td><td>機器人訓練資料生成、自駕感知評估、模擬測試、Physical AI pipeline</td></tr>
-<tr><td>131</td><td>物理一致影片生成</td><td><a href="https://build.nvidia.com/nvidia/cosmos-transfer2_5-2b">cosmos-transfer2.5-2b</a></td><td>Physical AI / Simulation / AV API</td><td>影片、相機/雷達資料、HD map、控制條件、模擬場景或 prompt</td><td>合成影片、未來世界狀態、3D 偵測、BEV 結果、規劃/推理結果</td><td>1. 定義場景與感測器資料格式。2. 呼叫模型生成/理解/預測場景。3. 將輸出送入訓練、評估或模擬迴圈。4. 與真實資料比對。5. 對安全關鍵結果保留人工與規則驗證。</td><td>機器人訓練資料生成、自駕感知評估、模擬測試、Physical AI pipeline</td></tr>
-<tr><td>132</td><td>物理世界推理</td><td><a href="https://build.nvidia.com/nvidia/cosmos-reason2-8b">cosmos-reason2-8b</a></td><td>Physical AI / Simulation / AV API</td><td>影片、相機/雷達資料、HD map、控制條件、模擬場景或 prompt</td><td>合成影片、未來世界狀態、3D 偵測、BEV 結果、規劃/推理結果</td><td>1. 定義場景與感測器資料格式。2. 呼叫模型生成/理解/預測場景。3. 將輸出送入訓練、評估或模擬迴圈。4. 與真實資料比對。5. 對安全關鍵結果保留人工與規則驗證。</td><td>機器人訓練資料生成、自駕感知評估、模擬測試、Physical AI pipeline</td></tr>
-<tr><td>133</td><td>未來世界狀態預測</td><td><a href="https://build.nvidia.com/nvidia/cosmos-predict1-5b">cosmos-predict1-5b</a></td><td>Physical AI / Simulation / AV API</td><td>影片、相機/雷達資料、HD map、控制條件、模擬場景或 prompt</td><td>合成影片、未來世界狀態、3D 偵測、BEV 結果、規劃/推理結果</td><td>1. 定義場景與感測器資料格式。2. 呼叫模型生成/理解/預測場景。3. 將輸出送入訓練、評估或模擬迴圈。4. 與真實資料比對。5. 對安全關鍵結果保留人工與規則驗證。</td><td>機器人訓練資料生成、自駕感知評估、模擬測試、Physical AI pipeline</td></tr>
-<tr><td>134</td><td>自駕 3D 感知</td><td><a href="https://build.nvidia.com/nvidia/bevformer">bevformer</a></td><td>Physical AI / Simulation / AV API</td><td>影片、相機/雷達資料、HD map、控制條件、模擬場景或 prompt</td><td>合成影片、未來世界狀態、3D 偵測、BEV 結果、規劃/推理結果</td><td>1. 定義場景與感測器資料格式。2. 呼叫模型生成/理解/預測場景。3. 將輸出送入訓練、評估或模擬迴圈。4. 與真實資料比對。5. 對安全關鍵結果保留人工與規則驗證。</td><td>機器人訓練資料生成、自駕感知評估、模擬測試、Physical AI pipeline</td></tr>
-<tr><td>135</td><td>自駕 3D 感知</td><td><a href="https://build.nvidia.com/nvidia/streampetr">streampetr</a></td><td>Physical AI / Simulation / AV API</td><td>影片、相機/雷達資料、HD map、控制條件、模擬場景或 prompt</td><td>合成影片、未來世界狀態、3D 偵測、BEV 結果、規劃/推理結果</td><td>1. 定義場景與感測器資料格式。2. 呼叫模型生成/理解/預測場景。3. 將輸出送入訓練、評估或模擬迴圈。4. 與真實資料比對。5. 對安全關鍵結果保留人工與規則驗證。</td><td>機器人訓練資料生成、自駕感知評估、模擬測試、Physical AI pipeline</td></tr>
-<tr><td>136</td><td>自駕端到端 Stack</td><td><a href="https://build.nvidia.com/nvidia/sparsedrive">sparsedrive</a></td><td>Physical AI / Simulation / AV API</td><td>影片、相機/雷達資料、HD map、控制條件、模擬場景或 prompt</td><td>合成影片、未來世界狀態、3D 偵測、BEV 結果、規劃/推理結果</td><td>1. 定義場景與感測器資料格式。2. 呼叫模型生成/理解/預測場景。3. 將輸出送入訓練、評估或模擬迴圈。4. 與真實資料比對。5. 對安全關鍵結果保留人工與規則驗證。</td><td>機器人訓練資料生成、自駕感知評估、模擬測試、Physical AI pipeline</td></tr>
+<table><thead>
+<tr><th>分類序</th><th>子分類</th><th>模型</th><th>API/服務型態</th><th>典型輸入</th><th>典型輸出</th><th>落地操作步驟</th><th>建議串接位置</th></tr>
 </thead><tbody>
-</table>
+<tr><td>130</td><td>物理一致影片生成</td><td><a href="https://build.nvidia.com/nvidia/cosmos-transfer1-7b">cosmos-transfer1-7b</a></td><td>Physical AI / Simulation / AV API</td><td>影片、相機/雷達資料、HD map、控制條件、模擬場景或 prompt</td><td>合成影片、未來世界狀態、3D 偵測、BEV 結果、規劃/推理結果</td><td>1. 定義場景與感測器資料格式。2. 呼叫模型生成/理解/預測場景。3. 將輸出送入訓練、評估或模擬迴圈。4. 與真實資料比對。5. 對安全關鍵結果保留人工與規則驗證。</td><td>機器人訓練資料生成、自駕感知評估、模擬測試、Physical AI pipeline</td></tr>
+</thead><tbody>
+<tr><td>131</td><td>物理一致影片生成</td><td><a href="https://build.nvidia.com/nvidia/cosmos-transfer2_5-2b">cosmos-transfer2.5-2b</a></td><td>Physical AI / Simulation / AV API</td><td>影片、相機/雷達資料、HD map、控制條件、模擬場景或 prompt</td><td>合成影片、未來世界狀態、3D 偵測、BEV 結果、規劃/推理結果</td><td>1. 定義場景與感測器資料格式。2. 呼叫模型生成/理解/預測場景。3. 將輸出送入訓練、評估或模擬迴圈。4. 與真實資料比對。5. 對安全關鍵結果保留人工與規則驗證。</td><td>機器人訓練資料生成、自駕感知評估、模擬測試、Physical AI pipeline</td></tr>
+</thead><tbody>
+<tr><td>132</td><td>物理世界推理</td><td><a href="https://build.nvidia.com/nvidia/cosmos-reason2-8b">cosmos-reason2-8b</a></td><td>Physical AI / Simulation / AV API</td><td>影片、相機/雷達資料、HD map、控制條件、模擬場景或 prompt</td><td>合成影片、未來世界狀態、3D 偵測、BEV 結果、規劃/推理結果</td><td>1. 定義場景與感測器資料格式。2. 呼叫模型生成/理解/預測場景。3. 將輸出送入訓練、評估或模擬迴圈。4. 與真實資料比對。5. 對安全關鍵結果保留人工與規則驗證。</td><td>機器人訓練資料生成、自駕感知評估、模擬測試、Physical AI pipeline</td></tr>
+</thead><tbody>
+<tr><td>133</td><td>未來世界狀態預測</td><td><a href="https://build.nvidia.com/nvidia/cosmos-predict1-5b">cosmos-predict1-5b</a></td><td>Physical AI / Simulation / AV API</td><td>影片、相機/雷達資料、HD map、控制條件、模擬場景或 prompt</td><td>合成影片、未來世界狀態、3D 偵測、BEV 結果、規劃/推理結果</td><td>1. 定義場景與感測器資料格式。2. 呼叫模型生成/理解/預測場景。3. 將輸出送入訓練、評估或模擬迴圈。4. 與真實資料比對。5. 對安全關鍵結果保留人工與規則驗證。</td><td>機器人訓練資料生成、自駕感知評估、模擬測試、Physical AI pipeline</td></tr>
+</thead><tbody>
+<tr><td>134</td><td>自駕 3D 感知</td><td><a href="https://build.nvidia.com/nvidia/bevformer">bevformer</a></td><td>Physical AI / Simulation / AV API</td><td>影片、相機/雷達資料、HD map、控制條件、模擬場景或 prompt</td><td>合成影片、未來世界狀態、3D 偵測、BEV 結果、規劃/推理結果</td><td>1. 定義場景與感測器資料格式。2. 呼叫模型生成/理解/預測場景。3. 將輸出送入訓練、評估或模擬迴圈。4. 與真實資料比對。5. 對安全關鍵結果保留人工與規則驗證。</td><td>機器人訓練資料生成、自駕感知評估、模擬測試、Physical AI pipeline</td></tr>
+</thead><tbody>
+<tr><td>135</td><td>自駕 3D 感知</td><td><a href="https://build.nvidia.com/nvidia/streampetr">streampetr</a></td><td>Physical AI / Simulation / AV API</td><td>影片、相機/雷達資料、HD map、控制條件、模擬場景或 prompt</td><td>合成影片、未來世界狀態、3D 偵測、BEV 結果、規劃/推理結果</td><td>1. 定義場景與感測器資料格式。2. 呼叫模型生成/理解/預測場景。3. 將輸出送入訓練、評估或模擬迴圈。4. 與真實資料比對。5. 對安全關鍵結果保留人工與規則驗證。</td><td>機器人訓練資料生成、自駕感知評估、模擬測試、Physical AI pipeline</td></tr>
+</thead><tbody>
+<tr><td>136</td><td>自駕端到端 Stack</td><td><a href="https://build.nvidia.com/nvidia/sparsedrive">sparsedrive</a></td><td>Physical AI / Simulation / AV API</td><td>影片、相機/雷達資料、HD map、控制條件、模擬場景或 prompt</td><td>合成影片、未來世界狀態、3D 偵測、BEV 結果、規劃/推理結果</td><td>1. 定義場景與感測器資料格式。2. 呼叫模型生成/理解/預測場景。3. 將輸出送入訓練、評估或模擬迴圈。4. 與真實資料比對。5. 對安全關鍵結果保留人工與規則驗證。</td><td>機器人訓練資料生成、自駕感知評估、模擬測試、Physical AI pipeline</td></tr>
+</tbody></table>
 
 <h2 id="3d-openusd-數位分身">3D / OpenUSD / 數位分身</h2>
 
-<table>
-<tr><td>分類序</td><td>子分類</td><td>模型</td><td>API/服務型態</td><td>典型輸入</td><td>典型輸出</td><td>落地操作步驟</td><td>建議串接位置</td></tr>
-<tr><td>---:</td><td>---</td><td>---</td><td>---</td><td>---</td><td>---</td><td>---</td><td>---</td></tr>
-<tr><td>137</td><td>文字/圖片轉 3D</td><td><a href="https://build.nvidia.com/microsoft/trellis">TRELLIS</a></td><td>3D / OpenUSD API</td><td>文字 prompt、圖片、OpenUSD 檔案、USD-Python 問題或驗證規則</td><td>3D asset、USD-Python 程式碼、驗證報告或修正建議</td><td>1. 準備 3D 需求、參考圖或 USD 資產。2. 呼叫模型生成/驗證/回答。3. 在 Omniverse 或 DCC 工具中載入。4. 進行材質、尺度、規則檢查。5. 納入數位分身資產庫。</td><td>Omniverse、OpenUSD pipeline、遊戲/模擬資產生成、數位分身驗證</td></tr>
-<tr><td>138</td><td>OpenUSD 程式碼生成</td><td><a href="https://build.nvidia.com/nvidia/usdcode">usdcode</a></td><td>3D / OpenUSD API</td><td>文字 prompt、圖片、OpenUSD 檔案、USD-Python 問題或驗證規則</td><td>3D asset、USD-Python 程式碼、驗證報告或修正建議</td><td>1. 準備 3D 需求、參考圖或 USD 資產。2. 呼叫模型生成/驗證/回答。3. 在 Omniverse 或 DCC 工具中載入。4. 進行材質、尺度、規則檢查。5. 納入數位分身資產庫。</td><td>Omniverse、OpenUSD pipeline、遊戲/模擬資產生成、數位分身驗證</td></tr>
-<tr><td>139</td><td>OpenUSD 資產驗證</td><td><a href="https://build.nvidia.com/nvidia/usdvalidate">usdvalidate</a></td><td>3D / OpenUSD API</td><td>文字 prompt、圖片、OpenUSD 檔案、USD-Python 問題或驗證規則</td><td>3D asset、USD-Python 程式碼、驗證報告或修正建議</td><td>1. 準備 3D 需求、參考圖或 USD 資產。2. 呼叫模型生成/驗證/回答。3. 在 Omniverse 或 DCC 工具中載入。4. 進行材質、尺度、規則檢查。5. 納入數位分身資產庫。</td><td>Omniverse、OpenUSD pipeline、遊戲/模擬資產生成、數位分身驗證</td></tr>
+<table><thead>
+<tr><th>分類序</th><th>子分類</th><th>模型</th><th>API/服務型態</th><th>典型輸入</th><th>典型輸出</th><th>落地操作步驟</th><th>建議串接位置</th></tr>
 </thead><tbody>
-</table>
+<tr><td>137</td><td>文字/圖片轉 3D</td><td><a href="https://build.nvidia.com/microsoft/trellis">TRELLIS</a></td><td>3D / OpenUSD API</td><td>文字 prompt、圖片、OpenUSD 檔案、USD-Python 問題或驗證規則</td><td>3D asset、USD-Python 程式碼、驗證報告或修正建議</td><td>1. 準備 3D 需求、參考圖或 USD 資產。2. 呼叫模型生成/驗證/回答。3. 在 Omniverse 或 DCC 工具中載入。4. 進行材質、尺度、規則檢查。5. 納入數位分身資產庫。</td><td>Omniverse、OpenUSD pipeline、遊戲/模擬資產生成、數位分身驗證</td></tr>
+</thead><tbody>
+<tr><td>138</td><td>OpenUSD 程式碼生成</td><td><a href="https://build.nvidia.com/nvidia/usdcode">usdcode</a></td><td>3D / OpenUSD API</td><td>文字 prompt、圖片、OpenUSD 檔案、USD-Python 問題或驗證規則</td><td>3D asset、USD-Python 程式碼、驗證報告或修正建議</td><td>1. 準備 3D 需求、參考圖或 USD 資產。2. 呼叫模型生成/驗證/回答。3. 在 Omniverse 或 DCC 工具中載入。4. 進行材質、尺度、規則檢查。5. 納入數位分身資產庫。</td><td>Omniverse、OpenUSD pipeline、遊戲/模擬資產生成、數位分身驗證</td></tr>
+</thead><tbody>
+<tr><td>139</td><td>OpenUSD 資產驗證</td><td><a href="https://build.nvidia.com/nvidia/usdvalidate">usdvalidate</a></td><td>3D / OpenUSD API</td><td>文字 prompt、圖片、OpenUSD 檔案、USD-Python 問題或驗證規則</td><td>3D asset、USD-Python 程式碼、驗證報告或修正建議</td><td>1. 準備 3D 需求、參考圖或 USD 資產。2. 呼叫模型生成/驗證/回答。3. 在 Omniverse 或 DCC 工具中載入。4. 進行材質、尺度、規則檢查。5. 納入數位分身資產庫。</td><td>Omniverse、OpenUSD pipeline、遊戲/模擬資產生成、數位分身驗證</td></tr>
+</tbody></table>
 
 <h2 id="生醫與藥物探索">生醫與藥物探索</h2>
 
-<table>
-<tr><td>分類序</td><td>子分類</td><td>模型</td><td>API/服務型態</td><td>典型輸入</td><td>典型輸出</td><td>落地操作步驟</td><td>建議串接位置</td></tr>
-<tr><td>---:</td><td>---</td><td>---</td><td>---</td><td>---</td><td>---</td><td>---</td><td>---</td></tr>
-<tr><td>140</td><td>蛋白質/分子結構預測</td><td><a href="https://build.nvidia.com/deepmind/alphafold2">alphafold2</a></td><td>Healthcare / BioNeMo API</td><td>蛋白質序列、MSA、分子 SMILES、蛋白 backbone、配體/受體資料或 DNA 序列</td><td>3D 結構、候選分子、蛋白序列、embedding、docking pose 或序列分析結果</td><td>1. 準備 FASTA/SMILES/PDB 等標準格式。2. 呼叫對應 Bio/Healthcare 模型。3. 對輸出做物理/化學可行性與品質評估。4. 排序候選。5. 交給 wet lab、分子模擬或下游分析。</td><td>藥物探索平台、蛋白設計流程、分子篩選、生物研究 pipeline</td></tr>
-<tr><td>141</td><td>蛋白質/分子結構預測</td><td><a href="https://build.nvidia.com/deepmind/alphafold2-multimer">alphafold2-multimer</a></td><td>Healthcare / BioNeMo API</td><td>蛋白質序列、MSA、分子 SMILES、蛋白 backbone、配體/受體資料或 DNA 序列</td><td>3D 結構、候選分子、蛋白序列、embedding、docking pose 或序列分析結果</td><td>1. 準備 FASTA/SMILES/PDB 等標準格式。2. 呼叫對應 Bio/Healthcare 模型。3. 對輸出做物理/化學可行性與品質評估。4. 排序候選。5. 交給 wet lab、分子模擬或下游分析。</td><td>藥物探索平台、蛋白設計流程、分子篩選、生物研究 pipeline</td></tr>
-<tr><td>142</td><td>蛋白質/分子結構預測</td><td><a href="https://build.nvidia.com/meta/esmfold">esmfold</a></td><td>Healthcare / BioNeMo API</td><td>蛋白質序列、MSA、分子 SMILES、蛋白 backbone、配體/受體資料或 DNA 序列</td><td>3D 結構、候選分子、蛋白序列、embedding、docking pose 或序列分析結果</td><td>1. 準備 FASTA/SMILES/PDB 等標準格式。2. 呼叫對應 Bio/Healthcare 模型。3. 對輸出做物理/化學可行性與品質評估。4. 排序候選。5. 交給 wet lab、分子模擬或下游分析。</td><td>藥物探索平台、蛋白設計流程、分子篩選、生物研究 pipeline</td></tr>
-<tr><td>143</td><td>蛋白質/分子結構預測</td><td><a href="https://build.nvidia.com/mit/boltz2">Boltz-2</a></td><td>Healthcare / BioNeMo API</td><td>蛋白質序列、MSA、分子 SMILES、蛋白 backbone、配體/受體資料或 DNA 序列</td><td>3D 結構、候選分子、蛋白序列、embedding、docking pose 或序列分析結果</td><td>1. 準備 FASTA/SMILES/PDB 等標準格式。2. 呼叫對應 Bio/Healthcare 模型。3. 對輸出做物理/化學可行性與品質評估。4. 排序候選。5. 交給 wet lab、分子模擬或下游分析。</td><td>藥物探索平台、蛋白設計流程、分子篩選、生物研究 pipeline</td></tr>
-<tr><td>144</td><td>蛋白質/分子結構預測</td><td><a href="https://build.nvidia.com/openfold/openfold2">openfold2</a></td><td>Healthcare / BioNeMo API</td><td>蛋白質序列、MSA、分子 SMILES、蛋白 backbone、配體/受體資料或 DNA 序列</td><td>3D 結構、候選分子、蛋白序列、embedding、docking pose 或序列分析結果</td><td>1. 準備 FASTA/SMILES/PDB 等標準格式。2. 呼叫對應 Bio/Healthcare 模型。3. 對輸出做物理/化學可行性與品質評估。4. 排序候選。5. 交給 wet lab、分子模擬或下游分析。</td><td>藥物探索平台、蛋白設計流程、分子篩選、生物研究 pipeline</td></tr>
-<tr><td>145</td><td>蛋白質/分子結構預測</td><td><a href="https://build.nvidia.com/openfold/openfold3">openfold3</a></td><td>Healthcare / BioNeMo API</td><td>蛋白質序列、MSA、分子 SMILES、蛋白 backbone、配體/受體資料或 DNA 序列</td><td>3D 結構、候選分子、蛋白序列、embedding、docking pose 或序列分析結果</td><td>1. 準備 FASTA/SMILES/PDB 等標準格式。2. 呼叫對應 Bio/Healthcare 模型。3. 對輸出做物理/化學可行性與品質評估。4. 排序候選。5. 交給 wet lab、分子模擬或下游分析。</td><td>藥物探索平台、蛋白設計流程、分子篩選、生物研究 pipeline</td></tr>
-<tr><td>146</td><td>蛋白質設計</td><td><a href="https://build.nvidia.com/ipd/proteinmpnn">proteinmpnn</a></td><td>Healthcare / BioNeMo API</td><td>蛋白質序列、MSA、分子 SMILES、蛋白 backbone、配體/受體資料或 DNA 序列</td><td>3D 結構、候選分子、蛋白序列、embedding、docking pose 或序列分析結果</td><td>1. 準備 FASTA/SMILES/PDB 等標準格式。2. 呼叫對應 Bio/Healthcare 模型。3. 對輸出做物理/化學可行性與品質評估。4. 排序候選。5. 交給 wet lab、分子模擬或下游分析。</td><td>藥物探索平台、蛋白設計流程、分子篩選、生物研究 pipeline</td></tr>
-<tr><td>147</td><td>蛋白質設計</td><td><a href="https://build.nvidia.com/ipd/rfdiffusion">rfdiffusion</a></td><td>Healthcare / BioNeMo API</td><td>蛋白質序列、MSA、分子 SMILES、蛋白 backbone、配體/受體資料或 DNA 序列</td><td>3D 結構、候選分子、蛋白序列、embedding、docking pose 或序列分析結果</td><td>1. 準備 FASTA/SMILES/PDB 等標準格式。2. 呼叫對應 Bio/Healthcare 模型。3. 對輸出做物理/化學可行性與品質評估。4. 排序候選。5. 交給 wet lab、分子模擬或下游分析。</td><td>藥物探索平台、蛋白設計流程、分子篩選、生物研究 pipeline</td></tr>
-<tr><td>148</td><td>蛋白質嵌入向量</td><td><a href="https://build.nvidia.com/meta/esm2-650m">esm2-650m</a></td><td>Healthcare / BioNeMo API</td><td>蛋白質序列、MSA、分子 SMILES、蛋白 backbone、配體/受體資料或 DNA 序列</td><td>3D 結構、候選分子、蛋白序列、embedding、docking pose 或序列分析結果</td><td>1. 準備 FASTA/SMILES/PDB 等標準格式。2. 呼叫對應 Bio/Healthcare 模型。3. 對輸出做物理/化學可行性與品質評估。4. 排序候選。5. 交給 wet lab、分子模擬或下游分析。</td><td>藥物探索平台、蛋白設計流程、分子篩選、生物研究 pipeline</td></tr>
-<tr><td>149</td><td>多序列比對</td><td><a href="https://build.nvidia.com/colabfold/msa-search">msa-search</a></td><td>Healthcare / BioNeMo API</td><td>蛋白質序列、MSA、分子 SMILES、蛋白 backbone、配體/受體資料或 DNA 序列</td><td>3D 結構、候選分子、蛋白序列、embedding、docking pose 或序列分析結果</td><td>1. 準備 FASTA/SMILES/PDB 等標準格式。2. 呼叫對應 Bio/Healthcare 模型。3. 對輸出做物理/化學可行性與品質評估。4. 排序候選。5. 交給 wet lab、分子模擬或下游分析。</td><td>藥物探索平台、蛋白設計流程、分子篩選、生物研究 pipeline</td></tr>
-<tr><td>150</td><td>分子 Docking</td><td><a href="https://build.nvidia.com/mit/diffdock">diffdock</a></td><td>Healthcare / BioNeMo API</td><td>蛋白質序列、MSA、分子 SMILES、蛋白 backbone、配體/受體資料或 DNA 序列</td><td>3D 結構、候選分子、蛋白序列、embedding、docking pose 或序列分析結果</td><td>1. 準備 FASTA/SMILES/PDB 等標準格式。2. 呼叫對應 Bio/Healthcare 模型。3. 對輸出做物理/化學可行性與品質評估。4. 排序候選。5. 交給 wet lab、分子模擬或下游分析。</td><td>藥物探索平台、蛋白設計流程、分子篩選、生物研究 pipeline</td></tr>
-<tr><td>151</td><td>小分子生成/最佳化</td><td><a href="https://build.nvidia.com/nvidia/genmol-generate">genmol</a></td><td>Healthcare / BioNeMo API</td><td>蛋白質序列、MSA、分子 SMILES、蛋白 backbone、配體/受體資料或 DNA 序列</td><td>3D 結構、候選分子、蛋白序列、embedding、docking pose 或序列分析結果</td><td>1. 準備 FASTA/SMILES/PDB 等標準格式。2. 呼叫對應 Bio/Healthcare 模型。3. 對輸出做物理/化學可行性與品質評估。4. 排序候選。5. 交給 wet lab、分子模擬或下游分析。</td><td>藥物探索平台、蛋白設計流程、分子篩選、生物研究 pipeline</td></tr>
-<tr><td>152</td><td>小分子生成/最佳化</td><td><a href="https://build.nvidia.com/nvidia/molmim-generate">molmim</a></td><td>Healthcare / BioNeMo API</td><td>蛋白質序列、MSA、分子 SMILES、蛋白 backbone、配體/受體資料或 DNA 序列</td><td>3D 結構、候選分子、蛋白序列、embedding、docking pose 或序列分析結果</td><td>1. 準備 FASTA/SMILES/PDB 等標準格式。2. 呼叫對應 Bio/Healthcare 模型。3. 對輸出做物理/化學可行性與品質評估。4. 排序候選。5. 交給 wet lab、分子模擬或下游分析。</td><td>藥物探索平台、蛋白設計流程、分子篩選、生物研究 pipeline</td></tr>
-<tr><td>153</td><td>基因體序列建模</td><td><a href="https://build.nvidia.com/arc/evo2-40b">evo2-40b</a></td><td>Healthcare / BioNeMo API</td><td>蛋白質序列、MSA、分子 SMILES、蛋白 backbone、配體/受體資料或 DNA 序列</td><td>3D 結構、候選分子、蛋白序列、embedding、docking pose 或序列分析結果</td><td>1. 準備 FASTA/SMILES/PDB 等標準格式。2. 呼叫對應 Bio/Healthcare 模型。3. 對輸出做物理/化學可行性與品質評估。4. 排序候選。5. 交給 wet lab、分子模擬或下游分析。</td><td>藥物探索平台、蛋白設計流程、分子篩選、生物研究 pipeline</td></tr>
+<table><thead>
+<tr><th>分類序</th><th>子分類</th><th>模型</th><th>API/服務型態</th><th>典型輸入</th><th>典型輸出</th><th>落地操作步驟</th><th>建議串接位置</th></tr>
 </thead><tbody>
-</table>
+<tr><td>140</td><td>蛋白質/分子結構預測</td><td><a href="https://build.nvidia.com/deepmind/alphafold2">alphafold2</a></td><td>Healthcare / BioNeMo API</td><td>蛋白質序列、MSA、分子 SMILES、蛋白 backbone、配體/受體資料或 DNA 序列</td><td>3D 結構、候選分子、蛋白序列、embedding、docking pose 或序列分析結果</td><td>1. 準備 FASTA/SMILES/PDB 等標準格式。2. 呼叫對應 Bio/Healthcare 模型。3. 對輸出做物理/化學可行性與品質評估。4. 排序候選。5. 交給 wet lab、分子模擬或下游分析。</td><td>藥物探索平台、蛋白設計流程、分子篩選、生物研究 pipeline</td></tr>
+</thead><tbody>
+<tr><td>141</td><td>蛋白質/分子結構預測</td><td><a href="https://build.nvidia.com/deepmind/alphafold2-multimer">alphafold2-multimer</a></td><td>Healthcare / BioNeMo API</td><td>蛋白質序列、MSA、分子 SMILES、蛋白 backbone、配體/受體資料或 DNA 序列</td><td>3D 結構、候選分子、蛋白序列、embedding、docking pose 或序列分析結果</td><td>1. 準備 FASTA/SMILES/PDB 等標準格式。2. 呼叫對應 Bio/Healthcare 模型。3. 對輸出做物理/化學可行性與品質評估。4. 排序候選。5. 交給 wet lab、分子模擬或下游分析。</td><td>藥物探索平台、蛋白設計流程、分子篩選、生物研究 pipeline</td></tr>
+</thead><tbody>
+<tr><td>142</td><td>蛋白質/分子結構預測</td><td><a href="https://build.nvidia.com/meta/esmfold">esmfold</a></td><td>Healthcare / BioNeMo API</td><td>蛋白質序列、MSA、分子 SMILES、蛋白 backbone、配體/受體資料或 DNA 序列</td><td>3D 結構、候選分子、蛋白序列、embedding、docking pose 或序列分析結果</td><td>1. 準備 FASTA/SMILES/PDB 等標準格式。2. 呼叫對應 Bio/Healthcare 模型。3. 對輸出做物理/化學可行性與品質評估。4. 排序候選。5. 交給 wet lab、分子模擬或下游分析。</td><td>藥物探索平台、蛋白設計流程、分子篩選、生物研究 pipeline</td></tr>
+</thead><tbody>
+<tr><td>143</td><td>蛋白質/分子結構預測</td><td><a href="https://build.nvidia.com/mit/boltz2">Boltz-2</a></td><td>Healthcare / BioNeMo API</td><td>蛋白質序列、MSA、分子 SMILES、蛋白 backbone、配體/受體資料或 DNA 序列</td><td>3D 結構、候選分子、蛋白序列、embedding、docking pose 或序列分析結果</td><td>1. 準備 FASTA/SMILES/PDB 等標準格式。2. 呼叫對應 Bio/Healthcare 模型。3. 對輸出做物理/化學可行性與品質評估。4. 排序候選。5. 交給 wet lab、分子模擬或下游分析。</td><td>藥物探索平台、蛋白設計流程、分子篩選、生物研究 pipeline</td></tr>
+</thead><tbody>
+<tr><td>144</td><td>蛋白質/分子結構預測</td><td><a href="https://build.nvidia.com/openfold/openfold2">openfold2</a></td><td>Healthcare / BioNeMo API</td><td>蛋白質序列、MSA、分子 SMILES、蛋白 backbone、配體/受體資料或 DNA 序列</td><td>3D 結構、候選分子、蛋白序列、embedding、docking pose 或序列分析結果</td><td>1. 準備 FASTA/SMILES/PDB 等標準格式。2. 呼叫對應 Bio/Healthcare 模型。3. 對輸出做物理/化學可行性與品質評估。4. 排序候選。5. 交給 wet lab、分子模擬或下游分析。</td><td>藥物探索平台、蛋白設計流程、分子篩選、生物研究 pipeline</td></tr>
+</thead><tbody>
+<tr><td>145</td><td>蛋白質/分子結構預測</td><td><a href="https://build.nvidia.com/openfold/openfold3">openfold3</a></td><td>Healthcare / BioNeMo API</td><td>蛋白質序列、MSA、分子 SMILES、蛋白 backbone、配體/受體資料或 DNA 序列</td><td>3D 結構、候選分子、蛋白序列、embedding、docking pose 或序列分析結果</td><td>1. 準備 FASTA/SMILES/PDB 等標準格式。2. 呼叫對應 Bio/Healthcare 模型。3. 對輸出做物理/化學可行性與品質評估。4. 排序候選。5. 交給 wet lab、分子模擬或下游分析。</td><td>藥物探索平台、蛋白設計流程、分子篩選、生物研究 pipeline</td></tr>
+</thead><tbody>
+<tr><td>146</td><td>蛋白質設計</td><td><a href="https://build.nvidia.com/ipd/proteinmpnn">proteinmpnn</a></td><td>Healthcare / BioNeMo API</td><td>蛋白質序列、MSA、分子 SMILES、蛋白 backbone、配體/受體資料或 DNA 序列</td><td>3D 結構、候選分子、蛋白序列、embedding、docking pose 或序列分析結果</td><td>1. 準備 FASTA/SMILES/PDB 等標準格式。2. 呼叫對應 Bio/Healthcare 模型。3. 對輸出做物理/化學可行性與品質評估。4. 排序候選。5. 交給 wet lab、分子模擬或下游分析。</td><td>藥物探索平台、蛋白設計流程、分子篩選、生物研究 pipeline</td></tr>
+</thead><tbody>
+<tr><td>147</td><td>蛋白質設計</td><td><a href="https://build.nvidia.com/ipd/rfdiffusion">rfdiffusion</a></td><td>Healthcare / BioNeMo API</td><td>蛋白質序列、MSA、分子 SMILES、蛋白 backbone、配體/受體資料或 DNA 序列</td><td>3D 結構、候選分子、蛋白序列、embedding、docking pose 或序列分析結果</td><td>1. 準備 FASTA/SMILES/PDB 等標準格式。2. 呼叫對應 Bio/Healthcare 模型。3. 對輸出做物理/化學可行性與品質評估。4. 排序候選。5. 交給 wet lab、分子模擬或下游分析。</td><td>藥物探索平台、蛋白設計流程、分子篩選、生物研究 pipeline</td></tr>
+</thead><tbody>
+<tr><td>148</td><td>蛋白質嵌入向量</td><td><a href="https://build.nvidia.com/meta/esm2-650m">esm2-650m</a></td><td>Healthcare / BioNeMo API</td><td>蛋白質序列、MSA、分子 SMILES、蛋白 backbone、配體/受體資料或 DNA 序列</td><td>3D 結構、候選分子、蛋白序列、embedding、docking pose 或序列分析結果</td><td>1. 準備 FASTA/SMILES/PDB 等標準格式。2. 呼叫對應 Bio/Healthcare 模型。3. 對輸出做物理/化學可行性與品質評估。4. 排序候選。5. 交給 wet lab、分子模擬或下游分析。</td><td>藥物探索平台、蛋白設計流程、分子篩選、生物研究 pipeline</td></tr>
+</thead><tbody>
+<tr><td>149</td><td>多序列比對</td><td><a href="https://build.nvidia.com/colabfold/msa-search">msa-search</a></td><td>Healthcare / BioNeMo API</td><td>蛋白質序列、MSA、分子 SMILES、蛋白 backbone、配體/受體資料或 DNA 序列</td><td>3D 結構、候選分子、蛋白序列、embedding、docking pose 或序列分析結果</td><td>1. 準備 FASTA/SMILES/PDB 等標準格式。2. 呼叫對應 Bio/Healthcare 模型。3. 對輸出做物理/化學可行性與品質評估。4. 排序候選。5. 交給 wet lab、分子模擬或下游分析。</td><td>藥物探索平台、蛋白設計流程、分子篩選、生物研究 pipeline</td></tr>
+</thead><tbody>
+<tr><td>150</td><td>分子 Docking</td><td><a href="https://build.nvidia.com/mit/diffdock">diffdock</a></td><td>Healthcare / BioNeMo API</td><td>蛋白質序列、MSA、分子 SMILES、蛋白 backbone、配體/受體資料或 DNA 序列</td><td>3D 結構、候選分子、蛋白序列、embedding、docking pose 或序列分析結果</td><td>1. 準備 FASTA/SMILES/PDB 等標準格式。2. 呼叫對應 Bio/Healthcare 模型。3. 對輸出做物理/化學可行性與品質評估。4. 排序候選。5. 交給 wet lab、分子模擬或下游分析。</td><td>藥物探索平台、蛋白設計流程、分子篩選、生物研究 pipeline</td></tr>
+</thead><tbody>
+<tr><td>151</td><td>小分子生成/最佳化</td><td><a href="https://build.nvidia.com/nvidia/genmol-generate">genmol</a></td><td>Healthcare / BioNeMo API</td><td>蛋白質序列、MSA、分子 SMILES、蛋白 backbone、配體/受體資料或 DNA 序列</td><td>3D 結構、候選分子、蛋白序列、embedding、docking pose 或序列分析結果</td><td>1. 準備 FASTA/SMILES/PDB 等標準格式。2. 呼叫對應 Bio/Healthcare 模型。3. 對輸出做物理/化學可行性與品質評估。4. 排序候選。5. 交給 wet lab、分子模擬或下游分析。</td><td>藥物探索平台、蛋白設計流程、分子篩選、生物研究 pipeline</td></tr>
+</thead><tbody>
+<tr><td>152</td><td>小分子生成/最佳化</td><td><a href="https://build.nvidia.com/nvidia/molmim-generate">molmim</a></td><td>Healthcare / BioNeMo API</td><td>蛋白質序列、MSA、分子 SMILES、蛋白 backbone、配體/受體資料或 DNA 序列</td><td>3D 結構、候選分子、蛋白序列、embedding、docking pose 或序列分析結果</td><td>1. 準備 FASTA/SMILES/PDB 等標準格式。2. 呼叫對應 Bio/Healthcare 模型。3. 對輸出做物理/化學可行性與品質評估。4. 排序候選。5. 交給 wet lab、分子模擬或下游分析。</td><td>藥物探索平台、蛋白設計流程、分子篩選、生物研究 pipeline</td></tr>
+</thead><tbody>
+<tr><td>153</td><td>基因體序列建模</td><td><a href="https://build.nvidia.com/arc/evo2-40b">evo2-40b</a></td><td>Healthcare / BioNeMo API</td><td>蛋白質序列、MSA、分子 SMILES、蛋白 backbone、配體/受體資料或 DNA 序列</td><td>3D 結構、候選分子、蛋白序列、embedding、docking pose 或序列分析結果</td><td>1. 準備 FASTA/SMILES/PDB 等標準格式。2. 呼叫對應 Bio/Healthcare 模型。3. 對輸出做物理/化學可行性與品質評估。4. 排序候選。5. 交給 wet lab、分子模擬或下游分析。</td><td>藥物探索平台、蛋白設計流程、分子篩選、生物研究 pipeline</td></tr>
+</tbody></table>
 
 <h2 id="科學與工程模擬">科學與工程模擬</h2>
 
-<table>
-<tr><td>分類序</td><td>子分類</td><td>模型</td><td>API/服務型態</td><td>典型輸入</td><td>典型輸出</td><td>落地操作步驟</td><td>建議串接位置</td></tr>
-<tr><td>---:</td><td>---</td><td>---</td><td>---</td><td>---</td><td>---</td><td>---</td><td>---</td></tr>
-<tr><td>154</td><td>量子校準</td><td><a href="https://build.nvidia.com/nvidia/ising-calibration-1-35b-a3b">ising-calibration-1-35b-a3b</a></td><td>Scientific / Optimization API</td><td>科學量測資料、天氣場、醫學影像、路線/車隊/約束條件等</td><td>校準判讀、預測場、分割 mask、最佳路線/排程方案</td><td>1. 將領域資料轉成模型要求格式。2. 呼叫模型或最佳化服務。3. 驗證輸出是否滿足物理/業務限制。4. 與既有模擬器或決策系統整合。5. 建立監控與人工覆核。</td><td>科學分析平台、醫學影像工具、氣象系統、物流最佳化引擎</td></tr>
-<tr><td>155</td><td>天氣/氣候預測</td><td><a href="https://build.nvidia.com/nvidia/fourcastnet">fourcastnet</a></td><td>Scientific / Optimization API</td><td>科學量測資料、天氣場、醫學影像、路線/車隊/約束條件等</td><td>校準判讀、預測場、分割 mask、最佳路線/排程方案</td><td>1. 將領域資料轉成模型要求格式。2. 呼叫模型或最佳化服務。3. 驗證輸出是否滿足物理/業務限制。4. 與既有模擬器或決策系統整合。5. 建立監控與人工覆核。</td><td>科學分析平台、醫學影像工具、氣象系統、物流最佳化引擎</td></tr>
-<tr><td>156</td><td>醫學影像分割</td><td><a href="https://build.nvidia.com/nvidia/vista-3d">vista-3d</a></td><td>Scientific / Optimization API</td><td>科學量測資料、天氣場、醫學影像、路線/車隊/約束條件等</td><td>校準判讀、預測場、分割 mask、最佳路線/排程方案</td><td>1. 將領域資料轉成模型要求格式。2. 呼叫模型或最佳化服務。3. 驗證輸出是否滿足物理/業務限制。4. 與既有模擬器或決策系統整合。5. 建立監控與人工覆核。</td><td>科學分析平台、醫學影像工具、氣象系統、物流最佳化引擎</td></tr>
-<tr><td>157</td><td>路線/組合最佳化</td><td><a href="https://build.nvidia.com/nvidia/nvidia-cuopt">cuopt</a></td><td>Scientific / Optimization API</td><td>科學量測資料、天氣場、醫學影像、路線/車隊/約束條件等</td><td>校準判讀、預測場、分割 mask、最佳路線/排程方案</td><td>1. 將領域資料轉成模型要求格式。2. 呼叫模型或最佳化服務。3. 驗證輸出是否滿足物理/業務限制。4. 與既有模擬器或決策系統整合。5. 建立監控與人工覆核。</td><td>科學分析平台、醫學影像工具、氣象系統、物流最佳化引擎</td></tr>
+<table><thead>
+<tr><th>分類序</th><th>子分類</th><th>模型</th><th>API/服務型態</th><th>典型輸入</th><th>典型輸出</th><th>落地操作步驟</th><th>建議串接位置</th></tr>
 </thead><tbody>
-</table>
+<tr><td>154</td><td>量子校準</td><td><a href="https://build.nvidia.com/nvidia/ising-calibration-1-35b-a3b">ising-calibration-1-35b-a3b</a></td><td>Scientific / Optimization API</td><td>科學量測資料、天氣場、醫學影像、路線/車隊/約束條件等</td><td>校準判讀、預測場、分割 mask、最佳路線/排程方案</td><td>1. 將領域資料轉成模型要求格式。2. 呼叫模型或最佳化服務。3. 驗證輸出是否滿足物理/業務限制。4. 與既有模擬器或決策系統整合。5. 建立監控與人工覆核。</td><td>科學分析平台、醫學影像工具、氣象系統、物流最佳化引擎</td></tr>
+</thead><tbody>
+<tr><td>155</td><td>天氣/氣候預測</td><td><a href="https://build.nvidia.com/nvidia/fourcastnet">fourcastnet</a></td><td>Scientific / Optimization API</td><td>科學量測資料、天氣場、醫學影像、路線/車隊/約束條件等</td><td>校準判讀、預測場、分割 mask、最佳路線/排程方案</td><td>1. 將領域資料轉成模型要求格式。2. 呼叫模型或最佳化服務。3. 驗證輸出是否滿足物理/業務限制。4. 與既有模擬器或決策系統整合。5. 建立監控與人工覆核。</td><td>科學分析平台、醫學影像工具、氣象系統、物流最佳化引擎</td></tr>
+</thead><tbody>
+<tr><td>156</td><td>醫學影像分割</td><td><a href="https://build.nvidia.com/nvidia/vista-3d">vista-3d</a></td><td>Scientific / Optimization API</td><td>科學量測資料、天氣場、醫學影像、路線/車隊/約束條件等</td><td>校準判讀、預測場、分割 mask、最佳路線/排程方案</td><td>1. 將領域資料轉成模型要求格式。2. 呼叫模型或最佳化服務。3. 驗證輸出是否滿足物理/業務限制。4. 與既有模擬器或決策系統整合。5. 建立監控與人工覆核。</td><td>科學分析平台、醫學影像工具、氣象系統、物流最佳化引擎</td></tr>
+</thead><tbody>
+<tr><td>157</td><td>路線/組合最佳化</td><td><a href="https://build.nvidia.com/nvidia/nvidia-cuopt">cuopt</a></td><td>Scientific / Optimization API</td><td>科學量測資料、天氣場、醫學影像、路線/車隊/約束條件等</td><td>校準判讀、預測場、分割 mask、最佳路線/排程方案</td><td>1. 將領域資料轉成模型要求格式。2. 呼叫模型或最佳化服務。3. 驗證輸出是否滿足物理/業務限制。4. 與既有模擬器或決策系統整合。5. 建立監控與人工覆核。</td><td>科學分析平台、醫學影像工具、氣象系統、物流最佳化引擎</td></tr>
+</tbody></table>
 
 </main>
 </body>

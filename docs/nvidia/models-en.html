@@ -2,74 +2,61 @@
 <html lang="zh-TW">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width,initial-scale=1">
 <title>NVIDIA Build Models Inventory — NVIDIA OS Support Docs</title>
 <style>
 :root {
-  --bg: #0f1117; --bg2: #1a1d2e; --bg3: #252840;
-  --border: #2d3155; --accent: #6366f1; --accent2: #818cf8;
-  --text: #e2e8f0; --muted: #94a3b8; --code-bg: #1e2235;
-  --success: #22c55e; --warn: #f59e0b;
+  --bg:#0f1117;--bg2:#1a1d2e;--bg3:#252840;
+  --border:#2d3155;--accent:#6366f1;--accent2:#818cf8;
+  --text:#e2e8f0;--muted:#94a3b8;--code-bg:#1e2235;
+  --ok:#22c55e;--warn:#f59e0b;
 }
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-       background: var(--bg); color: var(--text); line-height: 1.7;
-       display: flex; min-height: 100vh; }
-nav { width: 240px; min-height: 100vh; background: var(--bg2);
-      border-right: 1px solid var(--border); padding: 24px 0;
-      position: sticky; top: 0; height: 100vh; overflow-y: auto;
-      flex-shrink: 0; }
-nav .logo { padding: 0 20px 20px; border-bottom: 1px solid var(--border); margin-bottom: 12px; }
-nav .logo a { text-decoration: none; font-size: 15px; font-weight: 700;
-              color: var(--accent2); }
-nav .section { padding: 6px 20px 2px; font-size: 10px; font-weight: 700;
-               text-transform: uppercase; letter-spacing: 1px; color: var(--muted);
-               margin-top: 8px; }
-nav a { display: block; padding: 5px 20px; font-size: 13px; color: var(--muted);
-        text-decoration: none; border-left: 2px solid transparent;
-        transition: all .15s; }
-nav a:hover, nav a.active { color: var(--text); border-color: var(--accent);
-                              background: rgba(99,102,241,.08); }
-main { flex: 1; padding: 40px 48px; max-width: 900px; min-width: 0; }
-h1 { font-size: 2rem; font-weight: 800; color: var(--text);
-     border-bottom: 2px solid var(--accent); padding-bottom: 12px; margin-bottom: 24px; }
-h2 { font-size: 1.4rem; font-weight: 700; color: var(--accent2);
-     margin: 32px 0 12px; padding-top: 8px; }
-h3 { font-size: 1.1rem; font-weight: 600; color: var(--text); margin: 20px 0 8px; }
-h4, h5, h6 { font-size: 1rem; font-weight: 600; color: var(--muted); margin: 16px 0 6px; }
-p { margin: 8px 0; color: var(--text); }
-a { color: var(--accent2); }
-a:hover { color: #a5b4fc; }
-code { background: var(--code-bg); border: 1px solid var(--border);
-       border-radius: 4px; padding: 1px 5px; font-size: .875em;
-       font-family: 'JetBrains Mono', 'Fira Code', monospace; color: #a5b4fc; }
-pre { background: var(--code-bg); border: 1px solid var(--border);
-      border-radius: 8px; padding: 16px; overflow-x: auto; margin: 12px 0; }
-pre code { background: none; border: none; padding: 0;
-           font-size: .82rem; color: var(--text); }
-blockquote { border-left: 3px solid var(--accent); padding: 8px 16px;
-             background: rgba(99,102,241,.06); margin: 12px 0; border-radius: 0 6px 6px 0; }
-ul, ol { padding-left: 24px; margin: 8px 0; }
-li { margin: 3px 0; }
-table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: .9rem; }
-th { background: var(--bg3); color: var(--accent2); font-weight: 700;
-     padding: 8px 12px; border: 1px solid var(--border); text-align: left; }
-td { padding: 7px 12px; border: 1px solid var(--border); color: var(--text); }
-tr:nth-child(even) td { background: rgba(255,255,255,.02); }
-hr { border: none; border-top: 1px solid var(--border); margin: 24px 0; }
-strong { color: #c7d2fe; }
-del { color: var(--muted); }
-.badge { display: inline-block; font-size: 10px; font-weight: 700; padding: 1px 6px;
-         border-radius: 9px; border: 1px solid; margin: 0 2px; vertical-align: middle; }
-.badge-green { color: var(--success); border-color: var(--success); }
-.badge-warn  { color: var(--warn);    border-color: var(--warn); }
-/* toc sidebar on large screens */
-@media (max-width: 768px) { nav { display: none; } main { padding: 20px 16px; } }
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+     background:var(--bg);color:var(--text);line-height:1.7;
+     display:flex;min-height:100vh}
+nav{width:240px;min-height:100vh;background:var(--bg2);
+    border-right:1px solid var(--border);padding:24px 0;
+    position:sticky;top:0;height:100vh;overflow-y:auto;flex-shrink:0}
+nav .logo{padding:0 20px 20px;border-bottom:1px solid var(--border);margin-bottom:12px}
+nav .logo a{text-decoration:none;font-size:15px;font-weight:700;color:var(--accent2)}
+nav .section{padding:6px 20px 2px;font-size:10px;font-weight:700;
+             text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-top:8px}
+nav a{display:block;padding:5px 20px;font-size:13px;color:var(--muted);
+      text-decoration:none;border-left:2px solid transparent;transition:all .15s}
+nav a:hover,nav a.active{color:var(--text);border-color:var(--accent);background:rgba(99,102,241,.08)}
+main{flex:1;padding:40px 48px;max-width:900px;min-width:0}
+h1{font-size:2rem;font-weight:800;color:var(--text);
+   border-bottom:2px solid var(--accent);padding-bottom:12px;margin-bottom:24px}
+h2{font-size:1.4rem;font-weight:700;color:var(--accent2);margin:32px 0 12px;padding-top:8px}
+h3{font-size:1.1rem;font-weight:600;color:var(--text);margin:20px 0 8px}
+h4,h5,h6{font-size:1rem;font-weight:600;color:var(--muted);margin:16px 0 6px}
+p{margin:8px 0}
+a{color:var(--accent2)}
+a:hover{color:#a5b4fc}
+code{background:var(--code-bg);border:1px solid var(--border);border-radius:4px;
+     padding:1px 5px;font-size:.875em;font-family:'JetBrains Mono','Fira Code',monospace;color:#a5b4fc}
+pre{background:var(--code-bg);border:1px solid var(--border);border-radius:8px;
+    padding:16px;overflow-x:auto;margin:12px 0}
+pre code{background:none;border:none;padding:0;font-size:.82rem;color:var(--text)}
+blockquote{border-left:3px solid var(--accent);padding:8px 16px;
+           background:rgba(99,102,241,.06);margin:12px 0;border-radius:0 6px 6px 0}
+ul,ol{padding-left:24px;margin:8px 0}
+li{margin:3px 0}
+table{width:100%;border-collapse:collapse;margin:16px 0;font-size:.9rem}
+th{background:var(--bg3);color:var(--accent2);font-weight:700;
+   padding:8px 12px;border:1px solid var(--border);text-align:left}
+td{padding:7px 12px;border:1px solid var(--border)}
+tr:nth-child(even) td{background:rgba(255,255,255,.02)}
+hr{border:none;border-top:1px solid var(--border);margin:24px 0}
+strong{color:#c7d2fe}
+del{color:var(--muted)}
+@media(max-width:768px){nav{display:none}main{padding:20px 16px}}
 </style>
 </head>
 <body>
 <nav>
-  <div class="logo"><a href="../index.html">📁 NVIDIA OS Support</a></div>
+  <div class="logo"><a href="../index.html">📁 Docs</a></div>
   <div class="section">Agent 工作文件</div>
   <a href="../agents/usage.html">使用指南</a>
   <a href="../agents/continuation.html">接手狀態</a>
@@ -165,168 +152,323 @@ del { color: var(--muted); }
 
 <h2 id="complete-list">Complete List</h2>
 
-<table>
-<tr><td>#</td><td>Publisher</td><td>Model</td><td>NIM Type</td><td>Use Case</td><td>Description</td></tr>
-<tr><td>---:</td><td>---</td><td>---</td><td>---</td><td>---</td><td>---</td></tr>
-<tr><td>1</td><td>moonshotai</td><td><a href="https://build.nvidia.com/moonshotai/kimi-k2.6">kimi-k2.6</a></td><td>Download Available; Partner Endpoint</td><td>Image-to-Text</td><td>1T multimodal MoE for long-horizon coding, agentic tool use, and image/video understanding.</td></tr>
-<tr><td>2</td><td>qwen</td><td><a href="https://build.nvidia.com/qwen/qwen-image">qwen-image</a></td><td>Partner Endpoint; Download Available</td><td>Text-to-Image; Image Generation</td><td>Qwen-Image is a text-to-image foundation model with advanced multilingual text rendering.</td></tr>
-<tr><td>3</td><td>qwen</td><td><a href="https://build.nvidia.com/qwen/qwen-image-edit">qwen-image-edit</a></td><td>Partner Endpoint; Download Available</td><td>Text-to-Image; Image Generation</td><td>Qwen-Image-Edit is an image editing model with multilingual text editing and strong subject consistency.</td></tr>
-<tr><td>4</td><td>mistralai</td><td><a href="https://build.nvidia.com/mistralai/mistral-medium-3.5-128b">mistral-medium-3.5-128b</a></td><td>Download Available</td><td></td><td>A high performing model for text generation, coding and agentic use cases</td></tr>
-<tr><td>5</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/nemotron-3-nano-omni-30b-a3b-reasoning">nemotron-3-nano-omni-30b-a3b-reasoning</a></td><td>Download Available; Partner Endpoint</td><td>Image-to-Text</td><td>Nemotron 3 Nano Omni is an omni-modal reasoning model that understands images, video, speech, text.</td></tr>
-<tr><td>6</td><td>deepseek-ai</td><td><a href="https://build.nvidia.com/deepseek-ai/deepseek-v4-flash">deepseek-v4-flash</a></td><td>Partner Endpoint; Download Available</td><td></td><td>DeepSeek V4 Flash is a 284B MoE model with 1M-token context optimized for fast coding and agents.</td></tr>
-<tr><td>7</td><td>deepseek-ai</td><td><a href="https://build.nvidia.com/deepseek-ai/deepseek-v4-pro">deepseek-v4-pro</a></td><td>Download Available; Partner Endpoint</td><td></td><td>DeepSeek V4 scales to 1M-token context windows with efficient MoE architecture for coding tasks.</td></tr>
-<tr><td>8</td><td>z-ai</td><td><a href="https://build.nvidia.com/z-ai/glm-5.1">glm-5.1</a></td><td>Partner Endpoint; Download Available</td><td></td><td>GLM-5.1 is a flagship LLM for agentic workflows, coding, and long-horizon reasoning tasks.</td></tr>
-<tr><td>9</td><td>z-ai</td><td><a href="https://build.nvidia.com/z-ai/glm-4.7">glm-4.7</a></td><td>Partner Endpoint; Free Endpoint</td><td></td><td>GLM-4.7 is a multilingual agentic coding partner with stronger reasoning, tool use, and UI skills.</td></tr>
-<tr><td>10</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/relighting">NVIDIA AI for Media Relighting</a></td><td>Download Available</td><td></td><td>Re-illuminate people in video to match target lighting from a 360 HDRI environment map.</td></tr>
-<tr><td>11</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/nemotron-3-content-safety">nemotron-3-content-safety</a></td><td>Free Endpoint</td><td></td><td>Multilingual, multimodal model for detecting unsafe and toxic content.</td></tr>
-<tr><td>12</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/synthetic-video-detector">synthetic-video-detector</a></td><td>Download Available; Free Endpoint</td><td></td><td>NVIDIA Synthetic Video Detector is an AI-powered micro-service for detecting AI‑generated (synthetic) videos.</td></tr>
-<tr><td>13</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/active-speaker-detection">Active Speaker Detection</a></td><td>Download Available; Free Endpoint</td><td></td><td>Detect and track speaker identities across video frames.</td></tr>
-<tr><td>14</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/lipsync">LipSync</a></td><td>Download Available</td><td></td><td>Generative lip dubbing that syncs lips in a video to input audio.</td></tr>
-<tr><td>15</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/ising-calibration-1-35b-a3b">ising-calibration-1-35b-a3b</a></td><td>Download Available</td><td></td><td>Open VLM for quantum computer calibration chart understanding across a range of qubit modalities.</td></tr>
-<tr><td>16</td><td>minimaxai</td><td><a href="https://build.nvidia.com/minimaxai/minimax-m2.7">minimax-m2.7</a></td><td>Partner Endpoint; Free Endpoint</td><td></td><td>MiniMax M2.7 is a 230B-parameter text-to-text AI model excelling in coding, reasoning, and office tasks.</td></tr>
-<tr><td>17</td><td>google</td><td><a href="https://build.nvidia.com/google/gemma-4-31b-it">gemma-4-31b-it</a></td><td>Download Available; Partner Endpoint</td><td></td><td>Dense 31B model delivering frontier reasoning for coding, agentic workflows, and fine-tuning.</td></tr>
-<tr><td>18</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/llama-nemotron-rerank-vl-1b-v2">llama-nemotron-rerank-vl-1b-v2</a></td><td>Partner Endpoint; Download Available</td><td>Retrieval Augmented Generation</td><td>GPU-accelerated model optimized for providing a probability score that a given passage contains the information to answer a question.</td></tr>
-<tr><td>19</td><td>mistralai</td><td><a href="https://build.nvidia.com/mistralai/mistral-small-4-119b-2603">mistral-small-4-119b-2603</a></td><td>Partner Endpoint; Download Available</td><td></td><td>Hybrid MoE model unifying instruct, reasoning, and coding with multimodal input and 256k context</td></tr>
-<tr><td>20</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/nemotron-voicechat">nemotron-voicechat</a></td><td>Free Endpoint</td><td></td><td>Nemotron 3 Voicechat</td></tr>
-<tr><td>21</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/nemotron-asr-streaming">nemotron-asr-streaming</a></td><td>Download Available</td><td></td><td>Real-time speech recognition for English</td></tr>
-<tr><td>22</td><td>black-forest-labs</td><td><a href="https://build.nvidia.com/black-forest-labs/flux_2-klein-4b">flux.2-klein-4b</a></td><td>Partner Endpoint; Download Available</td><td>Text-to-Image; Image Generation</td><td>FLUX.2-klein-4B is a distilled image generation and editing model, producing outputs at lighting speed</td></tr>
-<tr><td>23</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/nemotron-ocr-v1">nemotron-ocr-v1</a></td><td>Download Available</td><td>Optical Character Recognition</td><td>Powerful OCR model for fast, accurate real-world image text extraction, layout, and structure analysis.</td></tr>
-<tr><td>24</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/nemotron-3-super-120b-a12b">nemotron-3-super-120b-a12b</a></td><td>Download Available; Partner Endpoint</td><td></td><td>Open, efficient hybrid Mamba-Transformer MoE with 1M context, excelling in agentic reasoning, coding, planning, tool calling, and more</td></tr>
-<tr><td>25</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/llama-nemotron-rerank-1b-v2">llama-nemotron-rerank-1b-v2</a></td><td>Download Available</td><td>Retrieval Augmented Generation</td><td>GPU-accelerated model optimized for providing a probability score that a given passage contains the information to answer a question.</td></tr>
-<tr><td>26</td><td>qwen</td><td><a href="https://build.nvidia.com/qwen/qwen3.5-122b-a10b">qwen3.5-122b-a10b</a></td><td>Partner Endpoint; Download Available</td><td></td><td>122B MoE LLM (10B active) for coding, reasoning, multimodal chat. Agent-ready.</td></tr>
-<tr><td>27</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/nemotron-table-structure-v1">nemotron-table-structure-v1</a></td><td>Download Available</td><td>Object Detection</td><td>Model for object detection, fine-tuned to detect charts, tables, and titles in documents.</td></tr>
-<tr><td>28</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/nemotron-page-elements-v3">nemotron-page-elements-v3</a></td><td>Download Available</td><td>Object Detection</td><td>Model for object detection, fine-tuned to detect charts, tables, and titles in documents.</td></tr>
-<tr><td>29</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/nemotron-graphic-elements-v1">nemotron-graphic-elements-v1</a></td><td>Download Available</td><td>Object Detection</td><td>Model for object detection, fine-tuned to detect charts, tables, and titles in documents.</td></tr>
-<tr><td>30</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/llama-nemotron-embed-1b-v2">llama-nemotron-embed-1b-v2</a></td><td>Download Available</td><td>Text-to-Embedding; Retrieval Augmented Generation</td><td>Multilingual, cross-lingual embedding model for long-document QA retrieval, supporting 26 languages.</td></tr>
-<tr><td>31</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/gliner-pii">gliner-pii</a></td><td>Free Endpoint</td><td></td><td>GLiNER PII detects Personally Identifiable Information in text.</td></tr>
-<tr><td>32</td><td>minimaxai</td><td><a href="https://build.nvidia.com/minimaxai/minimax-m2.5">minimax-m2.5</a></td><td>Download Available; Partner Endpoint</td><td></td><td>MiniMax M2.5 is a 230B-parameter text-to-text AI model excelling in coding, reasoning, and office tasks.</td></tr>
-<tr><td>33</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/cosmos-transfer2_5-2b">cosmos-transfer2.5-2b</a></td><td>Free Endpoint</td><td>Synthetic Data Generation</td><td>Generates physics-aware video world states for physical AI development using text prompts and multiple spatial control inputs derived from real-world data or simulation.</td></tr>
-<tr><td>34</td><td>qwen</td><td><a href="https://build.nvidia.com/qwen/qwen3.5-397b-a17b">qwen3.5-397b-a17b</a></td><td>Download Available; Partner Endpoint</td><td></td><td>Next-gen Qwen 3.5 VLM (400B MoE) brings advanced vision, chat, RAG, and agentic capabilities.</td></tr>
-<tr><td>35</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/llama-nemotron-embed-vl-1b-v2">llama-nemotron-embed-vl-1b-v2</a></td><td>Partner Endpoint; Download Available</td><td>Text-to-Embedding; Retrieval Augmented Generation</td><td>Multimodal question-answer retrieval representing user queries as text and documents as images.</td></tr>
-<tr><td>36</td><td>stepfun-ai</td><td><a href="https://build.nvidia.com/stepfun-ai/step-3.5-flash">step-3.5-flash</a></td><td>Partner Endpoint; Free Endpoint</td><td></td><td>200B open-source reasoning engine with sparse MoE powering frontier agentic AI.</td></tr>
-<tr><td>37</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/nemotron-content-safety-reasoning-4b">nemotron-content-safety-reasoning-4b</a></td><td>Free Endpoint</td><td></td><td>A context‑aware safety model that applies reasoning to enforce domain‑specific policies.</td></tr>
-<tr><td>38</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/cosmos-reason2-8b">cosmos-reason2-8b</a></td><td>Download Available</td><td>Synthetic Data Generation</td><td>Vision language model that excels in understanding the physical world using structured reasoning on videos or images.</td></tr>
-<tr><td>39</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/nemoretriever-page-elements-v3">nemoretriever-page-elements-v3</a></td><td>Download Available</td><td>Object Detection</td><td>Model for object detection, fine-tuned to detect charts, tables, and titles in documents.</td></tr>
-<tr><td>40</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/nemotron-3-nano-30b-a3b">nemotron-3-nano-30b-a3b</a></td><td>Partner Endpoint; Download Available</td><td></td><td>Open, efficient MoE model with 1M context, excelling in coding, reasoning, instruction following, tool calling, and more</td></tr>
-<tr><td>41</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/riva-translate-4b-instruct-v1_1">riva-translate-4b-instruct-v1_1</a></td><td>Free Endpoint</td><td>Text Translation</td><td>Translation model in 12 languages with few-shots example prompts capability.</td></tr>
-<tr><td>42</td><td>mistralai</td><td><a href="https://build.nvidia.com/mistralai/devstral-2-123b-instruct-2512">devstral-2-123b-instruct-2512</a></td><td>Partner Endpoint; Free Endpoint</td><td></td><td>State-of-the-art open code model with deep reasoning, 256k context, and unmatched efficiency.</td></tr>
-<tr><td>43</td><td>moonshotai</td><td><a href="https://build.nvidia.com/moonshotai/kimi-k2-thinking">kimi-k2-thinking</a></td><td>Partner Endpoint; Free Endpoint</td><td></td><td>Open reasoning model with 256K context window, native INT4 quantization and enhanced tool use.</td></tr>
-<tr><td>44</td><td>mistralai</td><td><a href="https://build.nvidia.com/mistralai/mistral-large-3-675b-instruct-2512">mistral-large-3-675b-instruct-2512</a></td><td>Partner Endpoint; Free Endpoint</td><td>Image-to-Text</td><td>A state-of-the-art general purpose MoE VLM ideal for chat, agentic and instruction based use cases.</td></tr>
-<tr><td>45</td><td>mistralai</td><td><a href="https://build.nvidia.com/mistralai/ministral-14b-instruct-2512">ministral-14b-instruct-2512</a></td><td>Download Available</td><td>Image-to-Text</td><td>A general purpose VLM ideal for chat and instruction based use cases</td></tr>
-<tr><td>46</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/streampetr">streampetr</a></td><td>Free Endpoint</td><td></td><td>StreamPETR offers efficient 3D object detection for autonomous driving by propagating sparse object queries temporally.</td></tr>
-<tr><td>47</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/nemotron-parse">nemotron-parse</a></td><td>Download Available</td><td></td><td>Cutting-edge vision-language model exceling in retrieving text and metadata from images.</td></tr>
-<tr><td>48</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/nemotron-nano-12b-v2-vl">nemotron-nano-12b-v2-vl</a></td><td>Download Available</td><td>Image-to-Text</td><td>Nemotron Nano 12B v2 VL enables multi-image and video understanding, along with visual Q&amp;A and summarization capabilities.</td></tr>
-<tr><td>49</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/llama-3_1-nemotron-safety-guard-8b-v3">llama-3.1-nemotron-safety-guard-8b-v3</a></td><td>Free Endpoint</td><td></td><td>Leading multilingual content safety model for enhancing the safety and moderation capabilities of LLMs</td></tr>
-<tr><td>50</td><td>openfold</td><td><a href="https://build.nvidia.com/openfold/openfold3">openfold3</a></td><td>Download Available</td><td>Drug Discovery</td><td>OpenFold3 is a third-generation biomolecular foundation model that predicts the three-dimensional structures of molecular complexes (proteins, DNA, RNA, ligands)</td></tr>
-<tr><td>51</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/parakeet-ctc-0_6b-zh-tw">parakeet-ctc-0.6b-zh-tw</a></td><td>Download Available</td><td>Speech-to-Text</td><td>Record-setting accuracy and performance for Mandarin Taiwanese English transcriptions.</td></tr>
-<tr><td>52</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/llama-3_2-nemoretriever-300m-embed-v2">llama-3_2-nemoretriever-300m-embed-v2</a></td><td>Download Available</td><td>Text-to-Embedding; Retrieval Augmented Generation</td><td>Multilingual, cross-lingual embedding model for long-document QA retrieval, supporting 26 languages.</td></tr>
-<tr><td>53</td><td>stockmark</td><td><a href="https://build.nvidia.com/stockmark/stockmark-2-100b-instruct">stockmark-2-100b-instruct</a></td><td>Download Available</td><td></td><td>Japanese-specialized large-language-model for enterprises to read and understand complex business documents.</td></tr>
-<tr><td>54</td><td>qwen</td><td><a href="https://build.nvidia.com/qwen/qwen3-next-80b-a3b-instruct">qwen3-next-80b-a3b-instruct</a></td><td>Partner Endpoint; Download Available</td><td></td><td>Qwen3-Next Instruct blends hybrid attention, sparse MoE, and stability boosts for ultra-long context AI.</td></tr>
-<tr><td>55</td><td>qwen</td><td><a href="https://build.nvidia.com/qwen/qwen3-next-80b-a3b-thinking">qwen3-next-80b-a3b-thinking</a></td><td>Partner Endpoint; Download Available</td><td></td><td>80B parameter AI model with hybrid reasoning, MoE architecture, support for 119 languages.</td></tr>
-<tr><td>56</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/parakeet-ctc-0_6b-zh-cn">parakeet-ctc-0.6b-zh-cn</a></td><td>Download Available</td><td>Speech-to-Text</td><td>Record-setting accuracy and performance for Mandarin English transcriptions.</td></tr>
-<tr><td>57</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/parakeet-ctc-0_6b-es">parakeet-ctc-0.6b-es</a></td><td>Download Available</td><td>Speech-to-Text</td><td>Accurate and optimized Spanish English transcriptions with punctuation and word timestamps.</td></tr>
-<tr><td>58</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/parakeet-ctc-0_6b-vi">parakeet-ctc-0.6b-vi</a></td><td>Download Available</td><td>Speech-to-Text</td><td>Accurate and optimized Vietnamese-English transcriptions with punctuation and word timestamps.</td></tr>
-<tr><td>59</td><td>bytedance</td><td><a href="https://build.nvidia.com/bytedance/seed-oss-36b-instruct">seed-oss-36b-instruct</a></td><td>Free Endpoint</td><td></td><td>ByteDance open-source LLM with long-context, reasoning, and agentic intelligence.</td></tr>
-<tr><td>60</td><td>microsoft</td><td><a href="https://build.nvidia.com/microsoft/trellis">TRELLIS</a></td><td>Download Available</td><td></td><td>MSFT TRELLIS is a 3D AI model that generates high-quality 3D assets from text or image inputs.</td></tr>
-<tr><td>61</td><td>qwen</td><td><a href="https://build.nvidia.com/qwen/qwen3-coder-480b-a35b-instruct">qwen3-coder-480b-a35b-instruct</a></td><td>Partner Endpoint; Free Endpoint</td><td></td><td>Excels in agentic coding and browser use and supports 256K context, delivering top results.</td></tr>
-<tr><td>62</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/nvidia-nemotron-nano-9b-v2">nvidia-nemotron-nano-9b-v2</a></td><td>Partner Endpoint; Download Available</td><td></td><td>High‑efficiency LLM with hybrid Transformer‑Mamba design, excelling in reasoning and agentic tasks.</td></tr>
-<tr><td>63</td><td>stabilityai</td><td><a href="https://build.nvidia.com/stabilityai/stable-diffusion-3_5-large">stable-diffusion-3.5-large</a></td><td>Download Available</td><td>Text-to-Image; Image Generation</td><td>Stable Diffusion 3.5 is a popular text-to-image generation model</td></tr>
-<tr><td>64</td><td>black-forest-labs</td><td><a href="https://build.nvidia.com/black-forest-labs/flux_1-kontext-dev">FLUX.1-Kontext-dev</a></td><td>Partner Endpoint; Download Available</td><td>Text-to-Image; Image Generation</td><td>FLUX.1 Kontext is a multimodal model that enables in-context image generation and editing.</td></tr>
-<tr><td>65</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/nemoretriever-ocr-v1">nemoretriever-ocr-v1</a></td><td>Download Available</td><td>Optical Character Recognition</td><td>Powerful OCR model for fast, accurate real-world image text extraction, layout, and structure analysis.</td></tr>
-<tr><td>66</td><td>openai</td><td><a href="https://build.nvidia.com/openai/gpt-oss-20b">gpt-oss-20b</a></td><td>Download Available; Partner Endpoint</td><td></td><td>Smaller Mixture of Experts (MoE) text-only LLM for efficient AI reasoning and math</td></tr>
-<tr><td>67</td><td>openai</td><td><a href="https://build.nvidia.com/openai/gpt-oss-120b">gpt-oss-120b</a></td><td>Download Available; Partner Endpoint</td><td></td><td>Mixture of Experts (MoE) reasoning LLM (text-only) designed to fit within 80GB GPU.</td></tr>
-<tr><td>68</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/parakeet-tdt-0_6b-v2">parakeet-tdt-0.6b-v2</a></td><td>Download Available</td><td></td><td>Accurate and optimized English transcriptions with punctuation and word timestamps</td></tr>
-<tr><td>69</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/llama-3_3-nemotron-super-49b-v1_5">llama-3.3-nemotron-super-49b-v1.5</a></td><td>Partner Endpoint; Download Available</td><td></td><td>High efficiency model with leading accuracy for reasoning, tool calling, chat, and instruction following.</td></tr>
-<tr><td>70</td><td>sarvamai</td><td><a href="https://build.nvidia.com/sarvamai/sarvam-m">sarvam-m</a></td><td>Partner Endpoint; Download Available</td><td></td><td>Multilingual, hybrid-reasoning model optimized for Indian language tasks, programming, mathematical reasoning capabilities.</td></tr>
-<tr><td>71</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/llama-3_2-nemoretriever-300m-embed-v1">llama-3_2-nemoretriever-300m-embed-v1</a></td><td>Free Endpoint</td><td>Text-to-Embedding; Retrieval Augmented Generation</td><td>Multilingual, cross-lingual embedding model for long-document QA retrieval, supporting 26 languages.</td></tr>
-<tr><td>72</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/nemoretriever-ocr">nemoretriever-ocr</a></td><td>Download Available</td><td>Optical Character Recognition</td><td>Powerful OCR model for fast, accurate real-world image text extraction, layout, and structure analysis.</td></tr>
-<tr><td>73</td><td>moonshotai</td><td><a href="https://build.nvidia.com/moonshotai/kimi-k2-instruct">kimi-k2-instruct</a></td><td>Partner Endpoint; Free Endpoint</td><td></td><td>State-of-the-art open mixture-of-experts model with strong reasoning, coding, and agentic capabilities</td></tr>
-<tr><td>74</td><td>mistralai</td><td><a href="https://build.nvidia.com/mistralai/magistral-small-2506">magistral-small-2506</a></td><td>Partner Endpoint; Free Endpoint</td><td></td><td>High performance reasoning model optimized for efficiency and edge deployment</td></tr>
-<tr><td>75</td><td>meta</td><td><a href="https://build.nvidia.com/meta/llama-guard-4-12b">llama-guard-4-12b</a></td><td>Partner Endpoint; Free Endpoint</td><td></td><td>Multi-modal model to classify safety for input prompts as well output responses.</td></tr>
-<tr><td>76</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/riva-translate-1_6b">riva-translate-1.6b</a></td><td>Download Available</td><td>Text Translation</td><td>Enable smooth global interactions in 36 languages.</td></tr>
-<tr><td>77</td><td>google</td><td><a href="https://build.nvidia.com/google/gemma-3n-e4b-it">gemma-3n-e4b-it</a></td><td>Partner Endpoint; Free Endpoint</td><td></td><td>An edge computing AI model which accepts text, audio and image input, ideal for resource-constrained environments</td></tr>
-<tr><td>78</td><td>google</td><td><a href="https://build.nvidia.com/google/gemma-3n-e2b-it">gemma-3n-e2b-it</a></td><td>Free Endpoint</td><td></td><td>An edge computing AI model which accepts text, audio and image input, ideal for resource-constrained environments</td></tr>
-<tr><td>79</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/llama-3_2-nemoretriever-500m-rerank-v2">llama-3.2-nemoretriever-500m-rerank-v2</a></td><td>Download Available</td><td>Retrieval Augmented Generation</td><td>GPU-accelerated model optimized for providing a probability score that a given passage contains the information to answer a question.</td></tr>
-<tr><td>80</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/cosmos-transfer1-7b">cosmos-transfer1-7b</a></td><td>Free Endpoint</td><td>Synthetic Data Generation</td><td>Generates physics-aware video world states for physical AI development using text prompts and multiple spatial control inputs derived from real-world data or simulation.</td></tr>
-<tr><td>81</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/bnr">Background Noise Removal</a></td><td>Download Available</td><td></td><td>Removes unwanted noises from audio improving speech intelligibility.</td></tr>
-<tr><td>82</td><td>mistralai</td><td><a href="https://build.nvidia.com/mistralai/mistral-nemotron">mistral-nemotron</a></td><td>Free Endpoint</td><td></td><td>Built for agentic workflows, this model excels in coding, instruction following, and function calling</td></tr>
-<tr><td>83</td><td>mit</td><td><a href="https://build.nvidia.com/mit/boltz2">Boltz-2</a></td><td>Download Available</td><td>Drug Discovery</td><td>Predict complex structures using Boltz-2.</td></tr>
-<tr><td>84</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/llama-3.1-nemotron-nano-vl-8b-v1">llama-3.1-nemotron-nano-vl-8b-v1</a></td><td>Download Available</td><td></td><td>Multi-modal vision-language model that understands text/img and creates informative responses</td></tr>
-<tr><td>85</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/magpie-tts-zeroshot">magpie-tts-zeroshot</a></td><td>Free Endpoint</td><td>Text-to-Speech</td><td>Expressive and engaging text-to-speech, generated from a short audio sample.</td></tr>
-<tr><td>86</td><td>black-forest-labs</td><td><a href="https://build.nvidia.com/black-forest-labs/flux_1-schnell">FLUX.1-schnell</a></td><td>Partner Endpoint; Download Available</td><td>Text-to-Image; Image Generation</td><td>FLUX.1-schnell is a distilled image generation model, producing high quality images at fast speeds</td></tr>
-<tr><td>87</td><td>mistralai</td><td><a href="https://build.nvidia.com/mistralai/mistral-medium-3-instruct">mistral-medium-3-instruct</a></td><td>Free Endpoint</td><td>Image-to-Text</td><td>Powerful, multimodal language model designed for enterprise applications, including software development, data analysis, and reasoning.</td></tr>
-<tr><td>88</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/parakeet-1_1b-rnnt-multilingual-asr">parakeet-1.1b-rnnt-multilingual-asr</a></td><td>Download Available</td><td>Speech-to-Text</td><td>High accuracy and optimized performance for transcription in 25 languages</td></tr>
-<tr><td>89</td><td>black-forest-labs</td><td><a href="https://build.nvidia.com/black-forest-labs/flux_1-dev">FLUX.1-dev</a></td><td>Partner Endpoint; Download Available</td><td>Text-to-Image; Image Generation</td><td>FLUX.1 is a state-of-the-art suite of image generation models</td></tr>
-<tr><td>90</td><td>meta</td><td><a href="https://build.nvidia.com/meta/llama-4-maverick-17b-128e-instruct">llama-4-maverick-17b-128e-instruct</a></td><td>Free Endpoint</td><td>Image-to-Text</td><td>A general purpose multimodal, multilingual 128 MoE model with 17B parameters.</td></tr>
-<tr><td>91</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/cosmos-predict1-5b">cosmos-predict1-5b</a></td><td>Free Endpoint</td><td>Synthetic Data Generation</td><td>Generates future frames of a physics-aware world state based on simply an image or short video prompt for physical AI development.</td></tr>
-<tr><td>92</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/sparsedrive">sparsedrive</a></td><td>Free Endpoint</td><td></td><td>End-to-end autonomous driving stack integrating perception, prediction, and planning with sparse scene representations for efficiency and safety.</td></tr>
-<tr><td>93</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/bevformer">bevformer</a></td><td>Free Endpoint</td><td></td><td>Advanced transformer for multi-frame bird's-eye-view 3D perception in autonomous driving.</td></tr>
-<tr><td>94</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/llama-3_3-nemotron-super-49b-v1">llama-3.3-nemotron-super-49b-v1</a></td><td>Download Available</td><td></td><td>High efficiency model with leading accuracy for reasoning, tool calling, chat, and instruction following.</td></tr>
-<tr><td>95</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/llama-3_1-nemotron-nano-8b-v1">llama-3.1-nemotron-nano-8b-v1</a></td><td>Download Available</td><td></td><td>Leading reasoning and agentic AI accuracy model for PC and edge.</td></tr>
-<tr><td>96</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/magpie-tts-multilingual">magpie-tts-multilingual</a></td><td>Download Available</td><td>Text-to-Speech</td><td>Natural and expressive voices in multiple languages. For voice agents and brand ambassadors.</td></tr>
-<tr><td>97</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/nv-embedcode-7b-v1">nv-embedcode-7b-v1</a></td><td>Free Endpoint</td><td>Retrieval Augmented Generation</td><td>The NV-EmbedCode model is a 7B Mistral-based embedding model optimized for code retrieval, supporting text, code, and hybrid queries.</td></tr>
-<tr><td>98</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/nemoretriever-table-structure-v1">nemoretriever-table-structure-v1</a></td><td>Download Available</td><td>Object Detection</td><td>Model for object detection, fine-tuned to detect charts, tables, and titles in documents.</td></tr>
-<tr><td>99</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/nemoretriever-graphic-elements-v1">nemoretriever-graphic-elements-v1</a></td><td>Download Available</td><td>Object Detection</td><td>Model for object detection, fine-tuned to detect charts, tables, and titles in documents.</td></tr>
-<tr><td>100</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/nemoretriever-page-elements-v2">nemoretriever-page-elements-v2</a></td><td>Download Available</td><td>Object Detection</td><td>Model for object detection, fine-tuned to detect charts, tables, and titles in documents.</td></tr>
-<tr><td>101</td><td>colabfold</td><td><a href="https://build.nvidia.com/colabfold/msa-search">msa-search</a></td><td>Download Available</td><td>Drug Discovery</td><td>Generates a multiple sequence alignment from a query sequence and a protein sequence database search.</td></tr>
-<tr><td>102</td><td>openfold</td><td><a href="https://build.nvidia.com/openfold/openfold2">openfold2</a></td><td>Download Available</td><td>Drug Discovery</td><td>Predicts the 3D structure of a protein from its amino acid sequence, multiple sequence alignments, and templates.</td></tr>
-<tr><td>103</td><td>google</td><td><a href="https://build.nvidia.com/google/gemma-3-27b-it">gemma-3-27b-it</a></td><td>Partner Endpoint; Free Endpoint</td><td>Image-to-Text</td><td>Cutting-edge open multimodal model exceling in high-quality reasoning from images.</td></tr>
-<tr><td>104</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/nemoretriever-parse">nemoretriever-parse</a></td><td>Download Available</td><td></td><td>Cutting-edge vision-language model exceling in retrieving text and metadata from images.</td></tr>
-<tr><td>105</td><td>microsoft</td><td><a href="https://build.nvidia.com/microsoft/phi-4-mini-instruct">phi-4-mini-instruct</a></td><td>Partner Endpoint; Download Available</td><td>Code Generation</td><td>Lightweight multilingual LLM powering AI applications in latency bound, memory/compute constrained environments</td></tr>
-<tr><td>106</td><td>microsoft</td><td><a href="https://build.nvidia.com/microsoft/phi-4-multimodal-instruct">phi-4-multimodal-instruct</a></td><td>Partner Endpoint; Free Endpoint</td><td>Image-to-Text</td><td>Cutting-edge open multimodal model exceling in high-quality reasoning from image and audio inputs.</td></tr>
-<tr><td>107</td><td>arc</td><td><a href="https://build.nvidia.com/arc/evo2-40b">evo2-40b</a></td><td>Download Available</td><td>Drug Discovery</td><td>Evo 2 is a biological foundation model that is able to integrate information over long genomic sequences while retaining sensitivity to single-nucleotide changes.</td></tr>
-<tr><td>108</td><td>openai</td><td><a href="https://build.nvidia.com/openai/whisper-large-v3">whisper-large-v3</a></td><td>Download Available; Partner Endpoint</td><td>Speech-to-Text</td><td>Robust Speech Recognition via Large-Scale Weak Supervision.</td></tr>
-<tr><td>109</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/canary-1b-asr">canary-1b-asr</a></td><td>Download Available</td><td></td><td>Multi-lingual model supporting speech-to-text recognition and translation.</td></tr>
-<tr><td>110</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/llama-3_1-nemoguard-8b-topic-control">llama-3.1-nemoguard-8b-topic-control</a></td><td>Download Available</td><td></td><td>Topic control model to keep conversations focused on approved topics, avoiding inappropriate content.</td></tr>
-<tr><td>111</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/nemoguard-jailbreak-detect">nemoguard-jailbreak-detect</a></td><td>Download Available</td><td></td><td>Industry leading jailbreak classification model for protection from adversarial attempts</td></tr>
-<tr><td>112</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/llama-3_1-nemoguard-8b-content-safety">llama-3.1-nemoguard-8b-content-safety</a></td><td>Download Available</td><td></td><td>Leading content safety model for enhancing the safety and moderation capabilities of LLMs</td></tr>
-<tr><td>113</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/genmol-generate">genmol</a></td><td>Download Available</td><td>Drug Discovery</td><td>Fragment-Based Molecular Generation by Discrete Diffusion.</td></tr>
-<tr><td>114</td><td>qwen</td><td><a href="https://build.nvidia.com/qwen/qwen2_5-coder-32b-instruct">qwen2.5-coder-32b-instruct</a></td><td>Partner Endpoint; Download Available</td><td></td><td>Advanced LLM for code generation, reasoning, and fixing across popular programming languages.</td></tr>
-<tr><td>115</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/llama-3_2-nv-embedqa-1b-v2">llama-3.2-nv-embedqa-1b-v2</a></td><td>Download Available</td><td>Text-to-Embedding; Retrieval Augmented Generation</td><td>Multilingual and cross-lingual text question-answering retrieval with long context support and optimized data storage efficiency.</td></tr>
-<tr><td>116</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/llama-3_2-nv-rerankqa-1b-v2">llama-3.2-nv-rerankqa-1b-v2</a></td><td>Download Available</td><td>Retrieval Augmented Generation</td><td>Fine-tuned reranking model for multilingual, cross-lingual text question-answering retrieval, with long context support.</td></tr>
-<tr><td>117</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/usdcode">usdcode</a></td><td>Free Endpoint</td><td>Digital Twin; Synthetic Data Generation; Code Generation</td><td>State-of-the-art LLM that answers OpenUSD knowledge queries and generates USD-Python code.</td></tr>
-<tr><td>118</td><td>meta</td><td><a href="https://build.nvidia.com/meta/llama-3_3-70b-instruct">llama-3.3-70b-instruct</a></td><td>Download Available; Partner Endpoint</td><td>Code Generation</td><td>Advanced LLM for reasoning, math, general knowledge, and function calling</td></tr>
-<tr><td>119</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/nv-yolox-page-elements-v1">nv-yolox-page-elements-v1</a></td><td>Download Available</td><td></td><td>Model for object detection, fine-tuned to detect charts, tables, and titles in documents.</td></tr>
-<tr><td>120</td><td>baidu</td><td><a href="https://build.nvidia.com/baidu/paddleocr">paddleocr</a></td><td>Download Available</td><td></td><td>Model for table extraction that receives an image as input, runs OCR on the image, and returns the text within the image and its bounding boxes.</td></tr>
-<tr><td>121</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/conformer-ctc-asr">conformer-ctc-asr</a></td><td>Download Available</td><td>Speech-to-Text</td><td>Automatic speech recognition model that transcribes speech in lower case Spanish with record-setting accuracy and performance</td></tr>
-<tr><td>122</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/fourcastnet">fourcastnet</a></td><td>Download Available</td><td>Weather Simulation</td><td>FourCastNet predicts global atmospheric dynamics of various weather / climate variables.</td></tr>
-<tr><td>123</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/studiovoice">studiovoice</a></td><td>Download Available; Free Endpoint</td><td></td><td>Enhance input speech recorded with low-quality microphones in noisy or reverberant environments, producing studio-quality speech.</td></tr>
-<tr><td>124</td><td>meta</td><td><a href="https://build.nvidia.com/meta/llama-3.2-3b-instruct">llama-3.2-3b-instruct</a></td><td>Partner Endpoint; Download Available</td><td>Code Generation</td><td>Advanced state-of-the-art small language model with language understanding, superior reasoning, and text generation.</td></tr>
-<tr><td>125</td><td>meta</td><td><a href="https://build.nvidia.com/meta/llama-3.2-11b-vision-instruct">llama-3.2-11b-vision-instruct</a></td><td>Download Available; Partner Endpoint</td><td>Image-to-Text</td><td>Cutting-edge vision-language model exceling in high-quality reasoning from images.</td></tr>
-<tr><td>126</td><td>meta</td><td><a href="https://build.nvidia.com/meta/llama-3.2-90b-vision-instruct">llama-3.2-90b-vision-instruct</a></td><td>Partner Endpoint; Download Available</td><td>Image-to-Text</td><td>Cutting-edge vision-Language model exceling in high-quality reasoning from images.</td></tr>
-<tr><td>127</td><td>meta</td><td><a href="https://build.nvidia.com/meta/llama-3.2-1b-instruct">llama-3.2-1b-instruct</a></td><td>Partner Endpoint; Download Available</td><td>Code Generation</td><td>Advanced state-of-the-art small language model with language understanding, superior reasoning, and text generation.</td></tr>
-<tr><td>128</td><td>abacusai</td><td><a href="https://build.nvidia.com/abacusai/dracarys-llama-3_1-70b-instruct">dracarys-llama-3.1-70b-instruct</a></td><td>Free Endpoint</td><td></td><td>Fine-tuned Llama 3.1 70B model for code generation, summarization, and multi-language tasks.</td></tr>
-<tr><td>129</td><td>deepmind</td><td><a href="https://build.nvidia.com/deepmind/alphafold2-multimer">alphafold2-multimer</a></td><td>Download Available</td><td>Drug Discovery</td><td>Predicts the 3D structure of a protein from its amino acid sequence.</td></tr>
-<tr><td>130</td><td>meta</td><td><a href="https://build.nvidia.com/meta/esm2-650m">esm2-650m</a></td><td>Free Endpoint</td><td>Drug Discovery</td><td>Generates embeddings of proteins from their amino acid sequences.</td></tr>
-<tr><td>131</td><td>deepmind</td><td><a href="https://build.nvidia.com/deepmind/alphafold2">alphafold2</a></td><td>Download Available</td><td>Drug Discovery</td><td>Predicts the 3D structure of a protein from its amino acid sequence.</td></tr>
-<tr><td>132</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/nemotron-mini-4b-instruct">nemotron-mini-4b-instruct</a></td><td>Free Endpoint</td><td></td><td>Optimized SLM for on-device inference and fine-tuned for roleplay, RAG and function calling</td></tr>
-<tr><td>133</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/megatron-1b-nmt">megatron-1b-nmt</a></td><td>Download Available</td><td>Text Translation</td><td>Enable smooth global interactions in 36 languages.</td></tr>
-<tr><td>134</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/parakeet-ctc-1_1b-asr">parakeet-ctc-1.1b-asr</a></td><td>Download Available</td><td>Speech-to-Text</td><td>Record-setting accuracy and performance for English transcription.</td></tr>
-<tr><td>135</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/parakeet-ctc-0_6b-asr">parakeet-ctc-0.6b-asr</a></td><td>Download Available</td><td>Speech-to-Text</td><td>State-of-the-art accuracy and speed for English transcriptions.</td></tr>
-<tr><td>136</td><td>ipd</td><td><a href="https://build.nvidia.com/ipd/proteinmpnn">proteinmpnn</a></td><td>Download Available</td><td>Drug Discovery</td><td>ProteinMPNN is a deep learning model for predicting amino acid sequences for protein backbones.</td></tr>
-<tr><td>137</td><td>google</td><td><a href="https://build.nvidia.com/google/gemma-2-2b-it">gemma-2-2b-it</a></td><td>Free Endpoint</td><td>Code Generation</td><td>Advanced small language generative AI model for edge applications</td></tr>
-<tr><td>138</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/eyecontact">eyecontact</a></td><td>Download Available</td><td></td><td>Estimate gaze angles of a person in a video and redirect to make it frontal.</td></tr>
-<tr><td>139</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/usdvalidate">usdvalidate</a></td><td>Free Endpoint</td><td>Digital Twin; Synthetic Data Generation</td><td>Verify compatibility of OpenUSD assets with instant RTX render and rule-based validation.</td></tr>
-<tr><td>140</td><td>meta</td><td><a href="https://build.nvidia.com/meta/llama-3_1-70b-instruct">llama-3.1-70b-instruct</a></td><td>Partner Endpoint; Download Available</td><td>Code Generation</td><td>Powers complex conversations with superior contextual understanding, reasoning and text generation.</td></tr>
-<tr><td>141</td><td>meta</td><td><a href="https://build.nvidia.com/meta/llama-3_1-8b-instruct">llama-3.1-8b-instruct</a></td><td>Download Available; Partner Endpoint</td><td>Code Generation</td><td>Advanced state-of-the-art model with language understanding, superior reasoning, and text generation.</td></tr>
-<tr><td>142</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/nv-embedqa-e5-v5">nv-embedqa-e5-v5</a></td><td>Download Available</td><td>Text-to-Embedding; Retrieval Augmented Generation</td><td>English text embedding model for question-answering retrieval.</td></tr>
-<tr><td>143</td><td>mistralai</td><td><a href="https://build.nvidia.com/mistralai/mistral-7b-instruct-v03">mistral-7b-instruct-v0.3</a></td><td>Partner Endpoint; Download Available</td><td></td><td>This LLM follows instructions, completes requests, and generates creative text.</td></tr>
-<tr><td>144</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/nvclip">nvclip</a></td><td>Download Available</td><td></td><td>NV-CLIP is a multimodal embeddings model for image and text.</td></tr>
-<tr><td>145</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/nv-embed-v1">nv-embed-v1</a></td><td>Free Endpoint</td><td>Text-to-Embedding; Retrieval Augmented Generation</td><td>Generates high-quality numerical embeddings from text inputs.</td></tr>
-<tr><td>146</td><td>upstage</td><td><a href="https://build.nvidia.com/upstage/solar-10_7b-instruct">solar-10.7b-instruct</a></td><td>Free Endpoint</td><td></td><td>Excels in NLP tasks, particularly in instruction-following, reasoning, and mathematics.</td></tr>
-<tr><td>147</td><td>baai</td><td><a href="https://build.nvidia.com/baai/bge-m3">bge-m3</a></td><td>Partner Endpoint; Download Available</td><td>Text-to-Embedding; Retrieval Augmented Generation</td><td>Embedding model for text retrieval tasks, excelling in dense, multi-vector, and sparse retrieval.</td></tr>
-<tr><td>148</td><td>ipd</td><td><a href="https://build.nvidia.com/ipd/rfdiffusion">rfdiffusion</a></td><td>Download Available</td><td>Drug Discovery</td><td>A generative model of protein backbones for protein binder design.</td></tr>
-<tr><td>149</td><td>google</td><td><a href="https://build.nvidia.com/google/google-paligemma">paligemma</a></td><td>Free Endpoint</td><td>Image-to-Text</td><td>Vision language model adept at comprehending text and visual inputs to produce informative responses</td></tr>
-<tr><td>150</td><td>mistralai</td><td><a href="https://build.nvidia.com/mistralai/mixtral-8x22b-instruct">mixtral-8x22b-instruct-v0.1</a></td><td>Partner Endpoint; Download Available</td><td>Code Generation</td><td>An MOE LLM that follows instructions, completes requests, and generates creative text.</td></tr>
-<tr><td>151</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/rerank-qa-mistral-4b">rerank-qa-mistral-4b</a></td><td>Free Endpoint</td><td>Retrieval Augmented Generation</td><td>GPU-accelerated model optimized for providing a probability score that a given passage contains the information to answer a question.</td></tr>
-<tr><td>152</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/vista-3d">vista-3d</a></td><td>Download Available</td><td>Medical Imaging</td><td>VISTA-3D is a specialized interactive foundation model for segmenting and anotating human anatomies.</td></tr>
-<tr><td>153</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/molmim-generate">molmim</a></td><td>Download Available</td><td>Drug Discovery</td><td>MolMIM performs controlled generation, finding molecules with the right properties.</td></tr>
-<tr><td>154</td><td>meta</td><td><a href="https://build.nvidia.com/meta/esmfold">esmfold</a></td><td>Free Endpoint</td><td></td><td>Predicts the 3D structure of a protein from its amino acid sequence.</td></tr>
-<tr><td>155</td><td>mit</td><td><a href="https://build.nvidia.com/mit/diffdock">diffdock</a></td><td>Download Available</td><td>Drug Discovery</td><td>Predicts the 3D structure of how a molecule interacts with a protein.</td></tr>
-<tr><td>156</td><td>mistralai</td><td><a href="https://build.nvidia.com/mistralai/mixtral-8x7b-instruct">mixtral-8x7b-instruct-v0.1</a></td><td>Partner Endpoint; Download Available</td><td>Code Generation</td><td>An MOE LLM that follows instructions, completes requests, and generates creative text.</td></tr>
-<tr><td>157</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/nvidia-cuopt">cuopt</a></td><td>Download Available</td><td>Route Optimization</td><td>World-record accuracy and performance for complex route optimization.</td></tr>
+<table><thead>
+<tr><th>#</th><th>Publisher</th><th>Model</th><th>NIM Type</th><th>Use Case</th><th>Description</th></tr>
 </thead><tbody>
-</table>
+<tr><td>1</td><td>moonshotai</td><td><a href="https://build.nvidia.com/moonshotai/kimi-k2.6">kimi-k2.6</a></td><td>Download Available; Partner Endpoint</td><td>Image-to-Text</td><td>1T multimodal MoE for long-horizon coding, agentic tool use, and image/video understanding.</td></tr>
+</thead><tbody>
+<tr><td>2</td><td>qwen</td><td><a href="https://build.nvidia.com/qwen/qwen-image">qwen-image</a></td><td>Partner Endpoint; Download Available</td><td>Text-to-Image; Image Generation</td><td>Qwen-Image is a text-to-image foundation model with advanced multilingual text rendering.</td></tr>
+</thead><tbody>
+<tr><td>3</td><td>qwen</td><td><a href="https://build.nvidia.com/qwen/qwen-image-edit">qwen-image-edit</a></td><td>Partner Endpoint; Download Available</td><td>Text-to-Image; Image Generation</td><td>Qwen-Image-Edit is an image editing model with multilingual text editing and strong subject consistency.</td></tr>
+</thead><tbody>
+<tr><td>4</td><td>mistralai</td><td><a href="https://build.nvidia.com/mistralai/mistral-medium-3.5-128b">mistral-medium-3.5-128b</a></td><td>Download Available</td><td></td><td>A high performing model for text generation, coding and agentic use cases</td></tr>
+</thead><tbody>
+<tr><td>5</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/nemotron-3-nano-omni-30b-a3b-reasoning">nemotron-3-nano-omni-30b-a3b-reasoning</a></td><td>Download Available; Partner Endpoint</td><td>Image-to-Text</td><td>Nemotron 3 Nano Omni is an omni-modal reasoning model that understands images, video, speech, text.</td></tr>
+</thead><tbody>
+<tr><td>6</td><td>deepseek-ai</td><td><a href="https://build.nvidia.com/deepseek-ai/deepseek-v4-flash">deepseek-v4-flash</a></td><td>Partner Endpoint; Download Available</td><td></td><td>DeepSeek V4 Flash is a 284B MoE model with 1M-token context optimized for fast coding and agents.</td></tr>
+</thead><tbody>
+<tr><td>7</td><td>deepseek-ai</td><td><a href="https://build.nvidia.com/deepseek-ai/deepseek-v4-pro">deepseek-v4-pro</a></td><td>Download Available; Partner Endpoint</td><td></td><td>DeepSeek V4 scales to 1M-token context windows with efficient MoE architecture for coding tasks.</td></tr>
+</thead><tbody>
+<tr><td>8</td><td>z-ai</td><td><a href="https://build.nvidia.com/z-ai/glm-5.1">glm-5.1</a></td><td>Partner Endpoint; Download Available</td><td></td><td>GLM-5.1 is a flagship LLM for agentic workflows, coding, and long-horizon reasoning tasks.</td></tr>
+</thead><tbody>
+<tr><td>9</td><td>z-ai</td><td><a href="https://build.nvidia.com/z-ai/glm-4.7">glm-4.7</a></td><td>Partner Endpoint; Free Endpoint</td><td></td><td>GLM-4.7 is a multilingual agentic coding partner with stronger reasoning, tool use, and UI skills.</td></tr>
+</thead><tbody>
+<tr><td>10</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/relighting">NVIDIA AI for Media Relighting</a></td><td>Download Available</td><td></td><td>Re-illuminate people in video to match target lighting from a 360 HDRI environment map.</td></tr>
+</thead><tbody>
+<tr><td>11</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/nemotron-3-content-safety">nemotron-3-content-safety</a></td><td>Free Endpoint</td><td></td><td>Multilingual, multimodal model for detecting unsafe and toxic content.</td></tr>
+</thead><tbody>
+<tr><td>12</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/synthetic-video-detector">synthetic-video-detector</a></td><td>Download Available; Free Endpoint</td><td></td><td>NVIDIA Synthetic Video Detector is an AI-powered micro-service for detecting AI‑generated (synthetic) videos.</td></tr>
+</thead><tbody>
+<tr><td>13</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/active-speaker-detection">Active Speaker Detection</a></td><td>Download Available; Free Endpoint</td><td></td><td>Detect and track speaker identities across video frames.</td></tr>
+</thead><tbody>
+<tr><td>14</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/lipsync">LipSync</a></td><td>Download Available</td><td></td><td>Generative lip dubbing that syncs lips in a video to input audio.</td></tr>
+</thead><tbody>
+<tr><td>15</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/ising-calibration-1-35b-a3b">ising-calibration-1-35b-a3b</a></td><td>Download Available</td><td></td><td>Open VLM for quantum computer calibration chart understanding across a range of qubit modalities.</td></tr>
+</thead><tbody>
+<tr><td>16</td><td>minimaxai</td><td><a href="https://build.nvidia.com/minimaxai/minimax-m2.7">minimax-m2.7</a></td><td>Partner Endpoint; Free Endpoint</td><td></td><td>MiniMax M2.7 is a 230B-parameter text-to-text AI model excelling in coding, reasoning, and office tasks.</td></tr>
+</thead><tbody>
+<tr><td>17</td><td>google</td><td><a href="https://build.nvidia.com/google/gemma-4-31b-it">gemma-4-31b-it</a></td><td>Download Available; Partner Endpoint</td><td></td><td>Dense 31B model delivering frontier reasoning for coding, agentic workflows, and fine-tuning.</td></tr>
+</thead><tbody>
+<tr><td>18</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/llama-nemotron-rerank-vl-1b-v2">llama-nemotron-rerank-vl-1b-v2</a></td><td>Partner Endpoint; Download Available</td><td>Retrieval Augmented Generation</td><td>GPU-accelerated model optimized for providing a probability score that a given passage contains the information to answer a question.</td></tr>
+</thead><tbody>
+<tr><td>19</td><td>mistralai</td><td><a href="https://build.nvidia.com/mistralai/mistral-small-4-119b-2603">mistral-small-4-119b-2603</a></td><td>Partner Endpoint; Download Available</td><td></td><td>Hybrid MoE model unifying instruct, reasoning, and coding with multimodal input and 256k context</td></tr>
+</thead><tbody>
+<tr><td>20</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/nemotron-voicechat">nemotron-voicechat</a></td><td>Free Endpoint</td><td></td><td>Nemotron 3 Voicechat</td></tr>
+</thead><tbody>
+<tr><td>21</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/nemotron-asr-streaming">nemotron-asr-streaming</a></td><td>Download Available</td><td></td><td>Real-time speech recognition for English</td></tr>
+</thead><tbody>
+<tr><td>22</td><td>black-forest-labs</td><td><a href="https://build.nvidia.com/black-forest-labs/flux_2-klein-4b">flux.2-klein-4b</a></td><td>Partner Endpoint; Download Available</td><td>Text-to-Image; Image Generation</td><td>FLUX.2-klein-4B is a distilled image generation and editing model, producing outputs at lighting speed</td></tr>
+</thead><tbody>
+<tr><td>23</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/nemotron-ocr-v1">nemotron-ocr-v1</a></td><td>Download Available</td><td>Optical Character Recognition</td><td>Powerful OCR model for fast, accurate real-world image text extraction, layout, and structure analysis.</td></tr>
+</thead><tbody>
+<tr><td>24</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/nemotron-3-super-120b-a12b">nemotron-3-super-120b-a12b</a></td><td>Download Available; Partner Endpoint</td><td></td><td>Open, efficient hybrid Mamba-Transformer MoE with 1M context, excelling in agentic reasoning, coding, planning, tool calling, and more</td></tr>
+</thead><tbody>
+<tr><td>25</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/llama-nemotron-rerank-1b-v2">llama-nemotron-rerank-1b-v2</a></td><td>Download Available</td><td>Retrieval Augmented Generation</td><td>GPU-accelerated model optimized for providing a probability score that a given passage contains the information to answer a question.</td></tr>
+</thead><tbody>
+<tr><td>26</td><td>qwen</td><td><a href="https://build.nvidia.com/qwen/qwen3.5-122b-a10b">qwen3.5-122b-a10b</a></td><td>Partner Endpoint; Download Available</td><td></td><td>122B MoE LLM (10B active) for coding, reasoning, multimodal chat. Agent-ready.</td></tr>
+</thead><tbody>
+<tr><td>27</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/nemotron-table-structure-v1">nemotron-table-structure-v1</a></td><td>Download Available</td><td>Object Detection</td><td>Model for object detection, fine-tuned to detect charts, tables, and titles in documents.</td></tr>
+</thead><tbody>
+<tr><td>28</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/nemotron-page-elements-v3">nemotron-page-elements-v3</a></td><td>Download Available</td><td>Object Detection</td><td>Model for object detection, fine-tuned to detect charts, tables, and titles in documents.</td></tr>
+</thead><tbody>
+<tr><td>29</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/nemotron-graphic-elements-v1">nemotron-graphic-elements-v1</a></td><td>Download Available</td><td>Object Detection</td><td>Model for object detection, fine-tuned to detect charts, tables, and titles in documents.</td></tr>
+</thead><tbody>
+<tr><td>30</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/llama-nemotron-embed-1b-v2">llama-nemotron-embed-1b-v2</a></td><td>Download Available</td><td>Text-to-Embedding; Retrieval Augmented Generation</td><td>Multilingual, cross-lingual embedding model for long-document QA retrieval, supporting 26 languages.</td></tr>
+</thead><tbody>
+<tr><td>31</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/gliner-pii">gliner-pii</a></td><td>Free Endpoint</td><td></td><td>GLiNER PII detects Personally Identifiable Information in text.</td></tr>
+</thead><tbody>
+<tr><td>32</td><td>minimaxai</td><td><a href="https://build.nvidia.com/minimaxai/minimax-m2.5">minimax-m2.5</a></td><td>Download Available; Partner Endpoint</td><td></td><td>MiniMax M2.5 is a 230B-parameter text-to-text AI model excelling in coding, reasoning, and office tasks.</td></tr>
+</thead><tbody>
+<tr><td>33</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/cosmos-transfer2_5-2b">cosmos-transfer2.5-2b</a></td><td>Free Endpoint</td><td>Synthetic Data Generation</td><td>Generates physics-aware video world states for physical AI development using text prompts and multiple spatial control inputs derived from real-world data or simulation.</td></tr>
+</thead><tbody>
+<tr><td>34</td><td>qwen</td><td><a href="https://build.nvidia.com/qwen/qwen3.5-397b-a17b">qwen3.5-397b-a17b</a></td><td>Download Available; Partner Endpoint</td><td></td><td>Next-gen Qwen 3.5 VLM (400B MoE) brings advanced vision, chat, RAG, and agentic capabilities.</td></tr>
+</thead><tbody>
+<tr><td>35</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/llama-nemotron-embed-vl-1b-v2">llama-nemotron-embed-vl-1b-v2</a></td><td>Partner Endpoint; Download Available</td><td>Text-to-Embedding; Retrieval Augmented Generation</td><td>Multimodal question-answer retrieval representing user queries as text and documents as images.</td></tr>
+</thead><tbody>
+<tr><td>36</td><td>stepfun-ai</td><td><a href="https://build.nvidia.com/stepfun-ai/step-3.5-flash">step-3.5-flash</a></td><td>Partner Endpoint; Free Endpoint</td><td></td><td>200B open-source reasoning engine with sparse MoE powering frontier agentic AI.</td></tr>
+</thead><tbody>
+<tr><td>37</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/nemotron-content-safety-reasoning-4b">nemotron-content-safety-reasoning-4b</a></td><td>Free Endpoint</td><td></td><td>A context‑aware safety model that applies reasoning to enforce domain‑specific policies.</td></tr>
+</thead><tbody>
+<tr><td>38</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/cosmos-reason2-8b">cosmos-reason2-8b</a></td><td>Download Available</td><td>Synthetic Data Generation</td><td>Vision language model that excels in understanding the physical world using structured reasoning on videos or images.</td></tr>
+</thead><tbody>
+<tr><td>39</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/nemoretriever-page-elements-v3">nemoretriever-page-elements-v3</a></td><td>Download Available</td><td>Object Detection</td><td>Model for object detection, fine-tuned to detect charts, tables, and titles in documents.</td></tr>
+</thead><tbody>
+<tr><td>40</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/nemotron-3-nano-30b-a3b">nemotron-3-nano-30b-a3b</a></td><td>Partner Endpoint; Download Available</td><td></td><td>Open, efficient MoE model with 1M context, excelling in coding, reasoning, instruction following, tool calling, and more</td></tr>
+</thead><tbody>
+<tr><td>41</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/riva-translate-4b-instruct-v1_1">riva-translate-4b-instruct-v1_1</a></td><td>Free Endpoint</td><td>Text Translation</td><td>Translation model in 12 languages with few-shots example prompts capability.</td></tr>
+</thead><tbody>
+<tr><td>42</td><td>mistralai</td><td><a href="https://build.nvidia.com/mistralai/devstral-2-123b-instruct-2512">devstral-2-123b-instruct-2512</a></td><td>Partner Endpoint; Free Endpoint</td><td></td><td>State-of-the-art open code model with deep reasoning, 256k context, and unmatched efficiency.</td></tr>
+</thead><tbody>
+<tr><td>43</td><td>moonshotai</td><td><a href="https://build.nvidia.com/moonshotai/kimi-k2-thinking">kimi-k2-thinking</a></td><td>Partner Endpoint; Free Endpoint</td><td></td><td>Open reasoning model with 256K context window, native INT4 quantization and enhanced tool use.</td></tr>
+</thead><tbody>
+<tr><td>44</td><td>mistralai</td><td><a href="https://build.nvidia.com/mistralai/mistral-large-3-675b-instruct-2512">mistral-large-3-675b-instruct-2512</a></td><td>Partner Endpoint; Free Endpoint</td><td>Image-to-Text</td><td>A state-of-the-art general purpose MoE VLM ideal for chat, agentic and instruction based use cases.</td></tr>
+</thead><tbody>
+<tr><td>45</td><td>mistralai</td><td><a href="https://build.nvidia.com/mistralai/ministral-14b-instruct-2512">ministral-14b-instruct-2512</a></td><td>Download Available</td><td>Image-to-Text</td><td>A general purpose VLM ideal for chat and instruction based use cases</td></tr>
+</thead><tbody>
+<tr><td>46</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/streampetr">streampetr</a></td><td>Free Endpoint</td><td></td><td>StreamPETR offers efficient 3D object detection for autonomous driving by propagating sparse object queries temporally.</td></tr>
+</thead><tbody>
+<tr><td>47</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/nemotron-parse">nemotron-parse</a></td><td>Download Available</td><td></td><td>Cutting-edge vision-language model exceling in retrieving text and metadata from images.</td></tr>
+</thead><tbody>
+<tr><td>48</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/nemotron-nano-12b-v2-vl">nemotron-nano-12b-v2-vl</a></td><td>Download Available</td><td>Image-to-Text</td><td>Nemotron Nano 12B v2 VL enables multi-image and video understanding, along with visual Q&amp;A and summarization capabilities.</td></tr>
+</thead><tbody>
+<tr><td>49</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/llama-3_1-nemotron-safety-guard-8b-v3">llama-3.1-nemotron-safety-guard-8b-v3</a></td><td>Free Endpoint</td><td></td><td>Leading multilingual content safety model for enhancing the safety and moderation capabilities of LLMs</td></tr>
+</thead><tbody>
+<tr><td>50</td><td>openfold</td><td><a href="https://build.nvidia.com/openfold/openfold3">openfold3</a></td><td>Download Available</td><td>Drug Discovery</td><td>OpenFold3 is a third-generation biomolecular foundation model that predicts the three-dimensional structures of molecular complexes (proteins, DNA, RNA, ligands)</td></tr>
+</thead><tbody>
+<tr><td>51</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/parakeet-ctc-0_6b-zh-tw">parakeet-ctc-0.6b-zh-tw</a></td><td>Download Available</td><td>Speech-to-Text</td><td>Record-setting accuracy and performance for Mandarin Taiwanese English transcriptions.</td></tr>
+</thead><tbody>
+<tr><td>52</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/llama-3_2-nemoretriever-300m-embed-v2">llama-3_2-nemoretriever-300m-embed-v2</a></td><td>Download Available</td><td>Text-to-Embedding; Retrieval Augmented Generation</td><td>Multilingual, cross-lingual embedding model for long-document QA retrieval, supporting 26 languages.</td></tr>
+</thead><tbody>
+<tr><td>53</td><td>stockmark</td><td><a href="https://build.nvidia.com/stockmark/stockmark-2-100b-instruct">stockmark-2-100b-instruct</a></td><td>Download Available</td><td></td><td>Japanese-specialized large-language-model for enterprises to read and understand complex business documents.</td></tr>
+</thead><tbody>
+<tr><td>54</td><td>qwen</td><td><a href="https://build.nvidia.com/qwen/qwen3-next-80b-a3b-instruct">qwen3-next-80b-a3b-instruct</a></td><td>Partner Endpoint; Download Available</td><td></td><td>Qwen3-Next Instruct blends hybrid attention, sparse MoE, and stability boosts for ultra-long context AI.</td></tr>
+</thead><tbody>
+<tr><td>55</td><td>qwen</td><td><a href="https://build.nvidia.com/qwen/qwen3-next-80b-a3b-thinking">qwen3-next-80b-a3b-thinking</a></td><td>Partner Endpoint; Download Available</td><td></td><td>80B parameter AI model with hybrid reasoning, MoE architecture, support for 119 languages.</td></tr>
+</thead><tbody>
+<tr><td>56</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/parakeet-ctc-0_6b-zh-cn">parakeet-ctc-0.6b-zh-cn</a></td><td>Download Available</td><td>Speech-to-Text</td><td>Record-setting accuracy and performance for Mandarin English transcriptions.</td></tr>
+</thead><tbody>
+<tr><td>57</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/parakeet-ctc-0_6b-es">parakeet-ctc-0.6b-es</a></td><td>Download Available</td><td>Speech-to-Text</td><td>Accurate and optimized Spanish English transcriptions with punctuation and word timestamps.</td></tr>
+</thead><tbody>
+<tr><td>58</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/parakeet-ctc-0_6b-vi">parakeet-ctc-0.6b-vi</a></td><td>Download Available</td><td>Speech-to-Text</td><td>Accurate and optimized Vietnamese-English transcriptions with punctuation and word timestamps.</td></tr>
+</thead><tbody>
+<tr><td>59</td><td>bytedance</td><td><a href="https://build.nvidia.com/bytedance/seed-oss-36b-instruct">seed-oss-36b-instruct</a></td><td>Free Endpoint</td><td></td><td>ByteDance open-source LLM with long-context, reasoning, and agentic intelligence.</td></tr>
+</thead><tbody>
+<tr><td>60</td><td>microsoft</td><td><a href="https://build.nvidia.com/microsoft/trellis">TRELLIS</a></td><td>Download Available</td><td></td><td>MSFT TRELLIS is a 3D AI model that generates high-quality 3D assets from text or image inputs.</td></tr>
+</thead><tbody>
+<tr><td>61</td><td>qwen</td><td><a href="https://build.nvidia.com/qwen/qwen3-coder-480b-a35b-instruct">qwen3-coder-480b-a35b-instruct</a></td><td>Partner Endpoint; Free Endpoint</td><td></td><td>Excels in agentic coding and browser use and supports 256K context, delivering top results.</td></tr>
+</thead><tbody>
+<tr><td>62</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/nvidia-nemotron-nano-9b-v2">nvidia-nemotron-nano-9b-v2</a></td><td>Partner Endpoint; Download Available</td><td></td><td>High‑efficiency LLM with hybrid Transformer‑Mamba design, excelling in reasoning and agentic tasks.</td></tr>
+</thead><tbody>
+<tr><td>63</td><td>stabilityai</td><td><a href="https://build.nvidia.com/stabilityai/stable-diffusion-3_5-large">stable-diffusion-3.5-large</a></td><td>Download Available</td><td>Text-to-Image; Image Generation</td><td>Stable Diffusion 3.5 is a popular text-to-image generation model</td></tr>
+</thead><tbody>
+<tr><td>64</td><td>black-forest-labs</td><td><a href="https://build.nvidia.com/black-forest-labs/flux_1-kontext-dev">FLUX.1-Kontext-dev</a></td><td>Partner Endpoint; Download Available</td><td>Text-to-Image; Image Generation</td><td>FLUX.1 Kontext is a multimodal model that enables in-context image generation and editing.</td></tr>
+</thead><tbody>
+<tr><td>65</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/nemoretriever-ocr-v1">nemoretriever-ocr-v1</a></td><td>Download Available</td><td>Optical Character Recognition</td><td>Powerful OCR model for fast, accurate real-world image text extraction, layout, and structure analysis.</td></tr>
+</thead><tbody>
+<tr><td>66</td><td>openai</td><td><a href="https://build.nvidia.com/openai/gpt-oss-20b">gpt-oss-20b</a></td><td>Download Available; Partner Endpoint</td><td></td><td>Smaller Mixture of Experts (MoE) text-only LLM for efficient AI reasoning and math</td></tr>
+</thead><tbody>
+<tr><td>67</td><td>openai</td><td><a href="https://build.nvidia.com/openai/gpt-oss-120b">gpt-oss-120b</a></td><td>Download Available; Partner Endpoint</td><td></td><td>Mixture of Experts (MoE) reasoning LLM (text-only) designed to fit within 80GB GPU.</td></tr>
+</thead><tbody>
+<tr><td>68</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/parakeet-tdt-0_6b-v2">parakeet-tdt-0.6b-v2</a></td><td>Download Available</td><td></td><td>Accurate and optimized English transcriptions with punctuation and word timestamps</td></tr>
+</thead><tbody>
+<tr><td>69</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/llama-3_3-nemotron-super-49b-v1_5">llama-3.3-nemotron-super-49b-v1.5</a></td><td>Partner Endpoint; Download Available</td><td></td><td>High efficiency model with leading accuracy for reasoning, tool calling, chat, and instruction following.</td></tr>
+</thead><tbody>
+<tr><td>70</td><td>sarvamai</td><td><a href="https://build.nvidia.com/sarvamai/sarvam-m">sarvam-m</a></td><td>Partner Endpoint; Download Available</td><td></td><td>Multilingual, hybrid-reasoning model optimized for Indian language tasks, programming, mathematical reasoning capabilities.</td></tr>
+</thead><tbody>
+<tr><td>71</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/llama-3_2-nemoretriever-300m-embed-v1">llama-3_2-nemoretriever-300m-embed-v1</a></td><td>Free Endpoint</td><td>Text-to-Embedding; Retrieval Augmented Generation</td><td>Multilingual, cross-lingual embedding model for long-document QA retrieval, supporting 26 languages.</td></tr>
+</thead><tbody>
+<tr><td>72</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/nemoretriever-ocr">nemoretriever-ocr</a></td><td>Download Available</td><td>Optical Character Recognition</td><td>Powerful OCR model for fast, accurate real-world image text extraction, layout, and structure analysis.</td></tr>
+</thead><tbody>
+<tr><td>73</td><td>moonshotai</td><td><a href="https://build.nvidia.com/moonshotai/kimi-k2-instruct">kimi-k2-instruct</a></td><td>Partner Endpoint; Free Endpoint</td><td></td><td>State-of-the-art open mixture-of-experts model with strong reasoning, coding, and agentic capabilities</td></tr>
+</thead><tbody>
+<tr><td>74</td><td>mistralai</td><td><a href="https://build.nvidia.com/mistralai/magistral-small-2506">magistral-small-2506</a></td><td>Partner Endpoint; Free Endpoint</td><td></td><td>High performance reasoning model optimized for efficiency and edge deployment</td></tr>
+</thead><tbody>
+<tr><td>75</td><td>meta</td><td><a href="https://build.nvidia.com/meta/llama-guard-4-12b">llama-guard-4-12b</a></td><td>Partner Endpoint; Free Endpoint</td><td></td><td>Multi-modal model to classify safety for input prompts as well output responses.</td></tr>
+</thead><tbody>
+<tr><td>76</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/riva-translate-1_6b">riva-translate-1.6b</a></td><td>Download Available</td><td>Text Translation</td><td>Enable smooth global interactions in 36 languages.</td></tr>
+</thead><tbody>
+<tr><td>77</td><td>google</td><td><a href="https://build.nvidia.com/google/gemma-3n-e4b-it">gemma-3n-e4b-it</a></td><td>Partner Endpoint; Free Endpoint</td><td></td><td>An edge computing AI model which accepts text, audio and image input, ideal for resource-constrained environments</td></tr>
+</thead><tbody>
+<tr><td>78</td><td>google</td><td><a href="https://build.nvidia.com/google/gemma-3n-e2b-it">gemma-3n-e2b-it</a></td><td>Free Endpoint</td><td></td><td>An edge computing AI model which accepts text, audio and image input, ideal for resource-constrained environments</td></tr>
+</thead><tbody>
+<tr><td>79</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/llama-3_2-nemoretriever-500m-rerank-v2">llama-3.2-nemoretriever-500m-rerank-v2</a></td><td>Download Available</td><td>Retrieval Augmented Generation</td><td>GPU-accelerated model optimized for providing a probability score that a given passage contains the information to answer a question.</td></tr>
+</thead><tbody>
+<tr><td>80</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/cosmos-transfer1-7b">cosmos-transfer1-7b</a></td><td>Free Endpoint</td><td>Synthetic Data Generation</td><td>Generates physics-aware video world states for physical AI development using text prompts and multiple spatial control inputs derived from real-world data or simulation.</td></tr>
+</thead><tbody>
+<tr><td>81</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/bnr">Background Noise Removal</a></td><td>Download Available</td><td></td><td>Removes unwanted noises from audio improving speech intelligibility.</td></tr>
+</thead><tbody>
+<tr><td>82</td><td>mistralai</td><td><a href="https://build.nvidia.com/mistralai/mistral-nemotron">mistral-nemotron</a></td><td>Free Endpoint</td><td></td><td>Built for agentic workflows, this model excels in coding, instruction following, and function calling</td></tr>
+</thead><tbody>
+<tr><td>83</td><td>mit</td><td><a href="https://build.nvidia.com/mit/boltz2">Boltz-2</a></td><td>Download Available</td><td>Drug Discovery</td><td>Predict complex structures using Boltz-2.</td></tr>
+</thead><tbody>
+<tr><td>84</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/llama-3.1-nemotron-nano-vl-8b-v1">llama-3.1-nemotron-nano-vl-8b-v1</a></td><td>Download Available</td><td></td><td>Multi-modal vision-language model that understands text/img and creates informative responses</td></tr>
+</thead><tbody>
+<tr><td>85</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/magpie-tts-zeroshot">magpie-tts-zeroshot</a></td><td>Free Endpoint</td><td>Text-to-Speech</td><td>Expressive and engaging text-to-speech, generated from a short audio sample.</td></tr>
+</thead><tbody>
+<tr><td>86</td><td>black-forest-labs</td><td><a href="https://build.nvidia.com/black-forest-labs/flux_1-schnell">FLUX.1-schnell</a></td><td>Partner Endpoint; Download Available</td><td>Text-to-Image; Image Generation</td><td>FLUX.1-schnell is a distilled image generation model, producing high quality images at fast speeds</td></tr>
+</thead><tbody>
+<tr><td>87</td><td>mistralai</td><td><a href="https://build.nvidia.com/mistralai/mistral-medium-3-instruct">mistral-medium-3-instruct</a></td><td>Free Endpoint</td><td>Image-to-Text</td><td>Powerful, multimodal language model designed for enterprise applications, including software development, data analysis, and reasoning.</td></tr>
+</thead><tbody>
+<tr><td>88</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/parakeet-1_1b-rnnt-multilingual-asr">parakeet-1.1b-rnnt-multilingual-asr</a></td><td>Download Available</td><td>Speech-to-Text</td><td>High accuracy and optimized performance for transcription in 25 languages</td></tr>
+</thead><tbody>
+<tr><td>89</td><td>black-forest-labs</td><td><a href="https://build.nvidia.com/black-forest-labs/flux_1-dev">FLUX.1-dev</a></td><td>Partner Endpoint; Download Available</td><td>Text-to-Image; Image Generation</td><td>FLUX.1 is a state-of-the-art suite of image generation models</td></tr>
+</thead><tbody>
+<tr><td>90</td><td>meta</td><td><a href="https://build.nvidia.com/meta/llama-4-maverick-17b-128e-instruct">llama-4-maverick-17b-128e-instruct</a></td><td>Free Endpoint</td><td>Image-to-Text</td><td>A general purpose multimodal, multilingual 128 MoE model with 17B parameters.</td></tr>
+</thead><tbody>
+<tr><td>91</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/cosmos-predict1-5b">cosmos-predict1-5b</a></td><td>Free Endpoint</td><td>Synthetic Data Generation</td><td>Generates future frames of a physics-aware world state based on simply an image or short video prompt for physical AI development.</td></tr>
+</thead><tbody>
+<tr><td>92</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/sparsedrive">sparsedrive</a></td><td>Free Endpoint</td><td></td><td>End-to-end autonomous driving stack integrating perception, prediction, and planning with sparse scene representations for efficiency and safety.</td></tr>
+</thead><tbody>
+<tr><td>93</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/bevformer">bevformer</a></td><td>Free Endpoint</td><td></td><td>Advanced transformer for multi-frame bird's-eye-view 3D perception in autonomous driving.</td></tr>
+</thead><tbody>
+<tr><td>94</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/llama-3_3-nemotron-super-49b-v1">llama-3.3-nemotron-super-49b-v1</a></td><td>Download Available</td><td></td><td>High efficiency model with leading accuracy for reasoning, tool calling, chat, and instruction following.</td></tr>
+</thead><tbody>
+<tr><td>95</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/llama-3_1-nemotron-nano-8b-v1">llama-3.1-nemotron-nano-8b-v1</a></td><td>Download Available</td><td></td><td>Leading reasoning and agentic AI accuracy model for PC and edge.</td></tr>
+</thead><tbody>
+<tr><td>96</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/magpie-tts-multilingual">magpie-tts-multilingual</a></td><td>Download Available</td><td>Text-to-Speech</td><td>Natural and expressive voices in multiple languages. For voice agents and brand ambassadors.</td></tr>
+</thead><tbody>
+<tr><td>97</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/nv-embedcode-7b-v1">nv-embedcode-7b-v1</a></td><td>Free Endpoint</td><td>Retrieval Augmented Generation</td><td>The NV-EmbedCode model is a 7B Mistral-based embedding model optimized for code retrieval, supporting text, code, and hybrid queries.</td></tr>
+</thead><tbody>
+<tr><td>98</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/nemoretriever-table-structure-v1">nemoretriever-table-structure-v1</a></td><td>Download Available</td><td>Object Detection</td><td>Model for object detection, fine-tuned to detect charts, tables, and titles in documents.</td></tr>
+</thead><tbody>
+<tr><td>99</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/nemoretriever-graphic-elements-v1">nemoretriever-graphic-elements-v1</a></td><td>Download Available</td><td>Object Detection</td><td>Model for object detection, fine-tuned to detect charts, tables, and titles in documents.</td></tr>
+</thead><tbody>
+<tr><td>100</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/nemoretriever-page-elements-v2">nemoretriever-page-elements-v2</a></td><td>Download Available</td><td>Object Detection</td><td>Model for object detection, fine-tuned to detect charts, tables, and titles in documents.</td></tr>
+</thead><tbody>
+<tr><td>101</td><td>colabfold</td><td><a href="https://build.nvidia.com/colabfold/msa-search">msa-search</a></td><td>Download Available</td><td>Drug Discovery</td><td>Generates a multiple sequence alignment from a query sequence and a protein sequence database search.</td></tr>
+</thead><tbody>
+<tr><td>102</td><td>openfold</td><td><a href="https://build.nvidia.com/openfold/openfold2">openfold2</a></td><td>Download Available</td><td>Drug Discovery</td><td>Predicts the 3D structure of a protein from its amino acid sequence, multiple sequence alignments, and templates.</td></tr>
+</thead><tbody>
+<tr><td>103</td><td>google</td><td><a href="https://build.nvidia.com/google/gemma-3-27b-it">gemma-3-27b-it</a></td><td>Partner Endpoint; Free Endpoint</td><td>Image-to-Text</td><td>Cutting-edge open multimodal model exceling in high-quality reasoning from images.</td></tr>
+</thead><tbody>
+<tr><td>104</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/nemoretriever-parse">nemoretriever-parse</a></td><td>Download Available</td><td></td><td>Cutting-edge vision-language model exceling in retrieving text and metadata from images.</td></tr>
+</thead><tbody>
+<tr><td>105</td><td>microsoft</td><td><a href="https://build.nvidia.com/microsoft/phi-4-mini-instruct">phi-4-mini-instruct</a></td><td>Partner Endpoint; Download Available</td><td>Code Generation</td><td>Lightweight multilingual LLM powering AI applications in latency bound, memory/compute constrained environments</td></tr>
+</thead><tbody>
+<tr><td>106</td><td>microsoft</td><td><a href="https://build.nvidia.com/microsoft/phi-4-multimodal-instruct">phi-4-multimodal-instruct</a></td><td>Partner Endpoint; Free Endpoint</td><td>Image-to-Text</td><td>Cutting-edge open multimodal model exceling in high-quality reasoning from image and audio inputs.</td></tr>
+</thead><tbody>
+<tr><td>107</td><td>arc</td><td><a href="https://build.nvidia.com/arc/evo2-40b">evo2-40b</a></td><td>Download Available</td><td>Drug Discovery</td><td>Evo 2 is a biological foundation model that is able to integrate information over long genomic sequences while retaining sensitivity to single-nucleotide changes.</td></tr>
+</thead><tbody>
+<tr><td>108</td><td>openai</td><td><a href="https://build.nvidia.com/openai/whisper-large-v3">whisper-large-v3</a></td><td>Download Available; Partner Endpoint</td><td>Speech-to-Text</td><td>Robust Speech Recognition via Large-Scale Weak Supervision.</td></tr>
+</thead><tbody>
+<tr><td>109</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/canary-1b-asr">canary-1b-asr</a></td><td>Download Available</td><td></td><td>Multi-lingual model supporting speech-to-text recognition and translation.</td></tr>
+</thead><tbody>
+<tr><td>110</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/llama-3_1-nemoguard-8b-topic-control">llama-3.1-nemoguard-8b-topic-control</a></td><td>Download Available</td><td></td><td>Topic control model to keep conversations focused on approved topics, avoiding inappropriate content.</td></tr>
+</thead><tbody>
+<tr><td>111</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/nemoguard-jailbreak-detect">nemoguard-jailbreak-detect</a></td><td>Download Available</td><td></td><td>Industry leading jailbreak classification model for protection from adversarial attempts</td></tr>
+</thead><tbody>
+<tr><td>112</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/llama-3_1-nemoguard-8b-content-safety">llama-3.1-nemoguard-8b-content-safety</a></td><td>Download Available</td><td></td><td>Leading content safety model for enhancing the safety and moderation capabilities of LLMs</td></tr>
+</thead><tbody>
+<tr><td>113</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/genmol-generate">genmol</a></td><td>Download Available</td><td>Drug Discovery</td><td>Fragment-Based Molecular Generation by Discrete Diffusion.</td></tr>
+</thead><tbody>
+<tr><td>114</td><td>qwen</td><td><a href="https://build.nvidia.com/qwen/qwen2_5-coder-32b-instruct">qwen2.5-coder-32b-instruct</a></td><td>Partner Endpoint; Download Available</td><td></td><td>Advanced LLM for code generation, reasoning, and fixing across popular programming languages.</td></tr>
+</thead><tbody>
+<tr><td>115</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/llama-3_2-nv-embedqa-1b-v2">llama-3.2-nv-embedqa-1b-v2</a></td><td>Download Available</td><td>Text-to-Embedding; Retrieval Augmented Generation</td><td>Multilingual and cross-lingual text question-answering retrieval with long context support and optimized data storage efficiency.</td></tr>
+</thead><tbody>
+<tr><td>116</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/llama-3_2-nv-rerankqa-1b-v2">llama-3.2-nv-rerankqa-1b-v2</a></td><td>Download Available</td><td>Retrieval Augmented Generation</td><td>Fine-tuned reranking model for multilingual, cross-lingual text question-answering retrieval, with long context support.</td></tr>
+</thead><tbody>
+<tr><td>117</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/usdcode">usdcode</a></td><td>Free Endpoint</td><td>Digital Twin; Synthetic Data Generation; Code Generation</td><td>State-of-the-art LLM that answers OpenUSD knowledge queries and generates USD-Python code.</td></tr>
+</thead><tbody>
+<tr><td>118</td><td>meta</td><td><a href="https://build.nvidia.com/meta/llama-3_3-70b-instruct">llama-3.3-70b-instruct</a></td><td>Download Available; Partner Endpoint</td><td>Code Generation</td><td>Advanced LLM for reasoning, math, general knowledge, and function calling</td></tr>
+</thead><tbody>
+<tr><td>119</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/nv-yolox-page-elements-v1">nv-yolox-page-elements-v1</a></td><td>Download Available</td><td></td><td>Model for object detection, fine-tuned to detect charts, tables, and titles in documents.</td></tr>
+</thead><tbody>
+<tr><td>120</td><td>baidu</td><td><a href="https://build.nvidia.com/baidu/paddleocr">paddleocr</a></td><td>Download Available</td><td></td><td>Model for table extraction that receives an image as input, runs OCR on the image, and returns the text within the image and its bounding boxes.</td></tr>
+</thead><tbody>
+<tr><td>121</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/conformer-ctc-asr">conformer-ctc-asr</a></td><td>Download Available</td><td>Speech-to-Text</td><td>Automatic speech recognition model that transcribes speech in lower case Spanish with record-setting accuracy and performance</td></tr>
+</thead><tbody>
+<tr><td>122</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/fourcastnet">fourcastnet</a></td><td>Download Available</td><td>Weather Simulation</td><td>FourCastNet predicts global atmospheric dynamics of various weather / climate variables.</td></tr>
+</thead><tbody>
+<tr><td>123</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/studiovoice">studiovoice</a></td><td>Download Available; Free Endpoint</td><td></td><td>Enhance input speech recorded with low-quality microphones in noisy or reverberant environments, producing studio-quality speech.</td></tr>
+</thead><tbody>
+<tr><td>124</td><td>meta</td><td><a href="https://build.nvidia.com/meta/llama-3.2-3b-instruct">llama-3.2-3b-instruct</a></td><td>Partner Endpoint; Download Available</td><td>Code Generation</td><td>Advanced state-of-the-art small language model with language understanding, superior reasoning, and text generation.</td></tr>
+</thead><tbody>
+<tr><td>125</td><td>meta</td><td><a href="https://build.nvidia.com/meta/llama-3.2-11b-vision-instruct">llama-3.2-11b-vision-instruct</a></td><td>Download Available; Partner Endpoint</td><td>Image-to-Text</td><td>Cutting-edge vision-language model exceling in high-quality reasoning from images.</td></tr>
+</thead><tbody>
+<tr><td>126</td><td>meta</td><td><a href="https://build.nvidia.com/meta/llama-3.2-90b-vision-instruct">llama-3.2-90b-vision-instruct</a></td><td>Partner Endpoint; Download Available</td><td>Image-to-Text</td><td>Cutting-edge vision-Language model exceling in high-quality reasoning from images.</td></tr>
+</thead><tbody>
+<tr><td>127</td><td>meta</td><td><a href="https://build.nvidia.com/meta/llama-3.2-1b-instruct">llama-3.2-1b-instruct</a></td><td>Partner Endpoint; Download Available</td><td>Code Generation</td><td>Advanced state-of-the-art small language model with language understanding, superior reasoning, and text generation.</td></tr>
+</thead><tbody>
+<tr><td>128</td><td>abacusai</td><td><a href="https://build.nvidia.com/abacusai/dracarys-llama-3_1-70b-instruct">dracarys-llama-3.1-70b-instruct</a></td><td>Free Endpoint</td><td></td><td>Fine-tuned Llama 3.1 70B model for code generation, summarization, and multi-language tasks.</td></tr>
+</thead><tbody>
+<tr><td>129</td><td>deepmind</td><td><a href="https://build.nvidia.com/deepmind/alphafold2-multimer">alphafold2-multimer</a></td><td>Download Available</td><td>Drug Discovery</td><td>Predicts the 3D structure of a protein from its amino acid sequence.</td></tr>
+</thead><tbody>
+<tr><td>130</td><td>meta</td><td><a href="https://build.nvidia.com/meta/esm2-650m">esm2-650m</a></td><td>Free Endpoint</td><td>Drug Discovery</td><td>Generates embeddings of proteins from their amino acid sequences.</td></tr>
+</thead><tbody>
+<tr><td>131</td><td>deepmind</td><td><a href="https://build.nvidia.com/deepmind/alphafold2">alphafold2</a></td><td>Download Available</td><td>Drug Discovery</td><td>Predicts the 3D structure of a protein from its amino acid sequence.</td></tr>
+</thead><tbody>
+<tr><td>132</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/nemotron-mini-4b-instruct">nemotron-mini-4b-instruct</a></td><td>Free Endpoint</td><td></td><td>Optimized SLM for on-device inference and fine-tuned for roleplay, RAG and function calling</td></tr>
+</thead><tbody>
+<tr><td>133</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/megatron-1b-nmt">megatron-1b-nmt</a></td><td>Download Available</td><td>Text Translation</td><td>Enable smooth global interactions in 36 languages.</td></tr>
+</thead><tbody>
+<tr><td>134</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/parakeet-ctc-1_1b-asr">parakeet-ctc-1.1b-asr</a></td><td>Download Available</td><td>Speech-to-Text</td><td>Record-setting accuracy and performance for English transcription.</td></tr>
+</thead><tbody>
+<tr><td>135</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/parakeet-ctc-0_6b-asr">parakeet-ctc-0.6b-asr</a></td><td>Download Available</td><td>Speech-to-Text</td><td>State-of-the-art accuracy and speed for English transcriptions.</td></tr>
+</thead><tbody>
+<tr><td>136</td><td>ipd</td><td><a href="https://build.nvidia.com/ipd/proteinmpnn">proteinmpnn</a></td><td>Download Available</td><td>Drug Discovery</td><td>ProteinMPNN is a deep learning model for predicting amino acid sequences for protein backbones.</td></tr>
+</thead><tbody>
+<tr><td>137</td><td>google</td><td><a href="https://build.nvidia.com/google/gemma-2-2b-it">gemma-2-2b-it</a></td><td>Free Endpoint</td><td>Code Generation</td><td>Advanced small language generative AI model for edge applications</td></tr>
+</thead><tbody>
+<tr><td>138</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/eyecontact">eyecontact</a></td><td>Download Available</td><td></td><td>Estimate gaze angles of a person in a video and redirect to make it frontal.</td></tr>
+</thead><tbody>
+<tr><td>139</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/usdvalidate">usdvalidate</a></td><td>Free Endpoint</td><td>Digital Twin; Synthetic Data Generation</td><td>Verify compatibility of OpenUSD assets with instant RTX render and rule-based validation.</td></tr>
+</thead><tbody>
+<tr><td>140</td><td>meta</td><td><a href="https://build.nvidia.com/meta/llama-3_1-70b-instruct">llama-3.1-70b-instruct</a></td><td>Partner Endpoint; Download Available</td><td>Code Generation</td><td>Powers complex conversations with superior contextual understanding, reasoning and text generation.</td></tr>
+</thead><tbody>
+<tr><td>141</td><td>meta</td><td><a href="https://build.nvidia.com/meta/llama-3_1-8b-instruct">llama-3.1-8b-instruct</a></td><td>Download Available; Partner Endpoint</td><td>Code Generation</td><td>Advanced state-of-the-art model with language understanding, superior reasoning, and text generation.</td></tr>
+</thead><tbody>
+<tr><td>142</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/nv-embedqa-e5-v5">nv-embedqa-e5-v5</a></td><td>Download Available</td><td>Text-to-Embedding; Retrieval Augmented Generation</td><td>English text embedding model for question-answering retrieval.</td></tr>
+</thead><tbody>
+<tr><td>143</td><td>mistralai</td><td><a href="https://build.nvidia.com/mistralai/mistral-7b-instruct-v03">mistral-7b-instruct-v0.3</a></td><td>Partner Endpoint; Download Available</td><td></td><td>This LLM follows instructions, completes requests, and generates creative text.</td></tr>
+</thead><tbody>
+<tr><td>144</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/nvclip">nvclip</a></td><td>Download Available</td><td></td><td>NV-CLIP is a multimodal embeddings model for image and text.</td></tr>
+</thead><tbody>
+<tr><td>145</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/nv-embed-v1">nv-embed-v1</a></td><td>Free Endpoint</td><td>Text-to-Embedding; Retrieval Augmented Generation</td><td>Generates high-quality numerical embeddings from text inputs.</td></tr>
+</thead><tbody>
+<tr><td>146</td><td>upstage</td><td><a href="https://build.nvidia.com/upstage/solar-10_7b-instruct">solar-10.7b-instruct</a></td><td>Free Endpoint</td><td></td><td>Excels in NLP tasks, particularly in instruction-following, reasoning, and mathematics.</td></tr>
+</thead><tbody>
+<tr><td>147</td><td>baai</td><td><a href="https://build.nvidia.com/baai/bge-m3">bge-m3</a></td><td>Partner Endpoint; Download Available</td><td>Text-to-Embedding; Retrieval Augmented Generation</td><td>Embedding model for text retrieval tasks, excelling in dense, multi-vector, and sparse retrieval.</td></tr>
+</thead><tbody>
+<tr><td>148</td><td>ipd</td><td><a href="https://build.nvidia.com/ipd/rfdiffusion">rfdiffusion</a></td><td>Download Available</td><td>Drug Discovery</td><td>A generative model of protein backbones for protein binder design.</td></tr>
+</thead><tbody>
+<tr><td>149</td><td>google</td><td><a href="https://build.nvidia.com/google/google-paligemma">paligemma</a></td><td>Free Endpoint</td><td>Image-to-Text</td><td>Vision language model adept at comprehending text and visual inputs to produce informative responses</td></tr>
+</thead><tbody>
+<tr><td>150</td><td>mistralai</td><td><a href="https://build.nvidia.com/mistralai/mixtral-8x22b-instruct">mixtral-8x22b-instruct-v0.1</a></td><td>Partner Endpoint; Download Available</td><td>Code Generation</td><td>An MOE LLM that follows instructions, completes requests, and generates creative text.</td></tr>
+</thead><tbody>
+<tr><td>151</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/rerank-qa-mistral-4b">rerank-qa-mistral-4b</a></td><td>Free Endpoint</td><td>Retrieval Augmented Generation</td><td>GPU-accelerated model optimized for providing a probability score that a given passage contains the information to answer a question.</td></tr>
+</thead><tbody>
+<tr><td>152</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/vista-3d">vista-3d</a></td><td>Download Available</td><td>Medical Imaging</td><td>VISTA-3D is a specialized interactive foundation model for segmenting and anotating human anatomies.</td></tr>
+</thead><tbody>
+<tr><td>153</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/molmim-generate">molmim</a></td><td>Download Available</td><td>Drug Discovery</td><td>MolMIM performs controlled generation, finding molecules with the right properties.</td></tr>
+</thead><tbody>
+<tr><td>154</td><td>meta</td><td><a href="https://build.nvidia.com/meta/esmfold">esmfold</a></td><td>Free Endpoint</td><td></td><td>Predicts the 3D structure of a protein from its amino acid sequence.</td></tr>
+</thead><tbody>
+<tr><td>155</td><td>mit</td><td><a href="https://build.nvidia.com/mit/diffdock">diffdock</a></td><td>Download Available</td><td>Drug Discovery</td><td>Predicts the 3D structure of how a molecule interacts with a protein.</td></tr>
+</thead><tbody>
+<tr><td>156</td><td>mistralai</td><td><a href="https://build.nvidia.com/mistralai/mixtral-8x7b-instruct">mixtral-8x7b-instruct-v0.1</a></td><td>Partner Endpoint; Download Available</td><td>Code Generation</td><td>An MOE LLM that follows instructions, completes requests, and generates creative text.</td></tr>
+</thead><tbody>
+<tr><td>157</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/nvidia-cuopt">cuopt</a></td><td>Download Available</td><td>Route Optimization</td><td>World-record accuracy and performance for complex route optimization.</td></tr>
+</tbody></table>
 
 </main>
 </body>

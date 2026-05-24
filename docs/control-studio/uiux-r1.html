@@ -2,74 +2,61 @@
 <html lang="zh-TW">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width,initial-scale=1">
 <title>ControlStudio — UI/UX 完整設計規格 — NVIDIA OS Support Docs</title>
 <style>
 :root {
-  --bg: #0f1117; --bg2: #1a1d2e; --bg3: #252840;
-  --border: #2d3155; --accent: #6366f1; --accent2: #818cf8;
-  --text: #e2e8f0; --muted: #94a3b8; --code-bg: #1e2235;
-  --success: #22c55e; --warn: #f59e0b;
+  --bg:#0f1117;--bg2:#1a1d2e;--bg3:#252840;
+  --border:#2d3155;--accent:#6366f1;--accent2:#818cf8;
+  --text:#e2e8f0;--muted:#94a3b8;--code-bg:#1e2235;
+  --ok:#22c55e;--warn:#f59e0b;
 }
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-       background: var(--bg); color: var(--text); line-height: 1.7;
-       display: flex; min-height: 100vh; }
-nav { width: 240px; min-height: 100vh; background: var(--bg2);
-      border-right: 1px solid var(--border); padding: 24px 0;
-      position: sticky; top: 0; height: 100vh; overflow-y: auto;
-      flex-shrink: 0; }
-nav .logo { padding: 0 20px 20px; border-bottom: 1px solid var(--border); margin-bottom: 12px; }
-nav .logo a { text-decoration: none; font-size: 15px; font-weight: 700;
-              color: var(--accent2); }
-nav .section { padding: 6px 20px 2px; font-size: 10px; font-weight: 700;
-               text-transform: uppercase; letter-spacing: 1px; color: var(--muted);
-               margin-top: 8px; }
-nav a { display: block; padding: 5px 20px; font-size: 13px; color: var(--muted);
-        text-decoration: none; border-left: 2px solid transparent;
-        transition: all .15s; }
-nav a:hover, nav a.active { color: var(--text); border-color: var(--accent);
-                              background: rgba(99,102,241,.08); }
-main { flex: 1; padding: 40px 48px; max-width: 900px; min-width: 0; }
-h1 { font-size: 2rem; font-weight: 800; color: var(--text);
-     border-bottom: 2px solid var(--accent); padding-bottom: 12px; margin-bottom: 24px; }
-h2 { font-size: 1.4rem; font-weight: 700; color: var(--accent2);
-     margin: 32px 0 12px; padding-top: 8px; }
-h3 { font-size: 1.1rem; font-weight: 600; color: var(--text); margin: 20px 0 8px; }
-h4, h5, h6 { font-size: 1rem; font-weight: 600; color: var(--muted); margin: 16px 0 6px; }
-p { margin: 8px 0; color: var(--text); }
-a { color: var(--accent2); }
-a:hover { color: #a5b4fc; }
-code { background: var(--code-bg); border: 1px solid var(--border);
-       border-radius: 4px; padding: 1px 5px; font-size: .875em;
-       font-family: 'JetBrains Mono', 'Fira Code', monospace; color: #a5b4fc; }
-pre { background: var(--code-bg); border: 1px solid var(--border);
-      border-radius: 8px; padding: 16px; overflow-x: auto; margin: 12px 0; }
-pre code { background: none; border: none; padding: 0;
-           font-size: .82rem; color: var(--text); }
-blockquote { border-left: 3px solid var(--accent); padding: 8px 16px;
-             background: rgba(99,102,241,.06); margin: 12px 0; border-radius: 0 6px 6px 0; }
-ul, ol { padding-left: 24px; margin: 8px 0; }
-li { margin: 3px 0; }
-table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: .9rem; }
-th { background: var(--bg3); color: var(--accent2); font-weight: 700;
-     padding: 8px 12px; border: 1px solid var(--border); text-align: left; }
-td { padding: 7px 12px; border: 1px solid var(--border); color: var(--text); }
-tr:nth-child(even) td { background: rgba(255,255,255,.02); }
-hr { border: none; border-top: 1px solid var(--border); margin: 24px 0; }
-strong { color: #c7d2fe; }
-del { color: var(--muted); }
-.badge { display: inline-block; font-size: 10px; font-weight: 700; padding: 1px 6px;
-         border-radius: 9px; border: 1px solid; margin: 0 2px; vertical-align: middle; }
-.badge-green { color: var(--success); border-color: var(--success); }
-.badge-warn  { color: var(--warn);    border-color: var(--warn); }
-/* toc sidebar on large screens */
-@media (max-width: 768px) { nav { display: none; } main { padding: 20px 16px; } }
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+     background:var(--bg);color:var(--text);line-height:1.7;
+     display:flex;min-height:100vh}
+nav{width:240px;min-height:100vh;background:var(--bg2);
+    border-right:1px solid var(--border);padding:24px 0;
+    position:sticky;top:0;height:100vh;overflow-y:auto;flex-shrink:0}
+nav .logo{padding:0 20px 20px;border-bottom:1px solid var(--border);margin-bottom:12px}
+nav .logo a{text-decoration:none;font-size:15px;font-weight:700;color:var(--accent2)}
+nav .section{padding:6px 20px 2px;font-size:10px;font-weight:700;
+             text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-top:8px}
+nav a{display:block;padding:5px 20px;font-size:13px;color:var(--muted);
+      text-decoration:none;border-left:2px solid transparent;transition:all .15s}
+nav a:hover,nav a.active{color:var(--text);border-color:var(--accent);background:rgba(99,102,241,.08)}
+main{flex:1;padding:40px 48px;max-width:900px;min-width:0}
+h1{font-size:2rem;font-weight:800;color:var(--text);
+   border-bottom:2px solid var(--accent);padding-bottom:12px;margin-bottom:24px}
+h2{font-size:1.4rem;font-weight:700;color:var(--accent2);margin:32px 0 12px;padding-top:8px}
+h3{font-size:1.1rem;font-weight:600;color:var(--text);margin:20px 0 8px}
+h4,h5,h6{font-size:1rem;font-weight:600;color:var(--muted);margin:16px 0 6px}
+p{margin:8px 0}
+a{color:var(--accent2)}
+a:hover{color:#a5b4fc}
+code{background:var(--code-bg);border:1px solid var(--border);border-radius:4px;
+     padding:1px 5px;font-size:.875em;font-family:'JetBrains Mono','Fira Code',monospace;color:#a5b4fc}
+pre{background:var(--code-bg);border:1px solid var(--border);border-radius:8px;
+    padding:16px;overflow-x:auto;margin:12px 0}
+pre code{background:none;border:none;padding:0;font-size:.82rem;color:var(--text)}
+blockquote{border-left:3px solid var(--accent);padding:8px 16px;
+           background:rgba(99,102,241,.06);margin:12px 0;border-radius:0 6px 6px 0}
+ul,ol{padding-left:24px;margin:8px 0}
+li{margin:3px 0}
+table{width:100%;border-collapse:collapse;margin:16px 0;font-size:.9rem}
+th{background:var(--bg3);color:var(--accent2);font-weight:700;
+   padding:8px 12px;border:1px solid var(--border);text-align:left}
+td{padding:7px 12px;border:1px solid var(--border)}
+tr:nth-child(even) td{background:rgba(255,255,255,.02)}
+hr{border:none;border-top:1px solid var(--border);margin:24px 0}
+strong{color:#c7d2fe}
+del{color:var(--muted)}
+@media(max-width:768px){nav{display:none}main{padding:20px 16px}}
 </style>
 </head>
 <body>
 <nav>
-  <div class="logo"><a href="../index.html">📁 NVIDIA OS Support</a></div>
+  <div class="logo"><a href="../index.html">📁 Docs</a></div>
   <div class="section">Agent 工作文件</div>
   <a href="../agents/usage.html">使用指南</a>
   <a href="../agents/continuation.html">接手狀態</a>
@@ -121,16 +108,19 @@ del { color: var(--muted); }
 
 <p>ControlStudio 在 P29–P34 開發完成後，已具備 333 個 exported symbols，涵蓋：</p>
 
-<table>
-<tr><td>領域</td><td>符號數</td><td>代表能力</td></tr>
-<thead>
-<tr><th>control/</th><th>188</th><th>PID、LQR、H∞、MPC、自適應、非線性、識別</th></tr>
-<tr><td>math/</td><td>53</td><td>矩陣代數、ODE、優化、SVD</td></tr>
-<tr><td>analysis/</td><td>24</td><td>時域/頻域/根軌跡/相平面分析</td></tr>
-<tr><td>ui/</td><td>41</td><td>主題、元件、圖表、可及性</td></tr>
-<tr><td>utils/</td><td>14</td><td>格式化、LaTeX、codegen</td></tr>
+<table><thead>
+<tr><th>領域</th><th>符號數</th><th>代表能力</th></tr>
 </thead><tbody>
-</table>
+<tr><td>control/</td><td>188</td><td>PID、LQR、H∞、MPC、自適應、非線性、識別</td></tr>
+</thead><tbody>
+<tr><td>math/</td><td>53</td><td>矩陣代數、ODE、優化、SVD</td></tr>
+</thead><tbody>
+<tr><td>analysis/</td><td>24</td><td>時域/頻域/根軌跡/相平面分析</td></tr>
+</thead><tbody>
+<tr><td>ui/</td><td>41</td><td>主題、元件、圖表、可及性</td></tr>
+</thead><tbody>
+<tr><td>utils/</td><td>14</td><td>格式化、LaTeX、codegen</td></tr>
+</tbody></table>
 
 <p>功能已相對完整，但缺乏統一的使用者視角。設計改善從「<strong>使用者會帶著什麼目標來用這個工具</strong>」出發，而非從功能清單反推介面。</p>
 
@@ -281,37 +271,51 @@ E 技術決策者      審查設計品質                看不懂圖、缺乏�
 
 <h3 id="2-1-設計-token-對應-theme-js">2.1 設計 Token（對應 theme.js）</h3>
 
-<table>
-<tr><td>Token</td><td>Dark 值</td><td>Light 值</td><td>用途</td></tr>
-<thead>
-<tr><th><code>--bg</code></th><th><code>#0d1117</code></th><th><code>#ffffff</code></th><th>頁面底色</th></tr>
-<tr><td><code>--surface</code></td><td><code>#161b22</code></td><td><code>#f6f8fa</code></td><td>卡片、面板</td></tr>
-<tr><td><code>--surface-2</code></td><td><code>#21262d</code></td><td><code>#eaeef2</code></td><td>hover、次層</td></tr>
-<tr><td><code>--border</code></td><td><code>#30363d</code></td><td><code>#d0d7de</code></td><td>邊框</td></tr>
-<tr><td><code>--text-primary</code></td><td><code>#e6edf3</code></td><td><code>#1f2328</code></td><td>主文字</td></tr>
-<tr><td><code>--text-muted</code></td><td><code>#8b949e</code></td><td><code>#656d76</code></td><td>次要文字</td></tr>
-<tr><td><code>--accent</code></td><td><code>#3fb950</code></td><td><code>#1a7f37</code></td><td>成功、主要動作</td></tr>
-<tr><td><code>--accent-blue</code></td><td><code>#58a6ff</code></td><td><code>#0969da</code></td><td>連結、資訊</td></tr>
-<tr><td><code>--warning</code></td><td><code>#d29922</code></td><td><code>#9a6700</code></td><td>警告</td></tr>
-<tr><td><code>--error</code></td><td><code>#f85149</code></td><td><code>#cf222e</code></td><td>錯誤</td></tr>
-<tr><td><code>--code-bg</code></td><td><code>#161b22</code></td><td><code>#f6f8fa</code></td><td>程式碼底色</td></tr>
+<table><thead>
+<tr><th>Token</th><th>Dark 值</th><th>Light 值</th><th>用途</th></tr>
 </thead><tbody>
-</table>
+<tr><td><code>--bg</code></td><td><code>#0d1117</code></td><td><code>#ffffff</code></td><td>頁面底色</td></tr>
+</thead><tbody>
+<tr><td><code>--surface</code></td><td><code>#161b22</code></td><td><code>#f6f8fa</code></td><td>卡片、面板</td></tr>
+</thead><tbody>
+<tr><td><code>--surface-2</code></td><td><code>#21262d</code></td><td><code>#eaeef2</code></td><td>hover、次層</td></tr>
+</thead><tbody>
+<tr><td><code>--border</code></td><td><code>#30363d</code></td><td><code>#d0d7de</code></td><td>邊框</td></tr>
+</thead><tbody>
+<tr><td><code>--text-primary</code></td><td><code>#e6edf3</code></td><td><code>#1f2328</code></td><td>主文字</td></tr>
+</thead><tbody>
+<tr><td><code>--text-muted</code></td><td><code>#8b949e</code></td><td><code>#656d76</code></td><td>次要文字</td></tr>
+</thead><tbody>
+<tr><td><code>--accent</code></td><td><code>#3fb950</code></td><td><code>#1a7f37</code></td><td>成功、主要動作</td></tr>
+</thead><tbody>
+<tr><td><code>--accent-blue</code></td><td><code>#58a6ff</code></td><td><code>#0969da</code></td><td>連結、資訊</td></tr>
+</thead><tbody>
+<tr><td><code>--warning</code></td><td><code>#d29922</code></td><td><code>#9a6700</code></td><td>警告</td></tr>
+</thead><tbody>
+<tr><td><code>--error</code></td><td><code>#f85149</code></td><td><code>#cf222e</code></td><td>錯誤</td></tr>
+</thead><tbody>
+<tr><td><code>--code-bg</code></td><td><code>#161b22</code></td><td><code>#f6f8fa</code></td><td>程式碼底色</td></tr>
+</tbody></table>
 
 <h3 id="2-2-字型系統">2.2 字型系統</h3>
 
-<table>
-<tr><td>層級</td><td>大小</td><td>字重</td><td>用途</td></tr>
-<thead>
-<tr><th>Display</th><th>24px</th><th>700</th><th>頁面大標題</th></tr>
-<tr><td>H1</td><td>20px</td><td>600</td><td>章節標題</td></tr>
-<tr><td>H2</td><td>16px</td><td>600</td><td>區塊標題</td></tr>
-<tr><td>H3</td><td>14px</td><td>600</td><td>子區塊標題</td></tr>
-<tr><td>Body</td><td>14px</td><td>400</td><td>一般內文</td></tr>
-<tr><td>Small</td><td>12px</td><td>400</td><td>說明、標籤</td></tr>
-<tr><td>Code</td><td>13px mono</td><td>400</td><td>程式碼、數值</td></tr>
+<table><thead>
+<tr><th>層級</th><th>大小</th><th>字重</th><th>用途</th></tr>
 </thead><tbody>
-</table>
+<tr><td>Display</td><td>24px</td><td>700</td><td>頁面大標題</td></tr>
+</thead><tbody>
+<tr><td>H1</td><td>20px</td><td>600</td><td>章節標題</td></tr>
+</thead><tbody>
+<tr><td>H2</td><td>16px</td><td>600</td><td>區塊標題</td></tr>
+</thead><tbody>
+<tr><td>H3</td><td>14px</td><td>600</td><td>子區塊標題</td></tr>
+</thead><tbody>
+<tr><td>Body</td><td>14px</td><td>400</td><td>一般內文</td></tr>
+</thead><tbody>
+<tr><td>Small</td><td>12px</td><td>400</td><td>說明、標籤</td></tr>
+</thead><tbody>
+<tr><td>Code</td><td>13px mono</td><td>400</td><td>程式碼、數值</td></tr>
+</tbody></table>
 
 <h3 id="2-3-間距系統-4px-基準">2.3 間距系統（4px 基準）</h3>
 
@@ -325,15 +329,17 @@ E 技術決策者      審查設計品質                看不懂圖、缺乏�
 
 <h3 id="2-4-動態規格">2.4 動態規格</h3>
 
-<table>
-<tr><td>類型</td><td>時長</td><td>Easing</td><td>用途</td></tr>
-<thead>
-<tr><th>Micro</th><th>100ms</th><th>linear</th><th>hover 背景色</th></tr>
-<tr><td>Transition</td><td>200ms</td><td>ease-out</td><td>面板展開、modal 進出</td></tr>
-<tr><td>Animation</td><td>300ms</td><td>cubic-bezier(.25,.8,.25,1)</td><td>wizard 步驟切換</td></tr>
-<tr><td>Reduced</td><td>0ms</td><td>—</td><td>prefers-reduced-motion</td></tr>
+<table><thead>
+<tr><th>類型</th><th>時長</th><th>Easing</th><th>用途</th></tr>
 </thead><tbody>
-</table>
+<tr><td>Micro</td><td>100ms</td><td>linear</td><td>hover 背景色</td></tr>
+</thead><tbody>
+<tr><td>Transition</td><td>200ms</td><td>ease-out</td><td>面板展開、modal 進出</td></tr>
+</thead><tbody>
+<tr><td>Animation</td><td>300ms</td><td>cubic-bezier(.25,.8,.25,1)</td><td>wizard 步驟切換</td></tr>
+</thead><tbody>
+<tr><td>Reduced</td><td>0ms</td><td>—</td><td>prefers-reduced-motion</td></tr>
+</tbody></table>
 
 <h3 id="2-5-圓角">2.5 圓角</h3>
 
@@ -346,19 +352,25 @@ E 技術決策者      審查設計品質                看不懂圖、缺乏�
 
 <h3 id="2-6-圖表配色-wcag-aa-對比-4-5-1-on-0d1117">2.6 圖表配色（WCAG AA 對比 ≥ 4.5:1 on #0d1117）</h3>
 
-<table>
-<tr><td>序號</td><td>顏色</td><td>Hex</td><td>對比比</td></tr>
-<thead>
-<tr><th>1</th><th>綠（主線）</th><th><code>#3fb950</code></th><th>5.2:1</th></tr>
-<tr><td>2</td><td>藍</td><td><code>#58a6ff</code></td><td>4.7:1</td></tr>
-<tr><td>3</td><td>橘</td><td><code>#fb923c</code></td><td>5.1:1</td></tr>
-<tr><td>4</td><td>紫</td><td><code>#a78bfa</code></td><td>5.3:1</td></tr>
-<tr><td>5</td><td>青</td><td><code>#22d3ee</code></td><td>5.8:1</td></tr>
-<tr><td>6</td><td>玫紅</td><td><code>#f472b6</code></td><td>4.9:1</td></tr>
-<tr><td>7</td><td>黃</td><td><code>#facc15</code></td><td>8.2:1</td></tr>
-<tr><td>8</td><td>灰綠</td><td><code>#6ee7b7</code></td><td>6.4:1</td></tr>
+<table><thead>
+<tr><th>序號</th><th>顏色</th><th>Hex</th><th>對比比</th></tr>
 </thead><tbody>
-</table>
+<tr><td>1</td><td>綠（主線）</td><td><code>#3fb950</code></td><td>5.2:1</td></tr>
+</thead><tbody>
+<tr><td>2</td><td>藍</td><td><code>#58a6ff</code></td><td>4.7:1</td></tr>
+</thead><tbody>
+<tr><td>3</td><td>橘</td><td><code>#fb923c</code></td><td>5.1:1</td></tr>
+</thead><tbody>
+<tr><td>4</td><td>紫</td><td><code>#a78bfa</code></td><td>5.3:1</td></tr>
+</thead><tbody>
+<tr><td>5</td><td>青</td><td><code>#22d3ee</code></td><td>5.8:1</td></tr>
+</thead><tbody>
+<tr><td>6</td><td>玫紅</td><td><code>#f472b6</code></td><td>4.9:1</td></tr>
+</thead><tbody>
+<tr><td>7</td><td>黃</td><td><code>#facc15</code></td><td>8.2:1</td></tr>
+</thead><tbody>
+<tr><td>8</td><td>灰綠</td><td><code>#6ee7b7</code></td><td>6.4:1</td></tr>
+</tbody></table>
 
 <hr>
 
@@ -440,15 +452,17 @@ E 技術決策者      審查設計品質                看不懂圖、缺乏�
 
 <h3 id="3-5-工作區分割模式">3.5 工作區分割模式</h3>
 
-<table>
-<tr><td>模式</td><td>觸發</td><td>佈局</td></tr>
-<thead>
-<tr><th>單窗格</th><th>預設</th><th>主內容 100%</th></tr>
-<tr><td>左右分割</td><td><code>⊟</code> 按鈕</td><td>50%\</td><td>50%（可拖移分隔線）</td></tr>
-<tr><td>上下分割</td><td><code>⊠</code> 按鈕</td><td>60%\</td><td>40%（可拖移）</td></tr>
-<tr><td>全螢幕圖表</td><td><code>⛶</code> 或雙擊圖表</td><td>覆蓋整個 workspace，Esc 離開</td></tr>
+<table><thead>
+<tr><th>模式</th><th>觸發</th><th>佈局</th></tr>
 </thead><tbody>
-</table>
+<tr><td>單窗格</td><td>預設</td><td>主內容 100%</td></tr>
+</thead><tbody>
+<tr><td>左右分割</td><td><code>⊟</code> 按鈕</td><td>50%\</td><td>50%（可拖移分隔線）</td></tr>
+</thead><tbody>
+<tr><td>上下分割</td><td><code>⊠</code> 按鈕</td><td>60%\</td><td>40%（可拖移）</td></tr>
+</thead><tbody>
+<tr><td>全螢幕圖表</td><td><code>⛶</code> 或雙擊圖表</td><td>覆蓋整個 workspace，Esc 離開</td></tr>
+</tbody></table>
 
 <p>分隔線：8px 寬，hover 顯示 <code>col-resize</code> 游標，<code>--border</code> 色，拖移中高亮</p>
 
@@ -621,19 +635,25 @@ invalid → 顯示 error alert，阻止確認</code></pre>
 
 <p><strong>內建範例清單</strong></p>
 
-<table>
-<tr><td>範例</td><td>類型</td><td>階數</td><td>穩定</td></tr>
-<thead>
-<tr><th>DC Motor 位置控制</th><th>TF</th><th>2</th><th>✓</th></tr>
-<tr><td>質量彈簧阻尼</td><td>TF</td><td>2</td><td>✓</td></tr>
-<tr><td>倒單擺（線性化）</td><td>SS</td><td>4</td><td>✗</td></tr>
-<tr><td>熱交換器</td><td>TF</td><td>1+延遲</td><td>✓</td></tr>
-<tr><td>雙積分器</td><td>TF</td><td>2</td><td>臨界</td></tr>
-<tr><td>MIMO 2×2 精餾塔</td><td>SS</td><td>4</td><td>✓</td></tr>
-<tr><td>靈活機械臂</td><td>SS</td><td>6</td><td>✓</td></tr>
-<tr><td>磁浮系統</td><td>SS</td><td>4</td><td>✗</td></tr>
+<table><thead>
+<tr><th>範例</th><th>類型</th><th>階數</th><th>穩定</th></tr>
 </thead><tbody>
-</table>
+<tr><td>DC Motor 位置控制</td><td>TF</td><td>2</td><td>✓</td></tr>
+</thead><tbody>
+<tr><td>質量彈簧阻尼</td><td>TF</td><td>2</td><td>✓</td></tr>
+</thead><tbody>
+<tr><td>倒單擺（線性化）</td><td>SS</td><td>4</td><td>✗</td></tr>
+</thead><tbody>
+<tr><td>熱交換器</td><td>TF</td><td>1+延遲</td><td>✓</td></tr>
+</thead><tbody>
+<tr><td>雙積分器</td><td>TF</td><td>2</td><td>臨界</td></tr>
+</thead><tbody>
+<tr><td>MIMO 2×2 精餾塔</td><td>SS</td><td>4</td><td>✓</td></tr>
+</thead><tbody>
+<tr><td>靈活機械臂</td><td>SS</td><td>6</td><td>✓</td></tr>
+</thead><tbody>
+<tr><td>磁浮系統</td><td>SS</td><td>4</td><td>✗</td></tr>
+</tbody></table>
 
 <p><strong>依賴模組</strong></p>
 <p><code>stepResponse</code>, <code>buildSVGChart</code>, <code>tfToLatex</code>, <code>TransferFunction</code>, <code>MIMOStateSpace</code></p>
@@ -1029,19 +1049,25 @@ hover chip → tooltip 展開說明：
 
 <p><strong>複雜度對照表</strong></p>
 
-<table>
-<tr><td>方法</td><td>複雜度</td><td>適用</td><td>計算量</td></tr>
-<thead>
-<tr><th>PID</th><th>低</th><th>SISO</th><th>輕</th></tr>
-<tr><td>Lead/Lag</td><td>低</td><td>SISO</td><td>輕</td></tr>
-<tr><td>LQR/LQG</td><td>中</td><td>MIMO</td><td>中</td></tr>
-<tr><td>H∞ 混合靈敏度</td><td>高</td><td>MIMO</td><td>重</td></tr>
-<tr><td>MPC</td><td>高</td><td>MIMO</td><td>重</td></tr>
-<tr><td>自適應 MRAC</td><td>中</td><td>SISO</td><td>中</td></tr>
-<tr><td>滑動模式 SMC</td><td>中</td><td>SISO</td><td>輕</td></tr>
-<tr><td>反步法 Backstepping</td><td>高</td><td>SISO</td><td>中</td></tr>
+<table><thead>
+<tr><th>方法</th><th>複雜度</th><th>適用</th><th>計算量</th></tr>
 </thead><tbody>
-</table>
+<tr><td>PID</td><td>低</td><td>SISO</td><td>輕</td></tr>
+</thead><tbody>
+<tr><td>Lead/Lag</td><td>低</td><td>SISO</td><td>輕</td></tr>
+</thead><tbody>
+<tr><td>LQR/LQG</td><td>中</td><td>MIMO</td><td>中</td></tr>
+</thead><tbody>
+<tr><td>H∞ 混合靈敏度</td><td>高</td><td>MIMO</td><td>重</td></tr>
+</thead><tbody>
+<tr><td>MPC</td><td>高</td><td>MIMO</td><td>重</td></tr>
+</thead><tbody>
+<tr><td>自適應 MRAC</td><td>中</td><td>SISO</td><td>中</td></tr>
+</thead><tbody>
+<tr><td>滑動模式 SMC</td><td>中</td><td>SISO</td><td>輕</td></tr>
+</thead><tbody>
+<tr><td>反步法 Backstepping</td><td>高</td><td>SISO</td><td>中</td></tr>
+</tbody></table>
 
 <p><strong>元件組成</strong>：<code>badge()</code>, <code>tooltipPopover()</code>（新元件）</p>
 
@@ -1118,22 +1144,31 @@ hover chip → tooltip 展開說明：
 
 <p><strong>內容對應</strong></p>
 
-<table>
-<tr><td>Active plot</td><td>Main</td><td>Companion 1</td><td>Companion 2</td></tr>
-<thead>
-<tr><th>Time Response</th><th>Step / Impulse / Ramp / waveform response</th><th>Root Locus</th><th>Pole-Zero Map</th></tr>
-<tr><td>Bode</td><td>Loop Bode</td><td>Nyquist Plot</td><td>Pole-Zero Map</td></tr>
-<tr><td>Nyquist</td><td>Nyquist Plot</td><td>Bode Plot</td><td>Pole-Zero Map</td></tr>
-<tr><td>Nichols</td><td>Nichols Chart</td><td>Bode Plot</td><td>Pole-Zero Map</td></tr>
-<tr><td>Root Locus</td><td>Root Locus</td><td>Step @ K</td><td>Pole-Zero Map</td></tr>
-<tr><td>Pole-Zero</td><td>Pole-Zero Map</td><td>Step Response</td><td>Bode Plot</td></tr>
-<tr><td>Sensitivity</td><td>S / T / KS</td><td>Bode Plot</td><td>Pole-Zero Map</td></tr>
-<tr><td>Stability Map</td><td>Kp-Ki stability map</td><td>Step Response</td><td>Root Locus</td></tr>
-<tr><td>z-domain Step</td><td>Discrete step</td><td>Bode (DTFT)</td><td>Pole-Zero Map</td></tr>
-<tr><td>z-domain Bode</td><td>Bode (DTFT)</td><td>Discrete step</td><td>Pole-Zero Map</td></tr>
-<tr><td>z-domain Pole-Zero</td><td>z-plane pole-zero map</td><td>Discrete step</td><td>Bode (DTFT)</td></tr>
+<table><thead>
+<tr><th>Active plot</th><th>Main</th><th>Companion 1</th><th>Companion 2</th></tr>
 </thead><tbody>
-</table>
+<tr><td>Time Response</td><td>Step / Impulse / Ramp / waveform response</td><td>Root Locus</td><td>Pole-Zero Map</td></tr>
+</thead><tbody>
+<tr><td>Bode</td><td>Loop Bode</td><td>Nyquist Plot</td><td>Pole-Zero Map</td></tr>
+</thead><tbody>
+<tr><td>Nyquist</td><td>Nyquist Plot</td><td>Bode Plot</td><td>Pole-Zero Map</td></tr>
+</thead><tbody>
+<tr><td>Nichols</td><td>Nichols Chart</td><td>Bode Plot</td><td>Pole-Zero Map</td></tr>
+</thead><tbody>
+<tr><td>Root Locus</td><td>Root Locus</td><td>Step @ K</td><td>Pole-Zero Map</td></tr>
+</thead><tbody>
+<tr><td>Pole-Zero</td><td>Pole-Zero Map</td><td>Step Response</td><td>Bode Plot</td></tr>
+</thead><tbody>
+<tr><td>Sensitivity</td><td>S / T / KS</td><td>Bode Plot</td><td>Pole-Zero Map</td></tr>
+</thead><tbody>
+<tr><td>Stability Map</td><td>Kp-Ki stability map</td><td>Step Response</td><td>Root Locus</td></tr>
+</thead><tbody>
+<tr><td>z-domain Step</td><td>Discrete step</td><td>Bode (DTFT)</td><td>Pole-Zero Map</td></tr>
+</thead><tbody>
+<tr><td>z-domain Bode</td><td>Bode (DTFT)</td><td>Discrete step</td><td>Pole-Zero Map</td></tr>
+</thead><tbody>
+<tr><td>z-domain Pole-Zero</td><td>z-plane pole-zero map</td><td>Discrete step</td><td>Bode (DTFT)</td></tr>
+</tbody></table>
 
 <p><strong>依賴模組</strong></p>
 <p><code>stepResponse</code>, <code>impulseResponse</code>, <code>rampResponse</code>, <code>bodeData</code>, <code>nyquistData</code>, <code>nicholsData</code>, <code>rootLocusData</code>, <code>sensitivityBode</code>, <code>stabilityMargins</code>, <code>renderStabilityMap</code></p>
@@ -1530,14 +1565,15 @@ Readout 浮框（固定在圖表右上角，不跟游標）：
 
 <p><strong>三種模式</strong></p>
 
-<table>
-<tr><td>模式</td><td>背景</td><td>線條色</td><td>文字</td><td>格線</td></tr>
-<thead>
-<tr><th>Dark</th><th><code>#0d1117</code></th><th>8色循環（§2.6）</th><th><code>#e6edf3</code></th><th><code>#21262d</code></th></tr>
-<tr><td>Light</td><td><code>#ffffff</code></td><td>深色版8色循環</td><td><code>#1f2328</code></td><td><code>#eaeef2</code></td></tr>
-<tr><td>Print</td><td><code>#ffffff</code></td><td>純黑 + 虛線區分</td><td><code>#000000</code></td><td><code>#cccccc</code></td></tr>
+<table><thead>
+<tr><th>模式</th><th>背景</th><th>線條色</th><th>文字</th><th>格線</th></tr>
 </thead><tbody>
-</table>
+<tr><td>Dark</td><td><code>#0d1117</code></td><td>8色循環（§2.6）</td><td><code>#e6edf3</code></td><td><code>#21262d</code></td></tr>
+</thead><tbody>
+<tr><td>Light</td><td><code>#ffffff</code></td><td>深色版8色循環</td><td><code>#1f2328</code></td><td><code>#eaeef2</code></td></tr>
+</thead><tbody>
+<tr><td>Print</td><td><code>#ffffff</code></td><td>純黑 + 虛線區分</td><td><code>#000000</code></td><td><code>#cccccc</code></td></tr>
+</tbody></table>
 
 <p>Print 模式額外：線條改用不同 stroke-dasharray（實線/虛線/點線）區分系列，不依賴顏色（WCAG 無障礙）</p>
 
@@ -1767,16 +1803,19 @@ PID（帶參數）：
 
 <p><strong>Tooltip 內容（依圖表類型）</strong></p>
 
-<table>
-<tr><td>圖表</td><td>Hover 顯示</td></tr>
-<thead>
-<tr><th>Bode 增益</th><th><code>ω=2.3 r/s │ │G│=−12.3dB │ ∠G=−45.2°</code></th></tr>
-<tr><td>Bode 相位</td><td><code>ω=2.3 r/s │ ∠G=−45.2° │ GM margin=3.8dB</code></td></tr>
-<tr><td>根軌跡</td><td><code>K=2.5 │ 極點=−1.2+1.3j │ ζ=0.68, ωn=1.77</code></td></tr>
-<tr><td>步階響應</td><td><code>t=1.85s │ y=0.980 │ 穩態誤差=2.0%</code></td></tr>
-<tr><td>Nyquist</td><td><code>ω=1.0 r/s │ Re=−0.85 │ Im=−0.52 │ 距−1點=0.24</code></td></tr>
+<table><thead>
+<tr><th>圖表</th><th>Hover 顯示</th></tr>
 </thead><tbody>
-</table>
+<tr><td>Bode 增益</td><td><code>ω=2.3 r/s │ │G│=−12.3dB │ ∠G=−45.2°</code></td></tr>
+</thead><tbody>
+<tr><td>Bode 相位</td><td><code>ω=2.3 r/s │ ∠G=−45.2° │ GM margin=3.8dB</code></td></tr>
+</thead><tbody>
+<tr><td>根軌跡</td><td><code>K=2.5 │ 極點=−1.2+1.3j │ ζ=0.68, ωn=1.77</code></td></tr>
+</thead><tbody>
+<tr><td>步階響應</td><td><code>t=1.85s │ y=0.980 │ 穩態誤差=2.0%</code></td></tr>
+</thead><tbody>
+<tr><td>Nyquist</td><td><code>ω=1.0 r/s │ Re=−0.85 │ Im=−0.52 │ 距−1點=0.24</code></td></tr>
+</tbody></table>
 
 <p><strong>依賴模組</strong>：<code>formatAxisLabel</code>, <code>fmtNum</code>, <code>fmtDeg</code>, <code>fmtDB</code></p>
 
@@ -1796,16 +1835,19 @@ PID（帶參數）：
 
 <p><strong>告警類型</strong></p>
 
-<table>
-<tr><td>條件</td><td>嚴重度</td><td>訊息</td></tr>
-<thead>
-<tr><th>κ(A) &gt; 1e8</th><th>error</th><th>系統矩陣接近奇異，計算結果不可信</th></tr>
-<tr><td>κ(Wc) &gt; 1000</td><td>warning</td><td>Gramian 條件數高，Cholesky 可能不穩定</td></tr>
-<tr><td>最小 HSV &lt; 1e-10</td><td>warning</td><td>Hankel 奇異值接近 0，建議先做最小實現</td></tr>
-<tr><td>matRank 不足</td><td>error</td><td>矩陣秩虧損，系統可能不可控/不可觀</td></tr>
-<tr><td>Lyapunov 解不正定</td><td>warning</td><td>A 可能不穩定或 Q 不半正定</td></tr>
+<table><thead>
+<tr><th>條件</th><th>嚴重度</th><th>訊息</th></tr>
 </thead><tbody>
-</table>
+<tr><td>κ(A) &gt; 1e8</td><td>error</td><td>系統矩陣接近奇異，計算結果不可信</td></tr>
+</thead><tbody>
+<tr><td>κ(Wc) &gt; 1000</td><td>warning</td><td>Gramian 條件數高，Cholesky 可能不穩定</td></tr>
+</thead><tbody>
+<tr><td>最小 HSV &lt; 1e-10</td><td>warning</td><td>Hankel 奇異值接近 0，建議先做最小實現</td></tr>
+</thead><tbody>
+<tr><td>matRank 不足</td><td>error</td><td>矩陣秩虧損，系統可能不可控/不可觀</td></tr>
+</thead><tbody>
+<tr><td>Lyapunov 解不正定</td><td>warning</td><td>A 可能不穩定或 Q 不半正定</td></tr>
+</tbody></table>
 
 <p><strong>視覺規格</strong></p>
 <pre><code>告警 banner：alert() 元件，error/warning variant
@@ -1927,16 +1969,19 @@ icon：32px，--accent-blue
 
 <p><strong>範例與設計頁對應</strong></p>
 
-<table>
-<tr><td>設計頁</td><td>範例</td><td>說明</td></tr>
-<thead>
-<tr><th>PID</th><th>DC Motor 位置控制</th><th>2 階系統，典型調參練習</th></tr>
-<tr><td>LQR</td><td>倒單擺穩定</td><td>4 階不穩定系統</td></tr>
-<tr><td>H∞</td><td>磁碟讀寫頭</td><td>需要強健性的精密控制</td></tr>
-<tr><td>MPC</td><td>化工溫度控制</td><td>有輸入/輸出約束</td></tr>
-<tr><td>根軌跡</td><td>質量彈簧阻尼</td><td>極點位置設計直觀</td></tr>
+<table><thead>
+<tr><th>設計頁</th><th>範例</th><th>說明</th></tr>
 </thead><tbody>
-</table>
+<tr><td>PID</td><td>DC Motor 位置控制</td><td>2 階系統，典型調參練習</td></tr>
+</thead><tbody>
+<tr><td>LQR</td><td>倒單擺穩定</td><td>4 階不穩定系統</td></tr>
+</thead><tbody>
+<tr><td>H∞</td><td>磁碟讀寫頭</td><td>需要強健性的精密控制</td></tr>
+</thead><tbody>
+<tr><td>MPC</td><td>化工溫度控制</td><td>有輸入/輸出約束</td></tr>
+</thead><tbody>
+<tr><td>根軌跡</td><td>質量彈簧阻尼</td><td>極點位置設計直觀</td></tr>
+</tbody></table>
 
 <p><strong>依賴模組</strong>：<code>stepResponse</code>, <code>buildSVGChart</code>（預覽縮圖生成）</p>
 
@@ -2024,17 +2069,21 @@ Popover 位置：欄位右側（或下方，不超出視窗）
 
 <p><strong>錯誤類型與提示內容</strong></p>
 
-<table>
-<tr><td>觸發條件</td><td>嚴重度</td><td>提示文字</td><td>建議行動</td></tr>
-<thead>
-<tr><th>RHP 極點（不穩定）</th><th>warning</th><th>「此系統為不穩定系統，設計控制器時需特別注意」</th><th>[查看根軌跡]</th></tr>
-<tr><td>分子次數 ≥ 分母</td><td>error</td><td>「傳遞函數分子次數不可大於等於分母次數（非正則系統）」</td><td>[修正分子]</td></tr>
-<tr><td>A 矩陣非方陣</td><td>error</td><td>「A 矩陣必須是 n×n 方陣，目前輸入為 2×3」</td><td>[重新輸入]</td></tr>
-<tr><td>離散系統極點在單位圓外</td><td>warning</td><td>「離散系統有不穩定極點（</td><td>z</td><td>&gt;1）」</td><td>[重新設計]</td></tr>
-<tr><td>控制器設計後系統不穩定</td><td>error</td><td>「閉迴路系統不穩定！請調整控制器參數」</td><td>[重設參數]</td></tr>
-<tr><td>步階響應發散</td><td>error</td><td>「步階響應發散，無法顯示—系統不穩定」</td><td>—</td></tr>
+<table><thead>
+<tr><th>觸發條件</th><th>嚴重度</th><th>提示文字</th><th>建議行動</th></tr>
 </thead><tbody>
-</table>
+<tr><td>RHP 極點（不穩定）</td><td>warning</td><td>「此系統為不穩定系統，設計控制器時需特別注意」</td><td>[查看根軌跡]</td></tr>
+</thead><tbody>
+<tr><td>分子次數 ≥ 分母</td><td>error</td><td>「傳遞函數分子次數不可大於等於分母次數（非正則系統）」</td><td>[修正分子]</td></tr>
+</thead><tbody>
+<tr><td>A 矩陣非方陣</td><td>error</td><td>「A 矩陣必須是 n×n 方陣，目前輸入為 2×3」</td><td>[重新輸入]</td></tr>
+</thead><tbody>
+<tr><td>離散系統極點在單位圓外</td><td>warning</td><td>「離散系統有不穩定極點（</td><td>z</td><td>&gt;1）」</td><td>[重新設計]</td></tr>
+</thead><tbody>
+<tr><td>控制器設計後系統不穩定</td><td>error</td><td>「閉迴路系統不穩定！請調整控制器參數」</td><td>[重設參數]</td></tr>
+</thead><tbody>
+<tr><td>步階響應發散</td><td>error</td><td>「步階響應發散，無法顯示—系統不穩定」</td><td>—</td></tr>
+</tbody></table>
 
 <p><strong>視覺規格</strong></p>
 <pre><code>error：alert('error')，紅色 icon，頂部 banner，不可關閉
@@ -2414,15 +2463,17 @@ warnings[] 區：--warning/10% 底色，⚠ 圖示，每條一行
 
 <p><strong>語言對應</strong></p>
 
-<table>
-<tr><td>控制器類型</td><td>C 輸出</td><td>Python 輸出</td><td>MATLAB 輸出</td></tr>
-<thead>
-<tr><th>PID</th><th>結構體 + update()</th><th>class PID</th><th>ss/tf + feedback</th></tr>
-<tr><td>SS/LQR</td><td>矩陣定義 + step</td><td>ss() + lqr()</td><td>ss + lqr</td></tr>
-<tr><td>H∞</td><td>ss 矩陣</td><td>control.ss</td><td>hinfsyn</td></tr>
-<tr><td>MPC</td><td>暫不支援 C</td><td>matrix define</td><td>mpc toolbox</td></tr>
+<table><thead>
+<tr><th>控制器類型</th><th>C 輸出</th><th>Python 輸出</th><th>MATLAB 輸出</th></tr>
 </thead><tbody>
-</table>
+<tr><td>PID</td><td>結構體 + update()</td><td>class PID</td><td>ss/tf + feedback</td></tr>
+</thead><tbody>
+<tr><td>SS/LQR</td><td>矩陣定義 + step</td><td>ss() + lqr()</td><td>ss + lqr</td></tr>
+</thead><tbody>
+<tr><td>H∞</td><td>ss 矩陣</td><td>control.ss</td><td>hinfsyn</td></tr>
+</thead><tbody>
+<tr><td>MPC</td><td>暫不支援 C</td><td>matrix define</td><td>mpc toolbox</td></tr>
+</tbody></table>
 
 <p><strong>依賴模組</strong></p>
 <p><code>exportController</code>, <code>toMatlabScript</code>, <code>toPythonScript</code>, <code>downloadScript</code>, <code>fmtNum</code></p>
@@ -2477,17 +2528,21 @@ z-domain Bode：[連續 (s)] [離散 ZOH] [離散 Tustin] 疊加顯示</code></p
 
 <p><strong>估算邏輯</strong></p>
 
-<table>
-<tr><td>控制器類型</td><td>FLOP 估算公式</td><td>備註</td></tr>
-<thead>
-<tr><th>PID</th><th>6</th><th>乘加法</th></tr>
-<tr><td>狀態回授 K·x</td><td>n² + n</td><td>n=狀態數</td></tr>
-<tr><td>Kalman 預測</td><td>2n² + n</td><td></td></tr>
-<tr><td>Kalman 更新</td><td>3n² + 2nm</td><td>m=量測數</td></tr>
-<tr><td>MPC（N 步）</td><td>~N·(n+m)²</td><td>需 QP 求解器</td></tr>
-<tr><td>H∞ 動態控制器</td><td>nc² + nc</td><td>nc=控制器階數</td></tr>
+<table><thead>
+<tr><th>控制器類型</th><th>FLOP 估算公式</th><th>備註</th></tr>
 </thead><tbody>
-</table>
+<tr><td>PID</td><td>6</td><td>乘加法</td></tr>
+</thead><tbody>
+<tr><td>狀態回授 K·x</td><td>n² + n</td><td>n=狀態數</td></tr>
+</thead><tbody>
+<tr><td>Kalman 預測</td><td>2n² + n</td><td></td></tr>
+</thead><tbody>
+<tr><td>Kalman 更新</td><td>3n² + 2nm</td><td>m=量測數</td></tr>
+</thead><tbody>
+<tr><td>MPC（N 步）</td><td>~N·(n+m)²</td><td>需 QP 求解器</td></tr>
+</thead><tbody>
+<tr><td>H∞ 動態控制器</td><td>nc² + nc</td><td>nc=控制器階數</td></tr>
+</tbody></table>
 
 <p><strong>視覺規格</strong></p>
 <pre><code>FLOP 數字：大字 24px，--accent
@@ -3230,17 +3285,21 @@ inactive tab：--text-muted，hover → --surface
 
 <p><strong>狀態轉換</strong></p>
 
-<table>
-<tr><td>狀態</td><td>圖示</td><td>文字</td><td>顏色</td><td>持續</td></tr>
-<thead>
-<tr><th>idle</th><th><code>─</code></th><th>就緒</th><th>--text-muted</th><th>常駐</th></tr>
-<tr><td>computing</td><td>⟳ spin</td><td>計算中…</td><td>--accent-blue</td><td>計算中</td></tr>
-<tr><td>progress</td><td>⟳ + 進度條</td><td>計算中（45%）</td><td>--accent-blue</td><td>計算中</td></tr>
-<tr><td>done</td><td>✓</td><td>完成（85ms）</td><td>--accent</td><td>3s 後→idle</td></tr>
-<tr><td>warning</td><td>⚠</td><td>增益裕度不足</td><td>--warning</td><td>常駐，可關閉</td></tr>
-<tr><td>error</td><td>✗</td><td>矩陣奇異 [詳細]</td><td>--error</td><td>常駐，可關閉</td></tr>
+<table><thead>
+<tr><th>狀態</th><th>圖示</th><th>文字</th><th>顏色</th><th>持續</th></tr>
 </thead><tbody>
-</table>
+<tr><td>idle</td><td><code>─</code></td><td>就緒</td><td>--text-muted</td><td>常駐</td></tr>
+</thead><tbody>
+<tr><td>computing</td><td>⟳ spin</td><td>計算中…</td><td>--accent-blue</td><td>計算中</td></tr>
+</thead><tbody>
+<tr><td>progress</td><td>⟳ + 進度條</td><td>計算中（45%）</td><td>--accent-blue</td><td>計算中</td></tr>
+</thead><tbody>
+<tr><td>done</td><td>✓</td><td>完成（85ms）</td><td>--accent</td><td>3s 後→idle</td></tr>
+</thead><tbody>
+<tr><td>warning</td><td>⚠</td><td>增益裕度不足</td><td>--warning</td><td>常駐，可關閉</td></tr>
+</thead><tbody>
+<tr><td>error</td><td>✗</td><td>矩陣奇異 [詳細]</td><td>--error</td><td>常駐，可關閉</td></tr>
+</tbody></table>
 
 <p><strong>依賴模組</strong></p>
 <p><code>spinner</code>（components.js）, <code>progressBar</code>, <code>liveRegion</code>（自動 aria-live）</p>
@@ -3410,18 +3469,23 @@ const PRINT_PATTERNS = ['solid','6,4','2,2','6,2,2,2','10,4','4,4','8,2','3,3'];
 
 <p><strong>受影響的動畫元件</strong></p>
 
-<table>
-<tr><td>元件</td><td>正常模式</td><td>reduced-motion</td></tr>
-<thead>
-<tr><th>SideNav 展開</th><th>200ms slide</th><th>瞬間顯示</th></tr>
-<tr><td>Wizard 步驟切換</td><td>300ms fade+slide</td><td>瞬間切換</td></tr>
-<tr><td>圖表資料動畫</td><td>400ms draw path</td><td>直接呈現</td></tr>
-<tr><td>C3-1 極點動畫</td><td>60fps 拖曳動畫</td><td>拖曳結果直接跳到</td></tr>
-<tr><td>C3-4 Nyquist 動畫</td><td>播放動畫</td><td>顯示靜態最終圖</td></tr>
-<tr><td>Confetti（C4-3）</td><td>動畫</td><td>直接顯示 badge</td></tr>
-<tr><td>StatusBar 進度條</td><td>animate</td><td>靜態百分比文字</td></tr>
+<table><thead>
+<tr><th>元件</th><th>正常模式</th><th>reduced-motion</th></tr>
 </thead><tbody>
-</table>
+<tr><td>SideNav 展開</td><td>200ms slide</td><td>瞬間顯示</td></tr>
+</thead><tbody>
+<tr><td>Wizard 步驟切換</td><td>300ms fade+slide</td><td>瞬間切換</td></tr>
+</thead><tbody>
+<tr><td>圖表資料動畫</td><td>400ms draw path</td><td>直接呈現</td></tr>
+</thead><tbody>
+<tr><td>C3-1 極點動畫</td><td>60fps 拖曳動畫</td><td>拖曳結果直接跳到</td></tr>
+</thead><tbody>
+<tr><td>C3-4 Nyquist 動畫</td><td>播放動畫</td><td>顯示靜態最終圖</td></tr>
+</thead><tbody>
+<tr><td>Confetti（C4-3）</td><td>動畫</td><td>直接顯示 badge</td></tr>
+</thead><tbody>
+<tr><td>StatusBar 進度條</td><td>animate</td><td>靜態百分比文字</td></tr>
+</tbody></table>
 
 <p><strong>CSS 全局規則</strong>（已在 F4-1 定義，此處補充 JS 端）</p>
 <pre><code class="lang-javascript">const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -3439,23 +3503,33 @@ const PRINT_PATTERNS = ['solid','6,4','2,2','6,2,2,2','10,4','4,4','8,2','3,3'];
 
 <p><strong>使用者故事</strong>：身為鍵盤使用者或無障礙使用者，我想完全用鍵盤操作所有功能，不依賴滑鼠也能完成設計流程。</p>
 
-<table>
-<tr><td>快捷鍵</td><td>動作</td></tr>
-<thead>
-<tr><th><code>Tab</code> / <code>Shift+Tab</code></th><th>焦點前進/後退</th></tr>
-<tr><td><code>Enter</code> / <code>Space</code></td><td>啟動按鈕、checkbox</td></tr>
-<tr><td><code>Escape</code></td><td>關閉 modal / popover / 全螢幕</td></tr>
-<tr><td><code>↑↓</code></td><td>在 nav 群組內移動、下拉選項</td></tr>
-<tr><td><code>←→</code></td><td>切換 tabs</td></tr>
-<tr><td><code>Ctrl+Z</code></td><td>Undo 調參</td></tr>
-<tr><td><code>Ctrl+Shift+Z</code></td><td>Redo 調參</td></tr>
-<tr><td><code>Ctrl+S</code></td><td>儲存目前設計</td></tr>
-<tr><td><code>Ctrl+E</code></td><td>匯出程式碼</td></tr>
-<tr><td><code>Ctrl+P</code></td><td>列印/生成報告</td></tr>
-<tr><td><code>F11</code></td><td>圖表全螢幕</td></tr>
-<tr><td><code>G</code> <code>M</code> <code>D</code> <code>A</code> <code>O</code></td><td>跳至 建模/設計/分析/輸出（按下 SideNav 群組）</td></tr>
+<table><thead>
+<tr><th>快捷鍵</th><th>動作</th></tr>
 </thead><tbody>
-</table>
+<tr><td><code>Tab</code> / <code>Shift+Tab</code></td><td>焦點前進/後退</td></tr>
+</thead><tbody>
+<tr><td><code>Enter</code> / <code>Space</code></td><td>啟動按鈕、checkbox</td></tr>
+</thead><tbody>
+<tr><td><code>Escape</code></td><td>關閉 modal / popover / 全螢幕</td></tr>
+</thead><tbody>
+<tr><td><code>↑↓</code></td><td>在 nav 群組內移動、下拉選項</td></tr>
+</thead><tbody>
+<tr><td><code>←→</code></td><td>切換 tabs</td></tr>
+</thead><tbody>
+<tr><td><code>Ctrl+Z</code></td><td>Undo 調參</td></tr>
+</thead><tbody>
+<tr><td><code>Ctrl+Shift+Z</code></td><td>Redo 調參</td></tr>
+</thead><tbody>
+<tr><td><code>Ctrl+S</code></td><td>儲存目前設計</td></tr>
+</thead><tbody>
+<tr><td><code>Ctrl+E</code></td><td>匯出程式碼</td></tr>
+</thead><tbody>
+<tr><td><code>Ctrl+P</code></td><td>列印/生成報告</td></tr>
+</thead><tbody>
+<tr><td><code>F11</code></td><td>圖表全螢幕</td></tr>
+</thead><tbody>
+<tr><td><code>G</code> <code>M</code> <code>D</code> <code>A</code> <code>O</code></td><td>跳至 建模/設計/分析/輸出（按下 SideNav 群組）</td></tr>
+</tbody></table>
 
 <p><strong>焦點環 CSS（對應 a11y.js focusRingCSS）</strong></p>
 <pre><code class="lang-css">:focus-visible {
@@ -3478,18 +3552,23 @@ const PRINT_PATTERNS = ['solid','6,4','2,2','6,2,2,2','10,4','4,4','8,2','3,3'];
 
 <p><strong>ARIA 實作規格</strong></p>
 
-<table>
-<tr><td>元件</td><td>ARIA 屬性</td><td>播報內容</td></tr>
-<thead>
-<tr><th>圖表</th><th><code>role="img" aria-label="..."</code></th><th>「步階響應圖：OS%=8.3%，Ts=1.85s，穩定」</th></tr>
-<tr><td>StatusBar</td><td><code>role="status" aria-live="polite"</code></td><td>狀態變化時自動播報</td></tr>
-<tr><td>計算錯誤</td><td><code>role="alert" aria-live="assertive"</code></td><td>立即播報錯誤內容</td></tr>
-<tr><td>Wizard 步驟</td><td><code>aria-current="step"</code></td><td>「第 3 步，共 4 步：設計控制器」</td></tr>
-<tr><td>比較表格</td><td><code>aria-label="方案比較表"</code></td><td>表格結構正確（caption, th, td）</td></tr>
-<tr><td>SideNav</td><td><code>aria-label="主要導覽"</code></td><td>nav landmark</td></tr>
-<tr><td>Tabs</td><td><code>role="tablist/tab/tabpanel"</code></td><td>a11y.js <code>tabs()</code> 元件</td></tr>
+<table><thead>
+<tr><th>元件</th><th>ARIA 屬性</th><th>播報內容</th></tr>
 </thead><tbody>
-</table>
+<tr><td>圖表</td><td><code>role="img" aria-label="..."</code></td><td>「步階響應圖：OS%=8.3%，Ts=1.85s，穩定」</td></tr>
+</thead><tbody>
+<tr><td>StatusBar</td><td><code>role="status" aria-live="polite"</code></td><td>狀態變化時自動播報</td></tr>
+</thead><tbody>
+<tr><td>計算錯誤</td><td><code>role="alert" aria-live="assertive"</code></td><td>立即播報錯誤內容</td></tr>
+</thead><tbody>
+<tr><td>Wizard 步驟</td><td><code>aria-current="step"</code></td><td>「第 3 步，共 4 步：設計控制器」</td></tr>
+</thead><tbody>
+<tr><td>比較表格</td><td><code>aria-label="方案比較表"</code></td><td>表格結構正確（caption, th, td）</td></tr>
+</thead><tbody>
+<tr><td>SideNav</td><td><code>aria-label="主要導覽"</code></td><td>nav landmark</td></tr>
+</thead><tbody>
+<tr><td>Tabs</td><td><code>role="tablist/tab/tabpanel"</code></td><td>a11y.js <code>tabs()</code> 元件</td></tr>
+</tbody></table>
 
 <p><strong>圖表文字替代描述生成規則</strong></p>
 <pre><code class="lang-javascript">function chartAltText(type, data) {
@@ -3636,17 +3715,21 @@ const PRINT_PATTERNS = ['solid','6,4','2,2','6,2,2,2','10,4','4,4','8,2','3,3'];
 
 <p><strong>各頁面空狀態</strong></p>
 
-<table>
-<tr><td>頁面</td><td>空狀態觸發</td><td>顯示內容</td></tr>
-<thead>
-<tr><th>工作區</th><th>未載入系統</th><th>「尚未載入系統模型」+ [新增系統] [從範例開始] [SysID] 三 CTA</th></tr>
-<tr><td>規格面板</td><td>未設定規格</td><td>「設定設計規格以追蹤合規狀態」+ [設定規格]</td></tr>
-<tr><td>比較模式</td><td>只有 1 個設計</td><td>「需要至少 2 個設計才能比較」+ [複製目前設計]</td></tr>
-<tr><td>決策日誌</td><td>無歷史</td><td>「開始設計後，變更記錄會出現在這裡」</td></tr>
-<tr><td>筆記</td><td>無筆記</td><td>「在任何頁面加筆記，會集中顯示在這裡」</td></tr>
-<tr><td>搜尋結果</td><td>無匹配</td><td>「找不到符合『xyz』的功能」+ 建議關鍵字</td></tr>
+<table><thead>
+<tr><th>頁面</th><th>空狀態觸發</th><th>顯示內容</th></tr>
 </thead><tbody>
-</table>
+<tr><td>工作區</td><td>未載入系統</td><td>「尚未載入系統模型」+ [新增系統] [從範例開始] [SysID] 三 CTA</td></tr>
+</thead><tbody>
+<tr><td>規格面板</td><td>未設定規格</td><td>「設定設計規格以追蹤合規狀態」+ [設定規格]</td></tr>
+</thead><tbody>
+<tr><td>比較模式</td><td>只有 1 個設計</td><td>「需要至少 2 個設計才能比較」+ [複製目前設計]</td></tr>
+</thead><tbody>
+<tr><td>決策日誌</td><td>無歷史</td><td>「開始設計後，變更記錄會出現在這裡」</td></tr>
+</thead><tbody>
+<tr><td>筆記</td><td>無筆記</td><td>「在任何頁面加筆記，會集中顯示在這裡」</td></tr>
+</thead><tbody>
+<tr><td>搜尋結果</td><td>無匹配</td><td>「找不到符合『xyz』的功能」+ 建議關鍵字</td></tr>
+</tbody></table>
 
 <p><strong>視覺規格</strong></p>
 <pre><code>空狀態容器：置中，max-width 400px
@@ -3798,15 +3881,17 @@ CTA：primary button（主要動作）+ ghost button（次要）
 
 <p><strong>斷點佈局策略（對應 theme.js BREAKPOINTS）</strong></p>
 
-<table>
-<tr><td>斷點</td><td>寬度</td><td>佈局調整</td></tr>
-<thead>
-<tr><th>xs/sm</th><th>&lt;768px</th><th>SideNav 收為漢堡選單（抽屜式）；單窗格；圖表全寬堆疊</th></tr>
-<tr><td>md</td><td>768–1024</td><td>SideNav 可收合為 icon-only（48px）；雙窗格改上下</td></tr>
-<tr><td>lg</td><td>1024–1280</td><td>標準佈局（SideNav 220px + 左右窗格）</td></tr>
-<tr><td>xl+</td><td>&gt;1280</td><td>寬佈局，主圖全寬 + 下排雙 companion charts（A5-1）</td></tr>
+<table><thead>
+<tr><th>斷點</th><th>寬度</th><th>佈局調整</th></tr>
 </thead><tbody>
-</table>
+<tr><td>xs/sm</td><td>&lt;768px</td><td>SideNav 收為漢堡選單（抽屜式）；單窗格；圖表全寬堆疊</td></tr>
+</thead><tbody>
+<tr><td>md</td><td>768–1024</td><td>SideNav 可收合為 icon-only（48px）；雙窗格改上下</td></tr>
+</thead><tbody>
+<tr><td>lg</td><td>1024–1280</td><td>標準佈局（SideNav 220px + 左右窗格）</td></tr>
+</thead><tbody>
+<tr><td>xl+</td><td>&gt;1280</td><td>寬佈局，主圖全寬 + 下排雙 companion charts（A5-1）</td></tr>
+</tbody></table>
 
 <p><strong>行動裝置特化</strong></p>
 <pre><code>觸控目標：最小 44×44px（WCAG）
@@ -4068,30 +4153,47 @@ danger 按鈕：--error 底色，白字
 
 <p>現有元件無法直接覆蓋的 UI 模式，需要新增：</p>
 
-<table>
-<tr><td>元件</td><td>用途</td><td>涉及功能</td></tr>
-<thead>
-<tr><th><code>slider(value, opts)</code></th><th>參數調整滑桿（log/lin，含 input sync）</th><th>A3-1</th></tr>
-<tr><td><code>splitPane(left, right, opts)</code></td><td>可拖移分割工作區</td><td>F2-1</td></tr>
-<tr><td><code>codeBlock(code, lang)</code></td><td>syntax highlight 程式碼區塊</td><td>D1-2</td></tr>
-<tr><td><code>radarChart(axes, series)</code></td><td>多維度比較雷達圖</td><td>E2-2</td></tr>
-<tr><td><code>timelineList(items)</code></td><td>版本歷史時間軸</td><td>E1-3, A3-4</td></tr>
-<tr><td><code>matrixGrid(data, opts)</code></td><td>矩陣數值表格（條件數、正定性）</td><td>B2-1</td></tr>
-<tr><td><code>barChart(values, labels)</code></td><td>Hankel 奇異值長條圖</td><td>B2-2</td></tr>
-<tr><td><code>complexPlane(poles, zeros, opts)</code></td><td>極零點地圖（可縮放）</td><td>B2-3</td></tr>
-<tr><td><code>draggablePlane(opts)</code></td><td>可拖曳複數平面（極點互動）</td><td>A3-2, C3-1</td></tr>
-<tr><td><code>animatedPath(points, opts)</code></td><td>Nyquist 動畫播放器</td><td>C3-4</td></tr>
-<tr><td><code>notification(msg, variant)</code></td><td>浮動通知 toast（3s 自動消失）</td><td>G10、全局</td></tr>
-<tr><td><code>contextMenu(items)</code></td><td>右鍵選單（圖表操作）</td><td>圖表全局</td></tr>
-<tr><td><code>tooltipPopover(anchor, content)</code></td><td>智慧定位 tooltip</td><td>A4-2、hint 氣泡全局</td></tr>
-<tr><td><code>commandPalette(index)</code></td><td>Cmd+K 模糊搜尋跳轉面板</td><td>G3</td></tr>
-<tr><td><code>emptyState(icon, title, ctas)</code></td><td>空狀態引導區塊</td><td>G2、全局</td></tr>
-<tr><td><code>confirmDialog(opts)</code></td><td>危險操作確認對話框（focus trap）</td><td>G12</td></tr>
-<tr><td><code>skeleton(shape)</code></td><td>載入骨架屏（shimmer）</td><td>G11</td></tr>
-<tr><td><code>spotlightTour(steps)</code></td><td>Onboarding 聚光導覽</td><td>G8</td></tr>
-<tr><td><code>unitSwitch(group)</code></td><td>單位切換 chip（rad/s↔Hz 等）</td><td>G1</td></tr>
+<table><thead>
+<tr><th>元件</th><th>用途</th><th>涉及功能</th></tr>
 </thead><tbody>
-</table>
+<tr><td><code>slider(value, opts)</code></td><td>參數調整滑桿（log/lin，含 input sync）</td><td>A3-1</td></tr>
+</thead><tbody>
+<tr><td><code>splitPane(left, right, opts)</code></td><td>可拖移分割工作區</td><td>F2-1</td></tr>
+</thead><tbody>
+<tr><td><code>codeBlock(code, lang)</code></td><td>syntax highlight 程式碼區塊</td><td>D1-2</td></tr>
+</thead><tbody>
+<tr><td><code>radarChart(axes, series)</code></td><td>多維度比較雷達圖</td><td>E2-2</td></tr>
+</thead><tbody>
+<tr><td><code>timelineList(items)</code></td><td>版本歷史時間軸</td><td>E1-3, A3-4</td></tr>
+</thead><tbody>
+<tr><td><code>matrixGrid(data, opts)</code></td><td>矩陣數值表格（條件數、正定性）</td><td>B2-1</td></tr>
+</thead><tbody>
+<tr><td><code>barChart(values, labels)</code></td><td>Hankel 奇異值長條圖</td><td>B2-2</td></tr>
+</thead><tbody>
+<tr><td><code>complexPlane(poles, zeros, opts)</code></td><td>極零點地圖（可縮放）</td><td>B2-3</td></tr>
+</thead><tbody>
+<tr><td><code>draggablePlane(opts)</code></td><td>可拖曳複數平面（極點互動）</td><td>A3-2, C3-1</td></tr>
+</thead><tbody>
+<tr><td><code>animatedPath(points, opts)</code></td><td>Nyquist 動畫播放器</td><td>C3-4</td></tr>
+</thead><tbody>
+<tr><td><code>notification(msg, variant)</code></td><td>浮動通知 toast（3s 自動消失）</td><td>G10、全局</td></tr>
+</thead><tbody>
+<tr><td><code>contextMenu(items)</code></td><td>右鍵選單（圖表操作）</td><td>圖表全局</td></tr>
+</thead><tbody>
+<tr><td><code>tooltipPopover(anchor, content)</code></td><td>智慧定位 tooltip</td><td>A4-2、hint 氣泡全局</td></tr>
+</thead><tbody>
+<tr><td><code>commandPalette(index)</code></td><td>Cmd+K 模糊搜尋跳轉面板</td><td>G3</td></tr>
+</thead><tbody>
+<tr><td><code>emptyState(icon, title, ctas)</code></td><td>空狀態引導區塊</td><td>G2、全局</td></tr>
+</thead><tbody>
+<tr><td><code>confirmDialog(opts)</code></td><td>危險操作確認對話框（focus trap）</td><td>G12</td></tr>
+</thead><tbody>
+<tr><td><code>skeleton(shape)</code></td><td>載入骨架屏（shimmer）</td><td>G11</td></tr>
+</thead><tbody>
+<tr><td><code>spotlightTour(steps)</code></td><td>Onboarding 聚光導覽</td><td>G8</td></tr>
+</thead><tbody>
+<tr><td><code>unitSwitch(group)</code></td><td>單位切換 chip（rad/s↔Hz 等）</td><td>G1</td></tr>
+</tbody></table>
 
 <p>新元件共 <strong>18 項</strong>（原 13 + G 群 5：commandPalette / emptyState / confirmDialog / skeleton / spotlightTour，unitSwitch 可由 badge 衍生）。</p>
 
@@ -4101,21 +4203,29 @@ danger 按鈕：--error 底色，白字
 
 <h3 id="p1-立即實作-基礎設施-最高頻操作">P1 — 立即實作（基礎設施 + 最高頻操作）</h3>
 
-<table>
-<tr><td>項目</td><td>涉及元件</td><td>估計工時</td><td>影響族群</td></tr>
-<thead>
-<tr><th>F1-1 四層導覽列</th><th>SideNav 重構</th><th>2d</th><th>全部</th></tr>
-<tr><td>F1-2 Context Bar</td><td>badge + 系統下拉</td><td>1d</td><td>全部</td></tr>
-<tr><td>F3-1 全域狀態列</td><td>StatusBar + liveRegion</td><td>1d</td><td>全部</td></tr>
-<tr><td>A2-1 設計規格面板</td><td>panel + formField + badge</td><td>2d</td><td>A、E</td></tr>
-<tr><td>A3-1 參數滑桿（新 slider 元件）</td><td>slider + RAF 即時更新</td><td>3d</td><td>A、C</td></tr>
-<tr><td>D1-1~4 程式碼生成面板</td><td>codeBlock（已有 exportController）</td><td>2d</td><td>D</td></tr>
-<tr><td>F4-1 三主題切換 UI</td><td>已有 theme.js，補 toggle UI</td><td>1d</td><td>全部</td></tr>
-<tr><td>G2 空狀態設計</td><td>emptyState</td><td>1d</td><td>全部（基礎）</td></tr>
-<tr><td>G10 通知 Toast</td><td>notification</td><td>1d</td><td>全部（基礎）</td></tr>
-<tr><td>G12 危險操作確認</td><td>confirmDialog</td><td>1d</td><td>全部（安全）</td></tr>
+<table><thead>
+<tr><th>項目</th><th>涉及元件</th><th>估計工時</th><th>影響族群</th></tr>
 </thead><tbody>
-</table>
+<tr><td>F1-1 四層導覽列</td><td>SideNav 重構</td><td>2d</td><td>全部</td></tr>
+</thead><tbody>
+<tr><td>F1-2 Context Bar</td><td>badge + 系統下拉</td><td>1d</td><td>全部</td></tr>
+</thead><tbody>
+<tr><td>F3-1 全域狀態列</td><td>StatusBar + liveRegion</td><td>1d</td><td>全部</td></tr>
+</thead><tbody>
+<tr><td>A2-1 設計規格面板</td><td>panel + formField + badge</td><td>2d</td><td>A、E</td></tr>
+</thead><tbody>
+<tr><td>A3-1 參數滑桿（新 slider 元件）</td><td>slider + RAF 即時更新</td><td>3d</td><td>A、C</td></tr>
+</thead><tbody>
+<tr><td>D1-1~4 程式碼生成面板</td><td>codeBlock（已有 exportController）</td><td>2d</td><td>D</td></tr>
+</thead><tbody>
+<tr><td>F4-1 三主題切換 UI</td><td>已有 theme.js，補 toggle UI</td><td>1d</td><td>全部</td></tr>
+</thead><tbody>
+<tr><td>G2 空狀態設計</td><td>emptyState</td><td>1d</td><td>全部（基礎）</td></tr>
+</thead><tbody>
+<tr><td>G10 通知 Toast</td><td>notification</td><td>1d</td><td>全部（基礎）</td></tr>
+</thead><tbody>
+<tr><td>G12 危險操作確認</td><td>confirmDialog</td><td>1d</td><td>全部（安全）</td></tr>
+</tbody></table>
 
 <p>P1 小計：<strong>15d</strong></p>
 
@@ -4130,61 +4240,97 @@ danger 按鈕：--error 底色，白字
 </ul>
 <h3 id="p2-第二波-高-ux-價值-中等成本">P2 — 第二波（高 UX 價值，中等成本）</h3>
 
-<table>
-<tr><td>項目</td><td>涉及元件</td><td>估計工時</td><td>影響族群</td></tr>
-<thead>
-<tr><th>A1-1 系統輸入精靈</th><th>modal + tabs + formField</th><th>3d</th><th>A、C</th></tr>
-<tr><td>A2-2/2-3 規格線 + 合規 indicator</td><td>overlayLines + badge</td><td>2d</td><td>A、E</td></tr>
-<tr><td>A5-1/5-2/5-3 plot workspace + 靈敏度 + 穩健性</td><td>main+2 companion layout + 同步游標</td><td>4d</td><td>A、B</td></tr>
-<tr><td>B1-1~3 比較模式 + 指標表 + 差異</td><td>buildSVGChart 多系列 + table</td><td>3d</td><td>B、E</td></tr>
-<tr><td>B2-2 Hankel 長條圖</td><td>barChart + 截斷滑桿</td><td>2d</td><td>B</td></tr>
-<tr><td>B2-3 極零點地圖</td><td>complexPlane + createZoomState</td><td>3d</td><td>A、B</td></tr>
-<tr><td>B3-1~4 圖表控制（軸/讀值/主題/匯出）</td><td>createZoomState + crosshair</td><td>3d</td><td>B</td></tr>
-<tr><td>C2-1~3 Wizard + Hint + 錯誤提示</td><td>renderWizardPanel + tooltipPopover</td><td>3d</td><td>C</td></tr>
-<tr><td>D2-1~4 離散化工具</td><td>c2d* + 雙 Bode</td><td>2d</td><td>D</td></tr>
-<tr><td>F2-1~3 分割 + 標籤頁 + 全螢幕</td><td>splitPane + tabs</td><td>4d</td><td>全部</td></tr>
-<tr><td>F3-2/3-3 Dirty + 進度條</td><td>progressBar</td><td>1d</td><td>全部</td></tr>
-<tr><td>G1 單位切換</td><td>unitSwitch</td><td>2d</td><td>全部（控制核心）</td></tr>
-<tr><td>G3 命令面板</td><td>commandPalette</td><td>3d</td><td>全部</td></tr>
-<tr><td>G4 偏好設定頁</td><td>tabs + formField</td><td>2d</td><td>全部</td></tr>
-<tr><td>G11 骨架屏</td><td>skeleton</td><td>1d</td><td>全部</td></tr>
-<tr><td>G13 快捷鍵說明</td><td>describeKey + table</td><td>1d</td><td>全部</td></tr>
+<table><thead>
+<tr><th>項目</th><th>涉及元件</th><th>估計工時</th><th>影響族群</th></tr>
 </thead><tbody>
-</table>
+<tr><td>A1-1 系統輸入精靈</td><td>modal + tabs + formField</td><td>3d</td><td>A、C</td></tr>
+</thead><tbody>
+<tr><td>A2-2/2-3 規格線 + 合規 indicator</td><td>overlayLines + badge</td><td>2d</td><td>A、E</td></tr>
+</thead><tbody>
+<tr><td>A5-1/5-2/5-3 plot workspace + 靈敏度 + 穩健性</td><td>main+2 companion layout + 同步游標</td><td>4d</td><td>A、B</td></tr>
+</thead><tbody>
+<tr><td>B1-1~3 比較模式 + 指標表 + 差異</td><td>buildSVGChart 多系列 + table</td><td>3d</td><td>B、E</td></tr>
+</thead><tbody>
+<tr><td>B2-2 Hankel 長條圖</td><td>barChart + 截斷滑桿</td><td>2d</td><td>B</td></tr>
+</thead><tbody>
+<tr><td>B2-3 極零點地圖</td><td>complexPlane + createZoomState</td><td>3d</td><td>A、B</td></tr>
+</thead><tbody>
+<tr><td>B3-1~4 圖表控制（軸/讀值/主題/匯出）</td><td>createZoomState + crosshair</td><td>3d</td><td>B</td></tr>
+</thead><tbody>
+<tr><td>C2-1~3 Wizard + Hint + 錯誤提示</td><td>renderWizardPanel + tooltipPopover</td><td>3d</td><td>C</td></tr>
+</thead><tbody>
+<tr><td>D2-1~4 離散化工具</td><td>c2d* + 雙 Bode</td><td>2d</td><td>D</td></tr>
+</thead><tbody>
+<tr><td>F2-1~3 分割 + 標籤頁 + 全螢幕</td><td>splitPane + tabs</td><td>4d</td><td>全部</td></tr>
+</thead><tbody>
+<tr><td>F3-2/3-3 Dirty + 進度條</td><td>progressBar</td><td>1d</td><td>全部</td></tr>
+</thead><tbody>
+<tr><td>G1 單位切換</td><td>unitSwitch</td><td>2d</td><td>全部（控制核心）</td></tr>
+</thead><tbody>
+<tr><td>G3 命令面板</td><td>commandPalette</td><td>3d</td><td>全部</td></tr>
+</thead><tbody>
+<tr><td>G4 偏好設定頁</td><td>tabs + formField</td><td>2d</td><td>全部</td></tr>
+</thead><tbody>
+<tr><td>G11 骨架屏</td><td>skeleton</td><td>1d</td><td>全部</td></tr>
+</thead><tbody>
+<tr><td>G13 快捷鍵說明</td><td>describeKey + table</td><td>1d</td><td>全部</td></tr>
+</tbody></table>
 
 <p>P2 小計：<strong>39d</strong></p>
 
 <h3 id="p3-第三波-專化功能-完整性-依資源排程">P3 — 第三波（專化功能 / 完整性，依資源排程）</h3>
 
-<table>
-<tr><td>項目</td><td>涉及元件</td><td>估計工時</td><td>影響族群</td></tr>
-<thead>
-<tr><th>A1-2/1-3/1-4 SysID + 範例庫 + 健康 badge</th><th>identify* + 縮圖</th><th>3d</th><th>A</th></tr>
-<tr><td>A3-2/3-3/3-4 拖曳極點 + 折點 + Undo</td><td>draggablePlane + history</td><td>5d</td><td>A</td></tr>
-<tr><td>A4-1~3 designWizard + 標籤 + 說明</td><td>renderWizardPanel</td><td>2d</td><td>A</td></tr>
-<tr><td>B2-1/2-4 矩陣展開 + Gramian 詳細</td><td>matrixGrid</td><td>2d</td><td>B</td></tr>
-<tr><td>B4-1~4 匯入匯出 + bridge + LaTeX</td><td>toCSV/toJSON + tfToLatex</td><td>2d</td><td>B</td></tr>
-<tr><td>B5-1~3 計算步驟 + tooltip + 告警</td><td>panel 嵌套</td><td>2d</td><td>B</td></tr>
-<tr><td>C1-1~3 索引卡 + 說明 + 範例按鈕</td><td>emptyState + panel</td><td>2d</td><td>C</td></tr>
-<tr><td>C3-1~4 極點動畫 + 敏感度 + 相平面 + Nyquist</td><td>draggablePlane + animatedPath</td><td>8d</td><td>C</td></tr>
-<tr><td>C4-1~3 草稿 + 筆記 + 完成 badge</td><td>localStorage + timelineList</td><td>3d</td><td>C</td></tr>
-<tr><td>C5-1~3 報告 + 截圖 + 摘要卡</td><td>generateDesignReport</td><td>3d</td><td>C</td></tr>
-<tr><td>D3-1~3 FLOP + 記憶體 + 平台標籤</td><td>exportController 解析</td><td>2d</td><td>D</td></tr>
-<tr><td>D4-1~3 測試樣板 + 數值比對 + HIL</td><td>exportController + table</td><td>3d</td><td>D</td></tr>
-<tr><td>D5-1~3 初始化說明 + 接線圖 + warnings</td><td>exportController + SVG</td><td>2d</td><td>D</td></tr>
-<tr><td>E1-1~3 儀表板總覽</td><td>timelineList + 整合</td><td>3d</td><td>E</td></tr>
-<tr><td>E2-1~3 評分矩陣 + 雷達 + 標籤</td><td>radarChart + table</td><td>3d</td><td>E</td></tr>
-<tr><td>E3-1~3 報告輸出系統</td><td>generateDesignReport 擴充</td><td>2d</td><td>E</td></tr>
-<tr><td>E4-1~3 決策日誌 + 來源 + 簽核</td><td>timelineList + formField</td><td>3d</td><td>E</td></tr>
-<tr><td>F4-2~4 品牌色 + 8色 + reduced-motion</td><td>規範 + CSS</td><td>1d</td><td>全部</td></tr>
-<tr><td>F5-1~4 鍵盤 + 螢幕閱讀 + 高對比 + skip</td><td>a11y.js</td><td>2d</td><td>全部（無障礙）</td></tr>
-<tr><td>G5 i18n 系統</td><td>js/i18n/</td><td>3d</td><td>全部</td></tr>
-<tr><td>G6 響應式 / 行動裝置</td><td>mediaQuery + responsiveGrid</td><td>3d</td><td>全部</td></tr>
-<tr><td>G7 色盲友善</td><td>線型 + 色盲色板</td><td>2d</td><td>全部（無障礙）</td></tr>
-<tr><td>G8 Onboarding</td><td>spotlightTour</td><td>2d</td><td>C、全部</td></tr>
-<tr><td>G9 多專案管理</td><td>序列化 + toJSON</td><td>3d</td><td>全部</td></tr>
+<table><thead>
+<tr><th>項目</th><th>涉及元件</th><th>估計工時</th><th>影響族群</th></tr>
 </thead><tbody>
-</table>
+<tr><td>A1-2/1-3/1-4 SysID + 範例庫 + 健康 badge</td><td>identify* + 縮圖</td><td>3d</td><td>A</td></tr>
+</thead><tbody>
+<tr><td>A3-2/3-3/3-4 拖曳極點 + 折點 + Undo</td><td>draggablePlane + history</td><td>5d</td><td>A</td></tr>
+</thead><tbody>
+<tr><td>A4-1~3 designWizard + 標籤 + 說明</td><td>renderWizardPanel</td><td>2d</td><td>A</td></tr>
+</thead><tbody>
+<tr><td>B2-1/2-4 矩陣展開 + Gramian 詳細</td><td>matrixGrid</td><td>2d</td><td>B</td></tr>
+</thead><tbody>
+<tr><td>B4-1~4 匯入匯出 + bridge + LaTeX</td><td>toCSV/toJSON + tfToLatex</td><td>2d</td><td>B</td></tr>
+</thead><tbody>
+<tr><td>B5-1~3 計算步驟 + tooltip + 告警</td><td>panel 嵌套</td><td>2d</td><td>B</td></tr>
+</thead><tbody>
+<tr><td>C1-1~3 索引卡 + 說明 + 範例按鈕</td><td>emptyState + panel</td><td>2d</td><td>C</td></tr>
+</thead><tbody>
+<tr><td>C3-1~4 極點動畫 + 敏感度 + 相平面 + Nyquist</td><td>draggablePlane + animatedPath</td><td>8d</td><td>C</td></tr>
+</thead><tbody>
+<tr><td>C4-1~3 草稿 + 筆記 + 完成 badge</td><td>localStorage + timelineList</td><td>3d</td><td>C</td></tr>
+</thead><tbody>
+<tr><td>C5-1~3 報告 + 截圖 + 摘要卡</td><td>generateDesignReport</td><td>3d</td><td>C</td></tr>
+</thead><tbody>
+<tr><td>D3-1~3 FLOP + 記憶體 + 平台標籤</td><td>exportController 解析</td><td>2d</td><td>D</td></tr>
+</thead><tbody>
+<tr><td>D4-1~3 測試樣板 + 數值比對 + HIL</td><td>exportController + table</td><td>3d</td><td>D</td></tr>
+</thead><tbody>
+<tr><td>D5-1~3 初始化說明 + 接線圖 + warnings</td><td>exportController + SVG</td><td>2d</td><td>D</td></tr>
+</thead><tbody>
+<tr><td>E1-1~3 儀表板總覽</td><td>timelineList + 整合</td><td>3d</td><td>E</td></tr>
+</thead><tbody>
+<tr><td>E2-1~3 評分矩陣 + 雷達 + 標籤</td><td>radarChart + table</td><td>3d</td><td>E</td></tr>
+</thead><tbody>
+<tr><td>E3-1~3 報告輸出系統</td><td>generateDesignReport 擴充</td><td>2d</td><td>E</td></tr>
+</thead><tbody>
+<tr><td>E4-1~3 決策日誌 + 來源 + 簽核</td><td>timelineList + formField</td><td>3d</td><td>E</td></tr>
+</thead><tbody>
+<tr><td>F4-2~4 品牌色 + 8色 + reduced-motion</td><td>規範 + CSS</td><td>1d</td><td>全部</td></tr>
+</thead><tbody>
+<tr><td>F5-1~4 鍵盤 + 螢幕閱讀 + 高對比 + skip</td><td>a11y.js</td><td>2d</td><td>全部（無障礙）</td></tr>
+</thead><tbody>
+<tr><td>G5 i18n 系統</td><td>js/i18n/</td><td>3d</td><td>全部</td></tr>
+</thead><tbody>
+<tr><td>G6 響應式 / 行動裝置</td><td>mediaQuery + responsiveGrid</td><td>3d</td><td>全部</td></tr>
+</thead><tbody>
+<tr><td>G7 色盲友善</td><td>線型 + 色盲色板</td><td>2d</td><td>全部（無障礙）</td></tr>
+</thead><tbody>
+<tr><td>G8 Onboarding</td><td>spotlightTour</td><td>2d</td><td>C、全部</td></tr>
+</thead><tbody>
+<tr><td>G9 多專案管理</td><td>序列化 + toJSON</td><td>3d</td><td>全部</td></tr>
+</tbody></table>
 
 <p>P3 小計：<strong>71d</strong></p>
 
@@ -4202,15 +4348,17 @@ danger 按鈕：--error 底色，白字
 
 <h3 id="工時總覽">工時總覽</h3>
 
-<table>
-<tr><td>階段</td><td>工時</td><td>內容</td></tr>
-<thead>
-<tr><th>P1</th><th>15d</th><th>全局架構 + 基礎設施（導覽/狀態/Toast/確認/空狀態）</th></tr>
-<tr><td>P2</td><td>39d</td><td>高頻設計分析功能 + 命令面板 + 單位 + 偏好</td></tr>
-<tr><td>P3</td><td>71d</td><td>專化功能 + 完整無障礙 + i18n + 行動裝置</td></tr>
-<tr><td><strong>合計</strong></td><td><strong>125d</strong></td><td>涵蓋全部 85 功能卡 + 13 橫切面向</td></tr>
+<table><thead>
+<tr><th>階段</th><th>工時</th><th>內容</th></tr>
 </thead><tbody>
-</table>
+<tr><td>P1</td><td>15d</td><td>全局架構 + 基礎設施（導覽/狀態/Toast/確認/空狀態）</td></tr>
+</thead><tbody>
+<tr><td>P2</td><td>39d</td><td>高頻設計分析功能 + 命令面板 + 單位 + 偏好</td></tr>
+</thead><tbody>
+<tr><td>P3</td><td>71d</td><td>專化功能 + 完整無障礙 + i18n + 行動裝置</td></tr>
+</thead><tbody>
+<tr><td><strong>合計</strong></td><td><strong>125d</strong></td><td>涵蓋全部 85 功能卡 + 13 橫切面向</td></tr>
+</tbody></table>
 
 <blockquote>
 <p>註：此優先表已涵蓋 §4–§10 全部功能（A–G），無遺漏未排級項目。</p>
@@ -4286,17 +4434,21 @@ danger 按鈕：--error 底色，白字
 
 <h2 id="診斷摘要">診斷摘要</h2>
 
-<table>
-<tr><td>痛點</td><td>嚴重度</td><td>觀察根據</td></tr>
-<thead>
-<tr><th>側欄垂直堆疊，嚴重滾動疲勞</th><th>★★★★★</th><th>使用者明確反映；截圖可見 Plant/SysID/Discrete/Controller/Stability… 全部垂直連接</th></tr>
-<tr><td>圖表指標隱藏在側欄，需視線轉移</td><td>★★★★☆</td><td>Rise time/OS/PM/GM 只顯示於左側數字，主圖無標注</td></tr>
-<tr><td>設計流程無引導，新手不知從何開始</td><td>★★★★☆</td><td>無步驟進度感，各功能面板平權無優先序</td></tr>
-<tr><td>參數改變→效果間無直接對應視覺</td><td>★★★☆☆</td><td>調 Kp 只能靠 Step Response 圖感受，沒有掃描/預覽機制</td></tr>
-<tr><td>無法在圖上直接量測兩點差值</td><td>★★★☆☆</td><td>工程師需手算差值（例如 Bode 中頻段斜率）</td></tr>
-<tr><td>設計無法分享/存成固定連結</td><td>★★☆☆☆</td><td>目前只有 localStorage，無 URL 分享</td></tr>
+<table><thead>
+<tr><th>痛點</th><th>嚴重度</th><th>觀察根據</th></tr>
 </thead><tbody>
-</table>
+<tr><td>側欄垂直堆疊，嚴重滾動疲勞</td><td>★★★★★</td><td>使用者明確反映；截圖可見 Plant/SysID/Discrete/Controller/Stability… 全部垂直連接</td></tr>
+</thead><tbody>
+<tr><td>圖表指標隱藏在側欄，需視線轉移</td><td>★★★★☆</td><td>Rise time/OS/PM/GM 只顯示於左側數字，主圖無標注</td></tr>
+</thead><tbody>
+<tr><td>設計流程無引導，新手不知從何開始</td><td>★★★★☆</td><td>無步驟進度感，各功能面板平權無優先序</td></tr>
+</thead><tbody>
+<tr><td>參數改變→效果間無直接對應視覺</td><td>★★★☆☆</td><td>調 Kp 只能靠 Step Response 圖感受，沒有掃描/預覽機制</td></tr>
+</thead><tbody>
+<tr><td>無法在圖上直接量測兩點差值</td><td>★★★☆☆</td><td>工程師需手算差值（例如 Bode 中頻段斜率）</td></tr>
+</thead><tbody>
+<tr><td>設計無法分享/存成固定連結</td><td>★★☆☆☆</td><td>目前只有 localStorage，無 URL 分享</td></tr>
+</tbody></table>
 
 <hr>
 
@@ -4316,29 +4468,35 @@ danger 按鈕：--error 底色，白字
 
 <h4 id="各-tab-內容分組">各 Tab 內容分組</h4>
 
-<table>
-<tr><td>Tab</td><td>收納的現有功能面板</td></tr>
-<thead>
-<tr><th>🔍 <strong>識別</strong></th><th>Plant Structure / Plant Definition（TF/SS/ZPK/Discrete）/ SysID ARX / 範例庫 / 系統健康 Badge</th></tr>
-<tr><td>⚙ <strong>設計</strong></td><td>Controller Tuning（Kp/Ki/Kd）/ Design Wizard / 補償器 / LQR / H∞ / GA Tuner / 設計規格</td></tr>
-<tr><td>📊 <strong>分析</strong></td><td>Stability Snapshot / Routh-Hurwitz / 穩健性 Badge / 規格合規 / MIMO 矩陣展開 / Hankel SVD</td></tr>
-<tr><td>💾 <strong>實作</strong></td><td>Simulation Settings / 離散化比較 / 程式碼生成 / CSV/JSON 匯出 / LaTeX / Python Bridge</td></tr>
-<tr><td>📖 <strong>學習</strong></td><td>主題索引卡 / 草稿筆記 / 計算步驟詳情 / API 說明</td></tr>
+<table><thead>
+<tr><th>Tab</th><th>收納的現有功能面板</th></tr>
 </thead><tbody>
-</table>
+<tr><td>🔍 <strong>識別</strong></td><td>Plant Structure / Plant Definition（TF/SS/ZPK/Discrete）/ SysID ARX / 範例庫 / 系統健康 Badge</td></tr>
+</thead><tbody>
+<tr><td>⚙ <strong>設計</strong></td><td>Controller Tuning（Kp/Ki/Kd）/ Design Wizard / 補償器 / LQR / H∞ / GA Tuner / 設計規格</td></tr>
+</thead><tbody>
+<tr><td>📊 <strong>分析</strong></td><td>Stability Snapshot / Routh-Hurwitz / 穩健性 Badge / 規格合規 / MIMO 矩陣展開 / Hankel SVD</td></tr>
+</thead><tbody>
+<tr><td>💾 <strong>實作</strong></td><td>Simulation Settings / 離散化比較 / 程式碼生成 / CSV/JSON 匯出 / LaTeX / Python Bridge</td></tr>
+</thead><tbody>
+<tr><td>📖 <strong>學習</strong></td><td>主題索引卡 / 草稿筆記 / 計算步驟詳情 / API 說明</td></tr>
+</tbody></table>
 
 <h4 id="功能規格卡">功能規格卡</h4>
 
-<table>
-<tr><td>卡號</td><td>功能</td><td>說明</td><td>估計</td></tr>
-<thead>
-<tr><th>H1-1</th><th><strong>側欄 Tab Bar</strong></th><th>五個固定 tab（識別/設計/分析/實作/學習），icon + 短標籤；鍵盤 1–5 快速跳轉</th><th>2d</th></tr>
-<tr><td>H1-2</td><td><strong>Tab 內 Accordion</strong></td><td>每個 tab 內各 section 預設展開，可折疊；狀態存 localStorage</td><td>1d</td></tr>
-<tr><td>H1-3</td><td><strong>智慧 Badge</strong></td><td>各 tab 角落顯示提示數（例如「分析」tab 若有警告，顯示 ⚠1）</td><td>1d</td></tr>
-<tr><td>H1-4</td><td><strong>快速收藏 Pin</strong></td><td>長按任意 section 標題可 Pin 到「識別」tab 頂部（個人化）</td><td>2d</td></tr>
-<tr><td>H1-5</td><td><strong>側欄搜尋</strong></td><td>Ctrl+F 或點側欄放大鏡，即時 filter 面板標題與說明文字</td><td>2d</td></tr>
+<table><thead>
+<tr><th>卡號</th><th>功能</th><th>說明</th><th>估計</th></tr>
 </thead><tbody>
-</table>
+<tr><td>H1-1</td><td><strong>側欄 Tab Bar</strong></td><td>五個固定 tab（識別/設計/分析/實作/學習），icon + 短標籤；鍵盤 1–5 快速跳轉</td><td>2d</td></tr>
+</thead><tbody>
+<tr><td>H1-2</td><td><strong>Tab 內 Accordion</strong></td><td>每個 tab 內各 section 預設展開，可折疊；狀態存 localStorage</td><td>1d</td></tr>
+</thead><tbody>
+<tr><td>H1-3</td><td><strong>智慧 Badge</strong></td><td>各 tab 角落顯示提示數（例如「分析」tab 若有警告，顯示 ⚠1）</td><td>1d</td></tr>
+</thead><tbody>
+<tr><td>H1-4</td><td><strong>快速收藏 Pin</strong></td><td>長按任意 section 標題可 Pin 到「識別」tab 頂部（個人化）</td><td>2d</td></tr>
+</thead><tbody>
+<tr><td>H1-5</td><td><strong>側欄搜尋</strong></td><td>Ctrl+F 或點側欄放大鏡，即時 filter 面板標題與說明文字</td><td>2d</td></tr>
+</tbody></table>
 
 <p>P60 小計：<strong>8d</strong></p>
 
@@ -4352,16 +4510,19 @@ danger 按鈕：--error 底色，白字
 
 <h4 id="功能規格卡">功能規格卡</h4>
 
-<table>
-<tr><td>卡號</td><td>功能</td><td>視覺呈現</td><td>估計</td></tr>
-<thead>
-<tr><th>J1-1</th><th><strong>Step Response 指標標注</strong></th><th>Rise Time：左右雙箭頭 ↔ 標在 10%–90% 區間；Overshoot：垂直箭頭 ↑ 標在峰值；Settling Band：±2% 水平虛線帶；Steady-State Error：右端 ↕ 箭頭</th><th>3d</th></tr>
-<tr><td>J1-2</td><td><strong>Bode PM/GM 圖形標注</strong></td><td>PM：在 0 dB 穿越頻率 ωgc 處，畫弧形角度標示（類 CAD 角度標注）；GM：在 -180° 穿越頻率 ωpc 處，畫垂直雙箭頭標高差</td><td>2d</td></tr>
-<tr><td>J1-3</td><td><strong>Root Locus 幾何標注</strong></td><td>漸近線（虛線延伸至邊界）；質心（centroid × 標記）；出發/到達角（departure angle 弧形標注，optional）</td><td>2d</td></tr>
-<tr><td>J1-4</td><td><strong>Nyquist 距離與頻率標注</strong></td><td>在軌跡上每十倍頻率標一個頻率標記（ω=0.1, 1, 10…）；最小距離到 -1 點的連線（sensitivity peak Ms）</td><td>2d</td></tr>
-<tr><td>J1-5</td><td><strong>標注開關</strong></td><td>圖表右上角加「標注 ⌗」切換按鈕，一鍵顯示/隱藏所有標注；狀態存 localStorage</td><td>1d</td></tr>
+<table><thead>
+<tr><th>卡號</th><th>功能</th><th>視覺呈現</th><th>估計</th></tr>
 </thead><tbody>
-</table>
+<tr><td>J1-1</td><td><strong>Step Response 指標標注</strong></td><td>Rise Time：左右雙箭頭 ↔ 標在 10%–90% 區間；Overshoot：垂直箭頭 ↑ 標在峰值；Settling Band：±2% 水平虛線帶；Steady-State Error：右端 ↕ 箭頭</td><td>3d</td></tr>
+</thead><tbody>
+<tr><td>J1-2</td><td><strong>Bode PM/GM 圖形標注</strong></td><td>PM：在 0 dB 穿越頻率 ωgc 處，畫弧形角度標示（類 CAD 角度標注）；GM：在 -180° 穿越頻率 ωpc 處，畫垂直雙箭頭標高差</td><td>2d</td></tr>
+</thead><tbody>
+<tr><td>J1-3</td><td><strong>Root Locus 幾何標注</strong></td><td>漸近線（虛線延伸至邊界）；質心（centroid × 標記）；出發/到達角（departure angle 弧形標注，optional）</td><td>2d</td></tr>
+</thead><tbody>
+<tr><td>J1-4</td><td><strong>Nyquist 距離與頻率標注</strong></td><td>在軌跡上每十倍頻率標一個頻率標記（ω=0.1, 1, 10…）；最小距離到 -1 點的連線（sensitivity peak Ms）</td><td>2d</td></tr>
+</thead><tbody>
+<tr><td>J1-5</td><td><strong>標注開關</strong></td><td>圖表右上角加「標注 ⌗」切換按鈕，一鍵顯示/隱藏所有標注；狀態存 localStorage</td><td>1d</td></tr>
+</tbody></table>
 
 <p>P61 小計：<strong>10d</strong></p>
 
@@ -4378,15 +4539,17 @@ danger 按鈕：--error 底色，白字
 
 <h4 id="功能規格卡">功能規格卡</h4>
 
-<table>
-<tr><td>卡號</td><td>功能</td><td>說明</td><td>估計</td></tr>
-<thead>
-<tr><th>K1-1</th><th><strong>五步流程進度列</strong></th><th>橫向步驟條（折疊可隱藏），每步驟有圖示 + 狀態（✓/●/⚠/○）；點任一步驟 → 跳轉對應 Tab 並捲動到對應 section</th><th>2d</th></tr>
-<tr><td>K1-2</td><td><strong>步驟完成條件</strong></td><td>Plant 已載入 → Step1 ✓；至少一條規格啟用 → Step2 ✓；controller 已套用 → Step3 ✓；所有規格 pass → Step4 ✓；已匯出/產報告 → Step5 ✓</td><td>2d</td></tr>
-<tr><td>K1-3</td><td><strong>情境智慧警示</strong></td><td>側欄頂部浮現橘色 banner，如：「GM=3.2 dB 偏低（建議 &gt;6 dB）→ 調低 Kp」；「尚未設定任何設計規格 → 至分析 Tab 設定」；「Plant 有 RHP 零點 → 最大閉迴路頻寬受限」</td><td>3d</td></tr>
-<tr><td>K1-4</td><td><strong>Kp 快速推薦</strong></td><td>在 Step3 未設定控制器時，依據 Plant 特性自動推薦起始 Kp 值（基於 DC Gain 反推）並提供一鍵套用</td><td>2d</td></tr>
+<table><thead>
+<tr><th>卡號</th><th>功能</th><th>說明</th><th>估計</th></tr>
 </thead><tbody>
-</table>
+<tr><td>K1-1</td><td><strong>五步流程進度列</strong></td><td>橫向步驟條（折疊可隱藏），每步驟有圖示 + 狀態（✓/●/⚠/○）；點任一步驟 → 跳轉對應 Tab 並捲動到對應 section</td><td>2d</td></tr>
+</thead><tbody>
+<tr><td>K1-2</td><td><strong>步驟完成條件</strong></td><td>Plant 已載入 → Step1 ✓；至少一條規格啟用 → Step2 ✓；controller 已套用 → Step3 ✓；所有規格 pass → Step4 ✓；已匯出/產報告 → Step5 ✓</td><td>2d</td></tr>
+</thead><tbody>
+<tr><td>K1-3</td><td><strong>情境智慧警示</strong></td><td>側欄頂部浮現橘色 banner，如：「GM=3.2 dB 偏低（建議 &gt;6 dB）→ 調低 Kp」；「尚未設定任何設計規格 → 至分析 Tab 設定」；「Plant 有 RHP 零點 → 最大閉迴路頻寬受限」</td><td>3d</td></tr>
+</thead><tbody>
+<tr><td>K1-4</td><td><strong>Kp 快速推薦</strong></td><td>在 Step3 未設定控制器時，依據 Plant 特性自動推薦起始 Kp 值（基於 DC Gain 反推）並提供一鍵套用</td><td>2d</td></tr>
+</tbody></table>
 
 <p>P62 小計：<strong>9d</strong></p>
 
@@ -4398,14 +4561,15 @@ danger 按鈕：--error 底色，白字
 
 <h4 id="功能規格卡">功能規格卡</h4>
 
-<table>
-<tr><td>卡號</td><td>功能</td><td>說明</td><td>估計</td></tr>
-<thead>
-<tr><th>L1-1</th><th><strong>Delta 量測游標</strong></th><th>在任意圖表右上角加「Δ 量測」按鈕；進入量測模式後，第一次點擊設定 A 點，第二次點擊設定 B 點；在兩點間顯示 Δx、Δy（以工程單位標注，如「Δf=2.3 dec, ΔdB=−46 dB」）</th><th>3d</th></tr>
-<tr><td>L1-2</td><td><strong>跨圖連動游標</strong></td><td>在任一圖移動游標（hover）時，其餘所有圖表在相同 x 軸位置（時間/頻率）顯示對應虛線，並在各圖顯示交叉點數值；適用於 Step/Bode/Nyquist 同步瀏覽</td><td>3d</td></tr>
-<tr><td>L1-3</td><td><strong>圖表備注 Pin</strong></td><td>在圖上雙擊任意位置 → 彈出小文字框，輸入備注後作為 Plotly annotation 釘在該位置；備注存入 localStorage；匯出 PDF 時一起輸出</td><td>2d</td></tr>
+<table><thead>
+<tr><th>卡號</th><th>功能</th><th>說明</th><th>估計</th></tr>
 </thead><tbody>
-</table>
+<tr><td>L1-1</td><td><strong>Delta 量測游標</strong></td><td>在任意圖表右上角加「Δ 量測」按鈕；進入量測模式後，第一次點擊設定 A 點，第二次點擊設定 B 點；在兩點間顯示 Δx、Δy（以工程單位標注，如「Δf=2.3 dec, ΔdB=−46 dB」）</td><td>3d</td></tr>
+</thead><tbody>
+<tr><td>L1-2</td><td><strong>跨圖連動游標</strong></td><td>在任一圖移動游標（hover）時，其餘所有圖表在相同 x 軸位置（時間/頻率）顯示對應虛線，並在各圖顯示交叉點數值；適用於 Step/Bode/Nyquist 同步瀏覽</td><td>3d</td></tr>
+</thead><tbody>
+<tr><td>L1-3</td><td><strong>圖表備注 Pin</strong></td><td>在圖上雙擊任意位置 → 彈出小文字框，輸入備注後作為 Plotly annotation 釘在該位置；備注存入 localStorage；匯出 PDF 時一起輸出</td><td>2d</td></tr>
+</tbody></table>
 
 <p>P63 小計：<strong>8d</strong></p>
 
@@ -4417,14 +4581,15 @@ danger 按鈕：--error 底色，白字
 
 <h4 id="功能規格卡">功能規格卡</h4>
 
-<table>
-<tr><td>卡號</td><td>功能</td><td>說明</td><td>估計</td></tr>
-<thead>
-<tr><th>P1-1</th><th><strong>單參數掃描疊加</strong></th><th>在 Controller Tuning 加「掃描」按鈕；選定一個參數（Kp/Ki/Kd）與掃描範圍，自動計算 N=8 條 Step Response 疊加在主圖上（漸層色從冷到熱），每條附上對應參數值 tooltip</th><th>4d</th></tr>
-<tr><td>P1-2</td><td><strong>2D 穩定邊界圖</strong></td><td>Kp-Ki 平面上，以背景色（綠=穩定 / 紅=不穩定）標示穩定區域，當前設計點用 ● 標示；使用者拖曳 ● 可即時更新 Step Response</td><td>4d</td></tr>
-<tr><td>P1-3</td><td><strong>Bode 靈敏度對 Kp 動畫</strong></td><td>「播放」按鈕讓 Kp 從 min→max 自動掃描，Bode 曲線平滑動畫更新；速度可調</td><td>2d</td></tr>
+<table><thead>
+<tr><th>卡號</th><th>功能</th><th>說明</th><th>估計</th></tr>
 </thead><tbody>
-</table>
+<tr><td>P1-1</td><td><strong>單參數掃描疊加</strong></td><td>在 Controller Tuning 加「掃描」按鈕；選定一個參數（Kp/Ki/Kd）與掃描範圍，自動計算 N=8 條 Step Response 疊加在主圖上（漸層色從冷到熱），每條附上對應參數值 tooltip</td><td>4d</td></tr>
+</thead><tbody>
+<tr><td>P1-2</td><td><strong>2D 穩定邊界圖</strong></td><td>Kp-Ki 平面上，以背景色（綠=穩定 / 紅=不穩定）標示穩定區域，當前設計點用 ● 標示；使用者拖曳 ● 可即時更新 Step Response</td><td>4d</td></tr>
+</thead><tbody>
+<tr><td>P1-3</td><td><strong>Bode 靈敏度對 Kp 動畫</strong></td><td>「播放」按鈕讓 Kp 從 min→max 自動掃描，Bode 曲線平滑動畫更新；速度可調</td><td>2d</td></tr>
+</tbody></table>
 
 <p>P64 小計：<strong>10d</strong></p>
 
@@ -4436,15 +4601,17 @@ danger 按鈕：--error 底色，白字
 
 <h4 id="功能規格卡">功能規格卡</h4>
 
-<table>
-<tr><td>卡號</td><td>功能</td><td>說明</td><td>估計</td></tr>
-<thead>
-<tr><th>Q1-1</th><th><strong>URL 分享（設計序列化）</strong></th><th>將當前完整設計狀態（Plant/Controller/specs/snapshots）JSON → LZ 壓縮 → Base64 → URL hash；「分享」按鈕複製連結；接收端載入時自動還原狀態</th><th>3d</th></tr>
-<tr><td>Q1-2</td><td><strong>程式碼生成 v2</strong></td><td>現有 exportController 加強：自動加入推導說明註解（「// PM=45° 對應 Kp=1.2」）；支援 Python-control / MATLAB / C99 三種目標；加入單元測試 snippet</td><td>3d</td></tr>
-<tr><td>Q1-3</td><td><strong>一鍵 PDF 報告（瀏覽器列印）</strong></td><td>點「報告」→ 開新 tab 顯示設計報告 HTML（現有 E3-1 強化版）；將所有圖表截成 SVG 嵌入；提供「列印 / 儲存 PDF」按鈕；報告含封面 + 系統摘要 + 所有圖表 + 指標表 + 程式碼</td><td>3d</td></tr>
-<tr><td>Q1-4</td><td><strong>圖表快速複製</strong></td><td>每個圖表 hover 時右上角出現「📋 複製圖片」按鈕（Clipboard API），一鍵複製為 PNG 貼到文件／Slack</td><td>1d</td></tr>
+<table><thead>
+<tr><th>卡號</th><th>功能</th><th>說明</th><th>估計</th></tr>
 </thead><tbody>
-</table>
+<tr><td>Q1-1</td><td><strong>URL 分享（設計序列化）</strong></td><td>將當前完整設計狀態（Plant/Controller/specs/snapshots）JSON → LZ 壓縮 → Base64 → URL hash；「分享」按鈕複製連結；接收端載入時自動還原狀態</td><td>3d</td></tr>
+</thead><tbody>
+<tr><td>Q1-2</td><td><strong>程式碼生成 v2</strong></td><td>現有 exportController 加強：自動加入推導說明註解（「// PM=45° 對應 Kp=1.2」）；支援 Python-control / MATLAB / C99 三種目標；加入單元測試 snippet</td><td>3d</td></tr>
+</thead><tbody>
+<tr><td>Q1-3</td><td><strong>一鍵 PDF 報告（瀏覽器列印）</strong></td><td>點「報告」→ 開新 tab 顯示設計報告 HTML（現有 E3-1 強化版）；將所有圖表截成 SVG 嵌入；提供「列印 / 儲存 PDF」按鈕；報告含封面 + 系統摘要 + 所有圖表 + 指標表 + 程式碼</td><td>3d</td></tr>
+</thead><tbody>
+<tr><td>Q1-4</td><td><strong>圖表快速複製</strong></td><td>每個圖表 hover 時右上角出現「📋 複製圖片」按鈕（Clipboard API），一鍵複製為 PNG 貼到文件／Slack</td><td>1d</td></tr>
+</tbody></table>
 
 <p>P65 小計：<strong>10d</strong></p>
 
@@ -4452,17 +4619,21 @@ danger 按鈕：--error 底色，白字
 
 <h2 id="優先序建議">優先序建議</h2>
 
-<table>
-<tr><td>優先</td><td>Phase</td><td>主題</td><td>工時</td><td>影響</td></tr>
-<thead>
-<tr><th>P0（最高）</th><th>P60</th><th>側欄工作流重組</th><th>8d</th><th>解決 #1 用戶痛點，所有人受益</th></tr>
-<tr><td>P0</td><td>P61</td><td>圖表工程標注</td><td>10d</td><td>消除圖←→側欄視線往返，提升分析效率</td></tr>
-<tr><td>P1</td><td>P62</td><td>設計流程狀態機</td><td>9d</td><td>降低新手門檻，引導正確設計流程</td></tr>
-<tr><td>P1</td><td>P63</td><td>圖表量測工具</td><td>8d</td><td>高頻使用的工程分析動作</td></tr>
-<tr><td>P2</td><td>P64</td><td>參數掃描可視化</td><td>10d</td><td>進階功能，顯著提升調參直覺</td></tr>
-<tr><td>P2</td><td>P65</td><td>分享與輸出強化</td><td>10d</td><td>協作與文件化需求</td></tr>
+<table><thead>
+<tr><th>優先</th><th>Phase</th><th>主題</th><th>工時</th><th>影響</th></tr>
 </thead><tbody>
-</table>
+<tr><td>P0（最高）</td><td>P60</td><td>側欄工作流重組</td><td>8d</td><td>解決 #1 用戶痛點，所有人受益</td></tr>
+</thead><tbody>
+<tr><td>P0</td><td>P61</td><td>圖表工程標注</td><td>10d</td><td>消除圖←→側欄視線往返，提升分析效率</td></tr>
+</thead><tbody>
+<tr><td>P1</td><td>P62</td><td>設計流程狀態機</td><td>9d</td><td>降低新手門檻，引導正確設計流程</td></tr>
+</thead><tbody>
+<tr><td>P1</td><td>P63</td><td>圖表量測工具</td><td>8d</td><td>高頻使用的工程分析動作</td></tr>
+</thead><tbody>
+<tr><td>P2</td><td>P64</td><td>參數掃描可視化</td><td>10d</td><td>進階功能，顯著提升調參直覺</td></tr>
+</thead><tbody>
+<tr><td>P2</td><td>P65</td><td>分享與輸出強化</td><td>10d</td><td>協作與文件化需求</td></tr>
+</tbody></table>
 
 <p><strong>建議先後順序：P60 → P61 → P62 → P63 → P64 → P65</strong></p>
 <p>P60 + P61 合計 18d，可顯著改善每日使用體驗，建議優先推進。</p>

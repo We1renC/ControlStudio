@@ -10,12 +10,13 @@
 | 路徑 | 說明 |
 |------|------|
 | `docs/index.html` | 文件導覽入口（工作流關係圖） |
-| `docs/agents/` | Agent 工作文件（接手、使用指南、Workflows） |
-| `docs/control-studio/` | ControlStudio 產品文件（Roadmap、計畫、Backlog、UI/UX） |
-| `docs/nvidia/` | NVIDIA 模型文件（指南、分類表、Skill 規劃） |
-| `docs/cases/` | 案例輸出（DC Motor、Precision Servo、Regression） |
+| `docs/agents/*.html` | Agent 工作文件（接手、使用指南、Workflows） |
+| `docs/control-studio/*.html` | ControlStudio 產品文件（Roadmap、計畫、Backlog、UI/UX） |
+| `docs/nvidia/*.html` | NVIDIA 模型文件（指南、分類表、Skill 規劃） |
+| `docs/cases/*.html` | 案例輸出（DC Motor、Precision Servo、Regression） |
+| `docs/src/` | Markdown 源碼（編輯用） |
 
-> 更新文件：編輯 `docs/**/*.md`，再執行 `node docs/build.mjs` 重新生成 HTML。
+> 更新文件流程：編輯 `docs/src/**/*.md` → 執行 `node docs/build.mjs` → HTML 自動更新。
 
 ### 🔑 常用入口
 - `AGENTS.md`：Agent 工作規則與品質判準（保留於根目錄）

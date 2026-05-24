@@ -2,74 +2,61 @@
 <html lang="zh-TW">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width,initial-scale=1">
 <title>ControlStudio Development Roadmap — NVIDIA OS Support Docs</title>
 <style>
 :root {
-  --bg: #0f1117; --bg2: #1a1d2e; --bg3: #252840;
-  --border: #2d3155; --accent: #6366f1; --accent2: #818cf8;
-  --text: #e2e8f0; --muted: #94a3b8; --code-bg: #1e2235;
-  --success: #22c55e; --warn: #f59e0b;
+  --bg:#0f1117;--bg2:#1a1d2e;--bg3:#252840;
+  --border:#2d3155;--accent:#6366f1;--accent2:#818cf8;
+  --text:#e2e8f0;--muted:#94a3b8;--code-bg:#1e2235;
+  --ok:#22c55e;--warn:#f59e0b;
 }
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-       background: var(--bg); color: var(--text); line-height: 1.7;
-       display: flex; min-height: 100vh; }
-nav { width: 240px; min-height: 100vh; background: var(--bg2);
-      border-right: 1px solid var(--border); padding: 24px 0;
-      position: sticky; top: 0; height: 100vh; overflow-y: auto;
-      flex-shrink: 0; }
-nav .logo { padding: 0 20px 20px; border-bottom: 1px solid var(--border); margin-bottom: 12px; }
-nav .logo a { text-decoration: none; font-size: 15px; font-weight: 700;
-              color: var(--accent2); }
-nav .section { padding: 6px 20px 2px; font-size: 10px; font-weight: 700;
-               text-transform: uppercase; letter-spacing: 1px; color: var(--muted);
-               margin-top: 8px; }
-nav a { display: block; padding: 5px 20px; font-size: 13px; color: var(--muted);
-        text-decoration: none; border-left: 2px solid transparent;
-        transition: all .15s; }
-nav a:hover, nav a.active { color: var(--text); border-color: var(--accent);
-                              background: rgba(99,102,241,.08); }
-main { flex: 1; padding: 40px 48px; max-width: 900px; min-width: 0; }
-h1 { font-size: 2rem; font-weight: 800; color: var(--text);
-     border-bottom: 2px solid var(--accent); padding-bottom: 12px; margin-bottom: 24px; }
-h2 { font-size: 1.4rem; font-weight: 700; color: var(--accent2);
-     margin: 32px 0 12px; padding-top: 8px; }
-h3 { font-size: 1.1rem; font-weight: 600; color: var(--text); margin: 20px 0 8px; }
-h4, h5, h6 { font-size: 1rem; font-weight: 600; color: var(--muted); margin: 16px 0 6px; }
-p { margin: 8px 0; color: var(--text); }
-a { color: var(--accent2); }
-a:hover { color: #a5b4fc; }
-code { background: var(--code-bg); border: 1px solid var(--border);
-       border-radius: 4px; padding: 1px 5px; font-size: .875em;
-       font-family: 'JetBrains Mono', 'Fira Code', monospace; color: #a5b4fc; }
-pre { background: var(--code-bg); border: 1px solid var(--border);
-      border-radius: 8px; padding: 16px; overflow-x: auto; margin: 12px 0; }
-pre code { background: none; border: none; padding: 0;
-           font-size: .82rem; color: var(--text); }
-blockquote { border-left: 3px solid var(--accent); padding: 8px 16px;
-             background: rgba(99,102,241,.06); margin: 12px 0; border-radius: 0 6px 6px 0; }
-ul, ol { padding-left: 24px; margin: 8px 0; }
-li { margin: 3px 0; }
-table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: .9rem; }
-th { background: var(--bg3); color: var(--accent2); font-weight: 700;
-     padding: 8px 12px; border: 1px solid var(--border); text-align: left; }
-td { padding: 7px 12px; border: 1px solid var(--border); color: var(--text); }
-tr:nth-child(even) td { background: rgba(255,255,255,.02); }
-hr { border: none; border-top: 1px solid var(--border); margin: 24px 0; }
-strong { color: #c7d2fe; }
-del { color: var(--muted); }
-.badge { display: inline-block; font-size: 10px; font-weight: 700; padding: 1px 6px;
-         border-radius: 9px; border: 1px solid; margin: 0 2px; vertical-align: middle; }
-.badge-green { color: var(--success); border-color: var(--success); }
-.badge-warn  { color: var(--warn);    border-color: var(--warn); }
-/* toc sidebar on large screens */
-@media (max-width: 768px) { nav { display: none; } main { padding: 20px 16px; } }
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+     background:var(--bg);color:var(--text);line-height:1.7;
+     display:flex;min-height:100vh}
+nav{width:240px;min-height:100vh;background:var(--bg2);
+    border-right:1px solid var(--border);padding:24px 0;
+    position:sticky;top:0;height:100vh;overflow-y:auto;flex-shrink:0}
+nav .logo{padding:0 20px 20px;border-bottom:1px solid var(--border);margin-bottom:12px}
+nav .logo a{text-decoration:none;font-size:15px;font-weight:700;color:var(--accent2)}
+nav .section{padding:6px 20px 2px;font-size:10px;font-weight:700;
+             text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-top:8px}
+nav a{display:block;padding:5px 20px;font-size:13px;color:var(--muted);
+      text-decoration:none;border-left:2px solid transparent;transition:all .15s}
+nav a:hover,nav a.active{color:var(--text);border-color:var(--accent);background:rgba(99,102,241,.08)}
+main{flex:1;padding:40px 48px;max-width:900px;min-width:0}
+h1{font-size:2rem;font-weight:800;color:var(--text);
+   border-bottom:2px solid var(--accent);padding-bottom:12px;margin-bottom:24px}
+h2{font-size:1.4rem;font-weight:700;color:var(--accent2);margin:32px 0 12px;padding-top:8px}
+h3{font-size:1.1rem;font-weight:600;color:var(--text);margin:20px 0 8px}
+h4,h5,h6{font-size:1rem;font-weight:600;color:var(--muted);margin:16px 0 6px}
+p{margin:8px 0}
+a{color:var(--accent2)}
+a:hover{color:#a5b4fc}
+code{background:var(--code-bg);border:1px solid var(--border);border-radius:4px;
+     padding:1px 5px;font-size:.875em;font-family:'JetBrains Mono','Fira Code',monospace;color:#a5b4fc}
+pre{background:var(--code-bg);border:1px solid var(--border);border-radius:8px;
+    padding:16px;overflow-x:auto;margin:12px 0}
+pre code{background:none;border:none;padding:0;font-size:.82rem;color:var(--text)}
+blockquote{border-left:3px solid var(--accent);padding:8px 16px;
+           background:rgba(99,102,241,.06);margin:12px 0;border-radius:0 6px 6px 0}
+ul,ol{padding-left:24px;margin:8px 0}
+li{margin:3px 0}
+table{width:100%;border-collapse:collapse;margin:16px 0;font-size:.9rem}
+th{background:var(--bg3);color:var(--accent2);font-weight:700;
+   padding:8px 12px;border:1px solid var(--border);text-align:left}
+td{padding:7px 12px;border:1px solid var(--border)}
+tr:nth-child(even) td{background:rgba(255,255,255,.02)}
+hr{border:none;border-top:1px solid var(--border);margin:24px 0}
+strong{color:#c7d2fe}
+del{color:var(--muted)}
+@media(max-width:768px){nav{display:none}main{padding:20px 16px}}
 </style>
 </head>
 <body>
 <nav>
-  <div class="logo"><a href="../index.html">📁 NVIDIA OS Support</a></div>
+  <div class="logo"><a href="../index.html">📁 Docs</a></div>
   <div class="section">Agent 工作文件</div>
   <a href="../agents/usage.html">使用指南</a>
   <a href="../agents/continuation.html">接手狀態</a>
@@ -107,18 +94,23 @@ del { color: var(--muted); }
 
 <h2 id="document-workflow">Document Workflow</h2>
 
-<table>
-<tr><td>Document</td><td>Role</td><td>Update when</td></tr>
-<thead>
-<tr><th><code>control-studio/ROADMAP.md</code></th><th>Canonical execution board: phase status, next actions, verification commands</th><th>Any phase item changes status, or a new implementation phase starts</th></tr>
-<tr><td><code>CONTROL_SYSTEM_PLAN.md</code></td><td>Product / architecture plan and high-level capability inventory</td><td>A user-visible capability, architecture direction, or major risk changes</td></tr>
-<tr><td><code>CONTROL_SYSTEM_BACKLOG.md</code></td><td>Detailed task ledger with IDs, dependencies, and verification evidence</td><td>A backlog item moves between Planned / In Progress / Done / Paused</td></tr>
-<tr><td><code>CONTROL_SYSTEM_SKILLS_PLAN.md</code></td><td>Agent skill decomposition and workflow boundaries</td><td>A skill is added, retired, or changes scope</td></tr>
-<tr><td><code>CONTROL_SYSTEM_VERIFICATION_CASES.md</code></td><td>Mathematical proof and golden verification cases</td><td>A benchmark or expected numeric result changes</td></tr>
-<tr><td><code>CONTROL_SYSTEM_SCENARIOS.md</code></td><td>Realistic engineering walkthroughs and UI findings</td><td>Browser workflow, scenario issue, or field-use note changes</td></tr>
-<tr><td><code>AGENT_CONTINUATION.md</code></td><td>Current handoff / operational snapshot</td><td>Before switching agents or after a meaningful checkpoint</td></tr>
+<table><thead>
+<tr><th>Document</th><th>Role</th><th>Update when</th></tr>
 </thead><tbody>
-</table>
+<tr><td><code>control-studio/ROADMAP.md</code></td><td>Canonical execution board: phase status, next actions, verification commands</td><td>Any phase item changes status, or a new implementation phase starts</td></tr>
+</thead><tbody>
+<tr><td><code>CONTROL_SYSTEM_PLAN.md</code></td><td>Product / architecture plan and high-level capability inventory</td><td>A user-visible capability, architecture direction, or major risk changes</td></tr>
+</thead><tbody>
+<tr><td><code>CONTROL_SYSTEM_BACKLOG.md</code></td><td>Detailed task ledger with IDs, dependencies, and verification evidence</td><td>A backlog item moves between Planned / In Progress / Done / Paused</td></tr>
+</thead><tbody>
+<tr><td><code>CONTROL_SYSTEM_SKILLS_PLAN.md</code></td><td>Agent skill decomposition and workflow boundaries</td><td>A skill is added, retired, or changes scope</td></tr>
+</thead><tbody>
+<tr><td><code>CONTROL_SYSTEM_VERIFICATION_CASES.md</code></td><td>Mathematical proof and golden verification cases</td><td>A benchmark or expected numeric result changes</td></tr>
+</thead><tbody>
+<tr><td><code>CONTROL_SYSTEM_SCENARIOS.md</code></td><td>Realistic engineering walkthroughs and UI findings</td><td>Browser workflow, scenario issue, or field-use note changes</td></tr>
+</thead><tbody>
+<tr><td><code>AGENT_CONTINUATION.md</code></td><td>Current handoff / operational snapshot</td><td>Before switching agents or after a meaningful checkpoint</td></tr>
+</tbody></table>
 
 <h2 id="required-development-workflow">Required Development Workflow</h2>
 
@@ -131,85 +123,131 @@ del { color: var(--muted); }
 <li>For UI work, run a browser walkthrough against <code>http://127.0.0.1:8765</code>.</li>
 <li>Sync affected docs in this order: roadmap → backlog → plan → skills/scenarios/verification cases → continuation.</li>
 <li>Commit with both a subject and body, for example:</li>
-</ol>
 <p>   ```bash</p>
 <p>   git commit -m "feat(p24): add economic MPC baseline" \</p>
 <p>     -m "Implement deterministic EMPC optimization and verification fixtures." \</p>
 <p>     -m "Sync roadmap and continuation docs with the new Phase 24 status."</p>
 <p>   ```</p>
-<ol>
 <li>Do not commit <code>node_modules/</code>, scratch files, <code>.env*</code>, keys, local databases, or handoff files.</li>
 </ol>
 
 <h2 id="progress-overview">Progress Overview</h2>
 
-<table>
-<tr><td>Phase</td><td>Theme</td><td>Status</td><td>Verification</td></tr>
-<thead>
-<tr><th>P9</th><th>Math core: polynomial / complex / Schur</th><th>Done</th><th><code>verify_phase9_*.mjs</code></th></tr>
-<tr><td>P10</td><td>CARE / LQR / MPC baseline</td><td>Done</td><td><code>verify_phase10_*.mjs</code></td></tr>
-<tr><td>P11</td><td>DARE / MIMO / dynamic RGA</td><td>Done</td><td><code>verify_phase11_*.mjs</code></td></tr>
-<tr><td>P14</td><td>Delay / IMC / RNG</td><td>Done</td><td><code>verify_p14_*.mjs</code></td></tr>
-<tr><td>P15</td><td>ARX system identification</td><td>Done</td><td><code>verify_p15_sysid.mjs</code></td></tr>
-<tr><td>P16</td><td>GA tuning / H∞ Nelder-Mead</td><td>Done</td><td><code>verify_p16_*.mjs</code></td></tr>
-<tr><td>P17</td><td>ARMAX / NSGA-II / EKF-UKF / advanced robust baseline</td><td>Done</td><td><code>verify_p17_*.mjs</code></td></tr>
-<tr><td>P18</td><td>Monte Carlo robust validation + UI + skill</td><td>Done</td><td><code>verify_p18_robust_validation.mjs</code></td></tr>
-<tr><td>P19</td><td>H∞ Riccati synthesis baseline</td><td>Done</td><td><code>verify_p19_hinf_riccati.mjs</code></td></tr>
-<tr><td>P20</td><td>MPC engineering: offset-free, move suppression, feasibility</td><td>Done</td><td><code>verify_p20_mpc_engineering.mjs</code></td></tr>
-<tr><td>P21</td><td>Advanced SysID: OE / BJ / subspace / experiment signals</td><td>Done</td><td><code>verify_p21_sysid_advanced.mjs</code></td></tr>
-<tr><td>P22</td><td>Verification infrastructure / cross-tool regression / CI</td><td>Done</td><td><code>run_all_verify.sh</code>, <code>compare_python_control.py</code>, <code>.github/workflows/ci.yml</code></td></tr>
-<tr><td>P23</td><td>SysID gap closure: FRF, model order, MISO ARX</td><td>Mostly Done</td><td><code>verify_p23_*.mjs</code></td></tr>
-<tr><td>P24</td><td>Advanced MPC: NMPC, EMPC, Tube MPC, Explicit MPC</td><td>Done</td><td><code>verify_p24_nmpc.mjs</code>, <code>verify_p24_empc.mjs</code>, <code>verify_p24_tube_explicit_mpc.mjs</code></td></tr>
-<tr><td>P25</td><td>Model order reduction: minreal SS + balanced truncation + Hankel norm</td><td>Done</td><td><code>verify_p25_model_reduction.mjs</code>, <code>verify_p25_hankel.mjs</code></td></tr>
-<tr><td>P26</td><td>Nonlinear control: gain scheduling + SMC + LPV</td><td>Done</td><td><code>verify_p26_nonlinear.mjs</code>, <code>verify_p29_lpv.mjs</code></td></tr>
-<tr><td>P27</td><td>H∞ extensions: MIMO H∞ verify + loop shaping + D-K</td><td>Done</td><td><code>verify_p27_mimo_hinf.mjs</code>, <code>verify_p27_loop_shaping.mjs</code>, <code>verify_p29_dk.mjs</code></td></tr>
-<tr><td>P28</td><td>Infrastructure quality: TS definitions + JSDoc API docs + benchmark</td><td>Done</td><td><code>control-studio/types/control-studio.d.ts</code>, <code>docs/api/index.html</code>, <code>benchmark.mjs</code></td></tr>
-<tr><td><strong>P29</strong></td><td><strong>Numerical optimization core: QP / LP / SDP-LMI</strong></td><td>Done</td><td><code>verify_p29_{qp,lp,sdp,lpv,dk}.mjs</code> — 43 scripts total</td></tr>
-<tr><td><strong>P30</strong></td><td><strong>Adaptive &amp; learning control: RLS / MRAC / STR / ILC</strong></td><td>Done</td><td><code>verify_p30_adaptive.mjs</code></td></tr>
-<tr><td><strong>P31</strong></td><td><strong>Estimation &amp; monitoring: MHE / particle filter / FDD / FTC</strong></td><td>Done</td><td><code>verify_p31_estimation.mjs</code></td></tr>
-<tr><td><strong>P32</strong></td><td><strong>Advanced nonlinear: feedback linearization / backstepping / CLF-CBF</strong></td><td>Done</td><td><code>verify_p32_nonlinear_advanced.mjs</code></td></tr>
-<tr><td><strong>P33</strong></td><td><strong>Productization &amp; interop: codegen / report / python-control bridge</strong></td><td>Done</td><td><code>verify_p33_productization.mjs</code></td></tr>
-<tr><td><strong>P34</strong></td><td><strong>UI/UX experience &amp; design system</strong></td><td>Done</td><td><code>verify_p34_ui.mjs</code></td></tr>
-<tr><td><strong>P35</strong></td><td><strong>UI/UX plan P1 foundation: status bar / toast / empty state</strong></td><td>Done</td><td><code>verify_p35_uiux_foundation.mjs</code></td></tr>
-<tr><td><strong>P36</strong></td><td><strong>UI/UX plan P1 remaining: slider / confirmDialog / skeleton / codeBlock / 3-way theme / SideNav icons / code preview / unit switcher</strong></td><td>Done</td><td><code>verify_p36_uiux_p1_remaining.mjs</code></td></tr>
-<tr><td><strong>P37</strong></td><td><strong>UI/UX plan P2: command palette / keyboard shortcut modal / unit switcher behaviour / print theme</strong></td><td>Done</td><td><code>verify_p37_uiux_p2.mjs</code></td></tr>
-<tr><td><strong>P38</strong></td><td><strong>UI/UX P2 batch 1: dirty marker / progress bar / prefs modal / fullscreen / chart export / field hints</strong></td><td>Done</td><td><code>verify_p38_uiux_p2_batch1.mjs</code></td></tr>
-<tr><td><strong>P39</strong></td><td><strong>UI/UX P2 batch 2: axis range popover / PZ map OL-CL toggle + ζ grid / Hankel SVD bars / error guidance</strong></td><td>Done</td><td><code>verify_p39_uiux_p2_batch2.mjs</code></td></tr>
-<tr><td><strong>P40</strong></td><td><strong>UI/UX P2 batch 3: 4-step design wizard / cursor readout / chart theme toggle</strong></td><td>Done</td><td><code>verify_p40_uiux_p2_batch3.mjs</code></td></tr>
-<tr><td><strong>P41</strong></td><td><strong>UI/UX P2 batch 4: D2-1~4 discretization comparison table / A2-2 spec overlay / A2-3 compliance badges</strong></td><td>Done</td><td><code>verify_p41_disc_spec.mjs</code></td></tr>
-<tr><td><strong>P42</strong></td><td><strong>UI/UX P2 batch 5: B1-2 best-value ★ / sortable compare table / B1-3 diff heatmap + CSV export</strong></td><td>Done</td><td><code>verify_p42_compare_enhancements.mjs</code></td></tr>
-<tr><td><strong>P43</strong></td><td><strong>UI/UX P2 batch 6: A1-1 system input wizard / A5-2 sensitivity plot / A5-3 robustness badges</strong></td><td>Done</td><td><code>verify_p43_syswin_a5.mjs</code></td></tr>
-<tr><td><strong>P44</strong></td><td><strong>UI/UX P2 batch 7: F2-1 draggable split pane / F2-2 multi-design tab bar</strong></td><td>Done</td><td><code>verify_p44_split_tabs.mjs</code></td></tr>
-<tr><td><strong>P45</strong></td><td><strong>UI/UX P3 batch 1: D3 FLOP/memory/platform + B4 CSV import/export</strong></td><td>Done</td><td><code>verify_p45_d3_b4.mjs</code></td></tr>
-<tr><td><strong>P46</strong></td><td><strong>UI/UX P3 batch 2: B5 calculation steps / tooltip / condition warnings + B2 matrix expand</strong></td><td>Done</td><td><code>verify_p46_b5_b2.mjs</code></td></tr>
-<tr><td><strong>P47</strong></td><td><strong>UI/UX P3 batch 3: C1 topic cards + C4 drafts/notes/completion</strong></td><td>Done</td><td><code>verify_p47_c1_c4.mjs</code></td></tr>
-<tr><td><strong>P48</strong></td><td><strong>UI/UX P3 batch 4: A3 draggable poles / Bode breakpoint / history drawer</strong></td><td>Done</td><td><code>verify_p48_a3.mjs</code></td></tr>
-<tr><td><strong>P49</strong></td><td><strong>UI/UX P3 batch 5: C3 interactive animations</strong></td><td>Done</td><td><code>verify_p49_c3.mjs</code></td></tr>
-<tr><td><strong>P50</strong></td><td><strong>UI/UX P3 batch 6: E1~E4 dashboard / scoring / report / decision log</strong></td><td>Done</td><td><code>verify_p50_e1_e4.mjs</code></td></tr>
-<tr><td><strong>P51</strong></td><td><strong>F4/F5/G7 accessibility: colors / keyboard / screen-reader</strong></td><td>Done</td><td><code>verify_p51_a11y.mjs</code></td></tr>
-<tr><td><strong>P52</strong></td><td><strong>G5/G6/G8/G9 i18n skeleton / responsive / onboarding / multi-project</strong></td><td>Done</td><td><code>verify_p52_g5689.mjs</code></td></tr>
-<tr><td><strong>P53</strong></td><td><strong>A1-2/A1-3/A1-4 SysID entry / example library / health badge</strong></td><td>Done</td><td><code>verify_p53_a1234.mjs</code></td></tr>
-<tr><td><strong>P54</strong></td><td><strong>A4-1/A4-2/A4-3 design wizard / complexity indicator / AI explain</strong></td><td>Done</td><td><code>verify_p54_a4.mjs</code></td></tr>
-<tr><td><strong>P55</strong></td><td><strong>B2-4/B4-3/B4-4 Gramian / Python bridge / LaTeX export</strong></td><td>Done</td><td><code>verify_p55_b24_b43_b44.mjs</code></td></tr>
-<tr><td><strong>P56</strong></td><td><strong>C2-3/C5-2/C5-3/D1-4 error hints / screenshot / summary / codegen</strong></td><td>Done</td><td><code>verify_p56_c23_c52_c53_d14.mjs</code></td></tr>
-<tr><td><strong>P57</strong></td><td><strong>D4/D5 unit-test / diff / HIL / docs / wiring / warnings</strong></td><td>Done</td><td><code>verify_p57_d4_d5.mjs</code></td></tr>
-<tr><td><strong>P58</strong></td><td><strong>G11 app-loading skeleton screen</strong></td><td>Done</td><td><code>verify_p58_g11.mjs</code></td></tr>
-<tr><td><strong>P59</strong></td><td><strong>F1-2 Context Bar / view-nav / A5-1 Plot Workspace (main + 2 companion charts)</strong></td><td>Done</td><td><code>verify_p59_ctxbar_triple.mjs</code></td></tr>
+<table><thead>
+<tr><th>Phase</th><th>Theme</th><th>Status</th><th>Verification</th></tr>
 </thead><tbody>
-</table>
+<tr><td>P9</td><td>Math core: polynomial / complex / Schur</td><td>Done</td><td><code>verify_phase9_*.mjs</code></td></tr>
+</thead><tbody>
+<tr><td>P10</td><td>CARE / LQR / MPC baseline</td><td>Done</td><td><code>verify_phase10_*.mjs</code></td></tr>
+</thead><tbody>
+<tr><td>P11</td><td>DARE / MIMO / dynamic RGA</td><td>Done</td><td><code>verify_phase11_*.mjs</code></td></tr>
+</thead><tbody>
+<tr><td>P14</td><td>Delay / IMC / RNG</td><td>Done</td><td><code>verify_p14_*.mjs</code></td></tr>
+</thead><tbody>
+<tr><td>P15</td><td>ARX system identification</td><td>Done</td><td><code>verify_p15_sysid.mjs</code></td></tr>
+</thead><tbody>
+<tr><td>P16</td><td>GA tuning / H∞ Nelder-Mead</td><td>Done</td><td><code>verify_p16_*.mjs</code></td></tr>
+</thead><tbody>
+<tr><td>P17</td><td>ARMAX / NSGA-II / EKF-UKF / advanced robust baseline</td><td>Done</td><td><code>verify_p17_*.mjs</code></td></tr>
+</thead><tbody>
+<tr><td>P18</td><td>Monte Carlo robust validation + UI + skill</td><td>Done</td><td><code>verify_p18_robust_validation.mjs</code></td></tr>
+</thead><tbody>
+<tr><td>P19</td><td>H∞ Riccati synthesis baseline</td><td>Done</td><td><code>verify_p19_hinf_riccati.mjs</code></td></tr>
+</thead><tbody>
+<tr><td>P20</td><td>MPC engineering: offset-free, move suppression, feasibility</td><td>Done</td><td><code>verify_p20_mpc_engineering.mjs</code></td></tr>
+</thead><tbody>
+<tr><td>P21</td><td>Advanced SysID: OE / BJ / subspace / experiment signals</td><td>Done</td><td><code>verify_p21_sysid_advanced.mjs</code></td></tr>
+</thead><tbody>
+<tr><td>P22</td><td>Verification infrastructure / cross-tool regression / CI</td><td>Done</td><td><code>run_all_verify.sh</code>, <code>compare_python_control.py</code>, <code>.github/workflows/ci.yml</code></td></tr>
+</thead><tbody>
+<tr><td>P23</td><td>SysID gap closure: FRF, model order, MISO ARX</td><td>Mostly Done</td><td><code>verify_p23_*.mjs</code></td></tr>
+</thead><tbody>
+<tr><td>P24</td><td>Advanced MPC: NMPC, EMPC, Tube MPC, Explicit MPC</td><td>Done</td><td><code>verify_p24_nmpc.mjs</code>, <code>verify_p24_empc.mjs</code>, <code>verify_p24_tube_explicit_mpc.mjs</code></td></tr>
+</thead><tbody>
+<tr><td>P25</td><td>Model order reduction: minreal SS + balanced truncation + Hankel norm</td><td>Done</td><td><code>verify_p25_model_reduction.mjs</code>, <code>verify_p25_hankel.mjs</code></td></tr>
+</thead><tbody>
+<tr><td>P26</td><td>Nonlinear control: gain scheduling + SMC + LPV</td><td>Done</td><td><code>verify_p26_nonlinear.mjs</code>, <code>verify_p29_lpv.mjs</code></td></tr>
+</thead><tbody>
+<tr><td>P27</td><td>H∞ extensions: MIMO H∞ verify + loop shaping + D-K</td><td>Done</td><td><code>verify_p27_mimo_hinf.mjs</code>, <code>verify_p27_loop_shaping.mjs</code>, <code>verify_p29_dk.mjs</code></td></tr>
+</thead><tbody>
+<tr><td>P28</td><td>Infrastructure quality: TS definitions + JSDoc API docs + benchmark</td><td>Done</td><td><code>control-studio/types/control-studio.d.ts</code>, <code>docs/api/index.html</code>, <code>benchmark.mjs</code></td></tr>
+</thead><tbody>
+<tr><td><strong>P29</strong></td><td><strong>Numerical optimization core: QP / LP / SDP-LMI</strong></td><td>Done</td><td><code>verify_p29_{qp,lp,sdp,lpv,dk}.mjs</code> — 43 scripts total</td></tr>
+</thead><tbody>
+<tr><td><strong>P30</strong></td><td><strong>Adaptive &amp; learning control: RLS / MRAC / STR / ILC</strong></td><td>Done</td><td><code>verify_p30_adaptive.mjs</code></td></tr>
+</thead><tbody>
+<tr><td><strong>P31</strong></td><td><strong>Estimation &amp; monitoring: MHE / particle filter / FDD / FTC</strong></td><td>Done</td><td><code>verify_p31_estimation.mjs</code></td></tr>
+</thead><tbody>
+<tr><td><strong>P32</strong></td><td><strong>Advanced nonlinear: feedback linearization / backstepping / CLF-CBF</strong></td><td>Done</td><td><code>verify_p32_nonlinear_advanced.mjs</code></td></tr>
+</thead><tbody>
+<tr><td><strong>P33</strong></td><td><strong>Productization &amp; interop: codegen / report / python-control bridge</strong></td><td>Done</td><td><code>verify_p33_productization.mjs</code></td></tr>
+</thead><tbody>
+<tr><td><strong>P34</strong></td><td><strong>UI/UX experience &amp; design system</strong></td><td>Done</td><td><code>verify_p34_ui.mjs</code></td></tr>
+</thead><tbody>
+<tr><td><strong>P35</strong></td><td><strong>UI/UX plan P1 foundation: status bar / toast / empty state</strong></td><td>Done</td><td><code>verify_p35_uiux_foundation.mjs</code></td></tr>
+</thead><tbody>
+<tr><td><strong>P36</strong></td><td><strong>UI/UX plan P1 remaining: slider / confirmDialog / skeleton / codeBlock / 3-way theme / SideNav icons / code preview / unit switcher</strong></td><td>Done</td><td><code>verify_p36_uiux_p1_remaining.mjs</code></td></tr>
+</thead><tbody>
+<tr><td><strong>P37</strong></td><td><strong>UI/UX plan P2: command palette / keyboard shortcut modal / unit switcher behaviour / print theme</strong></td><td>Done</td><td><code>verify_p37_uiux_p2.mjs</code></td></tr>
+</thead><tbody>
+<tr><td><strong>P38</strong></td><td><strong>UI/UX P2 batch 1: dirty marker / progress bar / prefs modal / fullscreen / chart export / field hints</strong></td><td>Done</td><td><code>verify_p38_uiux_p2_batch1.mjs</code></td></tr>
+</thead><tbody>
+<tr><td><strong>P39</strong></td><td><strong>UI/UX P2 batch 2: axis range popover / PZ map OL-CL toggle + ζ grid / Hankel SVD bars / error guidance</strong></td><td>Done</td><td><code>verify_p39_uiux_p2_batch2.mjs</code></td></tr>
+</thead><tbody>
+<tr><td><strong>P40</strong></td><td><strong>UI/UX P2 batch 3: 4-step design wizard / cursor readout / chart theme toggle</strong></td><td>Done</td><td><code>verify_p40_uiux_p2_batch3.mjs</code></td></tr>
+</thead><tbody>
+<tr><td><strong>P41</strong></td><td><strong>UI/UX P2 batch 4: D2-1~4 discretization comparison table / A2-2 spec overlay / A2-3 compliance badges</strong></td><td>Done</td><td><code>verify_p41_disc_spec.mjs</code></td></tr>
+</thead><tbody>
+<tr><td><strong>P42</strong></td><td><strong>UI/UX P2 batch 5: B1-2 best-value ★ / sortable compare table / B1-3 diff heatmap + CSV export</strong></td><td>Done</td><td><code>verify_p42_compare_enhancements.mjs</code></td></tr>
+</thead><tbody>
+<tr><td><strong>P43</strong></td><td><strong>UI/UX P2 batch 6: A1-1 system input wizard / A5-2 sensitivity plot / A5-3 robustness badges</strong></td><td>Done</td><td><code>verify_p43_syswin_a5.mjs</code></td></tr>
+</thead><tbody>
+<tr><td><strong>P44</strong></td><td><strong>UI/UX P2 batch 7: F2-1 draggable split pane / F2-2 multi-design tab bar</strong></td><td>Done</td><td><code>verify_p44_split_tabs.mjs</code></td></tr>
+</thead><tbody>
+<tr><td><strong>P45</strong></td><td><strong>UI/UX P3 batch 1: D3 FLOP/memory/platform + B4 CSV import/export</strong></td><td>Done</td><td><code>verify_p45_d3_b4.mjs</code></td></tr>
+</thead><tbody>
+<tr><td><strong>P46</strong></td><td><strong>UI/UX P3 batch 2: B5 calculation steps / tooltip / condition warnings + B2 matrix expand</strong></td><td>Done</td><td><code>verify_p46_b5_b2.mjs</code></td></tr>
+</thead><tbody>
+<tr><td><strong>P47</strong></td><td><strong>UI/UX P3 batch 3: C1 topic cards + C4 drafts/notes/completion</strong></td><td>Done</td><td><code>verify_p47_c1_c4.mjs</code></td></tr>
+</thead><tbody>
+<tr><td><strong>P48</strong></td><td><strong>UI/UX P3 batch 4: A3 draggable poles / Bode breakpoint / history drawer</strong></td><td>Done</td><td><code>verify_p48_a3.mjs</code></td></tr>
+</thead><tbody>
+<tr><td><strong>P49</strong></td><td><strong>UI/UX P3 batch 5: C3 interactive animations</strong></td><td>Done</td><td><code>verify_p49_c3.mjs</code></td></tr>
+</thead><tbody>
+<tr><td><strong>P50</strong></td><td><strong>UI/UX P3 batch 6: E1~E4 dashboard / scoring / report / decision log</strong></td><td>Done</td><td><code>verify_p50_e1_e4.mjs</code></td></tr>
+</thead><tbody>
+<tr><td><strong>P51</strong></td><td><strong>F4/F5/G7 accessibility: colors / keyboard / screen-reader</strong></td><td>Done</td><td><code>verify_p51_a11y.mjs</code></td></tr>
+</thead><tbody>
+<tr><td><strong>P52</strong></td><td><strong>G5/G6/G8/G9 i18n skeleton / responsive / onboarding / multi-project</strong></td><td>Done</td><td><code>verify_p52_g5689.mjs</code></td></tr>
+</thead><tbody>
+<tr><td><strong>P53</strong></td><td><strong>A1-2/A1-3/A1-4 SysID entry / example library / health badge</strong></td><td>Done</td><td><code>verify_p53_a1234.mjs</code></td></tr>
+</thead><tbody>
+<tr><td><strong>P54</strong></td><td><strong>A4-1/A4-2/A4-3 design wizard / complexity indicator / AI explain</strong></td><td>Done</td><td><code>verify_p54_a4.mjs</code></td></tr>
+</thead><tbody>
+<tr><td><strong>P55</strong></td><td><strong>B2-4/B4-3/B4-4 Gramian / Python bridge / LaTeX export</strong></td><td>Done</td><td><code>verify_p55_b24_b43_b44.mjs</code></td></tr>
+</thead><tbody>
+<tr><td><strong>P56</strong></td><td><strong>C2-3/C5-2/C5-3/D1-4 error hints / screenshot / summary / codegen</strong></td><td>Done</td><td><code>verify_p56_c23_c52_c53_d14.mjs</code></td></tr>
+</thead><tbody>
+<tr><td><strong>P57</strong></td><td><strong>D4/D5 unit-test / diff / HIL / docs / wiring / warnings</strong></td><td>Done</td><td><code>verify_p57_d4_d5.mjs</code></td></tr>
+</thead><tbody>
+<tr><td><strong>P58</strong></td><td><strong>G11 app-loading skeleton screen</strong></td><td>Done</td><td><code>verify_p58_g11.mjs</code></td></tr>
+</thead><tbody>
+<tr><td><strong>P59</strong></td><td><strong>F1-2 Context Bar / view-nav / A5-1 Plot Workspace (main + 2 companion charts)</strong></td><td>Done</td><td><code>verify_p59_ctxbar_triple.mjs</code></td></tr>
+</tbody></table>
 
 <h2 id="verification-suite-status-2026-05-24">Verification Suite Status (2026-05-24)</h2>
 
 <p><strong>79/79 scripts pass</strong> — run via <code>bash scripts/run_all_verify.sh</code></p>
 
-<table>
-<tr><td>Group</td><td>Scripts</td><td>Pass</td></tr>
-<thead>
-<tr><th>Phase 9/10/11 foundations</th><th>11</th><th>11</th></tr>
-<tr><td>Phase 14–65 advanced control / UI</td><td>64</td><td>64</td></tr>
-<tr><td>General math &amp; PID</td><td>4</td><td>4</td></tr>
+<table><thead>
+<tr><th>Group</th><th>Scripts</th><th>Pass</th></tr>
 </thead><tbody>
-</table>
+<tr><td>Phase 9/10/11 foundations</td><td>11</td><td>11</td></tr>
+</thead><tbody>
+<tr><td>Phase 14–65 advanced control / UI</td><td>64</td><td>64</td></tr>
+</thead><tbody>
+<tr><td>General math &amp; PID</td><td>4</td><td>4</td></tr>
+</tbody></table>
 
 <h2 id="p1-p2-ui-ux-completion-summary">P1/P2 UI/UX Completion Summary</h2>
 
@@ -253,169 +291,213 @@ del { color: var(--muted); }
 
 <h2 id="remaining-dirty-worktree">Remaining Dirty Worktree</h2>
 
-<table>
-<tr><td>Path</td><td>Classification</td><td>Action</td></tr>
-<thead>
-<tr><th><code>package.json</code></th><th>Adds <code>typescript</code> devDependency (used for <code>.d.ts</code> validation)</th><th>Commit if TS type-checking becomes an official CI step</th></tr>
-<tr><td><code>package-lock.json</code></td><td>Generated lockfile</td><td>Commit alongside <code>package.json</code> decision</td></tr>
-<tr><td><code>node_modules/</code></td><td>Generated dependency directory</td><td>Never commit (covered by <code>.gitignore</code>)</td></tr>
+<table><thead>
+<tr><th>Path</th><th>Classification</th><th>Action</th></tr>
 </thead><tbody>
-</table>
+<tr><td><code>package.json</code></td><td>Adds <code>typescript</code> devDependency (used for <code>.d.ts</code> validation)</td><td>Commit if TS type-checking becomes an official CI step</td></tr>
+</thead><tbody>
+<tr><td><code>package-lock.json</code></td><td>Generated lockfile</td><td>Commit alongside <code>package.json</code> decision</td></tr>
+</thead><tbody>
+<tr><td><code>node_modules/</code></td><td>Generated dependency directory</td><td>Never commit (covered by <code>.gitignore</code>)</td></tr>
+</tbody></table>
 
 <h3 id="p35-ui-ux-plan-p1-foundation">P35 — UI/UX Plan P1 Foundation</h3>
 
-<table>
-<tr><td>Item</td><td>Status</td><td>Evidence</td></tr>
-<thead>
-<tr><th>P35-01 Global status bar</th><th>Done</th><th><code>index.html#app-status-bar</code>, <code>updateGlobalStatusBar()</code></th></tr>
-<tr><td>P35-02 Toast notification infrastructure</td><td>Done</td><td><code>#toast-stack</code>, <code>notify()</code></td></tr>
-<tr><td>P35-03 High-frequency action feedback</td><td>Done</td><td>Share, theme, project export/load, compare snapshot actions</td></tr>
-<tr><td>P35-04 Empty-state action style</td><td>Done</td><td><code>.empty-state-actions</code></td></tr>
-<tr><td>P35-05 Regression guard</td><td>Done</td><td><code>verify_p35_uiux_foundation.mjs</code>, <code>run_all_verify.sh</code></td></tr>
+<table><thead>
+<tr><th>Item</th><th>Status</th><th>Evidence</th></tr>
 </thead><tbody>
-</table>
+<tr><td>P35-01 Global status bar</td><td>Done</td><td><code>index.html#app-status-bar</code>, <code>updateGlobalStatusBar()</code></td></tr>
+</thead><tbody>
+<tr><td>P35-02 Toast notification infrastructure</td><td>Done</td><td><code>#toast-stack</code>, <code>notify()</code></td></tr>
+</thead><tbody>
+<tr><td>P35-03 High-frequency action feedback</td><td>Done</td><td>Share, theme, project export/load, compare snapshot actions</td></tr>
+</thead><tbody>
+<tr><td>P35-04 Empty-state action style</td><td>Done</td><td><code>.empty-state-actions</code></td></tr>
+</thead><tbody>
+<tr><td>P35-05 Regression guard</td><td>Done</td><td><code>verify_p35_uiux_foundation.mjs</code>, <code>run_all_verify.sh</code></td></tr>
+</tbody></table>
 
 <h3 id="post-p59-ui-refinement-sidebar-information-architecture">Post-P59 UI Refinement — Sidebar Information Architecture</h3>
 
-<table>
-<tr><td>Item</td><td>Status</td><td>Evidence</td></tr>
-<thead>
-<tr><th>Workflow-specific group headers</th><th>Done</th><th><code>SIDEBAR_GROUP_SPECS</code>, <code>.section-group-label</code>, grouped sidebar sections by <code>identify/design/analyse/implement/learn</code></th></tr>
-<tr><td>Default collapsed preset for secondary panels</td><td>Done</td><td><code>DEFAULT_COLLAPSED_SECTION_IDS</code>, <code>applyDefaultSidebarCollapsePreset()</code></td></tr>
-<tr><td>Nested subsections for oversized panels</td><td>Done</td><td><code>PANEL_SUBSECTION_SPECS</code>, <code>buildPanelSubsections()</code></td></tr>
-<tr><td>Group visibility refresh on tab/search/mode change</td><td>Done</td><td><code>refreshSidebarGroups()</code> wired from workflow tab switch, sidebar search, system-mode switch, advisor visibility sync</td></tr>
+<table><thead>
+<tr><th>Item</th><th>Status</th><th>Evidence</th></tr>
 </thead><tbody>
-</table>
+<tr><td>Workflow-specific group headers</td><td>Done</td><td><code>SIDEBAR_GROUP_SPECS</code>, <code>.section-group-label</code>, grouped sidebar sections by <code>identify/design/analyse/implement/learn</code></td></tr>
+</thead><tbody>
+<tr><td>Default collapsed preset for secondary panels</td><td>Done</td><td><code>DEFAULT_COLLAPSED_SECTION_IDS</code>, <code>applyDefaultSidebarCollapsePreset()</code></td></tr>
+</thead><tbody>
+<tr><td>Nested subsections for oversized panels</td><td>Done</td><td><code>PANEL_SUBSECTION_SPECS</code>, <code>buildPanelSubsections()</code></td></tr>
+</thead><tbody>
+<tr><td>Group visibility refresh on tab/search/mode change</td><td>Done</td><td><code>refreshSidebarGroups()</code> wired from workflow tab switch, sidebar search, system-mode switch, advisor visibility sync</td></tr>
+</tbody></table>
 
 <h3 id="p36-ui-ux-plan-p1-remaining-items">P36 — UI/UX Plan P1 Remaining Items</h3>
 
-<table>
-<tr><td>Item</td><td>Status</td><td>Evidence</td></tr>
-<thead>
-<tr><th>P36-01 A3-1 <code>slider()</code> component</th><th>Done</th><th><code>js/ui/components.js</code> — linear/log, aria-value* attributes</th></tr>
-<tr><td>P36-02 G12 <code>confirmDialog()</code> component</td><td>Done</td><td><code>js/ui/components.js</code> — accessible modal HTML generator</td></tr>
-<tr><td>P36-03 G11 <code>skeleton()</code> / <code>skeletonBlock()</code></td><td>Done</td><td><code>js/ui/components.js</code> — CSS pulse animation in <code>index.html</code></td></tr>
-<tr><td>P36-04 D1 <code>codeBlock()</code> component</td><td>Done</td><td><code>js/ui/components.js</code> — lang header + copy button</td></tr>
-<tr><td>P36-05 F4-1 Three-way theme (Dark/Light/Print)</td><td>Done</td><td><code>THEME_CYCLE</code>, <code>toggleTheme()</code>, print CSS in <code>index.html</code></td></tr>
-<tr><td>P36-06 F1-1 SideNav tabs with SVG icons</td><td>Done</td><td><code>index.html</code> sidebar-tabs with <code>.tab-label</code> + icons</td></tr>
-<tr><td>P36-07 G1 Frequency unit switcher</td><td>Done</td><td><code>#freq-unit-switcher</code> in status bar, <code>state._freqUnit</code></td></tr>
-<tr><td>P36-08 D1 Live code preview panel</td><td>Done</td><td><code>#code-preview-panel</code> in Design tab, <code>refreshCodePreview()</code></td></tr>
+<table><thead>
+<tr><th>Item</th><th>Status</th><th>Evidence</th></tr>
 </thead><tbody>
-</table>
+<tr><td>P36-01 A3-1 <code>slider()</code> component</td><td>Done</td><td><code>js/ui/components.js</code> — linear/log, aria-value* attributes</td></tr>
+</thead><tbody>
+<tr><td>P36-02 G12 <code>confirmDialog()</code> component</td><td>Done</td><td><code>js/ui/components.js</code> — accessible modal HTML generator</td></tr>
+</thead><tbody>
+<tr><td>P36-03 G11 <code>skeleton()</code> / <code>skeletonBlock()</code></td><td>Done</td><td><code>js/ui/components.js</code> — CSS pulse animation in <code>index.html</code></td></tr>
+</thead><tbody>
+<tr><td>P36-04 D1 <code>codeBlock()</code> component</td><td>Done</td><td><code>js/ui/components.js</code> — lang header + copy button</td></tr>
+</thead><tbody>
+<tr><td>P36-05 F4-1 Three-way theme (Dark/Light/Print)</td><td>Done</td><td><code>THEME_CYCLE</code>, <code>toggleTheme()</code>, print CSS in <code>index.html</code></td></tr>
+</thead><tbody>
+<tr><td>P36-06 F1-1 SideNav tabs with SVG icons</td><td>Done</td><td><code>index.html</code> sidebar-tabs with <code>.tab-label</code> + icons</td></tr>
+</thead><tbody>
+<tr><td>P36-07 G1 Frequency unit switcher</td><td>Done</td><td><code>#freq-unit-switcher</code> in status bar, <code>state._freqUnit</code></td></tr>
+</thead><tbody>
+<tr><td>P36-08 D1 Live code preview panel</td><td>Done</td><td><code>#code-preview-panel</code> in Design tab, <code>refreshCodePreview()</code></td></tr>
+</tbody></table>
 
 <h3 id="p37-p44-ui-ux-plan-p2-items">P37–P44 — UI/UX Plan P2 Items</h3>
 
-<table>
-<tr><td>Item</td><td>Phase</td><td>Status</td><td>Evidence</td></tr>
-<thead>
-<tr><th>G3 Command Palette</th><th>P37</th><th>Done</th><th><code>#cmd-overlay</code>, <code>COMMANDS</code>, Ctrl+K</th></tr>
-<tr><td>G13 Keyboard shortcuts modal</td><td>P37</td><td>Done</td><td><code>#shortcuts-modal</code>, Ctrl+?</td></tr>
-<tr><td>G4 Preferences modal</td><td>P38</td><td>Done</td><td><code>#prefs-modal</code>, <code>PREFS_KEY</code>, <code>loadPrefs/savePrefs/applyPrefs</code></td></tr>
-<tr><td>F3-2 Dirty marker</td><td>P38</td><td>Done</td><td><code>#dirty-dot</code>, <code>markDirty/clearDirty</code>, beforeunload guard</td></tr>
-<tr><td>F3-3 Progress bar</td><td>P38</td><td>Done</td><td><code>#calc-progress-wrap</code>, <code>startCalcProgress/completeCalcProgress</code></td></tr>
-<tr><td>F2-3 Chart fullscreen</td><td>P38</td><td>Done</td><td><code>initChartFullscreen</code>, requestFullscreen API</td></tr>
-<tr><td>B3-4 Chart export SVG/PNG/CSV</td><td>P38</td><td>Done</td><td><code>initChartExport</code>, Plotly.downloadImage</td></tr>
-<tr><td>C2-2 Field hints</td><td>P38</td><td>Done</td><td><code>FIELD_HINTS</code>, <code>initFieldHints</code>, focus/blur popover</td></tr>
-<tr><td>B3-1 Axis range popover</td><td>P39</td><td>Done</td><td><code>initAxisRangeControl</code>, <code>.axis-range-popover</code>, Plotly.relayout</td></tr>
-<tr><td>B2-3 PZ map OL/CL + ζ grid</td><td>P39</td><td>Done</td><td><code>initPZMapControls</code>, <code>_overlayDampingGrid</code></td></tr>
-<tr><td>B2-2 Hankel SVD bar chart</td><td>P39</td><td>Done</td><td><code>initHankelSVD</code>, Gramian approximation, <code>.hsv-bar-*</code></td></tr>
-<tr><td>C2-3 Error guidance</td><td>P39</td><td>Done</td><td><code>ERROR_GUIDANCE_MAP</code>, <code>initErrorGuidance</code>, contextual hints</td></tr>
-<tr><td>C2-1 4-step Design Wizard</td><td>P40</td><td>Done</td><td><code>WIZARD_STEPS</code>, <code>initDesignWizard</code>, sessionStorage</td></tr>
-<tr><td>B3-2 Cursor crosshair readout</td><td>P40</td><td>Done</td><td><code>initChartCursorReadout</code>, plotly_hover, <code>.chart-readout</code></td></tr>
-<tr><td>B3-3 Chart theme toggle</td><td>P40</td><td>Done</td><td><code>initChartThemeToggle</code>, <code>CHART_THEMES</code>, Plotly.restyle</td></tr>
-<tr><td>D2-1~4 Discretization tool</td><td>P41</td><td>Done</td><td><code>initDiscretizationTool</code>, D2_METHODS, Bode overlay</td></tr>
-<tr><td>A2-2 Spec overlay</td><td>P41</td><td>Done</td><td><code>chk-spec-overlay</code> (pre-existing), wired to render</td></tr>
-<tr><td>A2-3 Spec compliance badges</td><td>P41</td><td>Done</td><td><code>updateSpecComplianceBadges</code>, #sc-os/ts/pm/ess</td></tr>
-<tr><td>B1-2 Best-value ★ + sortable table</td><td>P42</td><td>Done</td><td><code>initCompareTableEnhancements</code>, <code>compare-best</code> class</td></tr>
-<tr><td>B1-3 Diff heatmap + CSV export</td><td>P42</td><td>Done</td><td><code>_diffMode</code>, <code>compare-diff-warn/bad</code>, Blob CSV</td></tr>
-<tr><td>A1-1 System input wizard</td><td>P43</td><td>Done</td><td><code>initSystemInputWizard</code>, TF/SS/ZPK modal, health badges</td></tr>
-<tr><td>A5-2 Sensitivity plot</td><td>P43</td><td>Done</td><td><code>renderSensitivityPlot</code>, S/T/KS Bode, Sensitivity tab</td></tr>
-<tr><td>A5-3 Robustness badge bar</td><td>P43</td><td>Done</td><td><code>updateRobustnessBadges</code>, PM/GM/Ms/Dm in sidebar</td></tr>
-<tr><td>F2-1 Split pane</td><td>P44</td><td>Done</td><td><code>initSplitPane</code>, RAF drag, 240px min, localStorage</td></tr>
-<tr><td>F2-2 Design tab system</td><td>P44</td><td>Done</td><td><code>initDesignTabs</code>, snapshot, add/switch/close</td></tr>
+<table><thead>
+<tr><th>Item</th><th>Phase</th><th>Status</th><th>Evidence</th></tr>
 </thead><tbody>
-</table>
+<tr><td>G3 Command Palette</td><td>P37</td><td>Done</td><td><code>#cmd-overlay</code>, <code>COMMANDS</code>, Ctrl+K</td></tr>
+</thead><tbody>
+<tr><td>G13 Keyboard shortcuts modal</td><td>P37</td><td>Done</td><td><code>#shortcuts-modal</code>, Ctrl+?</td></tr>
+</thead><tbody>
+<tr><td>G4 Preferences modal</td><td>P38</td><td>Done</td><td><code>#prefs-modal</code>, <code>PREFS_KEY</code>, <code>loadPrefs/savePrefs/applyPrefs</code></td></tr>
+</thead><tbody>
+<tr><td>F3-2 Dirty marker</td><td>P38</td><td>Done</td><td><code>#dirty-dot</code>, <code>markDirty/clearDirty</code>, beforeunload guard</td></tr>
+</thead><tbody>
+<tr><td>F3-3 Progress bar</td><td>P38</td><td>Done</td><td><code>#calc-progress-wrap</code>, <code>startCalcProgress/completeCalcProgress</code></td></tr>
+</thead><tbody>
+<tr><td>F2-3 Chart fullscreen</td><td>P38</td><td>Done</td><td><code>initChartFullscreen</code>, requestFullscreen API</td></tr>
+</thead><tbody>
+<tr><td>B3-4 Chart export SVG/PNG/CSV</td><td>P38</td><td>Done</td><td><code>initChartExport</code>, Plotly.downloadImage</td></tr>
+</thead><tbody>
+<tr><td>C2-2 Field hints</td><td>P38</td><td>Done</td><td><code>FIELD_HINTS</code>, <code>initFieldHints</code>, focus/blur popover</td></tr>
+</thead><tbody>
+<tr><td>B3-1 Axis range popover</td><td>P39</td><td>Done</td><td><code>initAxisRangeControl</code>, <code>.axis-range-popover</code>, Plotly.relayout</td></tr>
+</thead><tbody>
+<tr><td>B2-3 PZ map OL/CL + ζ grid</td><td>P39</td><td>Done</td><td><code>initPZMapControls</code>, <code>_overlayDampingGrid</code></td></tr>
+</thead><tbody>
+<tr><td>B2-2 Hankel SVD bar chart</td><td>P39</td><td>Done</td><td><code>initHankelSVD</code>, Gramian approximation, <code>.hsv-bar-*</code></td></tr>
+</thead><tbody>
+<tr><td>C2-3 Error guidance</td><td>P39</td><td>Done</td><td><code>ERROR_GUIDANCE_MAP</code>, <code>initErrorGuidance</code>, contextual hints</td></tr>
+</thead><tbody>
+<tr><td>C2-1 4-step Design Wizard</td><td>P40</td><td>Done</td><td><code>WIZARD_STEPS</code>, <code>initDesignWizard</code>, sessionStorage</td></tr>
+</thead><tbody>
+<tr><td>B3-2 Cursor crosshair readout</td><td>P40</td><td>Done</td><td><code>initChartCursorReadout</code>, plotly_hover, <code>.chart-readout</code></td></tr>
+</thead><tbody>
+<tr><td>B3-3 Chart theme toggle</td><td>P40</td><td>Done</td><td><code>initChartThemeToggle</code>, <code>CHART_THEMES</code>, Plotly.restyle</td></tr>
+</thead><tbody>
+<tr><td>D2-1~4 Discretization tool</td><td>P41</td><td>Done</td><td><code>initDiscretizationTool</code>, D2_METHODS, Bode overlay</td></tr>
+</thead><tbody>
+<tr><td>A2-2 Spec overlay</td><td>P41</td><td>Done</td><td><code>chk-spec-overlay</code> (pre-existing), wired to render</td></tr>
+</thead><tbody>
+<tr><td>A2-3 Spec compliance badges</td><td>P41</td><td>Done</td><td><code>updateSpecComplianceBadges</code>, #sc-os/ts/pm/ess</td></tr>
+</thead><tbody>
+<tr><td>B1-2 Best-value ★ + sortable table</td><td>P42</td><td>Done</td><td><code>initCompareTableEnhancements</code>, <code>compare-best</code> class</td></tr>
+</thead><tbody>
+<tr><td>B1-3 Diff heatmap + CSV export</td><td>P42</td><td>Done</td><td><code>_diffMode</code>, <code>compare-diff-warn/bad</code>, Blob CSV</td></tr>
+</thead><tbody>
+<tr><td>A1-1 System input wizard</td><td>P43</td><td>Done</td><td><code>initSystemInputWizard</code>, TF/SS/ZPK modal, health badges</td></tr>
+</thead><tbody>
+<tr><td>A5-2 Sensitivity plot</td><td>P43</td><td>Done</td><td><code>renderSensitivityPlot</code>, S/T/KS Bode, Sensitivity tab</td></tr>
+</thead><tbody>
+<tr><td>A5-3 Robustness badge bar</td><td>P43</td><td>Done</td><td><code>updateRobustnessBadges</code>, PM/GM/Ms/Dm in sidebar</td></tr>
+</thead><tbody>
+<tr><td>F2-1 Split pane</td><td>P44</td><td>Done</td><td><code>initSplitPane</code>, RAF drag, 240px min, localStorage</td></tr>
+</thead><tbody>
+<tr><td>F2-2 Design tab system</td><td>P44</td><td>Done</td><td><code>initDesignTabs</code>, snapshot, add/switch/close</td></tr>
+</tbody></table>
 
 <h2 id="phase-details">Phase Details</h2>
 
 <h3 id="p22-verification-infrastructure">P22 — Verification Infrastructure</h3>
 
-<table>
-<tr><td>Item</td><td>Status</td><td>Evidence</td></tr>
-<thead>
-<tr><th>P22-01 CI workflow</th><th>Done</th><th><code>.github/workflows/ci.yml</code></th></tr>
-<tr><td>P22-02 Cross-tool numeric regression</td><td>Done</td><td><code>control-studio/scripts/compare_python_control.py</code></td></tr>
-<tr><td>P22-03 Full verification runner</td><td>Done</td><td><code>control-studio/scripts/run_all_verify.sh</code></td></tr>
+<table><thead>
+<tr><th>Item</th><th>Status</th><th>Evidence</th></tr>
 </thead><tbody>
-</table>
+<tr><td>P22-01 CI workflow</td><td>Done</td><td><code>.github/workflows/ci.yml</code></td></tr>
+</thead><tbody>
+<tr><td>P22-02 Cross-tool numeric regression</td><td>Done</td><td><code>control-studio/scripts/compare_python_control.py</code></td></tr>
+</thead><tbody>
+<tr><td>P22-03 Full verification runner</td><td>Done</td><td><code>control-studio/scripts/run_all_verify.sh</code></td></tr>
+</tbody></table>
 
 <h3 id="p23-sysid-gap-closure">P23 — SysID Gap Closure</h3>
 
-<table>
-<tr><td>Item</td><td>Status</td><td>Evidence</td></tr>
-<thead>
-<tr><th>P23-01 Frequency-domain identification</th><th>Done</th><th><code>sysid_freq.js</code>, <code>verify_p23_freq_sysid.mjs</code></th></tr>
-<tr><td>P23-02 MISO ARX</td><td>Done</td><td><code>identifyMISOARX</code>, <code>verify_p23_miso.mjs</code></td></tr>
-<tr><td>P23-03 Model order selection</td><td>Done</td><td><code>autoModelOrder</code>, <code>verify_p23_model_order.mjs</code></td></tr>
-<tr><td>P23-04 Continuous-time identification</td><td>Planned</td><td>No committed CONTSID / SRIVC runner yet</td></tr>
+<table><thead>
+<tr><th>Item</th><th>Status</th><th>Evidence</th></tr>
 </thead><tbody>
-</table>
+<tr><td>P23-01 Frequency-domain identification</td><td>Done</td><td><code>sysid_freq.js</code>, <code>verify_p23_freq_sysid.mjs</code></td></tr>
+</thead><tbody>
+<tr><td>P23-02 MISO ARX</td><td>Done</td><td><code>identifyMISOARX</code>, <code>verify_p23_miso.mjs</code></td></tr>
+</thead><tbody>
+<tr><td>P23-03 Model order selection</td><td>Done</td><td><code>autoModelOrder</code>, <code>verify_p23_model_order.mjs</code></td></tr>
+</thead><tbody>
+<tr><td>P23-04 Continuous-time identification</td><td>Planned</td><td>No committed CONTSID / SRIVC runner yet</td></tr>
+</tbody></table>
 
 <h3 id="p24-advanced-mpc">P24 — Advanced MPC</h3>
 
-<table>
-<tr><td>Item</td><td>Status</td><td>Evidence</td></tr>
-<thead>
-<tr><th>P24-01 NMPC / SQP-lite</th><th>Done</th><th><code>nmpc.js</code>, <code>verify_p24_nmpc.mjs</code></th></tr>
-<tr><td>P24-02 Tube MPC</td><td>Done</td><td><code>tube_mpc.js</code>, <code>verify_p24_tube_explicit_mpc.mjs</code></td></tr>
-<tr><td>P24-03 Economic MPC</td><td>Done</td><td><code>empc.js</code>, <code>verify_p24_empc.mjs</code></td></tr>
-<tr><td>P24-04 Explicit MPC</td><td>Done</td><td><code>explicit_mpc.js</code>, <code>verify_p24_tube_explicit_mpc.mjs</code></td></tr>
+<table><thead>
+<tr><th>Item</th><th>Status</th><th>Evidence</th></tr>
 </thead><tbody>
-</table>
+<tr><td>P24-01 NMPC / SQP-lite</td><td>Done</td><td><code>nmpc.js</code>, <code>verify_p24_nmpc.mjs</code></td></tr>
+</thead><tbody>
+<tr><td>P24-02 Tube MPC</td><td>Done</td><td><code>tube_mpc.js</code>, <code>verify_p24_tube_explicit_mpc.mjs</code></td></tr>
+</thead><tbody>
+<tr><td>P24-03 Economic MPC</td><td>Done</td><td><code>empc.js</code>, <code>verify_p24_empc.mjs</code></td></tr>
+</thead><tbody>
+<tr><td>P24-04 Explicit MPC</td><td>Done</td><td><code>explicit_mpc.js</code>, <code>verify_p24_tube_explicit_mpc.mjs</code></td></tr>
+</tbody></table>
 
 <h3 id="p25-model-order-reduction">P25 — Model Order Reduction</h3>
 
-<table>
-<tr><td>Item</td><td>Status</td><td>Evidence</td></tr>
-<thead>
-<tr><th>P25-01 Balanced truncation</th><th>Done</th><th><code>model_reduction.js</code>, <code>verify_p25_model_reduction.mjs</code></th></tr>
-<tr><td>P25-02 Hankel norm approximation</td><td>Done</td><td><code>hankelSingularValues/hankelNorm/hankelNormApprox</code> in <code>model_reduction.js</code>, <code>verify_p25_hankel.mjs</code> (23 tests)</td></tr>
-<tr><td>P25-03 SS minreal / Kalman decomposition</td><td>Done</td><td><code>minrealSS</code>, <code>verify_p25_model_reduction.mjs</code></td></tr>
+<table><thead>
+<tr><th>Item</th><th>Status</th><th>Evidence</th></tr>
 </thead><tbody>
-</table>
+<tr><td>P25-01 Balanced truncation</td><td>Done</td><td><code>model_reduction.js</code>, <code>verify_p25_model_reduction.mjs</code></td></tr>
+</thead><tbody>
+<tr><td>P25-02 Hankel norm approximation</td><td>Done</td><td><code>hankelSingularValues/hankelNorm/hankelNormApprox</code> in <code>model_reduction.js</code>, <code>verify_p25_hankel.mjs</code> (23 tests)</td></tr>
+</thead><tbody>
+<tr><td>P25-03 SS minreal / Kalman decomposition</td><td>Done</td><td><code>minrealSS</code>, <code>verify_p25_model_reduction.mjs</code></td></tr>
+</tbody></table>
 
 <h3 id="p26-nonlinear-control">P26 — Nonlinear Control</h3>
 
-<table>
-<tr><td>Item</td><td>Status</td><td>Evidence</td></tr>
-<thead>
-<tr><th>P26-01 Gain-scheduled PID</th><th>Done</th><th><code>gainScheduledPID</code>, <code>verify_p26_nonlinear.mjs</code></th></tr>
-<tr><td>P26-02 LPV synthesis</td><td>Done</td><td><code>lpv.js</code> — <code>synthesizeLPV/analyzeLPV</code>, <code>verify_p29_lpv.mjs</code></td></tr>
-<tr><td>P26-03 Sliding mode control</td><td>Done</td><td><code>designSMC</code>, <code>verify_p26_nonlinear.mjs</code></td></tr>
+<table><thead>
+<tr><th>Item</th><th>Status</th><th>Evidence</th></tr>
 </thead><tbody>
-</table>
+<tr><td>P26-01 Gain-scheduled PID</td><td>Done</td><td><code>gainScheduledPID</code>, <code>verify_p26_nonlinear.mjs</code></td></tr>
+</thead><tbody>
+<tr><td>P26-02 LPV synthesis</td><td>Done</td><td><code>lpv.js</code> — <code>synthesizeLPV/analyzeLPV</code>, <code>verify_p29_lpv.mjs</code></td></tr>
+</thead><tbody>
+<tr><td>P26-03 Sliding mode control</td><td>Done</td><td><code>designSMC</code>, <code>verify_p26_nonlinear.mjs</code></td></tr>
+</tbody></table>
 
 <h3 id="p27-h-design-extensions">P27 — H∞ Design Extensions</h3>
 
-<table>
-<tr><td>Item</td><td>Status</td><td>Evidence</td></tr>
-<thead>
-<tr><th>P27-01 Full D-K iteration</th><th>Done</th><th><code>dk_iteration.js</code> — <code>computeMuUpperBound/dkIteration</code>, <code>verify_p29_dk.mjs</code></th></tr>
-<tr><td>P27-02 Loop-shaping H∞</td><td>Done</td><td><code>loopShapingHinf</code>, <code>verify_p27_loop_shaping.mjs</code></td></tr>
-<tr><td>P27-03 MIMO H∞ verification</td><td>Done</td><td><code>verify_p27_mimo_hinf.mjs</code></td></tr>
+<table><thead>
+<tr><th>Item</th><th>Status</th><th>Evidence</th></tr>
 </thead><tbody>
-</table>
+<tr><td>P27-01 Full D-K iteration</td><td>Done</td><td><code>dk_iteration.js</code> — <code>computeMuUpperBound/dkIteration</code>, <code>verify_p29_dk.mjs</code></td></tr>
+</thead><tbody>
+<tr><td>P27-02 Loop-shaping H∞</td><td>Done</td><td><code>loopShapingHinf</code>, <code>verify_p27_loop_shaping.mjs</code></td></tr>
+</thead><tbody>
+<tr><td>P27-03 MIMO H∞ verification</td><td>Done</td><td><code>verify_p27_mimo_hinf.mjs</code></td></tr>
+</tbody></table>
 
 <h3 id="p28-infrastructure-quality">P28 — Infrastructure Quality</h3>
 
-<table>
-<tr><td>Item</td><td>Status</td><td>Evidence</td></tr>
-<thead>
-<tr><th>P28-01 TypeScript definitions</th><th>Done</th><th><code>control-studio/types/control-studio.d.ts</code></th></tr>
-<tr><td>P28-02 JSDoc API docs</td><td>Done</td><td><code>generate_api_docs.mjs</code> → <code>docs/api/index.html</code> (333 symbols, dark-theme, searchable) + <code>symbols.json</code></td></tr>
-<tr><td>P28-03 Performance benchmark</td><td>Done</td><td><code>control-studio/scripts/benchmark.mjs</code></td></tr>
+<table><thead>
+<tr><th>Item</th><th>Status</th><th>Evidence</th></tr>
 </thead><tbody>
-</table>
+<tr><td>P28-01 TypeScript definitions</td><td>Done</td><td><code>control-studio/types/control-studio.d.ts</code></td></tr>
+</thead><tbody>
+<tr><td>P28-02 JSDoc API docs</td><td>Done</td><td><code>generate_api_docs.mjs</code> → <code>docs/api/index.html</code> (333 symbols, dark-theme, searchable) + <code>symbols.json</code></td></tr>
+</thead><tbody>
+<tr><td>P28-03 Performance benchmark</td><td>Done</td><td><code>control-studio/scripts/benchmark.mjs</code></td></tr>
+</tbody></table>
 
 <hr>
 
@@ -436,17 +518,21 @@ del { color: var(--muted); }
 <p><strong>Benchmark target:</strong> MATLAB <code>quadprog</code> / <code>linprog</code> / CVX-class problems.</p>
 </blockquote>
 
-<table>
-<tr><td>Item</td><td>Goal</td><td>API</td><td>Effort</td><td>Dependency</td></tr>
-<tr><td>---</td><td>---</td><td>---</td><td>:---:</td><td>---</td></tr>
-<tr><td><strong>P29-01 QP solver</strong> ✅</td><td>Convex QP via primal-dual interior-point + direct KKT</td><td><code>solveQP(H, f, opts)</code>, <code>solveEqualityQP</code>, <code>solveBoxQP</code> in <code>js/math/optimization.js</code> (<code>verify_p29_qp.mjs</code>, 20 tests)</td><td>3d</td><td>matrix core</td></tr>
-<tr><td><strong>P29-02 LP solver</strong> ✅</td><td>Regularized interior-point LP (min-norm tie-break)</td><td><code>solveLP(c, opts)</code> in <code>js/math/optimization.js</code> (<code>verify_p29_lp.mjs</code>, 21 tests)</td><td>2d</td><td>P29-01</td></tr>
-<tr><td><strong>P29-03 SDP / LMI solver</strong> ✅</td><td>ADMM splitting + PSD-cone projection (Jacobi eig)</td><td><code>solveSDP(F0, Flist, c, opts)</code>, <code>solveLMIFeasibility</code>, <code>symmetricEig</code> (<code>verify_p29_sdp.mjs</code>, 12 tests)</td><td>4d</td><td>P29-01</td></tr>
-<tr><td><strong>P29-04 Retrofit MPC</strong> ✅</td><td>Replace inlined Hildreth QP in <code>mpc.js</code> with <code>solveQP</code>; adds general A·u≤b support</td><td>(internal <code>mpc.js</code>)</td><td>1d</td><td>P29-01</td></tr>
-<tr><td><strong>P29-05 Close LPV (P26-02)</strong> ✅</td><td>LMI-based LPV synthesis on parameter grid</td><td><code>synthesizeLPV/analyzeLPV</code> in <code>js/control/lpv.js</code> (<code>verify_p29_lpv.mjs</code>, 14 tests)</td><td>3d</td><td>P29-03</td></tr>
-<tr><td><strong>P29-06 Close D-K (P27-01)</strong> ✅</td><td>μ upper bound via D-scaling + D-K iteration</td><td><code>computeMuUpperBound/dkIteration</code> in <code>js/control/dk_iteration.js</code> (<code>verify_p29_dk.mjs</code>, 14 tests)</td><td>4d</td><td>P29-03</td></tr>
+<table><thead>
+<tr><th>Item</th><th>Goal</th><th>API</th><th>Effort</th><th>Dependency</th></tr>
 </thead><tbody>
-</table>
+<tr><td><strong>P29-01 QP solver</strong> ✅</td><td>Convex QP via primal-dual interior-point + direct KKT</td><td><code>solveQP(H, f, opts)</code>, <code>solveEqualityQP</code>, <code>solveBoxQP</code> in <code>js/math/optimization.js</code> (<code>verify_p29_qp.mjs</code>, 20 tests)</td><td>3d</td><td>matrix core</td></tr>
+</thead><tbody>
+<tr><td><strong>P29-02 LP solver</strong> ✅</td><td>Regularized interior-point LP (min-norm tie-break)</td><td><code>solveLP(c, opts)</code> in <code>js/math/optimization.js</code> (<code>verify_p29_lp.mjs</code>, 21 tests)</td><td>2d</td><td>P29-01</td></tr>
+</thead><tbody>
+<tr><td><strong>P29-03 SDP / LMI solver</strong> ✅</td><td>ADMM splitting + PSD-cone projection (Jacobi eig)</td><td><code>solveSDP(F0, Flist, c, opts)</code>, <code>solveLMIFeasibility</code>, <code>symmetricEig</code> (<code>verify_p29_sdp.mjs</code>, 12 tests)</td><td>4d</td><td>P29-01</td></tr>
+</thead><tbody>
+<tr><td><strong>P29-04 Retrofit MPC</strong> ✅</td><td>Replace inlined Hildreth QP in <code>mpc.js</code> with <code>solveQP</code>; adds general A·u≤b support</td><td>(internal <code>mpc.js</code>)</td><td>1d</td><td>P29-01</td></tr>
+</thead><tbody>
+<tr><td><strong>P29-05 Close LPV (P26-02)</strong> ✅</td><td>LMI-based LPV synthesis on parameter grid</td><td><code>synthesizeLPV/analyzeLPV</code> in <code>js/control/lpv.js</code> (<code>verify_p29_lpv.mjs</code>, 14 tests)</td><td>3d</td><td>P29-03</td></tr>
+</thead><tbody>
+<tr><td><strong>P29-06 Close D-K (P27-01)</strong> ✅</td><td>μ upper bound via D-scaling + D-K iteration</td><td><code>computeMuUpperBound/dkIteration</code> in <code>js/control/dk_iteration.js</code> (<code>verify_p29_dk.mjs</code>, 14 tests)</td><td>4d</td><td>P29-03</td></tr>
+</tbody></table>
 
 <h3 id="p30-adaptive-learning-control">P30 — Adaptive &amp; Learning Control</h3>
 
@@ -456,16 +542,19 @@ del { color: var(--muted); }
 <p><strong>Benchmark target:</strong> MATLAB Adaptive Control / self-tuning toolboxes.</p>
 </blockquote>
 
-<table>
-<tr><td>Item</td><td>Goal</td><td>API</td><td>Effort</td><td>Dependency</td></tr>
-<tr><td>---</td><td>---</td><td>---</td><td>:---:</td><td>---</td></tr>
-<tr><td>P30-01 Recursive least squares</td><td>Online parameter ID with forgetting factor</td><td><code>identifyRLS(opts)</code> → streaming estimator</td><td>2d</td><td>sysid</td></tr>
-<tr><td>P30-02 MRAC</td><td>Model-reference adaptive control (MIT rule / Lyapunov)</td><td><code>designMRAC(refModel, plant, gains)</code></td><td>3d</td><td>P30-01</td></tr>
-<tr><td>P30-03 Self-tuning regulator</td><td>RLS + pole-placement / minimum-variance</td><td><code>selfTuningRegulator(opts)</code></td><td>3d</td><td>P30-01</td></tr>
-<tr><td>P30-04 Iterative learning control</td><td>ILC for repetitive tasks (P-type / Q-filter)</td><td><code>iterativeLearningControl(plant, trials, opts)</code></td><td>2d</td><td>—</td></tr>
-<tr><td>P30-05 Close SRIVC (P23-04)</td><td>Continuous-time ID via prefiltered IV</td><td><code>identifyContinuousARX(...)</code></td><td>3d</td><td>sysid</td></tr>
+<table><thead>
+<tr><th>Item</th><th>Goal</th><th>API</th><th>Effort</th><th>Dependency</th></tr>
 </thead><tbody>
-</table>
+<tr><td>P30-01 Recursive least squares</td><td>Online parameter ID with forgetting factor</td><td><code>identifyRLS(opts)</code> → streaming estimator</td><td>2d</td><td>sysid</td></tr>
+</thead><tbody>
+<tr><td>P30-02 MRAC</td><td>Model-reference adaptive control (MIT rule / Lyapunov)</td><td><code>designMRAC(refModel, plant, gains)</code></td><td>3d</td><td>P30-01</td></tr>
+</thead><tbody>
+<tr><td>P30-03 Self-tuning regulator</td><td>RLS + pole-placement / minimum-variance</td><td><code>selfTuningRegulator(opts)</code></td><td>3d</td><td>P30-01</td></tr>
+</thead><tbody>
+<tr><td>P30-04 Iterative learning control</td><td>ILC for repetitive tasks (P-type / Q-filter)</td><td><code>iterativeLearningControl(plant, trials, opts)</code></td><td>2d</td><td>—</td></tr>
+</thead><tbody>
+<tr><td>P30-05 Close SRIVC (P23-04)</td><td>Continuous-time ID via prefiltered IV</td><td><code>identifyContinuousARX(...)</code></td><td>3d</td><td>sysid</td></tr>
+</tbody></table>
 
 <h3 id="p31-estimation-health-monitoring">P31 — Estimation &amp; Health Monitoring</h3>
 
@@ -474,15 +563,17 @@ del { color: var(--muted); }
 <p>fault-detection/fault-tolerant domain. <strong>Benchmark target:</strong> MATLAB FDI Toolbox.</p>
 </blockquote>
 
-<table>
-<tr><td>Item</td><td>Goal</td><td>API</td><td>Effort</td><td>Dependency</td></tr>
-<tr><td>---</td><td>---</td><td>---</td><td>:---:</td><td>---</td></tr>
-<tr><td>P31-01 Moving horizon estimation</td><td>Constrained optimization-based state estimation</td><td><code>movingHorizonEstimation(model, opts)</code></td><td>3d</td><td>P29-01</td></tr>
-<tr><td>P31-02 Particle filter</td><td>Sequential Monte Carlo for nonlinear/non-Gaussian</td><td><code>particleFilter(f, h, opts)</code></td><td>2d</td><td>rng</td></tr>
-<tr><td>P31-03 Fault detection &amp; diagnosis</td><td>Residual generation + statistical evaluation</td><td><code>designFDD(model, opts)</code></td><td>3d</td><td>observer</td></tr>
-<tr><td>P31-04 Fault-tolerant control</td><td>Reconfigurable control after fault isolation</td><td><code>reconfigurableFTC(model, faultSet, opts)</code></td><td>3d</td><td>P31-03</td></tr>
+<table><thead>
+<tr><th>Item</th><th>Goal</th><th>API</th><th>Effort</th><th>Dependency</th></tr>
 </thead><tbody>
-</table>
+<tr><td>P31-01 Moving horizon estimation</td><td>Constrained optimization-based state estimation</td><td><code>movingHorizonEstimation(model, opts)</code></td><td>3d</td><td>P29-01</td></tr>
+</thead><tbody>
+<tr><td>P31-02 Particle filter</td><td>Sequential Monte Carlo for nonlinear/non-Gaussian</td><td><code>particleFilter(f, h, opts)</code></td><td>2d</td><td>rng</td></tr>
+</thead><tbody>
+<tr><td>P31-03 Fault detection &amp; diagnosis</td><td>Residual generation + statistical evaluation</td><td><code>designFDD(model, opts)</code></td><td>3d</td><td>observer</td></tr>
+</thead><tbody>
+<tr><td>P31-04 Fault-tolerant control</td><td>Reconfigurable control after fault isolation</td><td><code>reconfigurableFTC(model, faultSet, opts)</code></td><td>3d</td><td>P31-03</td></tr>
+</tbody></table>
 
 <h3 id="p32-advanced-nonlinear-control">P32 — Advanced Nonlinear Control</h3>
 
@@ -491,14 +582,15 @@ del { color: var(--muted); }
 <p>safety-critical control. <strong>Benchmark target:</strong> academic nonlinear control references.</p>
 </blockquote>
 
-<table>
-<tr><td>Item</td><td>Goal</td><td>API</td><td>Effort</td><td>Dependency</td></tr>
-<tr><td>---</td><td>---</td><td>---</td><td>:---:</td><td>---</td></tr>
-<tr><td>P32-01 Feedback linearization</td><td>Input-output / input-state exact linearization</td><td><code>feedbackLinearization(f, g, h, opts)</code></td><td>3d</td><td>—</td></tr>
-<tr><td>P32-02 Backstepping</td><td>Recursive Lyapunov design for strict-feedback</td><td><code>backstepping(systemChain, opts)</code></td><td>3d</td><td>—</td></tr>
-<tr><td>P32-03 CLF / CBF safety control</td><td>Control Lyapunov + barrier functions via QP</td><td><code>controlBarrierFunction(dynamics, safeSet, opts)</code></td><td>3d</td><td>P29-01</td></tr>
+<table><thead>
+<tr><th>Item</th><th>Goal</th><th>API</th><th>Effort</th><th>Dependency</th></tr>
 </thead><tbody>
-</table>
+<tr><td>P32-01 Feedback linearization</td><td>Input-output / input-state exact linearization</td><td><code>feedbackLinearization(f, g, h, opts)</code></td><td>3d</td><td>—</td></tr>
+</thead><tbody>
+<tr><td>P32-02 Backstepping</td><td>Recursive Lyapunov design for strict-feedback</td><td><code>backstepping(systemChain, opts)</code></td><td>3d</td><td>—</td></tr>
+</thead><tbody>
+<tr><td>P32-03 CLF / CBF safety control</td><td>Control Lyapunov + barrier functions via QP</td><td><code>controlBarrierFunction(dynamics, safeSet, opts)</code></td><td>3d</td><td>P29-01</td></tr>
+</tbody></table>
 
 <h3 id="p33-productization-interop">P33 — Productization &amp; Interop</h3>
 
@@ -507,15 +599,17 @@ del { color: var(--muted); }
 <p><strong>Benchmark target:</strong> Embedded Coder / report generation / data interchange.</p>
 </blockquote>
 
-<table>
-<tr><td>Item</td><td>Goal</td><td>API</td><td>Effort</td><td>Dependency</td></tr>
-<tr><td>---</td><td>---</td><td>---</td><td>:---:</td><td>---</td></tr>
-<tr><td>P33-01 Controller codegen</td><td>Export designed controllers to C / Python / MATLAB</td><td><code>exportController(ctrl, target)</code></td><td>3d</td><td>codegen.js</td></tr>
-<tr><td>P33-02 Design report generator</td><td>Auto HTML/PDF report (Bode, RL, margins, verification)</td><td><code>generateDesignReport(design, opts)</code></td><td>2d</td><td>analysis</td></tr>
-<tr><td>P33-03 python-control bridge</td><td>Bidirectional JSON interchange (TF/SS/results)</td><td><code>toPythonControl()</code> / <code>fromPythonControl()</code></td><td>2d</td><td>—</td></tr>
-<tr><td>P33-04 Design wizard skill</td><td>Agent skill: spec → recommended workflow + design</td><td><code>control-studio-design-wizard</code> skill</td><td>2d</td><td>skills</td></tr>
+<table><thead>
+<tr><th>Item</th><th>Goal</th><th>API</th><th>Effort</th><th>Dependency</th></tr>
 </thead><tbody>
-</table>
+<tr><td>P33-01 Controller codegen</td><td>Export designed controllers to C / Python / MATLAB</td><td><code>exportController(ctrl, target)</code></td><td>3d</td><td>codegen.js</td></tr>
+</thead><tbody>
+<tr><td>P33-02 Design report generator</td><td>Auto HTML/PDF report (Bode, RL, margins, verification)</td><td><code>generateDesignReport(design, opts)</code></td><td>2d</td><td>analysis</td></tr>
+</thead><tbody>
+<tr><td>P33-03 python-control bridge</td><td>Bidirectional JSON interchange (TF/SS/results)</td><td><code>toPythonControl()</code> / <code>fromPythonControl()</code></td><td>2d</td><td>—</td></tr>
+</thead><tbody>
+<tr><td>P33-04 Design wizard skill</td><td>Agent skill: spec → recommended workflow + design</td><td><code>control-studio-design-wizard</code> skill</td><td>2d</td><td>skills</td></tr>
+</tbody></table>
 
 <h3 id="p34-ui-ux-experience-design-system">P34 — UI/UX Experience &amp; Design System</h3>
 
@@ -525,38 +619,50 @@ del { color: var(--muted); }
 <p>Goal: elevate usability and <em>design experience</em> for control engineers.</p>
 </blockquote>
 
-<table>
-<tr><td>Item</td><td>Goal</td><td>Deliverable</td><td>Effort</td><td>Dependency</td></tr>
-<tr><td>---</td><td>---</td><td>---</td><td>:---:</td><td>---</td></tr>
-<tr><td>P34-01 UI module extraction</td><td>Split <code>app.js</code> UI logic into <code>js/ui/</code> modules</td><td><code>js/ui/panels/*.js</code></td><td>3d</td><td>—</td></tr>
-<tr><td>P34-02 Component library</td><td>Tokenized reusable components (cards, inputs, charts)</td><td><code>css/components.css</code> refactor + <code>js/ui/widgets/</code></td><td>2d</td><td>P34-01</td></tr>
-<tr><td>P34-03 Responsive layout</td><td>Mobile/tablet breakpoints; collapsible panels</td><td><code>layout.css</code> breakpoints</td><td>2d</td><td>—</td></tr>
-<tr><td>P34-04 Accessibility (WCAG AA)</td><td>Keyboard nav, ARIA, focus rings, contrast audit</td><td>a11y pass + <code>verify</code> walkthrough</td><td>2d</td><td>—</td></tr>
-<tr><td>P34-05 Design wizard UI</td><td>Guided spec→design flow with live feedback</td><td><code>view-wizard</code> panel</td><td>3d</td><td>P33-04</td></tr>
-<tr><td>P34-06 Chart interaction</td><td>Zoom, cursor readout, export PNG/CSV on all plots</td><td><code>js/ui/widgets/chart.js</code></td><td>2d</td><td>P34-02</td></tr>
+<table><thead>
+<tr><th>Item</th><th>Goal</th><th>Deliverable</th><th>Effort</th><th>Dependency</th></tr>
 </thead><tbody>
-</table>
+<tr><td>P34-01 UI module extraction</td><td>Split <code>app.js</code> UI logic into <code>js/ui/</code> modules</td><td><code>js/ui/panels/*.js</code></td><td>3d</td><td>—</td></tr>
+</thead><tbody>
+<tr><td>P34-02 Component library</td><td>Tokenized reusable components (cards, inputs, charts)</td><td><code>css/components.css</code> refactor + <code>js/ui/widgets/</code></td><td>2d</td><td>P34-01</td></tr>
+</thead><tbody>
+<tr><td>P34-03 Responsive layout</td><td>Mobile/tablet breakpoints; collapsible panels</td><td><code>layout.css</code> breakpoints</td><td>2d</td><td>—</td></tr>
+</thead><tbody>
+<tr><td>P34-04 Accessibility (WCAG AA)</td><td>Keyboard nav, ARIA, focus rings, contrast audit</td><td>a11y pass + <code>verify</code> walkthrough</td><td>2d</td><td>—</td></tr>
+</thead><tbody>
+<tr><td>P34-05 Design wizard UI</td><td>Guided spec→design flow with live feedback</td><td><code>view-wizard</code> panel</td><td>3d</td><td>P33-04</td></tr>
+</thead><tbody>
+<tr><td>P34-06 Chart interaction</td><td>Zoom, cursor readout, export PNG/CSV on all plots</td><td><code>js/ui/widgets/chart.js</code></td><td>2d</td><td>P34-02</td></tr>
+</tbody></table>
 
 <h2 id="execution-order-approved-blueprint">Execution Order (Approved Blueprint)</h2>
 
 <p>The full P29–P34 blueprint is approved. Execution proceeds phase-by-phase, each item</p>
 <p>shipping with a deterministic <code>verify_pNN_*.mjs</code> script wired into <code>run_all_verify.sh</code>.</p>
 
-<table>
-<tr><td>Order</td><td>Item</td><td>Effort</td><td>Why now</td></tr>
-<tr><td>:---:</td><td>---</td><td>:---:</td><td>---</td></tr>
-<tr><td>1</td><td>P29-01 QP solver</td><td>3d</td><td>Enabling tech; unblocks LMI/MPC/CBF — start here</td></tr>
-<tr><td>2</td><td>P29-02 LP solver</td><td>2d</td><td>Completes the convex-program trio</td></tr>
-<tr><td>3</td><td>P29-03 SDP/LMI solver</td><td>4d</td><td>Unblocks LPV + D-K</td></tr>
-<tr><td>4</td><td>P29-04 Retrofit MPC with <code>solveQP</code></td><td>1d</td><td>Hardens existing constrained MPC</td></tr>
-<tr><td>5</td><td>P29-05 / P29-06 Close LPV + D-K</td><td>7d</td><td>Clears the two oldest "Planned" gaps</td></tr>
-<tr><td>6</td><td>P30 Adaptive &amp; learning (RLS→MRAC→STR→ILC, +SRIVC)</td><td>13d</td><td>New paradigm on top of SysID</td></tr>
-<tr><td>7</td><td>P31 Estimation &amp; monitoring (MHE/PF/FDD/FTC)</td><td>11d</td><td>New domain on top of EKF/UKF</td></tr>
-<tr><td>8</td><td>P32 Advanced nonlinear (FBL/backstepping/CBF)</td><td>9d</td><td>Extends P26</td></tr>
-<tr><td>9</td><td>P33 Productization (codegen/report/bridge/wizard)</td><td>9d</td><td>Turns designs into deliverables</td></tr>
-<tr><td>10</td><td>P34 UI/UX &amp; design system</td><td>14d</td><td>Elevates experience across all phases</td></tr>
+<table><thead>
+<tr><th>Order</th><th>Item</th><th>Effort</th><th>Why now</th></tr>
 </thead><tbody>
-</table>
+<tr><td>1</td><td>P29-01 QP solver</td><td>3d</td><td>Enabling tech; unblocks LMI/MPC/CBF — start here</td></tr>
+</thead><tbody>
+<tr><td>2</td><td>P29-02 LP solver</td><td>2d</td><td>Completes the convex-program trio</td></tr>
+</thead><tbody>
+<tr><td>3</td><td>P29-03 SDP/LMI solver</td><td>4d</td><td>Unblocks LPV + D-K</td></tr>
+</thead><tbody>
+<tr><td>4</td><td>P29-04 Retrofit MPC with <code>solveQP</code></td><td>1d</td><td>Hardens existing constrained MPC</td></tr>
+</thead><tbody>
+<tr><td>5</td><td>P29-05 / P29-06 Close LPV + D-K</td><td>7d</td><td>Clears the two oldest "Planned" gaps</td></tr>
+</thead><tbody>
+<tr><td>6</td><td>P30 Adaptive &amp; learning (RLS→MRAC→STR→ILC, +SRIVC)</td><td>13d</td><td>New paradigm on top of SysID</td></tr>
+</thead><tbody>
+<tr><td>7</td><td>P31 Estimation &amp; monitoring (MHE/PF/FDD/FTC)</td><td>11d</td><td>New domain on top of EKF/UKF</td></tr>
+</thead><tbody>
+<tr><td>8</td><td>P32 Advanced nonlinear (FBL/backstepping/CBF)</td><td>9d</td><td>Extends P26</td></tr>
+</thead><tbody>
+<tr><td>9</td><td>P33 Productization (codegen/report/bridge/wizard)</td><td>9d</td><td>Turns designs into deliverables</td></tr>
+</thead><tbody>
+<tr><td>10</td><td>P34 UI/UX &amp; design system</td><td>14d</td><td>Elevates experience across all phases</td></tr>
+</tbody></table>
 
 <p>Legacy small gaps folded into the above: P23-04 SRIVC → P30-05; P26-02 LPV → P29-05;</p>
 <p>P27-01 D-K → P29-06; P25-02 Hankel norm and P28-02 JSDoc docs completed (2026-05-21).</p>
