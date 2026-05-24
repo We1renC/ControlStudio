@@ -108,6 +108,7 @@ del{color:var(--muted)}
 <li>2026-05-22 UI/UX 計畫 P1 foundation 已開始落地：全域狀態列、toast notification infrastructure、empty-state action style、Share/Theme/Project/Compare 高頻動作通知，新增 <code>verify_p35_uiux_foundation.mjs</code> 並納入 <code>run_all_verify.sh</code>。</li>
 <li>2026-05-24 UI/UX 計畫已推進到 P59 之後的整體整理階段：P35~P59 均已落地，包含 plot workspace、context bar、dashboard/scoring/report/decision-log，以及後續的 browser-driven layout cleanup；<code>run_all_verify.sh</code> 最新基線為 <code>79/79 scripts pass</code>。</li>
 <li>2026-05-24 已完成 P34-01 模組拆分：app.js（15,871→14,524 行）拆出 <code>js/ui/{annotations,share,sweep,measurement,flow}.js</code> 五個子模組；完成 J1-3 Root Locus 幾何標注（阻尼線、ωn 弧線、臨界增益）與 H1-4 側欄快速收藏 Pin；<code>run_all_verify.sh</code> 最新基線為 <strong>81/81 scripts pass</strong>。</li>
+<li>2026-05-24 數學核心審查 Round 2 修正三項：(A1) <code>stability.js stabilityMargins()</code> 改為收集所有增益/相位交越點回傳最壞情況 PM/GM；(A2) <code>matrix.js matDet()</code> 加入 LU O(n³) fallback（n&gt;6）與 n=3 Sarrus 公式；(A3) <code>root-locus.js sortRootLocusBranches()</code> 改用 Jonker-Volgenant Hungarian 最優分配。新增 <code>verify_math_audit_fixes.mjs</code>；基線升至 <strong>82/82 scripts pass</strong>。</li>
 </ul>
 <li>已完成 NVIDIA Build Models 資料集中管理。</li>
 <li>已新增 agent 入口文件：</li>

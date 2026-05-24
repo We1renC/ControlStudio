@@ -73,7 +73,14 @@ export function rootLocusAsymptotes(sys) {
 
 /**
  * Sort each step's root array so that branch index is continuous across K.
- * Greedy nearest-neighbor matching between consecutive steps.
+ *
+ * Uses the Hungarian algorithm (O(n³) Jonker-Volgenant variant) to find the
+ * globally optimal minimum-cost assignment between consecutive root sets.
+ * This avoids the branch-swap artefacts of greedy nearest-neighbor matching
+ * at branch crossings near the real axis.
+ *
+ * Cost metric: squared Euclidean distance in the complex plane.
+ *
  * @param {Complex[][]} stepsRoots
  * @returns {Complex[][]}
  */
@@ -85,23 +92,71 @@ export function sortRootLocusBranches(stepsRoots) {
     const curr = stepsRoots[step];
     if (!curr || curr.length !== prev.length) { sorted.push(curr); continue; }
     const n = prev.length;
-    const used = new Array(n).fill(false);
-    const assigned = new Array(n);
-    for (let i = 0; i < n; i++) {
-      let bestJ = -1, bestDist = Infinity;
-      for (let j = 0; j < n; j++) {
-        if (used[j]) continue;
+    // Build n×n cost matrix (squared Euclidean distance)
+    const cost = Array.from({ length: n }, (_, i) =>
+      Array.from({ length: n }, (__, j) => {
         const dr = curr[j].re - prev[i].re;
         const di = curr[j].im - prev[i].im;
-        const d = dr * dr + di * di;
-        if (d < bestDist) { bestDist = d; bestJ = j; }
-      }
-      used[bestJ] = true;
-      assigned[i] = curr[bestJ];
-    }
-    sorted.push(assigned);
+        return dr * dr + di * di;
+      })
+    );
+    const assignment = _hungarianAssign(cost, n);
+    sorted.push(assignment.map(j => curr[j]));
   }
   return sorted;
+}
+
+/**
+ * Hungarian algorithm (Jonker-Volgenant O(n³) formulation).
+ * Solves the minimum-cost bipartite assignment problem.
+ * @param {number[][]} cost - n×n cost matrix
+ * @param {number} n
+ * @returns {number[]} assignment — assignment[i] = j means row i matched to col j
+ */
+function _hungarianAssign(cost, n) {
+  const INF = Infinity;
+  // 1-indexed internally for the classic JV algorithm
+  const u    = new Float64Array(n + 1);  // row potentials
+  const v    = new Float64Array(n + 1);  // col potentials
+  const p    = new Int32Array(n + 1);    // p[j] = row assigned to col j (1-indexed, 0 = unassigned)
+  const way  = new Int32Array(n + 1);    // backtracking predecessor column
+
+  for (let i = 1; i <= n; i++) {
+    p[0] = i;
+    let j0 = 0;
+    const minVal = new Float64Array(n + 1).fill(INF);
+    const used   = new Uint8Array(n + 1);
+    do {
+      used[j0] = 1;
+      const i0 = p[j0];
+      let delta = INF, j1 = -1;
+      for (let j = 1; j <= n; j++) {
+        if (used[j]) continue;
+        const cur = cost[i0 - 1][j - 1] - u[i0] - v[j];
+        if (cur < minVal[j]) { minVal[j] = cur; way[j] = j0; }
+        if (minVal[j] < delta) { delta = minVal[j]; j1 = j; }
+      }
+      for (let j = 0; j <= n; j++) {
+        if (used[j]) { u[p[j]] += delta; v[j] -= delta; }
+        else          minVal[j] -= delta;
+      }
+      j0 = j1;
+    } while (p[j0] !== 0);
+
+    // Augment along the shortest alternating path
+    do {
+      const j1 = way[j0];
+      p[j0] = p[j1];
+      j0 = j1;
+    } while (j0 !== 0);
+  }
+
+  // Convert 1-indexed result to 0-indexed assignment array
+  const assignment = new Array(n);
+  for (let j = 1; j <= n; j++) {
+    if (p[j] !== 0) assignment[p[j] - 1] = j - 1;
+  }
+  return assignment;
 }
 
 /**

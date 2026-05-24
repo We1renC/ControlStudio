@@ -1,7 +1,7 @@
 # ControlStudio Development Roadmap
 
 > Last updated: 2026-05-24
-> Current committed baseline: `956d8c3 feat(phase34+J13+H14): module split P62-P65 → js/ui/, J1-3 root locus geo annotations, H1-4 sidebar quick pin`
+> Current committed baseline: `math-audit-r2 fix(math): stabilityMargins all-crossings + matDet LU fallback + sortRootLocusBranches Hungarian assignment`
 > Scope: this is the canonical execution roadmap for ControlStudio implementation status.
 > Do not use this file for product vision, proof derivations, or handoff notes; see the document workflow below.
 
@@ -379,13 +379,25 @@ shipping with a deterministic `verify_pNN_*.mjs` script wired into `run_all_veri
 Legacy small gaps folded into the above: P23-04 SRIVC → P30-05; P26-02 LPV → P29-05;
 P27-01 D-K → P29-06; P25-02 Hankel norm and P28-02 JSDoc docs completed (2026-05-21).
 
+## Math Core Audit Round 2 — Done (2026-05-24)
+
+Three fixes applied after full math-core read audit:
+
+| ID | File | Fix |
+|----|------|-----|
+| A1 | `js/control/stability.js` — `stabilityMargins()` | Collects **all** gain/phase crossings; returns worst-case (minimum) PM and GM plus `allGainCrossings`/`allPhaseCrossings` arrays. Fixes non-minimum-phase and high-order systems where only the first crossing was returned. |
+| A2 | `js/math/matrix.js` — `matDet()` | Added `_matDetLU()` O(n³) LU fallback for n > 6; Sarrus closed-form for n=3. Eliminates O(n!) cofactor recursion for large matrices. |
+| A3 | `js/analysis/root-locus.js` — `sortRootLocusBranches()` | Replaced greedy nearest-neighbor with **Jonker-Volgenant O(n³) Hungarian** optimal bipartite assignment (`_hungarianAssign`). Eliminates branch-swap artefacts at real-axis crossings. |
+
+Verify baseline: **82/82** (`verify_math_audit_fixes.mjs` added).
+
 ## Next Immediate Action
 
 Start **P30-01 Recursive Least Squares** (`js/control/adaptive.js` + `verify_p30_rls.mjs`):
 
 ```bash
 # After implementing identifyRLS + verification script
-bash scripts/run_all_verify.sh        # confirm 44+/43 pass
+bash scripts/run_all_verify.sh        # confirm 83+/82 pass
 ```
 
 P30 implementation order: RLS → MRAC → STR → ILC → SRIVC

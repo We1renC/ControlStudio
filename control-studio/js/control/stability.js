@@ -21,12 +21,30 @@ function evaluateMarginPoint(sys, w) {
 
 /**
  * Compute gain margin and phase margin from a transfer function.
+ *
+ * Collects ALL gain crossings (|G|=1) and ALL phase crossings (∠G=-180°),
+ * then returns the worst-case (minimum) PM and GM so that non-minimum-phase
+ * or high-order systems with multiple crossings are handled correctly.
+ *
+ * Returns:
+ *   gainMargin         — minimum GM across all phase crossings (Infinity if none)
+ *   gainMarginDB       — 20·log10(gainMargin)
+ *   phaseMargin        — minimum PM across all gain crossings (NaN if none)
+ *   gainCrossover      — ω where the worst-case PM occurs (first if equal)
+ *   phaseCrossover     — ω where the worst-case GM occurs (first if equal)
+ *   allGainCrossings   — [{ omega, phaseMargin }] sorted by omega (all unit-gain crossings)
+ *   allPhaseCrossings  — [{ omega, gainMargin, gainMarginDB }] sorted by omega (all -180° crossings)
  */
 export function stabilityMargins(sys) {
-  if (!sys) return { gainMargin: Infinity, gainMarginDB: Infinity, phaseMargin: NaN, gainCrossover: NaN, phaseCrossover: NaN };
+  if (!sys) return {
+    gainMargin: Infinity, gainMarginDB: Infinity,
+    phaseMargin: NaN, gainCrossover: NaN, phaseCrossover: NaN,
+    allGainCrossings: [], allPhaseCrossings: [],
+  };
+
   // Auto-extend the frequency window to cover all pole/zero break frequencies
-  // (clamped to a reasonable [1e-4, 1e6]). Fixed-window scans silently miss
-  // crossovers far from the default range.
+  // (clamped to [1e-4, 1e6]). Fixed-window scans silently miss crossovers far
+  // from the default range.
   const breaks = [];
   try {
     for (const p of sys.poles()) { const m = Math.hypot(p.re, p.im); if (m > 0) breaks.push(m); }
@@ -39,8 +57,9 @@ export function stabilityMargins(sys) {
   const nPoints = 2000;
   const logMin = Math.log10(wMin), logMax = Math.log10(wMax);
 
-  let gmFreq = NaN, pmFreq = NaN;
-  let gainMargin = Infinity, phaseMargin = NaN;
+  const allGainCrossings = [];   // [{omega, phaseMargin}]
+  const allPhaseCrossings = [];  // [{omega, gainMargin, gainMarginDB}]
+
   let prevPhase = null, prevMag = null, prevW = null;
 
   for (let i = 0; i < nPoints; i++) {
@@ -53,23 +72,51 @@ export function stabilityMargins(sys) {
       while (phase - prevPhase < -180) phase += 360;
     }
 
-    if (prevMag !== null && ((prevMag >= 1 && mag <= 1) || (prevMag <= 1 && mag >= 1))) {
-      if (isNaN(pmFreq)) {
-        pmFreq = interpolateLogFrequency(prevW, w, prevMag, mag, 1);
-        const marginPoint = evaluateMarginPoint(sys, pmFreq);
-        phaseMargin = 180 + marginPoint.phase;
-      }
+    // Gain crossover: |G(jω)| crosses 1 from either direction
+    if (prevMag !== null && ((prevMag >= 1 && mag < 1) || (prevMag < 1 && mag >= 1))) {
+      const wGc = interpolateLogFrequency(prevW, w, prevMag, mag, 1);
+      const pt = evaluateMarginPoint(sys, wGc);
+      allGainCrossings.push({ omega: wGc, phaseMargin: 180 + pt.phase });
     }
+
+    // Phase crossover: ∠G(jω) crosses -180° from either direction
     if (prevPhase !== null && ((prevPhase > -180 && phase <= -180) || (prevPhase < -180 && phase >= -180))) {
-      if (isNaN(gmFreq)) {
-        gmFreq = interpolateLogFrequency(prevW, w, prevPhase, phase, -180);
-        const marginPoint = evaluateMarginPoint(sys, gmFreq);
-        gainMargin = 1 / marginPoint.mag;
-      }
+      const wPc = interpolateLogFrequency(prevW, w, prevPhase, phase, -180);
+      const pt = evaluateMarginPoint(sys, wPc);
+      const gm = pt.mag > 0 ? 1 / pt.mag : Infinity;
+      allPhaseCrossings.push({ omega: wPc, gainMargin: gm, gainMarginDB: 20 * Math.log10(gm) });
     }
+
     prevPhase = phase; prevMag = mag; prevW = w;
   }
-  return { gainMargin, gainMarginDB: 20 * Math.log10(gainMargin), phaseMargin, gainCrossover: pmFreq, phaseCrossover: gmFreq };
+
+  // Worst-case (minimum) phase margin
+  let phaseMargin = NaN, gainCrossover = NaN;
+  for (const gc of allGainCrossings) {
+    if (isNaN(phaseMargin) || gc.phaseMargin < phaseMargin) {
+      phaseMargin = gc.phaseMargin;
+      gainCrossover = gc.omega;
+    }
+  }
+
+  // Worst-case (minimum) gain margin
+  let gainMargin = Infinity, phaseCrossover = NaN;
+  for (const pc of allPhaseCrossings) {
+    if (pc.gainMargin < gainMargin) {
+      gainMargin = pc.gainMargin;
+      phaseCrossover = pc.omega;
+    }
+  }
+
+  return {
+    gainMargin,
+    gainMarginDB: 20 * Math.log10(gainMargin),
+    phaseMargin,
+    gainCrossover,
+    phaseCrossover,
+    allGainCrossings,
+    allPhaseCrossings,
+  };
 }
 
 /**

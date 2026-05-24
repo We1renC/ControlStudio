@@ -70,16 +70,63 @@ export function vecScale(v, s) {
   return v.map(x => x * s);
 }
 
-/** Determinant (recursive, for small matrices) */
+/**
+ * Determinant with O(n³) LU fallback for n > 6.
+ *
+ * The recursive cofactor expansion is O(n!) and becomes impractically slow
+ * beyond n=8 (~40 320 recursive calls for n=8, ~3.6M for n=10). For n ≤ 3
+ * we use closed-form formulas; for 4 ≤ n ≤ 6 we keep cofactor expansion
+ * (at most 720 calls); for n > 6 we use Gaussian elimination with partial
+ * pivoting (O(n³)).
+ */
 export function matDet(A) {
   const n = A.length;
   if (n === 1) return A[0][0];
   if (n === 2) return A[0][0] * A[1][1] - A[0][1] * A[1][0];
+  if (n === 3) {
+    // Sarrus rule — faster than recursion
+    return (A[0][0] * (A[1][1] * A[2][2] - A[1][2] * A[2][1])
+          - A[0][1] * (A[1][0] * A[2][2] - A[1][2] * A[2][0])
+          + A[0][2] * (A[1][0] * A[2][1] - A[1][1] * A[2][0]));
+  }
+  if (n > 6) return _matDetLU(A);   // O(n³) for large matrices
+  // Cofactor expansion for 4 ≤ n ≤ 6 (at most 720 recursive calls total)
   let det = 0;
   for (let j = 0; j < n; j++) {
     const minor = A.slice(1).map(row => [...row.slice(0, j), ...row.slice(j + 1)]);
     det += (j % 2 === 0 ? 1 : -1) * A[0][j] * matDet(minor);
   }
+  return det;
+}
+
+/**
+ * LU determinant via Gaussian elimination with partial pivoting.
+ * Accumulates the product of diagonal pivots; sign tracks row swaps.
+ * @param {number[][]} A
+ * @returns {number}
+ */
+function _matDetLU(A) {
+  const n = A.length;
+  const M = A.map(row => [...row]);   // clone — do not mutate input
+  let sign = 1;
+  for (let i = 0; i < n; i++) {
+    // Partial pivoting
+    let maxRow = i;
+    for (let k = i + 1; k < n; k++) {
+      if (Math.abs(M[k][i]) > Math.abs(M[maxRow][i])) maxRow = k;
+    }
+    if (maxRow !== i) {
+      [M[i], M[maxRow]] = [M[maxRow], M[i]];
+      sign = -sign;
+    }
+    if (Math.abs(M[i][i]) < 1e-15) return 0;  // singular
+    for (let k = i + 1; k < n; k++) {
+      const f = M[k][i] / M[i][i];
+      for (let j = i; j < n; j++) M[k][j] -= f * M[i][j];
+    }
+  }
+  let det = sign;
+  for (let i = 0; i < n; i++) det *= M[i][i];
   return det;
 }
 

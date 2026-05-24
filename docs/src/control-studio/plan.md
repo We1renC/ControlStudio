@@ -439,6 +439,7 @@
 - Mostly Done：Phase 26 nonlinear control — gain-scheduled PID 與 sliding mode control 已提交；LPV synthesis 尚未提交。
 - Mostly Done：Phase 27 H∞ design extensions — MIMO H∞ verification 與 loop-shaping H∞ 已提交；full D-K iteration 尚未提交。
 - Mostly Done：Phase 28 infrastructure quality — TypeScript definitions 與 benchmark script 已提交；JSDoc API docs 尚未提交。
+- Done：Math-core audit round 2 — 三項修正：(A1) `stabilityMargins()` 改為收集所有增益/相位交越點，回傳最壞情況 PM/GM，修正非最小相位系統只回傳第一個交越的問題；(A2) `matDet()` 加入 `_matDetLU()` fallback，n>6 改用 O(n³) LU 消去而非 O(n!) 餘因子遞迴，並補 n=3 Sarrus 閉合公式；(A3) `sortRootLocusBranches()` 改用 Jonker-Volgenant O(n³) Hungarian 最優分配，取代 greedy nearest-neighbor，消除根軌跡分支在實軸附近交越時的視覺錯位。verify baseline 升至 82/82。
 - Execution roadmap：詳細執行看板與文件工作流以 `control-studio/ROADMAP.md` 為準；本文件保留產品/架構層級摘要。
 
 ### Stage 4: Productization

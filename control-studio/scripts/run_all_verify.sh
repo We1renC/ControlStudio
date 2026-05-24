@@ -134,6 +134,11 @@ run_script "J1-3 Root Locus geometric annotations"                  "node script
 run_script "H1-4 Sidebar Quick Pin"                                  "node scripts/verify_h14_sidebar_pin.mjs"
 echo ""
 
+# ── Math Audit Fixes ─────────────────────────────────────────────────────────
+echo -e "${BOLD}▶ Math Audit Fixes${RESET}"
+run_script "Math audit fixes A1/A2/A3"                             "node scripts/verify_math_audit_fixes.mjs"
+echo ""
+
 # ── General Math & PID ───────────────────────────────────────────────────────
 echo -e "${BOLD}▶ General Math & PID${RESET}"
 run_script "Math core"                     "node scripts/verify_math_core.mjs"
