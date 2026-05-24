@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Control System Verification Cases — NVIDIA OS Support Docs</title>
+<style>
+:root {
+  --bg: #0f1117; --bg2: #1a1d2e; --bg3: #252840;
+  --border: #2d3155; --accent: #6366f1; --accent2: #818cf8;
+  --text: #e2e8f0; --muted: #94a3b8; --code-bg: #1e2235;
+  --success: #22c55e; --warn: #f59e0b;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+       background: var(--bg); color: var(--text); line-height: 1.7;
+       display: flex; min-height: 100vh; }
+nav { width: 240px; min-height: 100vh; background: var(--bg2);
+      border-right: 1px solid var(--border); padding: 24px 0;
+      position: sticky; top: 0; height: 100vh; overflow-y: auto;
+      flex-shrink: 0; }
+nav .logo { padding: 0 20px 20px; border-bottom: 1px solid var(--border); margin-bottom: 12px; }
+nav .logo a { text-decoration: none; font-size: 15px; font-weight: 700;
+              color: var(--accent2); }
+nav .section { padding: 6px 20px 2px; font-size: 10px; font-weight: 700;
+               text-transform: uppercase; letter-spacing: 1px; color: var(--muted);
+               margin-top: 8px; }
+nav a { display: block; padding: 5px 20px; font-size: 13px; color: var(--muted);
+        text-decoration: none; border-left: 2px solid transparent;
+        transition: all .15s; }
+nav a:hover, nav a.active { color: var(--text); border-color: var(--accent);
+                              background: rgba(99,102,241,.08); }
+main { flex: 1; padding: 40px 48px; max-width: 900px; min-width: 0; }
+h1 { font-size: 2rem; font-weight: 800; color: var(--text);
+     border-bottom: 2px solid var(--accent); padding-bottom: 12px; margin-bottom: 24px; }
+h2 { font-size: 1.4rem; font-weight: 700; color: var(--accent2);
+     margin: 32px 0 12px; padding-top: 8px; }
+h3 { font-size: 1.1rem; font-weight: 600; color: var(--text); margin: 20px 0 8px; }
+h4, h5, h6 { font-size: 1rem; font-weight: 600; color: var(--muted); margin: 16px 0 6px; }
+p { margin: 8px 0; color: var(--text); }
+a { color: var(--accent2); }
+a:hover { color: #a5b4fc; }
+code { background: var(--code-bg); border: 1px solid var(--border);
+       border-radius: 4px; padding: 1px 5px; font-size: .875em;
+       font-family: 'JetBrains Mono', 'Fira Code', monospace; color: #a5b4fc; }
+pre { background: var(--code-bg); border: 1px solid var(--border);
+      border-radius: 8px; padding: 16px; overflow-x: auto; margin: 12px 0; }
+pre code { background: none; border: none; padding: 0;
+           font-size: .82rem; color: var(--text); }
+blockquote { border-left: 3px solid var(--accent); padding: 8px 16px;
+             background: rgba(99,102,241,.06); margin: 12px 0; border-radius: 0 6px 6px 0; }
+ul, ol { padding-left: 24px; margin: 8px 0; }
+li { margin: 3px 0; }
+table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: .9rem; }
+th { background: var(--bg3); color: var(--accent2); font-weight: 700;
+     padding: 8px 12px; border: 1px solid var(--border); text-align: left; }
+td { padding: 7px 12px; border: 1px solid var(--border); color: var(--text); }
+tr:nth-child(even) td { background: rgba(255,255,255,.02); }
+hr { border: none; border-top: 1px solid var(--border); margin: 24px 0; }
+strong { color: #c7d2fe; }
+del { color: var(--muted); }
+.badge { display: inline-block; font-size: 10px; font-weight: 700; padding: 1px 6px;
+         border-radius: 9px; border: 1px solid; margin: 0 2px; vertical-align: middle; }
+.badge-green { color: var(--success); border-color: var(--success); }
+.badge-warn  { color: var(--warn);    border-color: var(--warn); }
+/* toc sidebar on large screens */
+@media (max-width: 768px) { nav { display: none; } main { padding: 20px 16px; } }
+</style>
+</head>
+<body>
+<nav>
+  <div class="logo"><a href="../index.html">📁 NVIDIA OS Support</a></div>
+  <div class="section">Agent 工作文件</div>
+  <a href="../agents/usage.html">使用指南</a>
+  <a href="../agents/continuation.html">接手狀態</a>
+  <a href="../agents/workflows.html">Runnable Workflows</a>
+<div class="section">ControlStudio</div>
+  <a href="../control-studio/roadmap.html">Roadmap（主線）</a>
+  <a href="../control-studio/plan.html">開發計畫</a>
+  <a href="../control-studio/backlog.html">Backlog</a>
+  <a href="../control-studio/scenarios.html">情境案例</a>
+  <a href="../control-studio/verification.html" class="active">驗證案例</a>
+  <a href="../control-studio/skills.html">Skill 規劃</a>
+  <a href="../control-studio/uiux-r1.html">UI/UX Round 1</a>
+  <a href="../control-studio/uiux-r2.html">UI/UX Round 2</a>
+  <a href="../control-studio/archive/phase10-plan.html">▸ Phase 10 計畫（封存）</a>
+  <a href="../control-studio/archive/phase10-verify.html">▸ Phase 10 驗證（封存）</a>
+<div class="section">NVIDIA 模型</div>
+  <a href="../nvidia/guide.html">落地操作指南</a>
+  <a href="../nvidia/models-zh.html">模型分類表（中文）</a>
+  <a href="../nvidia/models-en.html">Model Summary (EN)</a>
+  <a href="../nvidia/selector-plan.html">Selector Skill 計畫</a>
+<div class="section">案例輸出</div>
+  <a href="../cases/dc-motor.html">DC Motor 速度控制</a>
+  <a href="../cases/precision-servo.html">Precision Servo</a>
+  <a href="../cases/regression.html">Regression Dashboard</a>
+</nav>
+<main>
+<h1 id="control-system-verification-cases">Control System Verification Cases</h1>
+
+<p>此文件定義 ControlStudio 後續回歸測試的五個基準案例。每個案例都必須能以數學推導得到期望結果，再用 <code>control-studio</code> 數值核心、<code>control_analysis_cli.mjs</code> 與 FastAPI API 交叉驗證。</p>
+
+<p>驗證原則：</p>
+<ul>
+<li>先比對 transfer function 多項式係數，再比對 poles / zeros / DC gain。</li>
+<li>時域響應使用理論 final value、overshoot、settling/rise trend 作為主判準。</li>
+<li>頻域響應使用 DC/low-frequency gain、phase margin 或已知風險作為主判準。</li>
+<li>不以圖形外觀作為唯一依據；圖形只作為人眼審查輔助。</li>
+<li>容許誤差需明確寫入測試，避免浮點與取樣差異造成假失敗。</li>
+</ul>
+
+<p>建議 tolerance：</p>
+<ul>
+<li>多項式係數：<code>1e-6</code></li>
+<li>poles / zeros：<code>1e-5</code></li>
+<li>final value：<code>1e-3</code> 到 <code>1e-2</code></li>
+<li>phase margin：<code>1e-3 deg</code></li>
+<li>overshoot：<code>0.5%</code></li>
+</ul>
+
+<h2 id="case-1-stable-first-order-lag">Case 1: Stable First-Order Lag</h2>
+
+<h3 id="purpose">Purpose</h3>
+
+<p>驗證最基礎的 SISO transfer function、穩定性、step response final value、DC gain 與低頻 Bode magnitude。</p>
+
+<h3 id="model">Model</h3>
+
+<pre><code class="lang-text">G(s) = 1 / (s + 1)</code></pre>
+
+<h3 id="mathematical-derivation">Mathematical Derivation</h3>
+
+<p>Pole:</p>
+
+<pre><code class="lang-text">s + 1 = 0
+s = -1</code></pre>
+
+<p>因此系統穩定。</p>
+
+<p>DC gain:</p>
+
+<pre><code class="lang-text">G(0) = 1</code></pre>
+
+<p>Unit step input:</p>
+
+<pre><code class="lang-text">Y(s) = G(s) * 1/s
+     = 1 / (s(s + 1))</code></pre>
+
+<p>Partial fraction:</p>
+
+<pre><code class="lang-text">1 / (s(s + 1)) = 1/s - 1/(s + 1)</code></pre>
+
+<p>Time response:</p>
+
+<pre><code class="lang-text">y(t) = 1 - e^(-t)</code></pre>
+
+<p>Final value:</p>
+
+<pre><code class="lang-text">lim t-&gt;inf y(t) = 1</code></pre>
+
+<p>Low-frequency Bode magnitude:</p>
+
+<pre><code class="lang-text">20 log10(|G(0)|) = 0 dB</code></pre>
+
+<h3 id="expected-assertions">Expected Assertions</h3>
+
+<ul>
+<li><code>poles = [-1]</code></li>
+<li><code>isStable = true</code></li>
+<li><code>dcGain = 1</code></li>
+<li><code>step final value ~= 1</code></li>
+<li><code>low frequency magnitude ~= 0 dB</code></li>
+<li><code>phase at low frequency &lt; 0 deg</code></li>
+</ul>
+
+<h3 id="suggested-payload">Suggested Payload</h3>
+
+<pre><code class="lang-json">{
+  "system": { "type": "transfer_function", "num": [1], "den": [1, 1] },
+  "simulation": { "mode": "open_loop", "inputWaveform": "step", "duration": 8, "sampleCount": 800, "amplitude": 1 }
+}</code></pre>
+
+<h2 id="case-2-underdamped-second-order-system">Case 2: Underdamped Second-Order System</h2>
+
+<h3 id="purpose">Purpose</h3>
+
+<p>驗證二階欠阻尼系統的複數極點、step response overshoot、settling trend 與 final value。</p>
+
+<h3 id="model">Model</h3>
+
+<p>使用標準二階形式：</p>
+
+<pre><code class="lang-text">G(s) = wn^2 / (s^2 + 2*zeta*wn*s + wn^2)</code></pre>
+
+<p>令：</p>
+
+<pre><code class="lang-text">wn = 2
+zeta = 0.5</code></pre>
+
+<p>則：</p>
+
+<pre><code class="lang-text">G(s) = 4 / (s^2 + 2s + 4)</code></pre>
+
+<h3 id="mathematical-derivation">Mathematical Derivation</h3>
+
+<p>Poles:</p>
+
+<pre><code class="lang-text">s = -zeta*wn +- j*wn*sqrt(1 - zeta^2)
+  = -1 +- j*sqrt(3)</code></pre>
+
+<p>DC gain:</p>
+
+<pre><code class="lang-text">G(0) = 4 / 4 = 1</code></pre>
+
+<p>Percent overshoot:</p>
+
+<pre><code class="lang-text">Mp = exp(-zeta*pi / sqrt(1 - zeta^2)) * 100%
+   = exp(-0.5*pi / sqrt(0.75)) * 100%
+   ~= 16.303%</code></pre>
+
+<p>Peak time:</p>
+
+<pre><code class="lang-text">wd = wn*sqrt(1 - zeta^2) = sqrt(3)
+Tp = pi / wd ~= 1.814 s</code></pre>
+
+<p>Approximate 2% settling time:</p>
+
+<pre><code class="lang-text">Ts ~= 4 / (zeta*wn) = 4 s</code></pre>
+
+<h3 id="expected-assertions">Expected Assertions</h3>
+
+<ul>
+<li><code>poles ~= -1 +- j*1.73205</code></li>
+<li><code>isStable = true</code></li>
+<li><code>dcGain = 1</code></li>
+<li><code>step final value ~= 1</code></li>
+<li><code>overshoot ~= 16.3%</code></li>
+<li><code>settlingTime</code> should be finite and roughly near <code>4 s</code></li>
+</ul>
+
+<h3 id="suggested-payload">Suggested Payload</h3>
+
+<pre><code class="lang-json">{
+  "system": { "type": "transfer_function", "num": [4], "den": [1, 2, 4] },
+  "simulation": { "mode": "open_loop", "inputWaveform": "step", "duration": 10, "sampleCount": 1200, "amplitude": 1 }
+}</code></pre>
+
+<h2 id="case-3-initially-unstable-plant-with-pole-zero-cancellation-and-low-pm">Case 3: Initially Unstable Plant With Pole-Zero Cancellation And Low PM</h2>
+
+<h3 id="purpose">Purpose</h3>
+
+<p>驗證較接近工程風險的情境：plant 初始不穩定、存在 pole-zero cancellation、閉迴路可被控制器穩定化，但 phase margin 不足。</p>
+
+<h3 id="model">Model</h3>
+
+<pre><code class="lang-text">G(s) = (s + 1) / ((s - 2)(s + 1)(s + 4))</code></pre>
+
+<p>Expanded:</p>
+
+<pre><code class="lang-text">G(s) = (s + 1) / (s^3 + 3s^2 - 6s - 8)</code></pre>
+
+<p>Controller:</p>
+
+<pre><code class="lang-text">C(s) = 10</code></pre>
+
+<h3 id="mathematical-derivation">Mathematical Derivation</h3>
+
+<p>Plant poles:</p>
+
+<pre><code class="lang-text">(s - 2)(s + 1)(s + 4) = 0
+s = 2, -1, -4</code></pre>
+
+<p>Plant zero:</p>
+
+<pre><code class="lang-text">s + 1 = 0
+s = -1</code></pre>
+
+<p>因此：</p>
+<ul>
+<li>plant 有 RHP pole <code>+2</code>，初始不穩定。</li>
+<li>zero <code>-1</code> 與 pole <code>-1</code> 存在 pole-zero cancellation。</li>
+</ul>
+
+<p>Open-loop:</p>
+
+<pre><code class="lang-text">L(s) = C(s)G(s)
+     = 10(s + 1) / (s^3 + 3s^2 - 6s - 8)</code></pre>
+
+<p>Closed-loop:</p>
+
+<pre><code class="lang-text">T(s) = L(s) / (1 + L(s))
+     = 10(s + 1) / (s^3 + 3s^2 - 6s - 8 + 10s + 10)
+     = 10(s + 1) / (s^3 + 3s^2 + 4s + 2)</code></pre>
+
+<p>若使用目前 <code>PIDController</code> 的 P-only 實作，系統內部會帶有等價的 derivative filter cancellation：</p>
+
+<pre><code class="lang-text">C_internal(s) = 10(s + 100)/(s + 100)</code></pre>
+
+<p>因此未約分形式應為：</p>
+
+<pre><code class="lang-text">T_internal(s)
+= 10(s + 1)(s + 100) / ((s^3 + 3s^2 + 4s + 2)(s + 100))
+= (10s^2 + 1010s + 1000) / (s^4 + 103s^3 + 304s^2 + 402s + 200)</code></pre>
+
+<p>DC final value for unit step:</p>
+
+<pre><code class="lang-text">T(0) = 10 / 2 = 5</code></pre>
+
+<p>目前數值核心對此案例的 phase margin 基準值（允許 0.1 deg 數值公差）：</p>
+
+<pre><code class="lang-text">PM ~= 15.0 deg</code></pre>
+
+<h3 id="expected-assertions">Expected Assertions</h3>
+
+<ul>
+<li>plant poles include <code>+2</code>, <code>-1</code>, <code>-4</code></li>
+<li>plant zero includes <code>-1</code></li>
+<li>plant <code>isStable = false</code></li>
+<li>pole-zero cancellation near <code>-1</code> is detected</li>
+<li>closed-loop numerator equals <code>[10, 1010, 1000]</code></li>
+<li>closed-loop denominator equals <code>[1, 103, 304, 402, 200]</code></li>
+<li>reduced closed-loop equals <code>10(s+1)/(s^3+3s^2+4s+2)</code></li>
+<li>closed-loop <code>isStable = true</code></li>
+<li><code>phaseMargin ~= 15.0006302775 deg</code></li>
+<li><code>step final value ~= 5</code></li>
+</ul>
+
+<h3 id="suggested-payload">Suggested Payload</h3>
+
+<pre><code class="lang-json">{
+  "system": { "type": "transfer_function", "num": [1, 1], "den": [1, 3, -6, -8] },
+  "controller": { "type": "pid", "Kp": 10, "Ki": 0, "Kd": 0, "N": 100 },
+  "simulation": { "mode": "closed_loop", "inputWaveform": "step", "duration": 12, "sampleCount": 1200, "amplitude": 1 }
+}</code></pre>
+
+<h2 id="case-4-non-minimum-phase-zero-with-stable-poles">Case 4: Non-Minimum Phase Zero With Stable Poles</h2>
+
+<h3 id="purpose">Purpose</h3>
+
+<p>驗證 RHP zero 的處理。此案例 plant poles 穩定，但存在 non-minimum phase zero；閉迴路可能穩定，但 zero 仍會造成不良動態與相位風險。</p>
+
+<h3 id="model">Model</h3>
+
+<pre><code class="lang-text">G(s) = (1 - s) / ((s + 1)(s + 2))</code></pre>
+
+<p>Expanded high-degree-first form:</p>
+
+<pre><code class="lang-text">G(s) = (-s + 1) / (s^2 + 3s + 2)</code></pre>
+
+<p>Controller:</p>
+
+<pre><code class="lang-text">C(s) = 1</code></pre>
+
+<h3 id="mathematical-derivation">Mathematical Derivation</h3>
+
+<p>Plant poles:</p>
+
+<pre><code class="lang-text">s = -1, -2</code></pre>
+
+<p>Plant zero:</p>
+
+<pre><code class="lang-text">1 - s = 0
+s = +1</code></pre>
+
+<p>因此 plant 本身穩定，但有 RHP zero，屬 non-minimum phase system。</p>
+
+<p>Open-loop:</p>
+
+<pre><code class="lang-text">L(s) = G(s)</code></pre>
+
+<p>Closed-loop:</p>
+
+<pre><code class="lang-text">T(s) = G(s) / (1 + G(s))
+     = (1 - s) / (s^2 + 3s + 2 + 1 - s)
+     = (1 - s) / (s^2 + 2s + 3)</code></pre>
+
+<p>Closed-loop poles:</p>
+
+<pre><code class="lang-text">s^2 + 2s + 3 = 0
+s = -1 +- j*sqrt(2)</code></pre>
+
+<p>Closed-loop DC final value:</p>
+
+<pre><code class="lang-text">T(0) = 1 / 3</code></pre>
+
+<p>Initial value for a strictly proper transfer function step response is:</p>
+
+<pre><code class="lang-text">y(0+) = lim s-&gt;inf T(s) = 0</code></pre>
+
+<p>Initial slope can reveal inverse response:</p>
+
+<pre><code class="lang-text">Y(s) = T(s)/s = (1 - s)/(s(s^2 + 2s + 3))
+lim t-&gt;0+ y'(t) = lim s-&gt;inf s^2Y(s) = lim s-&gt;inf s(1 - s)/(s^2 + 2s + 3) = -1</code></pre>
+
+<p>因此 step response 初始斜率為負，應先往錯方向移動。</p>
+
+<h3 id="expected-assertions">Expected Assertions</h3>
+
+<ul>
+<li>plant poles include <code>-1</code>, <code>-2</code></li>
+<li>plant zero includes <code>+1</code></li>
+<li>plant <code>isStable = true</code></li>
+<li>closed-loop denominator equals <code>[1, 2, 3]</code></li>
+<li>closed-loop poles ~= <code>-1 +- j*sqrt(2)</code></li>
+<li>closed-loop final value ~= <code>1/3</code></li>
+<li>early step response should show inverse response trend, e.g. first few nonzero samples below <code>0</code></li>
+</ul>
+
+<h3 id="suggested-payload">Suggested Payload</h3>
+
+<pre><code class="lang-json">{
+  "system": { "type": "transfer_function", "num": [-1, 1], "den": [1, 3, 2] },
+  "controller": { "type": "pid", "Kp": 1, "Ki": 0, "Kd": 0, "N": 100 },
+  "simulation": { "mode": "closed_loop", "inputWaveform": "step", "duration": 8, "sampleCount": 1000, "amplitude": 1 }
+}</code></pre>
+
+<h2 id="case-5-state-space-to-transfer-function-equivalence">Case 5: State-Space To Transfer Function Equivalence</h2>
+
+<h3 id="purpose">Purpose</h3>
+
+<p>驗證 State-Space 輸入與 transfer function 轉換是否正確，並確保同一系統用 SS 與 TF 兩種入口時，分析結果一致。</p>
+
+<h3 id="model">Model</h3>
+
+<p>State-space:</p>
+
+<pre><code class="lang-text">x_dot = Ax + Bu
+y = Cx + Du</code></pre>
+
+<pre><code class="lang-text">A = [[0, 1],
+     [-2, -3]]
+
+B = [[0],
+     [1]]
+
+C = [[1, 0]]
+
+D = [[0]]</code></pre>
+
+<h3 id="mathematical-derivation">Mathematical Derivation</h3>
+
+<p>Transfer function:</p>
+
+<pre><code class="lang-text">G(s) = C(sI - A)^(-1)B + D</code></pre>
+
+<p>Compute:</p>
+
+<pre><code class="lang-text">sI - A = [[s, -1],
+          [2, s + 3]]</code></pre>
+
+<p>Determinant:</p>
+
+<pre><code class="lang-text">det(sI - A) = s(s + 3) + 2 = s^2 + 3s + 2</code></pre>
+
+<p>Inverse:</p>
+
+<pre><code class="lang-text">(sI - A)^(-1)
+= 1/(s^2 + 3s + 2) * [[s + 3, 1],
+                       [-2, s]]</code></pre>
+
+<p>Multiply by <code>B</code>:</p>
+
+<pre><code class="lang-text">(sI - A)^(-1)B
+= 1/(s^2 + 3s + 2) * [[1],
+                       [s]]</code></pre>
+
+<p>Multiply by <code>C</code>:</p>
+
+<pre><code class="lang-text">C(sI - A)^(-1)B
+= [1, 0] * [[1],
+            [s]] / (s^2 + 3s + 2)
+= 1 / (s^2 + 3s + 2)</code></pre>
+
+<p>Therefore:</p>
+
+<pre><code class="lang-text">G(s) = 1 / (s^2 + 3s + 2)</code></pre>
+
+<p>Poles:</p>
+
+<pre><code class="lang-text">s = -1, -2</code></pre>
+
+<p>DC gain:</p>
+
+<pre><code class="lang-text">G(0) = 1 / 2</code></pre>
+
+<p>Controllability matrix:</p>
+
+<pre><code class="lang-text">Qc = [B, AB]
+   = [[0, 1],
+      [1, -3]]</code></pre>
+
+<pre><code class="lang-text">det(Qc) = -1
+rank(Qc) = 2</code></pre>
+
+<p>Observability matrix:</p>
+
+<pre><code class="lang-text">Qo = [C
+      CA]
+   = [[1, 0],
+      [0, 1]]</code></pre>
+
+<pre><code class="lang-text">rank(Qo) = 2</code></pre>
+
+<h3 id="expected-assertions">Expected Assertions</h3>
+
+<ul>
+<li>SS-to-TF numerator equals <code>[1]</code></li>
+<li>SS-to-TF denominator equals <code>[1, 3, 2]</code></li>
+<li>poles equal <code>-1</code>, <code>-2</code></li>
+<li>DC gain equals <code>0.5</code></li>
+<li>controllability rank equals <code>2</code></li>
+<li>observability rank equals <code>2</code></li>
+<li>Step response from SS-derived TF matches direct TF case within tolerance</li>
+</ul>
+
+<h3 id="suggested-payload">Suggested Payload</h3>
+
+<pre><code class="lang-json">{
+  "system": {
+    "type": "state_space",
+    "A": [[0, 1], [-2, -3]],
+    "B": [[0], [1]],
+    "C": [[1, 0]],
+    "D": [[0]]
+  },
+  "simulation": { "mode": "open_loop", "inputWaveform": "step", "duration": 10, "sampleCount": 1000, "amplitude": 1 }
+}</code></pre>
+
+<h2 id="phase-24-advanced-mpc-verification-addendum">Phase 24 Advanced MPC Verification Addendum</h2>
+
+<p>Phase 24 的 NMPC / EMPC / Tube MPC / Explicit MPC 屬離散時間最佳控制基線，驗證重點不是圖形外觀，而是最佳化問題、約束與閉迴路行為是否符合數學定義。</p>
+
+<h3 id="p24-03-economic-mpc">P24-03 Economic MPC</h3>
+
+<p>Economic MPC 使用有限域非二次目標：</p>
+
+<pre><code class="lang-text">min_U Σ_{k=0}^{N-1} ℓ(x_k, u_k) + V_f(x_N)
+s.t.  x_{k+1} = A_d x_k + B_d u_k
+      u_min &lt;= u_k &lt;= u_max</code></pre>
+
+<p><code>control-studio/js/control/empc.js</code> 以 seeded Differential Evolution 求解 open-loop sequence，並只套用第一個控制量。驗證腳本 <code>verify_p24_empc.mjs</code> 檢查：</p>
+
+<ul>
+<li>quadratic cost 時狀態收斂，行為接近 finite-horizon LQR。</li>
+<li>L1 / non-quadratic cost 仍可穩定改善狀態。</li>
+<li><code>uMin/uMax</code> 全程滿足。</li>
+<li>相同 seed 產生相同控制序列。</li>
+<li>terminal cost 會改變閉迴路末端誤差。</li>
+</ul>
+
+<h3 id="p24-02-tube-mpc">P24-02 Tube MPC</h3>
+
+<p>Tube MPC 使用：</p>
+
+<pre><code class="lang-text">u_k = v_k - K(x_k - z_k)
+z_{k+1} = A_d z_k + B_d v_k
+e_{k+1} = (A_d - B_d K)e_k + w_k</code></pre>
+
+<p>若 disturbance bound 為 <code>|w| &lt;= w_max</code>，tube radius 以區間上界遞推：</p>
+
+<pre><code class="lang-text">r_{k+1} = |A_d - B_d K| r_k + w_max</code></pre>
+
+<p>控制量 tightening：</p>
+
+<pre><code class="lang-text">|K e_k| &lt;= |K| r_k
+u_min + |K|r &lt;= v_k &lt;= u_max - |K|r</code></pre>
+
+<p><code>verify_p24_tube_explicit_mpc.mjs</code> 以 scalar fixture 驗證 radius propagation、input tightening、原始 input bound 滿足，以及 tightened infeasible case 的診斷。</p>
+
+<h3 id="p24-04-explicit-mpc">P24-04 Explicit MPC</h3>
+
+<p>Explicit MPC baseline 目前限制在 scalar <code>1 state / 1 input</code>，用 online constrained MPC 在 state grid 上取樣，再壓縮成 piecewise-linear policy：</p>
+
+<pre><code class="lang-text">u(x) = a_i x + b_i,  x in region_i</code></pre>
+
+<p>驗證腳本檢查 explicit lookup 在 sample states 上與 online constrained MPC 一致，並確認 policy 可讓 scalar plant regulation 收斂。</p>
+
+<h2 id="implementation-checklist">Implementation Checklist</h2>
+
+<p>後續 agent 將這些案例自動化時，建議順序如下：</p>
+
+<ol>
+<li>把五個案例整理成 JSON fixtures。</li>
+<li>在 <code>test_control.js</code> 中新增共用 assertion helper。</li>
+<li>先跑 local JS numerical core。</li>
+<li>再跑 <code>control_analysis_cli.mjs</code>。</li>
+<li>若 API server 可用，再跑 <code>/api/control/system/response</code> 與 <code>/api/control/system/stability</code>。</li>
+<li>每個案例都要輸出：case id、通過項目數、失敗項目與觀察值。</li>
+<li>任一數學等價檢查失敗時，測試必須回傳非零 exit code。</li>
+</ol>
+
+</main>
+</body>
+</html>

@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ControlStudio Phase 9 + Phase 10 數學核心校驗規劃 — NVIDIA OS Support Docs</title>
+<style>
+:root {
+  --bg: #0f1117; --bg2: #1a1d2e; --bg3: #252840;
+  --border: #2d3155; --accent: #6366f1; --accent2: #818cf8;
+  --text: #e2e8f0; --muted: #94a3b8; --code-bg: #1e2235;
+  --success: #22c55e; --warn: #f59e0b;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+       background: var(--bg); color: var(--text); line-height: 1.7;
+       display: flex; min-height: 100vh; }
+nav { width: 240px; min-height: 100vh; background: var(--bg2);
+      border-right: 1px solid var(--border); padding: 24px 0;
+      position: sticky; top: 0; height: 100vh; overflow-y: auto;
+      flex-shrink: 0; }
+nav .logo { padding: 0 20px 20px; border-bottom: 1px solid var(--border); margin-bottom: 12px; }
+nav .logo a { text-decoration: none; font-size: 15px; font-weight: 700;
+              color: var(--accent2); }
+nav .section { padding: 6px 20px 2px; font-size: 10px; font-weight: 700;
+               text-transform: uppercase; letter-spacing: 1px; color: var(--muted);
+               margin-top: 8px; }
+nav a { display: block; padding: 5px 20px; font-size: 13px; color: var(--muted);
+        text-decoration: none; border-left: 2px solid transparent;
+        transition: all .15s; }
+nav a:hover, nav a.active { color: var(--text); border-color: var(--accent);
+                              background: rgba(99,102,241,.08); }
+main { flex: 1; padding: 40px 48px; max-width: 900px; min-width: 0; }
+h1 { font-size: 2rem; font-weight: 800; color: var(--text);
+     border-bottom: 2px solid var(--accent); padding-bottom: 12px; margin-bottom: 24px; }
+h2 { font-size: 1.4rem; font-weight: 700; color: var(--accent2);
+     margin: 32px 0 12px; padding-top: 8px; }
+h3 { font-size: 1.1rem; font-weight: 600; color: var(--text); margin: 20px 0 8px; }
+h4, h5, h6 { font-size: 1rem; font-weight: 600; color: var(--muted); margin: 16px 0 6px; }
+p { margin: 8px 0; color: var(--text); }
+a { color: var(--accent2); }
+a:hover { color: #a5b4fc; }
+code { background: var(--code-bg); border: 1px solid var(--border);
+       border-radius: 4px; padding: 1px 5px; font-size: .875em;
+       font-family: 'JetBrains Mono', 'Fira Code', monospace; color: #a5b4fc; }
+pre { background: var(--code-bg); border: 1px solid var(--border);
+      border-radius: 8px; padding: 16px; overflow-x: auto; margin: 12px 0; }
+pre code { background: none; border: none; padding: 0;
+           font-size: .82rem; color: var(--text); }
+blockquote { border-left: 3px solid var(--accent); padding: 8px 16px;
+             background: rgba(99,102,241,.06); margin: 12px 0; border-radius: 0 6px 6px 0; }
+ul, ol { padding-left: 24px; margin: 8px 0; }
+li { margin: 3px 0; }
+table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: .9rem; }
+th { background: var(--bg3); color: var(--accent2); font-weight: 700;
+     padding: 8px 12px; border: 1px solid var(--border); text-align: left; }
+td { padding: 7px 12px; border: 1px solid var(--border); color: var(--text); }
+tr:nth-child(even) td { background: rgba(255,255,255,.02); }
+hr { border: none; border-top: 1px solid var(--border); margin: 24px 0; }
+strong { color: #c7d2fe; }
+del { color: var(--muted); }
+.badge { display: inline-block; font-size: 10px; font-weight: 700; padding: 1px 6px;
+         border-radius: 9px; border: 1px solid; margin: 0 2px; vertical-align: middle; }
+.badge-green { color: var(--success); border-color: var(--success); }
+.badge-warn  { color: var(--warn);    border-color: var(--warn); }
+/* toc sidebar on large screens */
+@media (max-width: 768px) { nav { display: none; } main { padding: 20px 16px; } }
+</style>
+</head>
+<body>
+<nav>
+  <div class="logo"><a href="../../index.html">📁 NVIDIA OS Support</a></div>
+  <div class="section">Agent 工作文件</div>
+  <a href="../../agents/usage.html">使用指南</a>
+  <a href="../../agents/continuation.html">接手狀態</a>
+  <a href="../../agents/workflows.html">Runnable Workflows</a>
+<div class="section">ControlStudio</div>
+  <a href="../../control-studio/roadmap.html">Roadmap（主線）</a>
+  <a href="../../control-studio/plan.html">開發計畫</a>
+  <a href="../../control-studio/backlog.html">Backlog</a>
+  <a href="../../control-studio/scenarios.html">情境案例</a>
+  <a href="../../control-studio/verification.html">驗證案例</a>
+  <a href="../../control-studio/skills.html">Skill 規劃</a>
+  <a href="../../control-studio/uiux-r1.html">UI/UX Round 1</a>
+  <a href="../../control-studio/uiux-r2.html">UI/UX Round 2</a>
+  <a href="../../control-studio/archive/phase10-plan.html">▸ Phase 10 計畫（封存）</a>
+  <a href="../../control-studio/archive/phase10-verify.html" class="active">▸ Phase 10 驗證（封存）</a>
+<div class="section">NVIDIA 模型</div>
+  <a href="../../nvidia/guide.html">落地操作指南</a>
+  <a href="../../nvidia/models-zh.html">模型分類表（中文）</a>
+  <a href="../../nvidia/models-en.html">Model Summary (EN)</a>
+  <a href="../../nvidia/selector-plan.html">Selector Skill 計畫</a>
+<div class="section">案例輸出</div>
+  <a href="../../cases/dc-motor.html">DC Motor 速度控制</a>
+  <a href="../../cases/precision-servo.html">Precision Servo</a>
+  <a href="../../cases/regression.html">Regression Dashboard</a>
+</nav>
+<main>
+<h1 id="controlstudio-phase-9-phase-10-數學核心校驗規劃">ControlStudio Phase 9 + Phase 10 數學核心校驗規劃</h1>
+
+<p>涵蓋 Phase 9 (MIMO) 與 Phase 10 (Schur CARE / MPC / Dynamic Decoupler / Robust Sensitivity) 的完善數學核心校驗。目標是把既有 <code>verify_phase10_math_core.mjs</code> 從單一 toy case 解析驗證（L1）擴充到性質不變式（L2）、跨方法一致性（L3）、退化/邊界（L4）四層覆蓋。</p>
+
+<h2 id="a-校驗目標分類-四層">A. 校驗目標分類（四層）</h2>
+
+<table>
+<tr><td>層級</td><td>目的</td><td>失敗代表</td></tr>
+<thead>
+<tr><th>L1 解析解</th><th>對有閉式解的 toy case 驗證數值正確</th><th>公式或推導實作有錯</th></tr>
+<tr><td>L2 性質不變式</td><td>對隨機/批量輸入驗證代數性質（symmetry, positivity, eigenvalue, residual）</td><td>結構錯誤、退化 case 未處理</td></tr>
+<tr><td>L3 跨方法一致性</td><td>同一問題用兩種方法應給同答案</td><td>某個方法數值不穩或語意分歧</td></tr>
+<tr><td>L4 退化/邊界</td><td>singular、marginally stable、ill-conditioned、NMP、delay、scale 極端</td><td>缺少 guard，會丟出無語意錯誤或 NaN</td></tr>
+</thead><tbody>
+</table>
+
+<p>目前 <code>verify_phase10_math_core.mjs</code> 主要在 L1，需補 L2-L4。</p>
+
+<h2 id="b-各模組校驗矩陣">B. 各模組校驗矩陣</h2>
+
+<h3 id="b1-phase-9-mimostatespace-channeltf">B1. Phase 9 — MIMOStateSpace / channelTF</h3>
+<ul>
+<li><strong>L1</strong>: 對角 SS（已知模態）→ 每條 channel TF 殘差 = <code>c_i (sI-A)^{-1} b_j + d_{ij}</code> 隨機 ω 取點誤差 &lt; 1e-9。</li>
+<li><strong>L2</strong>: <code>allChannels()</code> 維度 = p×m；對任意 SS，channel(i,j)(0) 與 <code>dcGain(mimoSys)[i][j]</code> 在 5 位有效數字一致。</li>
+<li><strong>L3</strong>: 對 m=p=1 的 SS，channelTF(0,0) 與用 <code>ssToTransferFunction</code> 應吻合（pole/zero 對齊容差 1e-8）。</li>
+<li><strong>L4</strong>: A 含重複特徵值、A 接近不可控/不可觀（PBH 邊界）→ 不應 NaN。</li>
+</ul>
+
+<h3 id="b2-phase-9-dcgain">B2. Phase 9 — dcGain</h3>
+<ul>
+<li><strong>L1</strong>: 對角 plant，G(0) = -C A^{-1} B + D 對照手算。</li>
+<li><strong>L2</strong>: 對 stable random SS，<code>stepResponse → t→∞</code> 應收斂到 <code>G(0) · u_step</code>。</li>
+<li><strong>L4</strong>: A 奇異（integrator）→ 應丟 <code>SingularMatrixError</code> 含 "integrator" 字樣（語意 guard，已部分實作）。</li>
+</ul>
+
+<h3 id="b3-phase-9-rga">B3. Phase 9 — RGA</h3>
+<ul>
+<li><strong>L1</strong>: 已實作 2×2 對角 → I 與 mixing tank → λ=2 等 case；補 3×3 解析（diag(a,b,c) → I）。</li>
+<li><strong>L2 (重要新增)</strong>:</li>
+<ul>
+<li><strong>行/列和 = 1</strong>：對任意非奇異 G(0)，<code>sum_i RGA[i][j] = 1</code> 與 <code>sum_j RGA[i][j] = 1</code> 容差 1e-8（這是 RGA 最強的不變式）。</li>
+<li><strong>排列不變</strong>：對 G 做行/列排列，RGA 對應排列。</li>
+</ul>
+<li><strong>L3</strong>: 對 m=p=2，直接用閉式 <code>λ11 = 1/(1 - g12 g21 / (g11 g22))</code> 跟矩陣公式比。</li>
+<li><strong>L4</strong>: 近奇異 G(0)（cond &gt; 1e10）→ diagnosis 應警示而非靜默回 NaN。</li>
+</ul>
+
+<h3 id="b4-phase-9-singular-value-bode">B4. Phase 9 — Singular Value Bode</h3>
+<ul>
+<li><strong>L1</strong>: 對 G(s) = 1/(s+1) · I (2×2)，σ_max=σ_min=1/√(1+ω²)。</li>
+<li><strong>L2 (重要)</strong>:</li>
+<ul>
+<li>σ ≥ 0 全頻段</li>
+<li>σ_max ≥ σ_min 全頻段</li>
+<li>σ_i² 是 <code>G^H G</code> 的特徵值（隨機複矩陣比對，誤差 1e-8）</li>
+<li>σ_max(G) ≤ ‖G‖_F（Frobenius bound sanity check）</li>
+</ul>
+<li><strong>L3</strong>: 對 2×2 同時用 closed-form 與 Jacobi 跑，誤差 1e-10。</li>
+<li><strong>L4</strong>: G 行/列線性相關 → σ_min ≈ 0，cond → ∞ 不發 NaN。</li>
+</ul>
+
+<h3 id="b5-phase-9-static-dynamic-decoupler">B5. Phase 9 — Static / Dynamic Decoupler</h3>
+<ul>
+<li><strong>L1</strong>: G·W = I @ 指定頻率（dynamic）或 @ DC（static）。</li>
+<li><strong>L2</strong>: applyDecoupler 後新系統 RGA(0) ≈ I（off-diagonal &lt; 1e-6）。</li>
+<li><strong>L3</strong>: <code>dynamicDecouplerAtFrequency(ω→0)</code> 應收斂到 <code>staticDecoupler</code>。</li>
+<li><strong>L4</strong>: G(jω) 在指定頻率為奇異 → SingularMatrixError 含頻率資訊。</li>
+</ul>
+
+<h3 id="b6-phase-9-mimo-lqr">B6. Phase 9 — MIMO LQR</h3>
+<ul>
+<li><strong>L1</strong>: diag plant + diag Q,R → K 等於各 SISO LQR 串接。</li>
+<li><strong>L2</strong>:</li>
+<ul>
+<li><strong>CARE 殘差</strong>：<code>‖A'P + PA - PBR^{-1}B'P + Q‖_F &lt; 1e-6 · ‖Q‖_F</code></li>
+<li><strong>P symmetric</strong> (<code>‖P - P'‖ &lt; 1e-9</code>)</li>
+<li><strong>P positive definite</strong> (Cholesky 成立)</li>
+<li><strong>A_cl = A - BK 穩定</strong> (max Re(λ) &lt; -1e-6)</li>
+</ul>
+<li><strong>L3 (重要)</strong>: 同一 (A,B,Q,R) 用 Newton-Kleinman、Bass、Schur/Hamiltonian 三種方法解，K 收斂到同一矩陣（容差 1e-6）。</li>
+<li><strong>L4</strong>:</li>
+<ul>
+<li>Marginally stable plant (A eig on jω) → Schur 應通過、Newton 失敗時 Bass fallback 至少回 stabilizing K。</li>
+<li>不可控對 (uncontrollable mode) → 應給「(A,B) 不可控」訊息而非 singular matrix。</li>
+</ul>
+</ul>
+
+<h3 id="b7-phase-10-1-schur-hamiltonian-care">B7. Phase 10.1 — Schur / Hamiltonian CARE</h3>
+<ul>
+<li><strong>L1</strong>: 已覆蓋 scalar/SISO/MIMO 解析。</li>
+<li><strong>L2 (新增)</strong>:</li>
+<ul>
+<li>Hamiltonian H 特徵值對稱於虛軸（±λ 成對）→ 抽 n 個負實部 eigenvalues。</li>
+<li>取出的 invariant subspace <code>H·[X;Y] = [X;Y]Λ_s</code> 殘差 &lt; 1e-8。</li>
+<li><code>P = Y X^{-1}</code> symmetric &amp; PD。</li>
+</ul>
+<li><strong>L3</strong>: 與 Newton-Kleinman 在 well-conditioned plant 上比對 K（誤差 &lt; 1e-6）。</li>
+<li><strong>L4</strong>:</li>
+<ul>
+<li>Hamiltonian 有特徵值在虛軸（CARE 無 stabilizing solution）→ 應給語意錯誤。</li>
+<li>n ≥ 6 ill-conditioned plant → 報告 cond(X)、警告精度下降。</li>
+</ul>
+</ul>
+
+<h3 id="b8-phase-10-2-mpc">B8. Phase 10.2 — MPC</h3>
+<ul>
+<li><strong>L1</strong>: 已覆蓋 scalar integrator horizon-2 手算。</li>
+<li><strong>L2 (重要新增)</strong>:</li>
+<ul>
+<li><strong>Riccati 收斂到 ARE</strong>：horizon N → ∞ 時 P_0 收斂到 LQR 的 P_∞（誤差 &lt; 1e-6 在 N=200）。</li>
+<li><strong>K_0(N→∞) = K_LQR</strong>：MPC 第一步 gain 收斂到無限時域 LQR。</li>
+<li><strong>單調性</strong>：Q_f = P_∞ 時 P_k = P_∞ 對所有 k（穩態 Riccati 不變）。</li>
+<li><strong>閉迴路穩定</strong>：horizon 足夠大時 A_d - B_d K_0 穩定。</li>
+</ul>
+<li><strong>L3</strong>: scalar case 同時用 finite-horizon Riccati 與直接展開 J 求最小（QP 形式）比對 u_0。</li>
+<li><strong>L4</strong>:</li>
+<ul>
+<li>Unstable plant + 短 horizon → 可能 unstable，應報告 closed-loop eigenvalues 讓使用者察覺。</li>
+<li><code>Q_f</code> 非 PSD → guard。</li>
+<li><code>R</code> 奇異 → SingularMatrixError 含 "MPC R 必須正定"。</li>
+</ul>
+</ul>
+
+<h3 id="b9-phase-10-3-dynamic-decoupler">B9. Phase 10.3 — Dynamic Decoupler</h3>
+<ul>
+<li>與 B5 合併（dynamic decoupler 屬於 MIMO 工具）。</li>
+</ul>
+
+<h3 id="b10-phase-10-4-robust-sensitivity">B10. Phase 10.4 — Robust Sensitivity</h3>
+<ul>
+<li><strong>L1</strong>: 已覆蓋 L=1/(s+1) DC。</li>
+<li><strong>L2 (重要新增)</strong>:</li>
+<ul>
+<li><strong>代數恆等式</strong>：<code>S + T = 1</code> 全頻段（誤差 &lt; 1e-12）。</li>
+<li><strong>S(jω)、T(jω) 都是 complex；|S|, |T| 都 ≥ 0</strong>。</li>
+<li><strong>peak |S| ≥ 1</strong>（除非 plant 是 minimum-phase 且 L → 0 trivial case）。</li>
+</ul>
+<li><strong>L3</strong>: 對 PID + plant 同時用 <code>sensitivityBode</code> 與 <code>bode(closedLoop)</code> 比對 T。</li>
+<li><strong>L4</strong>:</li>
+<ul>
+<li>1+L=0 @ 某頻率（marginal）→ 該頻率回 Inf 而非 NaN；peak 報告該頻率位置。</li>
+<li>L 含 RHP 零（NMP）→ peak |S| 必 &gt; 1（Bode sensitivity integral 的下界，可做 sanity check）。</li>
+<li>Pade-approximated delay plant → 應跑得通並給合理 peak。</li>
+</ul>
+</ul>
+
+<h2 id="c-跨模組與性質型測試-隨機批量">C. 跨模組與性質型測試（隨機批量）</h2>
+
+<p>新增 <code>verify_phase9_phase10_property.mjs</code>，做 200-500 次隨機抽樣：</p>
+
+<ol>
+<li><strong>Random stable SS generator</strong>：A 用 <code>-rand(n)·rand(n)' - I</code> 確保穩定；B,C,D 任意。</li>
+<ul>
+<li>跑 dcGain、stepResponse、RGA、SVB 全部 finite，no NaN。</li>
+</ul>
+<li><strong>CARE 對偶</strong>：對任意 (A,B,C,Q,R)，<code>LQR(A,B,Q,R)</code> 與 <code>LQE(A,C,Q_n,R_n)</code> 用對偶 trick 互換結果一致。</li>
+<li><strong>Schur vs Newton vs Bass 一致性</strong>：見 B6/B7。</li>
+<li><strong>MPC→LQR convergence</strong>：見 B8。</li>
+<li><strong>Decoupler frequency continuity</strong>：dynamic decoupler 在 ω_1 ≈ ω_2 應產出連續結果（無跳躍）。</li>
+<li><strong>Singular value Bode 連續性</strong>：相鄰頻率 σ 變化 / Δω 有界（沒有亂跳）。</li>
+<li><strong>Scale invariance</strong>：對 plant 做 (x → αx) 變換，K_LQR 應對應變換（K' = K/α），驗證實作沒有 hidden scale bug。</li>
+</ol>
+
+<h2 id="d-執行架構">D. 執行架構</h2>
+
+<h3 id="d1-檔案分工">D1. 檔案分工</h3>
+
+<pre><code>control-studio/scripts/
+├── verify_phase10_math_core.mjs       (既有；保留 L1)
+├── verify_phase9_math_core.mjs        (新增；B1-B6 的 L1+L2)
+├── verify_phase9_phase10_property.mjs (新增；C 的隨機批量)
+├── verify_cross_method.mjs            (新增；B6/B7 的 L3 — Schur vs Newton vs Bass)
+└── verify_edge_cases.mjs              (新增；B*-L4 的 marginal/singular/NMP/delay)</code></pre>
+
+<h3 id="d2-報表格式">D2. 報表格式</h3>
+
+<p>每個 runner 印：</p>
+
+<pre><code>[B3-RGA-L2-rowsum] PASS  (n=200, max_err=3.4e-15)
+[B6-MIMO-LQR-L3]  FAIL  (case=spacecraft_sparse_B, K_schur vs K_bass diff=0.47)
+                        details: schur K = [...], bass K = [...]</code></pre>
+
+<p>最後總表：模組 × 層級 通過率。</p>
+
+<h3 id="d3-ci-commit-流程">D3. CI / Commit 流程</h3>
+
+<ul>
+<li><code>package.json</code> 加 <code>"verify:math": "node scripts/verify_*.mjs"</code></li>
+<li>每次 phase 工作 commit 前跑一次，失敗 block commit（或 pre-push hook）。</li>
+<li>新功能必須附對應 L1+L2 case。</li>
+</ul>
+
+<h3 id="d4-已知會失敗的項目-先標記-不阻塞">D4. 已知會失敗的項目（先標記，不阻塞）</h3>
+
+<ul>
+<li>B6-L3 spacecraft sparse B：Schur 應通過、Bass 預期失敗（已知 B 結構限制）。</li>
+<li>B7-L4 Hamiltonian-on-jω 案例：目前 eigenvector-based Schur 在病態時精度差；需 fallback 至 Newton+shift 或留 TODO。</li>
+</ul>
+
+<h2 id="e-建議實作順序-3-commits">E. 建議實作順序（3 commits）</h2>
+
+<ol>
+<li><strong>Done</strong> (commit <code>8f86133</code>) — <code>test(phase9): add property-based RGA/SVB/decoupler invariants</code> — B3/B4/B5 的 L2/L3 + C1/C5/C6。Runner：<code>node control-studio/scripts/verify_phase9_math_core.mjs</code>。14/14 cases pass，含 200-trial RGA row-sum、Frobenius bound、σ²=eig(GᴴG)、permutation invariance、dynamic→static convergence、SVB log-grid continuity。</li>
+<li><strong>Done</strong> (commit <code>b9fc380</code>) — <code>test(phase10): add MPC convergence + Schur/Newton cross-check</code> — B7-L3 + B8-L2/L3 + C2/C3/C4/C7。Runner：<code>node control-studio/scripts/verify_phase10_cross_method.mjs</code>。10/10 pass，含 Schur vs Newton-Kleinman 在 SISO/MIMO random batch K 一致（max Δ=2.6e-14）、CARE 殘差 + P 對稱 + PD + Acl 穩定、LQE/LQR 對偶 P 一致、MPC Riccati horizon=300 fixed point、DARE 殘差 7.9e-16、closed-loop in 單位圓、Cauchy K_0(N)。</li>
+<li><strong>Done</strong> (commit <code>&lt;pending&gt;</code>) — <code>test(phase9-10): add edge-case fixtures</code> — B*-L4 集中。Runner：<code>node control-studio/scripts/verify_phase9_phase10_edge_cases.mjs</code>。15/15 pass，含 integrator plant friendly error、rank-deficient SVB σ_min=0、singular G(jω) decoupler 錯誤、uncontrollable LQR/MIMO LQR 友善訊息、CARE R=0 guard、MPC R=0/horizon guard、unstable + 短 horizon MPC 仍收斂、1+L=0 sensitivity 錯誤、NMP plant peak |S|&gt;1、Padé-delay plant 完成、S+T=1 identity。</li>
+</ol>
+
+</main>
+</body>
+</html>

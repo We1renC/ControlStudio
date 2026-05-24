@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ControlStudio Case: Precision Servo Stage Position Control — NVIDIA OS Support Docs</title>
+<style>
+:root {
+  --bg: #0f1117; --bg2: #1a1d2e; --bg3: #252840;
+  --border: #2d3155; --accent: #6366f1; --accent2: #818cf8;
+  --text: #e2e8f0; --muted: #94a3b8; --code-bg: #1e2235;
+  --success: #22c55e; --warn: #f59e0b;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+       background: var(--bg); color: var(--text); line-height: 1.7;
+       display: flex; min-height: 100vh; }
+nav { width: 240px; min-height: 100vh; background: var(--bg2);
+      border-right: 1px solid var(--border); padding: 24px 0;
+      position: sticky; top: 0; height: 100vh; overflow-y: auto;
+      flex-shrink: 0; }
+nav .logo { padding: 0 20px 20px; border-bottom: 1px solid var(--border); margin-bottom: 12px; }
+nav .logo a { text-decoration: none; font-size: 15px; font-weight: 700;
+              color: var(--accent2); }
+nav .section { padding: 6px 20px 2px; font-size: 10px; font-weight: 700;
+               text-transform: uppercase; letter-spacing: 1px; color: var(--muted);
+               margin-top: 8px; }
+nav a { display: block; padding: 5px 20px; font-size: 13px; color: var(--muted);
+        text-decoration: none; border-left: 2px solid transparent;
+        transition: all .15s; }
+nav a:hover, nav a.active { color: var(--text); border-color: var(--accent);
+                              background: rgba(99,102,241,.08); }
+main { flex: 1; padding: 40px 48px; max-width: 900px; min-width: 0; }
+h1 { font-size: 2rem; font-weight: 800; color: var(--text);
+     border-bottom: 2px solid var(--accent); padding-bottom: 12px; margin-bottom: 24px; }
+h2 { font-size: 1.4rem; font-weight: 700; color: var(--accent2);
+     margin: 32px 0 12px; padding-top: 8px; }
+h3 { font-size: 1.1rem; font-weight: 600; color: var(--text); margin: 20px 0 8px; }
+h4, h5, h6 { font-size: 1rem; font-weight: 600; color: var(--muted); margin: 16px 0 6px; }
+p { margin: 8px 0; color: var(--text); }
+a { color: var(--accent2); }
+a:hover { color: #a5b4fc; }
+code { background: var(--code-bg); border: 1px solid var(--border);
+       border-radius: 4px; padding: 1px 5px; font-size: .875em;
+       font-family: 'JetBrains Mono', 'Fira Code', monospace; color: #a5b4fc; }
+pre { background: var(--code-bg); border: 1px solid var(--border);
+      border-radius: 8px; padding: 16px; overflow-x: auto; margin: 12px 0; }
+pre code { background: none; border: none; padding: 0;
+           font-size: .82rem; color: var(--text); }
+blockquote { border-left: 3px solid var(--accent); padding: 8px 16px;
+             background: rgba(99,102,241,.06); margin: 12px 0; border-radius: 0 6px 6px 0; }
+ul, ol { padding-left: 24px; margin: 8px 0; }
+li { margin: 3px 0; }
+table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: .9rem; }
+th { background: var(--bg3); color: var(--accent2); font-weight: 700;
+     padding: 8px 12px; border: 1px solid var(--border); text-align: left; }
+td { padding: 7px 12px; border: 1px solid var(--border); color: var(--text); }
+tr:nth-child(even) td { background: rgba(255,255,255,.02); }
+hr { border: none; border-top: 1px solid var(--border); margin: 24px 0; }
+strong { color: #c7d2fe; }
+del { color: var(--muted); }
+.badge { display: inline-block; font-size: 10px; font-weight: 700; padding: 1px 6px;
+         border-radius: 9px; border: 1px solid; margin: 0 2px; vertical-align: middle; }
+.badge-green { color: var(--success); border-color: var(--success); }
+.badge-warn  { color: var(--warn);    border-color: var(--warn); }
+/* toc sidebar on large screens */
+@media (max-width: 768px) { nav { display: none; } main { padding: 20px 16px; } }
+</style>
+</head>
+<body>
+<nav>
+  <div class="logo"><a href="../index.html">📁 NVIDIA OS Support</a></div>
+  <div class="section">Agent 工作文件</div>
+  <a href="../agents/usage.html">使用指南</a>
+  <a href="../agents/continuation.html">接手狀態</a>
+  <a href="../agents/workflows.html">Runnable Workflows</a>
+<div class="section">ControlStudio</div>
+  <a href="../control-studio/roadmap.html">Roadmap（主線）</a>
+  <a href="../control-studio/plan.html">開發計畫</a>
+  <a href="../control-studio/backlog.html">Backlog</a>
+  <a href="../control-studio/scenarios.html">情境案例</a>
+  <a href="../control-studio/verification.html">驗證案例</a>
+  <a href="../control-studio/skills.html">Skill 規劃</a>
+  <a href="../control-studio/uiux-r1.html">UI/UX Round 1</a>
+  <a href="../control-studio/uiux-r2.html">UI/UX Round 2</a>
+  <a href="../control-studio/archive/phase10-plan.html">▸ Phase 10 計畫（封存）</a>
+  <a href="../control-studio/archive/phase10-verify.html">▸ Phase 10 驗證（封存）</a>
+<div class="section">NVIDIA 模型</div>
+  <a href="../nvidia/guide.html">落地操作指南</a>
+  <a href="../nvidia/models-zh.html">模型分類表（中文）</a>
+  <a href="../nvidia/models-en.html">Model Summary (EN)</a>
+  <a href="../nvidia/selector-plan.html">Selector Skill 計畫</a>
+<div class="section">案例輸出</div>
+  <a href="../cases/dc-motor.html">DC Motor 速度控制</a>
+  <a href="../cases/precision-servo.html" class="active">Precision Servo</a>
+  <a href="../cases/regression.html">Regression Dashboard</a>
+</nav>
+<main>
+<h1 id="controlstudio-case-precision-servo-stage-position-control">ControlStudio Case: Precision Servo Stage Position Control</h1>
+
+<p>Date: 2026-05-17</p>
+
+<h2 id="case">Case</h2>
+
+<p>Develop a position controller for a precision servo stage used in a small inspection axis. The design must move a lightweight load quickly while avoiding excitation of the first flexible mode.</p>
+
+<p>The simplified plant includes:</p>
+
+<ul>
+<li>A rigid-body position integrator</li>
+<li>A motor / current-loop lag</li>
+<li>A lightly damped flexible resonance</li>
+<li>A sensor / actuator zero</li>
+</ul>
+
+<p>Physical approximation:</p>
+
+<pre><code class="lang-text">G(s) = X(s) / U(s)
+     = 50(s + 8) / [s(s + 1.2)(s^2 + 2ζωf s + ωf^2)]
+
+ζ = 0.08
+ωf = 18 rad/s</code></pre>
+
+<p>Expanded ControlStudio input:</p>
+
+<pre><code class="lang-text">G(s) = (50s + 400) / (s^4 + 4.08s^3 + 327.456s^2 + 388.8s)</code></pre>
+
+<h2 id="development-target">Development Target</h2>
+
+<p>For the first usable ControlStudio-assisted design:</p>
+
+<pre><code class="lang-text">Closed-loop stable
+PM &gt;= 55 deg
+GM &gt;= 10 dB
+Overshoot &lt;= 8%
+Steady-state error &lt;= 0.5%
+Rise time improved versus conservative baseline
+Avoid gain crossover near 18 rad/s flexible mode</code></pre>
+
+<h2 id="controlstudio-workflow">ControlStudio Workflow</h2>
+
+<ol>
+<li>Open <code>http://127.0.0.1:8765/</code>.</li>
+<li>Set Plant Model to Transfer Function:</li>
+<ul>
+<li>Numerator: <code>50, 400</code></li>
+<li>Denominator: <code>1, 4.08, 327.456, 388.8, 0</code></li>
+</ul>
+<li>Use closed-loop simulation with step input.</li>
+<li>Create a conservative P-only baseline.</li>
+<li>Add PID derivative action plus Lead compensation to increase crossover without moving too close to the flexible resonance.</li>
+<li>Compare Step Response, Bode margin, Root Locus break points, Root Locus jω crossing, and Stability Snapshot.</li>
+</ol>
+
+<h2 id="observed-results">Observed Results</h2>
+
+<table>
+<tr><td>Candidate</td><td>Controller</td><td>Compensator</td><td>PM</td><td>GM</td><td>Gain Crossover</td><td>Rise Time</td><td>Settling Time</td><td>Overshoot</td><td>ESS</td><td>Status</td></tr>
+<tr><td>---</td><td>---</td><td>---</td><td>---:</td><td>---:</td><td>---:</td><td>---:</td><td>---:</td><td>---:</td><td>---:</td><td>---</td></tr>
+<tr><td>Conservative baseline</td><td><code>Kp=0.5, Ki=0, Kd=0</code></td><td>none</td><td>71.42 deg</td><td>30.69 dB</td><td>0.479 rad/s</td><td>3.173 s</td><td>4.744 s</td><td>1.30%</td><td>0.00492%</td><td>Stable</td></tr>
+<tr><td>PID + Lead selected</td><td><code>Kp=1.2, Ki=0, Kd=0.04, N=100</code></td><td><code>Kc=1, tau=0.2, alpha=0.1</code></td><td>69.04 deg</td><td>20.21 dB</td><td>0.984 rad/s</td><td>1.671 s</td><td>4.674 s</td><td>5.69%</td><td>0.00469%</td><td>Stable</td></tr>
+</thead><tbody>
+</table>
+
+<h2 id="selected-controller">Selected Controller</h2>
+
+<p>PID section:</p>
+
+<pre><code class="lang-text">Cpid(s) = (5.2s^2 + 121.2s) / (s^2 + 100s)</code></pre>
+
+<p>Lead section:</p>
+
+<pre><code class="lang-text">Clead(s) = (0.2s + 1) / (0.02s + 1)</code></pre>
+
+<p>Combined ControlStudio controller:</p>
+
+<pre><code class="lang-text">C(s) = (52s^2 + 1460s + 6000) / (s^2 + 150s + 5000)</code></pre>
+
+<p>Open-loop result:</p>
+
+<pre><code class="lang-text">L(s) = (2600s^3 + 93800s^2 + 884000s + 2400000)
+     / (s^6 + 154.08s^5 + 5939.456s^4 + 69907.2s^3 + 1695600s^2 + 1944000s)</code></pre>
+
+<p>Closed-loop result:</p>
+
+<pre><code class="lang-text">T(s) = (2600s^3 + 93800s^2 + 884000s + 2400000)
+     / (s^6 + 154.08s^5 + 5939.456s^4 + 72507.2s^3 + 1789400s^2 + 2828000s + 2400000)</code></pre>
+
+<p>Measured result:</p>
+
+<pre><code class="lang-text">PM = 69.04 deg
+GM = 20.21 dB
+Gain crossover = 0.984 rad/s
+Phase crossover = 21.838 rad/s
+Rise time = 1.671 s
+Settling time = 4.674 s
+Overshoot = 5.69%
+Steady-state error = 4.69e-5
+Dominant pole = -0.8156 - j0.8745
+Damping ratio = 0.682
+Status = Stable</code></pre>
+
+<h2 id="mathematical-check">Mathematical Check</h2>
+
+<p>The plant denominator is obtained by expanding:</p>
+
+<pre><code class="lang-text">s(s + 1.2)(s^2 + 2*0.08*18s + 18^2)
+= s(s + 1.2)(s^2 + 2.88s + 324)
+= s(s^3 + 4.08s^2 + 327.456s + 388.8)</code></pre>
+
+<p>ControlStudio normalizes the polynomial after multiplication and reports:</p>
+
+<pre><code class="lang-text">s^4 + 4.08s^3 + 327.456s^2 + 388.8s</code></pre>
+
+<p>The Root Locus diagnostic gives:</p>
+
+<pre><code class="lang-text">Breakaway point: s = -0.6235, K = 0.3144
+Break-in point: s = -12.6090, K = 278.8311
+jω crossing: K = 17.1131, ω = 17.4646 rad/s</code></pre>
+
+<p>This is consistent with the engineering constraint: the selected design has gain crossover near <code>0.984 rad/s</code>, far below the <code>17.46 rad/s</code> marginal crossing and the <code>18 rad/s</code> flexible mode. The controller improves response speed while retaining phase margin and not pushing the loop bandwidth into the resonance.</p>
+
+<h2 id="engineering-decision">Engineering Decision</h2>
+
+<p>Use <code>Kp=1.2, Ki=0, Kd=0.04</code> with the Lead compensator <code>Kc=1, tau=0.2, alpha=0.1</code> as the first servo-stage design candidate.</p>
+
+<p>The design improves rise time by roughly 47% compared with the conservative P-only baseline while keeping:</p>
+
+<pre><code class="lang-text">PM &gt; 55 deg
+GM &gt; 10 dB
+Overshoot &lt; 8%
+Gain crossover &lt;&lt; flexible-mode frequency</code></pre>
+
+<h2 id="improvement-notes-for-controlstudio">Improvement Notes For ControlStudio</h2>
+
+<ol>
+<li>Add a saved scenario fixture format so this kind of engineering case can be replayed as a regression test.</li>
+<li>Add candidate sweep as a first-class UI feature; current comparison is possible, but repeated parameter search still requires scripting.</li>
+<li>Add <code>--summary</code> or <code>--report</code> mode to <code>control_analysis_cli.mjs</code>; the current CLI emits full plot arrays, which is useful for tooling but noisy for engineering review.</li>
+<li>Step-response steady-state error should distinguish simulation final sample from analytical DC final value, especially when slow poles require long simulation windows.</li>
+<li>Lead / PID design should support constraint-based search: target PM, max overshoot, max settling time, and crossover distance from known resonance frequencies.</li>
+<li>Root Locus jω crossing is useful for design safety. Surface a “gain safety ratio to Ku” in the UI.</li>
+<li>Add resonance markers to Bode / Singular Value plots so flexible-mode avoidance can be reviewed visually.</li>
+<li>Add this servo-stage case to future automated validation after a stable scenario fixture schema exists.</li>
+</ol>
+
+</main>
+</body>
+</html>

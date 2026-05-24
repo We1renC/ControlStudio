@@ -1,0 +1,907 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Control System Scenario Studies — NVIDIA OS Support Docs</title>
+<style>
+:root {
+  --bg: #0f1117; --bg2: #1a1d2e; --bg3: #252840;
+  --border: #2d3155; --accent: #6366f1; --accent2: #818cf8;
+  --text: #e2e8f0; --muted: #94a3b8; --code-bg: #1e2235;
+  --success: #22c55e; --warn: #f59e0b;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+       background: var(--bg); color: var(--text); line-height: 1.7;
+       display: flex; min-height: 100vh; }
+nav { width: 240px; min-height: 100vh; background: var(--bg2);
+      border-right: 1px solid var(--border); padding: 24px 0;
+      position: sticky; top: 0; height: 100vh; overflow-y: auto;
+      flex-shrink: 0; }
+nav .logo { padding: 0 20px 20px; border-bottom: 1px solid var(--border); margin-bottom: 12px; }
+nav .logo a { text-decoration: none; font-size: 15px; font-weight: 700;
+              color: var(--accent2); }
+nav .section { padding: 6px 20px 2px; font-size: 10px; font-weight: 700;
+               text-transform: uppercase; letter-spacing: 1px; color: var(--muted);
+               margin-top: 8px; }
+nav a { display: block; padding: 5px 20px; font-size: 13px; color: var(--muted);
+        text-decoration: none; border-left: 2px solid transparent;
+        transition: all .15s; }
+nav a:hover, nav a.active { color: var(--text); border-color: var(--accent);
+                              background: rgba(99,102,241,.08); }
+main { flex: 1; padding: 40px 48px; max-width: 900px; min-width: 0; }
+h1 { font-size: 2rem; font-weight: 800; color: var(--text);
+     border-bottom: 2px solid var(--accent); padding-bottom: 12px; margin-bottom: 24px; }
+h2 { font-size: 1.4rem; font-weight: 700; color: var(--accent2);
+     margin: 32px 0 12px; padding-top: 8px; }
+h3 { font-size: 1.1rem; font-weight: 600; color: var(--text); margin: 20px 0 8px; }
+h4, h5, h6 { font-size: 1rem; font-weight: 600; color: var(--muted); margin: 16px 0 6px; }
+p { margin: 8px 0; color: var(--text); }
+a { color: var(--accent2); }
+a:hover { color: #a5b4fc; }
+code { background: var(--code-bg); border: 1px solid var(--border);
+       border-radius: 4px; padding: 1px 5px; font-size: .875em;
+       font-family: 'JetBrains Mono', 'Fira Code', monospace; color: #a5b4fc; }
+pre { background: var(--code-bg); border: 1px solid var(--border);
+      border-radius: 8px; padding: 16px; overflow-x: auto; margin: 12px 0; }
+pre code { background: none; border: none; padding: 0;
+           font-size: .82rem; color: var(--text); }
+blockquote { border-left: 3px solid var(--accent); padding: 8px 16px;
+             background: rgba(99,102,241,.06); margin: 12px 0; border-radius: 0 6px 6px 0; }
+ul, ol { padding-left: 24px; margin: 8px 0; }
+li { margin: 3px 0; }
+table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: .9rem; }
+th { background: var(--bg3); color: var(--accent2); font-weight: 700;
+     padding: 8px 12px; border: 1px solid var(--border); text-align: left; }
+td { padding: 7px 12px; border: 1px solid var(--border); color: var(--text); }
+tr:nth-child(even) td { background: rgba(255,255,255,.02); }
+hr { border: none; border-top: 1px solid var(--border); margin: 24px 0; }
+strong { color: #c7d2fe; }
+del { color: var(--muted); }
+.badge { display: inline-block; font-size: 10px; font-weight: 700; padding: 1px 6px;
+         border-radius: 9px; border: 1px solid; margin: 0 2px; vertical-align: middle; }
+.badge-green { color: var(--success); border-color: var(--success); }
+.badge-warn  { color: var(--warn);    border-color: var(--warn); }
+/* toc sidebar on large screens */
+@media (max-width: 768px) { nav { display: none; } main { padding: 20px 16px; } }
+</style>
+</head>
+<body>
+<nav>
+  <div class="logo"><a href="../index.html">📁 NVIDIA OS Support</a></div>
+  <div class="section">Agent 工作文件</div>
+  <a href="../agents/usage.html">使用指南</a>
+  <a href="../agents/continuation.html">接手狀態</a>
+  <a href="../agents/workflows.html">Runnable Workflows</a>
+<div class="section">ControlStudio</div>
+  <a href="../control-studio/roadmap.html">Roadmap（主線）</a>
+  <a href="../control-studio/plan.html">開發計畫</a>
+  <a href="../control-studio/backlog.html">Backlog</a>
+  <a href="../control-studio/scenarios.html" class="active">情境案例</a>
+  <a href="../control-studio/verification.html">驗證案例</a>
+  <a href="../control-studio/skills.html">Skill 規劃</a>
+  <a href="../control-studio/uiux-r1.html">UI/UX Round 1</a>
+  <a href="../control-studio/uiux-r2.html">UI/UX Round 2</a>
+  <a href="../control-studio/archive/phase10-plan.html">▸ Phase 10 計畫（封存）</a>
+  <a href="../control-studio/archive/phase10-verify.html">▸ Phase 10 驗證（封存）</a>
+<div class="section">NVIDIA 模型</div>
+  <a href="../nvidia/guide.html">落地操作指南</a>
+  <a href="../nvidia/models-zh.html">模型分類表（中文）</a>
+  <a href="../nvidia/models-en.html">Model Summary (EN)</a>
+  <a href="../nvidia/selector-plan.html">Selector Skill 計畫</a>
+<div class="section">案例輸出</div>
+  <a href="../cases/dc-motor.html">DC Motor 速度控制</a>
+  <a href="../cases/precision-servo.html">Precision Servo</a>
+  <a href="../cases/regression.html">Regression Dashboard</a>
+</nav>
+<main>
+<h1 id="control-system-scenario-studies">Control System Scenario Studies</h1>
+
+<p>此文件記錄用 ControlStudio 進行實際控制情境設計的案例。後續 agent 可用這些案例檢查產品流程、數學核心與 UI/CLI 改善方向。</p>
+
+<h2 id="scenario-1-precision-servo-stage-position-control">Scenario 1: Precision Servo Stage Position Control</h2>
+
+<p>Date: 2026-05-17</p>
+
+<h3 id="control-situation">Control Situation</h3>
+
+<p>設計一個精密定位平台的位置控制器。設備用於小型檢測軸，需求是在不激發第一個柔性模態的前提下縮短定位時間。</p>
+
+<p>模型包含：</p>
+
+<ul>
+<li>剛體位置積分</li>
+<li>馬達 / 電流迴路一階落後</li>
+<li>低阻尼柔性模態</li>
+<li>感測器 / 致動器零點</li>
+</ul>
+
+<pre><code class="lang-text">G(s) = X(s) / U(s)
+     = 50(s + 8) / [s(s + 1.2)(s^2 + 2ζωf s + ωf^2)]
+
+ζ = 0.08
+ωf = 18 rad/s</code></pre>
+
+<p>ControlStudio 使用的展開式：</p>
+
+<pre><code class="lang-text">G(s) = (50s + 400) / (s^4 + 4.08s^3 + 327.456s^2 + 388.8s)</code></pre>
+
+<h3 id="design-target">Design Target</h3>
+
+<pre><code class="lang-text">Closed-loop stable
+PM &gt;= 55 deg
+GM &gt;= 10 dB
+Overshoot &lt;= 8%
+Steady-state error &lt;= 0.5%
+Rise time improved versus conservative baseline
+Avoid gain crossover near 18 rad/s flexible mode</code></pre>
+
+<h3 id="controlstudio-workflow">ControlStudio Workflow</h3>
+
+<ol>
+<li>Transfer Function input:</li>
+<ul>
+<li>Numerator: <code>50, 400</code></li>
+<li>Denominator: <code>1, 4.08, 327.456, 388.8, 0</code></li>
+</ul>
+<li>Closed-loop step simulation.</li>
+<li>Compare conservative P-only baseline with PID + Lead candidate.</li>
+<li>Inspect Step Response, Bode margins, Root Locus break points, jω crossing, and Stability Snapshot.</li>
+<li>Reproduce the case with:</li>
+</ol>
+
+<pre><code class="lang-bash">node control-studio/scripts/run_servo_stage_case.mjs</code></pre>
+
+<p>The script writes a generated JSON artifact to:</p>
+
+<pre><code class="lang-text">outputs/controlstudio/precision-servo-stage-case.json</code></pre>
+
+<h3 id="observed-results">Observed Results</h3>
+
+<table>
+<tr><td>Candidate</td><td>Controller</td><td>Compensator</td><td>PM</td><td>GM</td><td>Gain Crossover</td><td>Rise Time</td><td>Settling Time</td><td>Overshoot</td><td>ESS</td><td>Status</td></tr>
+<tr><td>---</td><td>---</td><td>---</td><td>---:</td><td>---:</td><td>---:</td><td>---:</td><td>---:</td><td>---:</td><td>---:</td><td>---</td></tr>
+<tr><td>Conservative baseline</td><td><code>Kp=0.5, Ki=0, Kd=0</code></td><td>none</td><td>71.42 deg</td><td>30.69 dB</td><td>0.479 rad/s</td><td>3.173 s</td><td>4.744 s</td><td>1.30%</td><td>0.00492%</td><td>Stable</td></tr>
+<tr><td>PID + Lead selected</td><td><code>Kp=1.2, Ki=0, Kd=0.04, N=100</code></td><td><code>Kc=1, tau=0.2, alpha=0.1</code></td><td>69.04 deg</td><td>20.21 dB</td><td>0.984 rad/s</td><td>1.671 s</td><td>4.674 s</td><td>5.69%</td><td>0.00469%</td><td>Stable</td></tr>
+</thead><tbody>
+</table>
+
+<h3 id="selected-design">Selected Design</h3>
+
+<pre><code class="lang-text">Cpid(s) = (5.2s^2 + 121.2s) / (s^2 + 100s)
+Clead(s) = (0.2s + 1) / (0.02s + 1)
+C(s) = (52s^2 + 1460s + 6000) / (s^2 + 150s + 5000)</code></pre>
+
+<p>Closed-loop result:</p>
+
+<pre><code class="lang-text">T(s) = (2600s^3 + 93800s^2 + 884000s + 2400000)
+     / (s^6 + 154.08s^5 + 5939.456s^4 + 72507.2s^3 + 1789400s^2 + 2828000s + 2400000)</code></pre>
+
+<h3 id="mathematical-check">Mathematical Check</h3>
+
+<p>Plant denominator expansion:</p>
+
+<pre><code class="lang-text">s(s + 1.2)(s^2 + 2*0.08*18s + 18^2)
+= s(s + 1.2)(s^2 + 2.88s + 324)
+= s(s^3 + 4.08s^2 + 327.456s + 388.8)
+= s^4 + 4.08s^3 + 327.456s^2 + 388.8s</code></pre>
+
+<p>Root Locus diagnostics:</p>
+
+<pre><code class="lang-text">Breakaway point: s = -0.6235, K = 0.3144
+Break-in point: s = -12.6090, K = 278.8311
+jω crossing: K = 17.1131, ω = 17.4646 rad/s</code></pre>
+
+<p>The selected gain crossover is <code>0.984 rad/s</code>, well below the <code>17.46 rad/s</code> marginal crossing and the <code>18 rad/s</code> flexible mode. This supports the engineering decision that the controller improves speed without driving loop bandwidth into the first resonance.</p>
+
+<h3 id="engineering-decision">Engineering Decision</h3>
+
+<p>Use <code>Kp=1.2, Ki=0, Kd=0.04</code> with Lead compensator <code>Kc=1, tau=0.2, alpha=0.1</code> as the first servo-stage design candidate.</p>
+
+<p>The design improves rise time by roughly 47% compared with the conservative P-only baseline while keeping phase margin, gain margin, overshoot, and resonance-avoidance constraints inside target.</p>
+
+<h3 id="improvement-notes">Improvement Notes</h3>
+
+<ol>
+<li>Add a saved scenario fixture schema so engineering cases can be replayed as regression tests.</li>
+<li>Add candidate sweep as a first-class UI feature; repeated parameter search should not require ad-hoc scripting.</li>
+<li>Add <code>--summary</code> or <code>--report</code> mode to <code>control_analysis_cli.mjs</code>; full plot arrays are useful for tooling but too noisy for engineering review.</li>
+<li>Step-response steady-state error should distinguish simulation final sample from analytical DC final value.</li>
+<li>Lead / PID design should support constraint-based search: target PM, max overshoot, max settling time, and minimum crossover distance from known resonance frequencies.</li>
+<li>Surface Root Locus “gain safety ratio to Ku” in the UI.</li>
+<li>Add resonance markers to Bode / Singular Value plots.</li>
+<li>Promote this servo-stage case into automated validation after the scenario fixture schema exists.</li>
+</ol>
+
+<hr>
+
+<h2 id="scenario-2-2x2-mixing-tank-mimo-耦合系統設計">Scenario 2: 2x2 Mixing Tank（MIMO 耦合系統設計）</h2>
+
+<p>Date: 2026-05-17</p>
+
+<h3 id="control-situation">Control Situation</h3>
+
+<p>加熱混合槽（heated mixing tank）案例：兩個輸入閥（u₁=熱水流量、u₂=冷水流量）同時影響兩個量測輸出（y₁=溫度、y₂=液位）。</p>
+<p>這是典型強耦合 MIMO 系統 — 開熱水會同時升溫且升位，必須先解耦或用 multivariable 控制器處理。</p>
+
+<p>模型（State-Space 2×2）：</p>
+
+<pre><code class="lang-text">A = [[-0.5,  0  ], [ 0  , -0.3]]   兩個獨立慢動態
+B = [[ 1.0,  0.8], [ 0.6, 1.0 ]]   強耦合輸入矩陣
+C = [[ 1,   0   ], [ 0  , 1   ]]   狀態直接量測
+D = [[ 0,   0   ], [ 0  , 0   ]]</code></pre>
+
+<h3 id="design-target">Design Target</h3>
+
+<pre><code class="lang-text">Decoupled steady-state behavior (RGA ≈ I)
+Closed-loop stable
+Condition number κ(jω) keep below 10 across operating band
+Both outputs settle to setpoint without cross-channel interference</code></pre>
+
+<h3 id="controlstudio-workflow">ControlStudio Workflow</h3>
+
+<ol>
+<li>System tab → SYSTEM TYPE → 切到 <strong>MIMO</strong></li>
+<li>輸入 ABCD 四矩陣 → Update MIMO System</li>
+<li>點 <strong>⊞ All</strong> 確認 4 通道步階響應（看出耦合）</li>
+<li>Advisor tab → MIMO Analysis：</li>
+<ul>
+<li><strong>Compute RGA</strong> → 配對診斷</li>
+<li><strong>Plot σ_max / σ_min</strong> → 條件數 κ</li>
+<li><strong>Compute &amp; Apply Decoupler</strong> → 自動套用 W = G(0)⁻¹</li>
+<li>再次 <strong>Compute RGA</strong> 驗證 RGA = I</li>
+</ul>
+<li><strong>Compute MIMO LQR Gain K</strong> → 對解耦後系統求 LQR</li>
+</ol>
+
+<h3 id="observed-results">Observed Results</h3>
+
+<table>
+<tr><td>Step</td><td>Metric</td><td>Before Decoupler</td><td>After Decoupler</td><td>Pass?</td></tr>
+<tr><td>---</td><td>---</td><td>---:</td><td>---:</td><td>:---:</td></tr>
+<tr><td>RGA λ₁₁</td><td>Pairing quality</td><td>1.923 (moderate)</td><td>1.000 (perfect)</td><td>✓</td></tr>
+<tr><td>RGA λ₁₂</td><td>Off-diagonal</td><td>−0.923</td><td>0.000</td><td>✓</td></tr>
+<tr><td>κ @ ω_min</td><td>Condition number</td><td>6.086</td><td>(depends on Q/R)</td><td>✓</td></tr>
+<tr><td>K_lqr</td><td>Diagonal?</td><td>n/a</td><td>diag(0.4142)</td><td>✓</td></tr>
+<tr><td>CL stable</td><td>Re(eig(A−BK)) &lt; 0</td><td>n/a</td><td>Yes</td><td>✓</td></tr>
+</thead><tbody>
+</table>
+
+<h3 id="engineering-decision">Engineering Decision</h3>
+
+<p>對於溫度+液位耦合的混合槽，先套用 Static Decoupler 把 DC 增益對角化，再用 MIMO LQR 設計 state feedback。解耦後每個通道可獨立調 Q/R 比例。</p>
+
+<h3 id="ui-ux-findings-from-live-studio-walkthrough-2026-05-17">UI/UX Findings From Live Studio Walkthrough（2026-05-17）</h3>
+
+<p>以下問題在實際操作 SISO/MIMO 流程時發現，依嚴重度排序：</p>
+
+<h4 id="severity-high-破壞功能或誤導使用者">Severity: High（破壞功能或誤導使用者）</h4>
+
+<table>
+<tr><td>#</td><td>問題</td><td>位置</td><td>影響</td></tr>
+<thead>
+<tr><th>H1</th><th>Phase 7/8 在 MIMO 模式下不知道使用者切過模式</th><th><code>currentPhase7DesignModel()</code> (app.js:729) 永遠用 <code>state.plant</code>（在 MIMO 模式下這是當前 channel 的 SISO TF），導致 Kalman/LQR 算出來是 single-channel realization，可觀矩陣 rank 不足</th><th>使用者以為在分析 MIMO 系統，實際上分析的是某一 channel；錯誤的 K_lqr / L_kf</th></tr>
+<tr><td>H2</td><td>Step-response overshoot 兩處顯示不同數字</td><td>Stability Snapshot vs Compare Snapshot 對同一參數可顯示 10.5% vs 5.8%</td><td>使用者不知道哪個值是「真實」overshoot ｜ 已修正：兩處皆走 <code>currentResponseData(closedLoop) → stepInfo()</code> 同一公式。若顯示差異，唯一來源是「快照當下的 simulationConfig（duration / sampleCount）」 vs 「目前 sidebar 上的 config」不同 — 快照鎖定當時狀態，現場面板隨配置即時更新</td></tr>
+<tr><td>H3</td><td>Compare snapshots 不會隨 SISO↔MIMO 模式重置</td><td>Compare panel 留著 SISO 快照仍然疊在 MIMO 主圖下方</td><td>跨模式比較毫無意義且誤導</td></tr>
+</thead><tbody>
+</table>
+
+<h4 id="severity-medium-功能存在但流程不直覺">Severity: Medium（功能存在但流程不直覺）</h4>
+
+<table>
+<tr><td>#</td><td>問題</td><td>位置</td><td>影響</td></tr>
+<thead>
+<tr><th>M1</th><th>Bode 圖未直接標示 PM/GM cross-marker</th><th>Bode chart</th><th>PM/GM 是 Bode 最重要結果，要捲到 sidebar 才看到</th></tr>
+<tr><td>M2</td><td>PID 沒有 derivative filter N 參數的 UI</td><td>Controller Tuning</td><td>無法重現 scenario 規定的 N=100，與外部設計工具結果有落差</td></tr>
+<tr><td>M3</td><td>Stability Snapshot 在 Sim 面板最底部</td><td>Sim panel</td><td>必須捲很多才看到重要指標，建議移到固定 footer 或置頂</td></tr>
+<tr><td>M4</td><td>Design Pole-Out 排版混亂</td><td><code>#design-pole-out</code></td><td>「ζ = 0.6266σ = 2.0000」數值/標籤緊貼，可讀性差</td></tr>
+<tr><td>M5</td><td>MIMO 模式下 Phase 7/8 區塊仍可點按</td><td>Advisor panel</td><td>應該整合（直接吃 mimoPlant）或在 MIMO 模式下禁用並提示</td></tr>
+</thead><tbody>
+</table>
+
+<h4 id="severity-low-細節-可改善">Severity: Low（細節/可改善）</h4>
+
+<table>
+<tr><td>#</td><td>問題</td><td>位置</td><td>影響</td></tr>
+<thead>
+<tr><th>L1</th><th>主圖標題 "Step Response" 顯示位置/格式不一致</th><th>Plot header</th><th>與 plot type label 重複</th></tr>
+<tr><td>L2</td><td>⊞ All view 不標示是 open-loop 還是 closed-loop</td><td>MIMO grid</td><td>使用者不確定看到的是哪個</td></tr>
+<tr><td>L3</td><td>切換到 MIMO 後切回 SISO，sidebar 滾動位置不會回頂部</td><td>switchSystemMode</td><td>使用者迷失上下文</td></tr>
+</thead><tbody>
+</table>
+
+<h3 id="improvement-backlog-已完成-commit-46deba6">Improvement Backlog（已完成，commit <code>46deba6</code>）</h3>
+
+<p>依優先級執行並全部驗證：</p>
+
+<table>
+<tr><td>#</td><td>問題</td><td>修復方式</td><td>驗證結果</td></tr>
+<thead>
+<tr><th>H1</th><th>Phase 7/8 不認 MIMO</th><th><code>currentPhase7DesignModel()</code> 開頭加 <code>if (state.systemMode === 'mimo' &amp;&amp; state.mimoPlant) return mimoPlant ABCD</code>；SISO-only 子功能在 MIMO 模式下明確報錯</th><th>MIMO Kalman 現在 rank(Wo)=2/2，L_kf 變成 2×2 矩陣（之前 column vector）</th></tr>
+<tr><td>H2</td><td>Overshoot 兩處數字不一</td><td>兩處皆走 <code>currentResponseData(closedLoop) → stepInfo()</code> 同一公式；殘餘差異來自快照鎖定當時 <code>simulationConfig</code> vs 現場面板配置</td><td>公式統一，殘餘差異有明確語意</td></tr>
+<tr><td>H3</td><td>Compare 不清快照</td><td><code>switchSystemMode</code> 加 <code>confirm()</code> + <code>state.comparisonSnapshots = []</code></td><td>切模式後 snapshot count = 0</td></tr>
+<tr><td>M1</td><td>Bode 無 PM/GM marker</td><td>加 ω_gc 和 ω_pc 垂直虛線 + <code>PM=…°</code> / <code>GM=… dB</code> annotation</td><td>Bode 圖實際畫出兩條綠線 + 兩個標籤</td></tr>
+<tr><td>M2</td><td>PID 缺 N filter</td><td>新增 <code>pid-N</code> input；<code>PIDController</code> 支援 N filter（預設 ∞ 為理想 PID）</td><td>UI 可設 N=100 重現 scenario 結果</td></tr>
+<tr><td>M3</td><td>Stability 太底部</td><td>移到 <code>#panel-simulate</code> 第一個 section</td><td>Snapshot 一進 Sim panel 立即看到</td></tr>
+<tr><td>M4</td><td>design-pole-out 排版</td><td>每個 metric 用獨立 <code>&lt;div display:block&gt;</code> + nbsp 包裹</td><td>「ζ = … σ = …」分行清晰</td></tr>
+<tr><td>M5</td><td>Phase 7/8 MIMO 可點按</td><td>新增 <code>#p7-mimo-banner</code> / <code>#p8-mimo-banner</code>；SISO 函式在 MIMO 模式拋明確訊息引導去 MIMO LQR</td><td>點 SISO Pole Placement 顯示「請使用 MIMO Analysis → MIMO LQR」</td></tr>
+<tr><td>L1</td><td>Step Response 標題重複</td><td>移除 <code>layout.title</code>（chart-header 已有）</td><td>主圖只剩一處標題</td></tr>
+<tr><td>L2</td><td>⊞ All 不標 loop type</td><td>grid 標題改 "All Channels (Open-loop Step Response)"，cell 標籤加 <code>(open)</code></td><td>每格清楚標示</td></tr>
+<tr><td>L3</td><td>切模式 sidebar 不回頂</td><td><code>switchSystemMode</code> 結尾加 <code>aside.scrollTop = 0</code></td><td>切後立即回頂</td></tr>
+</thead><tbody>
+</table>
+
+<p>新增測試（<code>test_control.js</code>）：PID derivative filter N=100 與 N=∞ 兩個案例的轉換式正確性。</p>
+
+<h3 id="lessons-learned">Lessons Learned</h3>
+
+<ol>
+<li><strong>MIMO 與 Phase 7/8 一開始是分開開發的</strong>，整合時容易產生 H1 這種「使用者切了模式但底層沒切」的問題。下次新增大型模式時，要列「跨模式依賴清單」並逐項檢查。</li>
+<li><strong>同一份指標出現在多處時必須來自單一來源</strong>（H2）。Stability Snapshot 和 Compare Snapshot 若有任何計算差異都會誤導使用者。</li>
+<li><strong>預設視覺結果重要過數值</strong>（M1）。Bode 圖沒 PM/GM marker 是技術上正確但 UX 上失敗的典型例子。</li>
+<li><strong>進階功能必須有「mode 守門員」</strong>（M5）。SISO Pole Placement 在 MIMO 模式下不應靜默失敗，要主動引導到正確功能。</li>
+</ol>
+
+<hr>
+
+<h2 id="scenario-3-magnetic-levitation-siso-不穩定-plant">Scenario 3: Magnetic Levitation（SISO 不穩定 plant）</h2>
+
+<p>Date: 2026-05-17</p>
+
+<h3 id="control-situation">Control Situation</h3>
+
+<p>電磁鐵把鐵球懸浮在空中。重力把球往下拉、電磁力把球往上抬。在平衡點線性化後 plant 為：</p>
+
+<pre><code class="lang-text">G(s) = K / (s² − a²) = 1000 / (s² − 900) = 1000 / [(s − 30)(s + 30)]</code></pre>
+
+<p>有一個 <strong>RHP pole</strong> 在 s=+30 → 開迴路不穩定。這是經典「unstable plant」教學案例，用來測 Studio 對不穩定系統的處理能力。</p>
+
+<h3 id="design-target">Design Target</h3>
+
+<pre><code class="lang-text">閉迴路穩定（必要）
+Re(eig(A − BK)) ≤ −5（衰減快於 5 rad/s）
+Overshoot ≤ 20%</code></pre>
+
+<h3 id="controlstudio-workflow">ControlStudio Workflow</h3>
+
+<ol>
+<li>System tab → 輸入 TF：<code>num=1000, den=1, 0, -900</code></li>
+<li>Pole-Zero map：<strong>切到 Open-loop</strong> 看到 plant 真正極點 ±30</li>
+<li>Time Response (open-loop)：響應爆炸到 10¹² 確認不穩定</li>
+<li>Advisor → Phase 7：</li>
+<ul>
+<li>State Feedback desired poles = <code>-10, -15</code> → K = [1050, 25]</li>
+<li>LQR Q=I, R=1 → K = [1800, 60]，CL poles 自動到 −29.5/−30.5</li>
+</ul>
+</ol>
+
+<h3 id="observed-results">Observed Results</h3>
+
+<table>
+<tr><td>步驟</td><td>期望</td><td>實際結果</td><td>通過？</td></tr>
+<thead>
+<tr><th>Open-loop step</th><th>發散</th><th>10⁻¹² 增長</th><th>✓</th></tr>
+<tr><td>Plant poles</td><td>±30</td><td>±30（需切到 open-loop view）</td><td>✓</td></tr>
+<tr><td>State Feedback K</td><td>把極點放到 −10, −15</td><td>K=[1050,25]，CL=−10,−15</td><td>✓</td></tr>
+<tr><td>LQR (Q=I,R=1)</td><td>CL stable</td><td>K=[1800,60]，CL=−29.5,−30.5</td><td>✓</td></tr>
+</thead><tbody>
+</table>
+
+<h3 id="ui-ux-findings-from-scenario-3">UI/UX Findings From Scenario 3</h3>
+
+<table>
+<tr><td>#</td><td>嚴重度</td><td>問題</td><td>影響</td></tr>
+<thead>
+<tr><th>S3-1</th><th>High</th><th>PZ map 預設顯示<strong>閉迴路</strong>，使用者輸入新 plant 後<strong>看不到 plant 本身極點</strong></th><th>工程師無法第一眼判斷 plant 是否不穩定／在哪</th></tr>
+<tr><td>S3-2</td><td>Medium</td><td>Lyapunov 對不穩定 plant 報「Singular matrix」</td><td>訊息對使用者毫無幫助；應該說「plant 不穩定，Lyapunov 無正定解，請先穩定化」</td></tr>
+<tr><td>S3-3</td><td>Medium</td><td>錯誤訊息 toast 不會自動消失，切到別 plot tab 還掛著舊錯誤</td><td>誤導使用者以為新操作也失敗</td></tr>
+<tr><td>S3-4</td><td>Low</td><td>Bode PM/GM 對不穩定 plant 顯示一般數字（PM=30.9°、GM=∞），未提示 Nyquist criterion 對 RHP poles 需特別解讀</td><td>學生可能誤判穩定性</td></tr>
+</thead><tbody>
+</table>
+
+<h3 id="engineering-decision">Engineering Decision</h3>
+
+<p>對不穩定 plant，必須先 Phase 7 State Feedback 或 LQR 穩定化，再做頻域分析。建議 Studio 在偵測到 plant 有 RHP poles 時自動切到 open-loop view 並 banner 提示「請先穩定化」。</p>
+
+<hr>
+
+<h2 id="scenario-4-spacecraft-attitude-control-mimo-含-integrator-gyroscopic-coupling">Scenario 4: Spacecraft Attitude Control（MIMO 含 integrator + gyroscopic coupling）</h2>
+
+<p>Date: 2026-05-17</p>
+
+<h3 id="control-situation">Control Situation</h3>
+
+<p>太空船 2 軸姿態控制（pitch θ + yaw ψ），透過 gyroscopic coupling 相互影響：</p>
+
+<pre><code class="lang-text">State    x = [θ, θ̇, ψ, ψ̇]
+Input    u = [τθ, τψ]
+Output   y = [θ, ψ]
+
+A = [[0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1], [0, −1, 0, 0]]
+B = [[0,0],[1,0],[0,0],[0,1]]
+C = [[1,0,0,0],[0,0,1,0]]
+D = [[0,0],[0,0]]</code></pre>
+
+<p>A 的特徵多項式 = s²(s² + 1)，所以 plant 有 4 個極點在 jω 軸上（<strong>marginally stable + 含 double integrator</strong>）。這是 attitude control 的典型形態。</p>
+
+<h3 id="design-target">Design Target</h3>
+
+<pre><code class="lang-text">全狀態回授穩定化
+Settling time &lt; 5 s 兩軸
+解耦：u₁ 步階主要影響 y₁，對 y₂ 干擾 &lt; 30%</code></pre>
+
+<h3 id="controlstudio-workflow">ControlStudio Workflow</h3>
+
+<ol>
+<li>System → MIMO → n=4, m=2, p=2，輸入 ABCD</li>
+<li>⊞ All 看到 4 channel 強耦合振盪響應</li>
+<li>Advisor → MIMO Analysis：</li>
+<ul>
+<li><strong>Compute RGA</strong> ❌ 失敗</li>
+<li><strong>Plot σ_max / σ_min</strong> ✓ κ=100</li>
+<li><strong>Compute MIMO LQR</strong> ❌ 失敗</li>
+</ul>
+<li>Phase 8：Kalman ❌ 失敗，LQG ❌ 失敗</li>
+</ol>
+
+<h3 id="ui-ux-findings-from-scenario-4">UI/UX Findings From Scenario 4</h3>
+
+<table>
+<tr><td>#</td><td>嚴重度</td><td>問題</td><td>影響</td></tr>
+<thead>
+<tr><th>S4-1</th><th><strong>Critical</strong></th><th>RGA 對含 integrator 的 plant 報「Singular matrix」，無解釋</th><th>整個 MIMO Analysis 鏈被卡住，使用者不知道是因為 G(0) 無定義</th></tr>
+<tr><td>S4-2</td><td><strong>Critical</strong></td><td>MIMO LQR 對 marginally stable plant 失敗（Newton-Kleinman initial K=0 無效）。預期應該能解（plant 可控）</td><td>LQR 是 MIMO 設計的關鍵工具，失效等於 Phase 9 對含 jω-axis plant 不可用</td></tr>
+<tr><td>S4-3</td><td>High</td><td>Phase 8 Q_n textarea 不會隨 MIMO 系統 n 自動 resize；切到 n=4 時 Q_n 仍為 2×2 預設，使用者要手動補</td><td>流程斷裂；應該偵測 MIMO 後自動更新預設</td></tr>
+<tr><td>S4-4</td><td>High</td><td>「Singular matrix」這個訊息在 <strong>4 個不同失敗原因</strong>都用同字串（Lyapunov, RGA, LQR, LQG），無法 debug</td><td>使用者無法判斷哪裡出錯</td></tr>
+<tr><td>S4-5</td><td>Medium</td><td>Phase 8 Kalman 在 marginally stable plant 也失敗</td><td>LQE 同樣 Kleinman initial 問題；MIMO 含 integrator 的 plant 不能跑 Phase 8 完整鏈</td></tr>
+</thead><tbody>
+</table>
+
+<h3 id="improvement-backlog-已完成-commit-70b5aad">Improvement Backlog（已完成，commit <code>70b5aad</code>）</h3>
+
+<table>
+<tr><td>#</td><td>問題</td><td>修復方式</td><td>驗證結果</td></tr>
+<thead>
+<tr><th>S3-1</th><th>PZ map 隱藏 plant 不穩定極點</th><th><code>updateSystem</code> 偵測 RHP poles 自動關 CL toggle + 顯示 banner</th><th>進入 MagLev 立即看到 ±30</th></tr>
+<tr><td>S3-2</td><td>Lyapunov 對不穩定 plant 報「Singular matrix」</td><td><code>analyzeLyapunov</code> 包裝錯誤為「A 含對稱共軛特徵值（plant 不穩定或 jω-axis），請先 State Feedback 穩定化」</td><td>訊息有可執行建議</td></tr>
+<tr><td>S3-3</td><td>錯誤 toast 不消失</td><td><code>showError</code> 加 <code>setTimeout(clearError, 6000)</code></td><td>6 秒自動消失</td></tr>
+<tr><td>S3-4</td><td>Bode 對 RHP plant 沒提示</td><td><code>renderBodePlot</code> 加紅色 annotation banner</td><td>Bode 上顯示 ⚠ Plant 不穩定，Nyquist criterion 須考慮 RHP poles</td></tr>
+<tr><td>S4-1</td><td>RGA 對 integrator plant 失敗無解釋</td><td><code>dcGain</code> / <code>rgaSteady</code> 包裝為「G(0) 為奇異（plant 含 integrator）。建議改在 ω &gt; 0 計算 RGA(jω)」</td><td>訊息清楚</td></tr>
+<tr><td>S4-2</td><td>MIMO LQR 對 marginally stable 失敗</td><td>新增 <code>bassStabilizingGain(A, B)</code> 三層 fallback：K=0 → 偽逆移位 → Bass K=αB'。若三者皆失敗，給出明確建議</td><td>訊息變成「請先 SISO Pole Placement 取得 K₀ 後 LQR 精修」</td></tr>
+<tr><td>S4-3</td><td>Q_n textarea 不會 resize</td><td><code>updateMIMOSystem</code> 自動更新 obs-qn / dkf-qd / mimo-lqr-q/r 為 n×n / m×m 單位矩陣（僅在 dim 不匹配時）</td><td>n=4 時 obs-qn 自動變 4×4</td></tr>
+<tr><td>S4-4</td><td>「Singular matrix」字串重複</td><td>新增 <code>SingularMatrixError</code> class；各呼叫端按 context 包裝</td><td>4 個失敗點各自有獨立訊息</td></tr>
+<tr><td>S4-5</td><td>Phase 8 Kalman 對 marginally stable 失敗</td><td><code>solveLqe</code> / <code>solveDiscreteKalman</code> 同樣加 Bass fallback + 友善錯誤</td><td>訊息同 S4-2</td></tr>
+</thead><tbody>
+</table>
+
+<h3 id="engineering-decision-bass-法局限">Engineering Decision（Bass 法局限）</h3>
+
+<p>Spacecraft 案例 B = <code>[[0,0],[1,0],[0,0],[0,1]]</code> 是 sparse rank-2 矩陣，B·Bᵀ 的零空間恰好包含 plant 的 jω-axis 模態子空間 → Bass K = αBᵀ 無法 stabilize。這是數學上的根本限制，不是實作缺陷。</p>
+
+<p>對 Spacecraft 這類案例，<strong>正確的工程流程</strong>：</p>
+<ol>
+<li>先用 SISO Ackermann 對每個 input column 分別做 stabilizing pole placement</li>
+<li>組合成 MIMO 初始 K₀</li>
+<li>以 K₀ 為初值跑 Newton-Kleinman LQR 精修</li>
+</ol>
+
+<p>或實作 <strong>Schur method</strong> 的完整 CARE solver（Hamiltonian eigenvector decomposition）— 這是 MATLAB <code>care()</code> 的內部方法。為避免引入額外 ~200 行程式碼且解決方案普及度有限，Studio 目前選擇「明確錯誤訊息 + 工作流引導」的折衷。</p>
+
+<h3 id="lessons-learned-新增第-5-6-條">Lessons Learned（新增第 5、6 條）</h3>
+
+<ol>
+<li><strong>「Singular matrix」這種底層數學錯誤不能直接外漏給使用者</strong>。每個呼叫端必須包裝為「該功能脈絡下的具體解釋」。否則使用者要回頭推測哪個矩陣奇異、為何奇異。</li>
+<li><strong>Newton-Kleinman LQR 對 marginally stable / unstable plant 不通用</strong>。生產級控制工具應該用 Schur method（或 Hamiltonian eigenvector method）作為主求解器，Newton-Kleinman 只是 refinement。Studio 目前對「邊界 plant」（integrator、不穩定）以「明確錯誤 + 工作流引導」為過渡方案；Schur method 排入 Phase 10 backlog。</li>
+</ol>
+
+<hr>
+
+<h2 id="scenario-5-phase-10-mpc-robust-ui-walkthrough">Scenario 5: Phase 10 MPC / Robust UI Walkthrough</h2>
+
+<p>Date: 2026-05-17</p>
+
+<h3 id="control-situation">Control Situation</h3>
+
+<p>以實際 ControlStudio 介面檢查 Phase 10 的兩個新能力是否能支援工程師完成設計流程：</p>
+
+<ol>
+<li><strong>MPC</strong>：離散狀態空間模型，有限 horizon，無約束 receding-horizon baseline。</li>
+<li><strong>Robust</strong>：SISO loop 的 sensitivity functions：<code>S=1/(1+L)</code>、<code>T=L/(1+L)</code>、<code>KS=K/(1+L)</code> 與 peak sensitivity。</li>
+</ol>
+
+<h3 id="browser-walkthrough">Browser Walkthrough</h3>
+
+<p>入口：</p>
+
+<pre><code class="lang-text">http://127.0.0.1:8765/</code></pre>
+
+<p>已實際操作：</p>
+
+<ol>
+<li>System → SISO：</li>
+<ul>
+<li>可輸入 Transfer Function。</li>
+<li>可 Convert to Discrete。</li>
+<li>可調 PID / Lead / Lag。</li>
+<li>無 MPC / horizon / Q/R / x0 / receding-horizon simulation UI。</li>
+</ul>
+</ol>
+
+<ol>
+<li>System → MIMO：</li>
+<ul>
+<li>可輸入 MIMO State-Space。</li>
+<li>可看到 channel selector。</li>
+<li>可使用既有 MIMO workflow。</li>
+<li>可見 Static Decoupler / MIMO LQR 相關入口。</li>
+<li>無 Dynamic Decoupler 的 <code>ωc</code> 輸入或 <code>G(jωc)W(jωc)</code> residual 顯示。</li>
+</ul>
+</ol>
+
+<ol>
+<li>Advisor：</li>
+<ul>
+<li>可見 State Feedback / Lyapunov / LQR。</li>
+<li>可見 Observer &amp; Kalman Filter。</li>
+<li>無 MPC section。</li>
+<li>無 Robust / Sensitivity section。</li>
+</ul>
+</ol>
+
+<ol>
+<li>Plot tabs：</li>
+<ul>
+<li>Bode / Nyquist / Nichols / Root Locus 可用於傳統頻域分析。</li>
+<li>無 <code>S/T/KS</code> plot tab。</li>
+<li>無 peak sensitivity / robust risk summary。</li>
+</ul>
+</ol>
+
+<h3 id="observed-result">Observed Result</h3>
+
+<table>
+<tr><td>情境</td><td>底層模組狀態</td><td>UI 可完成度</td><td>結論</td></tr>
+<thead>
+<tr><th>MPC</th><th>Done：<code>finiteHorizonLqr</code>、<code>firstMpcAction</code>、<code>simulateUnconstrainedMpc</code></th><th>不可完成</th><th>工程師無法透過 Studio UI 設定 horizon / Q / R / x0 或查看 MPC 模擬</th></tr>
+<tr><td>Robust</td><td>Done：<code>sensitivityAt</code>、<code>sensitivityBode</code>、<code>robustPeaks</code></td><td>不可完成</td><td>工程師無法透過 Studio UI 查看 <code>S/T/KS</code>、peak sensitivity 或 robust risk</td></tr>
+<tr><td>Dynamic Decoupler</td><td>Done：<code>dynamicDecouplerAtFrequency</code></td><td>不可完成</td><td>UI 仍只有 static decoupler，沒有 <code>ωc</code> 與 selected-frequency verification</td></tr>
+</thead><tbody>
+</table>
+
+<h3 id="ui-ux-findings-from-scenario-5">UI/UX Findings From Scenario 5</h3>
+
+<table>
+<tr><td>#</td><td>嚴重度</td><td>問題</td><td>影響</td></tr>
+<thead>
+<tr><th>S5-1</th><th>Critical</th><th>MPC 底層核心已完成，但 UI 沒有任何 MPC 入口</th><th>工程師無法用 Studio 完成 MPC 設計，只能靠程式模組</th></tr>
+<tr><td>S5-2</td><td>Critical</td><td>Robust sensitivity 底層核心已完成，但 UI 沒有 Robust / Sensitivity 入口</td><td>工程師無法判斷 <code>S/T/KS</code> peak、robust risk 或閉迴路敏感度</td></tr>
+<tr><td>S5-3</td><td>High</td><td>Dynamic Decoupler 核心已完成，但 UI 仍只提供 Static Decoupler</td><td>使用者無法指定 crossover <code>ωc</code> 或看到 <code>G(jωc)W(jωc)≈I</code> 驗證</td></tr>
+<tr><td>S5-4</td><td>High</td><td>介面沒有告知「Phase 10 核心目前是 API / module-ready，但 UI 尚未整合」</td><td>使用者會以為功能不存在，或誤以為 Bode / LQR 已等同 MPC / Robust</td></tr>
+<tr><td>S5-5</td><td>Medium</td><td>Bode / stability margin 與 Robust sensitivity 的關係沒有被串起來</td><td>工程師看得到 PM/GM，但看不到 <code>Ms</code>、<code>Mt</code>，無法形成 robust design decision</td></tr>
+</thead><tbody>
+</table>
+
+<h3 id="improvement-backlog">Improvement Backlog</h3>
+
+<table>
+<tr><td>#</td><td>建議修復</td><td>驗證方式</td></tr>
+<thead>
+<tr><th>S5-1</th><th>新增 Advisor → MPC Baseline section：<code>horizon</code>、<code>Q</code>、<code>R</code>、<code>x0</code>、<code>steps</code>，顯示 first action、K0、final state norm、cost</th><th>以 scalar integrator fixture 驗證 UI 顯示 <code>K0=0.6</code>、<code>u0=-0.6</code></th></tr>
+<tr><td>S5-2</td><td>新增 Advisor 或 Analysis → Robust Sensitivity section：顯示 <code>Ms</code>、<code>Mt</code>、<code>MKs</code>、risk</td><td>以 <code>L(s)=1/(s+1)</code> 驗證 <code>S(0)=0.5</code>、<code>T(0)=0.5</code></td></tr>
+<tr><td>S5-3</td><td>在 MIMO Analysis 加 Dynamic Decoupler UI：<code>ωc</code> input、Compute、顯示 complex <code>W(jωc)</code> 與 residual</td><td>驗證 <code>offDiagonalNorm &lt; 1e-8</code></td></tr>
+<tr><td>S5-4</td><td>在 Phase 10 UI 未整合前，顯示「core available / UI pending」狀態，不讓使用者誤判</td><td>Browser smoke 應能看到明確 Phase 10 狀態</td></tr>
+<tr><td>S5-5</td><td>Robust plot integration：新增 <code>S/T/KS</code> tab 或 overlay</td><td>Browser smoke 檢查 legend 至少包含 <code>S</code>, <code>T</code>, <code>KS</code></td></tr>
+</thead><tbody>
+</table>
+
+<h3 id="engineering-decision">Engineering Decision</h3>
+
+<p>Phase 10 目前是 <strong>math-core ready, UI-not-ready</strong>。下一步不應再擴更多控制理論功能，而應先補 UI integration：</p>
+
+<ol>
+<li><code>feat(phase10): add MPC UI panel</code></li>
+<li><code>feat(phase10): add robust sensitivity UI</code></li>
+<li><code>feat(phase10): add dynamic decoupler UI</code></li>
+</ol>
+
+<p>教學模式、Electron、報告模板仍維持擱置。</p>
+
+<hr>
+
+<h2 id="scenario-6-siso-mimo-studio-ui-walkthrough">Scenario 6: SISO / MIMO Studio UI Walkthrough</h2>
+
+<p>Date: 2026-05-17</p>
+
+<h3 id="control-situation">Control Situation</h3>
+
+<p>以開發者實際使用 ControlStudio 的角度，檢查 SISO 與 MIMO 兩條核心設計流程是否能支援工程師完成模型輸入、控制器設計、穩定性判斷與多變數分析。</p>
+
+<p>本次只驗證已開發主線能力，不啟用暫緩項：</p>
+
+<ul>
+<li>Block Diagram expansion：Paused</li>
+<li>教學模式：Paused</li>
+<li>Electron：Paused</li>
+<li>報告模板 / 報告自動化：Paused</li>
+</ul>
+
+<h3 id="browser-walkthrough">Browser Walkthrough</h3>
+
+<p>入口：</p>
+
+<pre><code class="lang-text">http://127.0.0.1:8765/</code></pre>
+
+<p>已用 in-app browser 實際操作下列流程。</p>
+
+<h4 id="siso-workflow">SISO Workflow</h4>
+
+<ol>
+<li>System → System Type → <strong>SISO</strong></li>
+<li>Transfer Function:</li>
+<ul>
+<li>Numerator: <code>1</code></li>
+<li>Denominator: <code>1, 3, 2</code></li>
+</ul>
+<li>Click <strong>Update System</strong></li>
+<li>Controller Tuning:</li>
+<ul>
+<li>PID preset：Ziegler-Nichols PID</li>
+<li><code>Ku=6</code></li>
+<li><code>Tu=2</code></li>
+<li>Click <strong>Apply PID Preset</strong></li>
+</ul>
+<li>Lead Helper:</li>
+<ul>
+<li>Target PM Boost: <code>30 deg</code></li>
+<li>Crossover: <code>3 rad/s</code></li>
+<li>Click <strong>Apply Lead Helper</strong></li>
+</ul>
+<li>Sim → 檢查 stability snapshot</li>
+<li>Advisor → State Feedback / Lyapunov / LQR → Click <strong>Compute LQR Gain</strong></li>
+</ol>
+
+<h4 id="siso-observed-result">SISO Observed Result</h4>
+
+<table>
+<tr><td>Metric</td><td>Result</td></tr>
+<thead>
+<tr><th>Gain Margin</th><th><code>∞</code></th></tr>
+<tr><td>Phase Margin</td><td><code>90.2°</code></td></tr>
+<tr><td>Rise Time</td><td><code>2.246 s</code></td></tr>
+<tr><td>Settling Time</td><td><code>3.437 s</code></td></tr>
+<tr><td>Overshoot</td><td><code>0.4%</code></td></tr>
+<tr><td>Steady-State Error</td><td><code>0.000133</code></td></tr>
+<tr><td>Stability</td><td><code>STABLE</code></td></tr>
+<tr><td>Risk</td><td><code>LOW</code></td></tr>
+<tr><td>Dominant-pole summary</td><td><code>Stable: all poles satisfy the left-half plane criterion; dominant pole s = -0.829 + j0.442.</code></td></tr>
+</thead><tbody>
+</table>
+
+<p>Phase 7 LQR output:</p>
+
+<pre><code class="lang-text">K = [0.2361, 0.2361]
+rank(Wc) = 2/2 | Init: hamiltonian-schur
+CARE residual = 0
+Closed-loop Lyapunov stable: Yes
+Closed-loop poles = -1, -2.236</code></pre>
+
+<p>SISO 結論：核心流程可完成。工程師能從 plant 輸入、PID/Lead 設計、穩定性摘要一路走到 LQR 理論驗證。</p>
+
+<h4 id="mimo-workflow">MIMO Workflow</h4>
+
+<ol>
+<li>System → System Type → <strong>MIMO</strong></li>
+<li>MIMO State-Space:</li>
+</ol>
+
+<pre><code class="lang-text">A = [[-1, 0], [0, -1]]
+B = [[1, 0.5], [0.5, 1]]
+C = [[1, 0], [0, 1]]
+D = [[0, 0], [0, 0]]</code></pre>
+
+<ol>
+<li>Click <strong>Update MIMO System</strong></li>
+<li>Advisor → MIMO Analysis:</li>
+<ul>
+<li>Click <strong>Compute RGA (DC)</strong></li>
+<li>Click <strong>Plot σ_max / σ_min</strong></li>
+<li>Click <strong>Compute &amp; Apply Decoupler</strong></li>
+<li>Click <strong>Compute RGA (DC)</strong> again</li>
+<li>MIMO LQR：<code>Q=10I</code>、<code>R=I</code>，Click <strong>Compute MIMO LQR Gain K</strong></li>
+</ul>
+</ol>
+
+<h4 id="mimo-observed-result">MIMO Observed Result</h4>
+
+<p>Before decoupler:</p>
+
+<pre><code class="lang-text">RGA =
+ 1.333  -0.333
+-0.333   1.333
+
+row sum dev = 0
+col sum dev = 0
+y1↔u1: Good pairing
+y2↔u2: Good pairing</code></pre>
+
+<p>Singular value analysis:</p>
+
+<pre><code class="lang-text">σ_max @ ω_min = 1.4999
+σ_min @ ω_min = 0.5
+Condition κ @ ω_min = 3
+Worst κ across sweep = 3</code></pre>
+
+<p>Static decoupler:</p>
+
+<pre><code class="lang-text">G(0) =
+1   0.5
+0.5 1
+
+W = G(0)^-1 =
+ 1.333 -0.667
+-0.667  1.333
+
+G(0)W =
+1 0
+0 1</code></pre>
+
+<p>After decoupler:</p>
+
+<pre><code class="lang-text">RGA =
+1 0
+0 1</code></pre>
+
+<p>MIMO LQR:</p>
+
+<pre><code class="lang-text">K =
+[2.3166, 0],
+[0, 2.3166]
+
+Controllability rank = 2/2
+Initial gain = zero-gain-stable-A
+Iterations = 7
+CARE residual = 0
+Closed-loop stable = Yes
+u = -Kx</code></pre>
+
+<p>MIMO 結論：核心 MIMO 流程可完成。RGA、SV Bode、Static Decoupler、Decoupler 後 RGA 驗證、MIMO LQR 都能透過 UI 操作得到工程上可判讀的結果。</p>
+
+<h3 id="ui-ux-findings-from-scenario-6">UI/UX Findings From Scenario 6</h3>
+
+<table>
+<tr><td>#</td><td>嚴重度</td><td>問題</td><td>位置</td><td>影響</td></tr>
+<thead>
+<tr><th>S6-1</th><th>High</th><th>切到 MIMO 後，Phase 7 SISO LQR 舊結果仍顯示在 State Feedback / Lyapunov / LQR 區塊</th><th>Advisor → Phase 7</th><th>Banner 有說 SISO Pole Placement / SISO LQR 不適用，但舊的 <code>K=[0.2361,0.2361]</code> 仍留在畫面，容易被誤認為 MIMO 設計結果</th></tr>
+<tr><td>S6-2</td><td>Medium</td><td>MIMO Analysis 位於 Advisor 面板下方，初次使用不易發現</td><td>Advisor → MIMO Analysis</td><td>開發者會先看到 Phase 7/8，再往下才看到真正 MIMO 工具；建議 MIMO mode 下將 MIMO Analysis 提前或自動聚焦</td></tr>
+<tr><td>S6-3</td><td>Medium</td><td>RGA 與 decoupler 輸出是純文字矩陣</td><td>MIMO Analysis output</td><td>數值正確，但工程閱讀性不足；建議矩陣表格化並標示 row/column 為 <code>y_i/u_j</code></td></tr>
+<tr><td>S6-4</td><td>Medium</td><td>Singular Value chart 區域偏小，legend / axis label 易擁擠</td><td><code>#chart-mimo-sv</code></td><td>對 2 條曲線尚可，但未來多線或 overlay 會不易讀；建議提高高度或提供全寬圖表模式</td></tr>
+<tr><td>S6-5</td><td>Low</td><td>SISO PID 仍以 slider 為主，精確工程輸入不夠直接</td><td>Controller Tuning</td><td>開發者能透過 preset 操作，但手動指定精準 <code>Kp/Ki/Kd</code> 時不如 number input 清楚</td></tr>
+<tr><td>S6-6</td><td>Low</td><td>MIMO LQR 顯示 initial strategy，但沒有明確說明何時用 Hamiltonian Schur vs Newton-Kleinman</td><td>MIMO LQR output</td><td>數學核心已可用，但開發者追溯 solver path 時仍需讀程式或測試文件</td></tr>
+</thead><tbody>
+</table>
+
+<h3 id="improvement-backlog">Improvement Backlog</h3>
+
+<table>
+<tr><td>#</td><td>狀態</td><td>修復方式</td><td>驗證結果</td></tr>
+<thead>
+<tr><th>S6-1</th><th>Done</th><th>MIMO mode 下清空 Phase 7/8 SISO-only 舊輸出；若使用者點 SISO-only 按鈕，仍會輸出 MIMO 不適用提示</th><th>Browser walkthrough：切 SISO 算 LQR → 切 MIMO → <code>phase7-lqr-out</code> display=<code>none</code> 且文字為空</th></tr>
+<tr><td>S6-2</td><td>Done</td><td>MIMO mode 下將 <code>#mimo-analysis-panel</code> order 設為 <code>-1</code>，讓 MIMO Analysis 在 Advisor 最前面</td><td>Browser walkthrough：切 MIMO 後 Advisor 中 <code>mimo-analysis-panel</code> display 可見、order=<code>-1</code></td></tr>
+<tr><td>S6-3</td><td>Done</td><td>RGA / G(0) / W / G(0)W 改用 row/column-labeled matrix table</td><td>Browser smoke：RGA output 有 1 個 table；Decoupler output 有 3 個 matrix table</td></tr>
+<tr><td>S6-4</td><td>Done</td><td><code>#chart-mimo-sv</code> 高度由 180px 增至 280px，Plotly legend 明確顯示 <code>σ_max</code> / <code>σ_min</code></td><td>Browser smoke：chart height=280px，legend DOM text 包含 <code>σ_max</code>、<code>σ_min</code></td></tr>
+<tr><td>S6-5</td><td>Done</td><td>Kp / Ki / Kd slider 旁新增 numeric input，兩者共用 <code>syncPIDSliders()</code> 雙向同步</td><td>Browser smoke：<code>pid-Kp-num</code>、<code>pid-Ki-num</code>、<code>pid-Kd-num</code> 存在；JS tests pass</td></tr>
+<tr><td>S6-6</td><td>Done</td><td>SISO LQR 與 MIMO LQR output 新增 <code>Solver:</code>，標示 Hamiltonian Schur 或 Newton-Kleinman 初值策略</td><td>Browser smoke：SISO / MIMO LQR output 皆包含 <code>Solver: Hamiltonian Schur CARE</code></td></tr>
+</thead><tbody>
+</table>
+
+<h3 id="screenshot-artifacts">Screenshot Artifacts</h3>
+
+<pre><code class="lang-text">outputs/controlstudio/siso-ui-walkthrough.png
+outputs/controlstudio/mimo-ui-walkthrough.png
+outputs/controlstudio/s6-fixes-mimo.png</code></pre>
+
+<h3 id="engineering-decision">Engineering Decision</h3>
+
+<p>SISO / MIMO 主要設計流程已可用。下一步仍應依 Phase 10 開發順序推進：</p>
+
+<ol>
+<li><code>feat(phase10): add MPC UI panel</code></li>
+<li><code>feat(phase10): add robust sensitivity UI</code></li>
+<li><code>feat(phase10): add dynamic decoupler UI</code></li>
+</ol>
+
+<p>S6 介面問題已修復。下一步可回到 Phase 10 UI integration 主線。</p>
+
+<hr>
+
+<h2 id="scenario-note-plot-workspace-walkthrough-2026-05-24">Scenario Note: Plot Workspace Walkthrough（2026-05-24）</h2>
+
+<p>Date: 2026-05-24</p>
+
+<h3 id="browser-walkthrough-scope">Browser Walkthrough Scope</h3>
+
+<p>以預設 SISO plant 實際操作 plot tabs，逐一檢查：</p>
+
+<ul>
+<li><code>Time Response</code></li>
+<li><code>Bode</code></li>
+<li><code>Nyquist</code></li>
+<li><code>Root Locus</code></li>
+<li><code>Pole-Zero</code></li>
+<li><code>Sensitivity</code></li>
+<li><code>Stability Map</code></li>
+</ul>
+
+<p>本輪同時驗證新的 plot workspace 佈局是否固定為：</p>
+
+<pre><code class="lang-text">┌─────────────────────────────────────────┐
+│ Main plot（全寬）                       │
+├──────────────────┬──────────────────────┤
+│ Companion 1      │ Companion 2         │
+└──────────────────┴──────────────────────┘</code></pre>
+
+<h3 id="verified-mapping">Verified Mapping</h3>
+
+<table>
+<tr><td>Active plot</td><td>Main</td><td>Companion 1</td><td>Companion 2</td><td>Browser result</td></tr>
+<thead>
+<tr><th>Time Response</th><th>Step Response</th><th>Root Locus</th><th>Pole-Zero Map</th><th>Pass</th></tr>
+<tr><td>Bode</td><td>Bode Plot</td><td>Nyquist Plot</td><td>Pole-Zero Map</td><td>Pass</td></tr>
+<tr><td>Nyquist</td><td>Nyquist Plot</td><td>Bode Plot</td><td>Pole-Zero Map</td><td>Pass</td></tr>
+<tr><td>Root Locus</td><td>Root Locus</td><td>Step @ K</td><td>Pole-Zero Map</td><td>Pass</td></tr>
+<tr><td>Pole-Zero</td><td>Pole-Zero Map</td><td>Step Response</td><td>Bode Plot</td><td>Pass</td></tr>
+<tr><td>Sensitivity</td><td>S / T / KS</td><td>Bode Plot</td><td>Pole-Zero Map</td><td>Pass</td></tr>
+<tr><td>Stability Map</td><td>Kp-Ki map</td><td>Step Response</td><td>Root Locus</td><td>Pass</td></tr>
+</thead><tbody>
+</table>
+
+<h3 id="ui-findings">UI Findings</h3>
+
+<table>
+<tr><td>#</td><td>嚴重度</td><td>問題</td><td>影響</td></tr>
+<thead>
+<tr><th>PW-1</th><th>Done</th><th>首次載入曾先後出現 onboarding overlay 與 Quick Start modal，兩者都會阻塞 plot tab 點擊</th><th>已改為首次進站只保留 onboarding；Quick Start 改為手動開啟，結束導覽後以非阻塞 toast 提示入口</th></tr>
+</thead><tbody>
+</table>
+
+<h3 id="improvement-note">Improvement Note</h3>
+
+<p>首次進站 blocking UI 已修正為單一入口；後續若要再優化，可把 onboarding 也改成更輕量的 docked coach-mark。</p>
+
+<h3 id="follow-up-ui-audit-resolution-2026-05-24">Follow-up UI Audit Resolution（2026-05-24）</h3>
+
+<p>同日追加以 in-app browser 實際操作 workflow / mode / plot tabs，針對「偏題、關鍵資訊被隱藏、局部圖形過小」三類問題做閉環修正。</p>
+
+<table>
+<tr><td>#</td><td>狀態</td><td>修復方式</td><td>Browser result</td></tr>
+<thead>
+<tr><th>PW-2</th><th>Done</th><th>workflow tab 改為穩定的 delegated click routing；<code>識別 / 設計 / 分析 / 實作 / 學習</code> 各自只顯示對題面板</th><th>逐 tab 操作後，visible section titles 與 workflow 意圖一致</th></tr>
+<tr><td>PW-3</td><td>Done</td><td>plot workspace 下排 companion charts 放大；實測 <code>chart-rlocus=404×276</code>、<code>chart-pzmap=404×250</code></td><td><code>Time Response / Bode / Nyquist / Nichols / Root Locus / Pole-Zero / Sensitivity / 穩定地圖</code> 皆無局部圖形過小</td></tr>
+<tr><td>PW-4</td><td>Done</td><td><code>Stability Map</code> 新增穩定邊界、當前設計點、顏色註記與 legend，避免主圖只剩無說明的小點</td><td>Browser walkthrough：legend 顯示 <code>穩定邊界 / 當前設計點</code>，annotation 顯示 <code>綠色 = 穩定裕度較高，紅色 = 不穩定</code></td></tr>
+<tr><td>PW-5</td><td>Done</td><td><code>NVIDIA Control Advisor</code> 重新限制為 MIMO-only；SISO 隱藏 panel 與回覆容器，MIMO 才顯示 panel</td><td>Browser walkthrough：SISO=<code>advisor hidden</code>，MIMO=<code>advisor visible</code></td></tr>
+</thead><tbody>
+</table>
+
+<h3 id="sidebar-information-architecture-audit-2026-05-24">Sidebar Information Architecture Audit（2026-05-24）</h3>
+
+<p>針對使用者回報「side bar panel 過長、需要一直滾動」追加做一輪結構性整理，不是只調整 spacing，而是直接重組資訊層級。</p>
+
+<table>
+<tr><td>#</td><td>狀態</td><td>修復方式</td><td>Browser result</td></tr>
+<thead>
+<tr><th>SB-1</th><th>Done</th><th>workflow sidebar 新增 category grouping：<code>識別=Core/ID/Reuse</code>、<code>設計=Core/Specs/Advanced</code>、<code>分析=Core/Model/Advanced</code>、<code>實作=Sim/Deploy/QA</code>、<code>學習=Guide/Review</code></th><th>每個 workflow tab 都能一眼辨識面板群組，不再是長串無分段 section</th></tr>
+<tr><td>SB-2</td><td>Done</td><td>對次要 panel 套用 default collapsed preset，例如 <code>SysID</code>、<code>Convert to Discrete</code>、<code>Robustness</code>、<code>Nyquist 動畫</code>、<code>HIL CSV</code> 等進階或次要內容預設收合</td><td><code>Identify / Analyse / Implement</code> 首屏可見主流程面板，次要工具保留但不搶版面</td></tr>
+<tr><td>SB-3</td><td>Done</td><td><code>Controller Tuning</code> 拆成 <code>PID 基本調整 / Preset 與自動調參 / 2-DOF 與飽和 / 補償器設計</code> 四個 nested subsections</td><td><code>Design</code> tab scroll height 約由 <code>6225</code> 降到 <code>2052</code>，主要 PID 內容可直接操作，其餘進階設定按需展開</td></tr>
+<tr><td>SB-4</td><td>Done</td><td><code>Simulation</code> 拆成 <code>輸入與時間基準 / 干擾與初始條件 / 儲存與匯出</code> 三段 nested subsections</td><td><code>Implement</code> tab 不再把干擾、session、匯出全部堆成單一長卡片</td></tr>
+<tr><td>SB-5</td><td>Done</td><td>切 workflow / search filter / SISO↔MIMO 後同步刷新 group label 與 visible state，避免分類標籤和實際顯示脫節</td><td>Browser walkthrough：切 tab、切 mode、做 sidebar search 後，group label 與 visible panel 一致</td></tr>
+</thead><tbody>
+</table>
+
+<h3 id="sidebar-ia-outcome">Sidebar IA Outcome</h3>
+
+<p>這輪整理後，sidebar 的問題已從「靠捲動找功能」改成「先依任務群組定位，再決定是否展開細節」。目前仍保留全部功能，但次要面板不再和主流程搶第一屏。</p>
+
+</main>
+</body>
+</html>

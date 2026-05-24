@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NVIDIA Model Selector Skill Plan — NVIDIA OS Support Docs</title>
+<style>
+:root {
+  --bg: #0f1117; --bg2: #1a1d2e; --bg3: #252840;
+  --border: #2d3155; --accent: #6366f1; --accent2: #818cf8;
+  --text: #e2e8f0; --muted: #94a3b8; --code-bg: #1e2235;
+  --success: #22c55e; --warn: #f59e0b;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+       background: var(--bg); color: var(--text); line-height: 1.7;
+       display: flex; min-height: 100vh; }
+nav { width: 240px; min-height: 100vh; background: var(--bg2);
+      border-right: 1px solid var(--border); padding: 24px 0;
+      position: sticky; top: 0; height: 100vh; overflow-y: auto;
+      flex-shrink: 0; }
+nav .logo { padding: 0 20px 20px; border-bottom: 1px solid var(--border); margin-bottom: 12px; }
+nav .logo a { text-decoration: none; font-size: 15px; font-weight: 700;
+              color: var(--accent2); }
+nav .section { padding: 6px 20px 2px; font-size: 10px; font-weight: 700;
+               text-transform: uppercase; letter-spacing: 1px; color: var(--muted);
+               margin-top: 8px; }
+nav a { display: block; padding: 5px 20px; font-size: 13px; color: var(--muted);
+        text-decoration: none; border-left: 2px solid transparent;
+        transition: all .15s; }
+nav a:hover, nav a.active { color: var(--text); border-color: var(--accent);
+                              background: rgba(99,102,241,.08); }
+main { flex: 1; padding: 40px 48px; max-width: 900px; min-width: 0; }
+h1 { font-size: 2rem; font-weight: 800; color: var(--text);
+     border-bottom: 2px solid var(--accent); padding-bottom: 12px; margin-bottom: 24px; }
+h2 { font-size: 1.4rem; font-weight: 700; color: var(--accent2);
+     margin: 32px 0 12px; padding-top: 8px; }
+h3 { font-size: 1.1rem; font-weight: 600; color: var(--text); margin: 20px 0 8px; }
+h4, h5, h6 { font-size: 1rem; font-weight: 600; color: var(--muted); margin: 16px 0 6px; }
+p { margin: 8px 0; color: var(--text); }
+a { color: var(--accent2); }
+a:hover { color: #a5b4fc; }
+code { background: var(--code-bg); border: 1px solid var(--border);
+       border-radius: 4px; padding: 1px 5px; font-size: .875em;
+       font-family: 'JetBrains Mono', 'Fira Code', monospace; color: #a5b4fc; }
+pre { background: var(--code-bg); border: 1px solid var(--border);
+      border-radius: 8px; padding: 16px; overflow-x: auto; margin: 12px 0; }
+pre code { background: none; border: none; padding: 0;
+           font-size: .82rem; color: var(--text); }
+blockquote { border-left: 3px solid var(--accent); padding: 8px 16px;
+             background: rgba(99,102,241,.06); margin: 12px 0; border-radius: 0 6px 6px 0; }
+ul, ol { padding-left: 24px; margin: 8px 0; }
+li { margin: 3px 0; }
+table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: .9rem; }
+th { background: var(--bg3); color: var(--accent2); font-weight: 700;
+     padding: 8px 12px; border: 1px solid var(--border); text-align: left; }
+td { padding: 7px 12px; border: 1px solid var(--border); color: var(--text); }
+tr:nth-child(even) td { background: rgba(255,255,255,.02); }
+hr { border: none; border-top: 1px solid var(--border); margin: 24px 0; }
+strong { color: #c7d2fe; }
+del { color: var(--muted); }
+.badge { display: inline-block; font-size: 10px; font-weight: 700; padding: 1px 6px;
+         border-radius: 9px; border: 1px solid; margin: 0 2px; vertical-align: middle; }
+.badge-green { color: var(--success); border-color: var(--success); }
+.badge-warn  { color: var(--warn);    border-color: var(--warn); }
+/* toc sidebar on large screens */
+@media (max-width: 768px) { nav { display: none; } main { padding: 20px 16px; } }
+</style>
+</head>
+<body>
+<nav>
+  <div class="logo"><a href="../index.html">📁 NVIDIA OS Support</a></div>
+  <div class="section">Agent 工作文件</div>
+  <a href="../agents/usage.html">使用指南</a>
+  <a href="../agents/continuation.html">接手狀態</a>
+  <a href="../agents/workflows.html">Runnable Workflows</a>
+<div class="section">ControlStudio</div>
+  <a href="../control-studio/roadmap.html">Roadmap（主線）</a>
+  <a href="../control-studio/plan.html">開發計畫</a>
+  <a href="../control-studio/backlog.html">Backlog</a>
+  <a href="../control-studio/scenarios.html">情境案例</a>
+  <a href="../control-studio/verification.html">驗證案例</a>
+  <a href="../control-studio/skills.html">Skill 規劃</a>
+  <a href="../control-studio/uiux-r1.html">UI/UX Round 1</a>
+  <a href="../control-studio/uiux-r2.html">UI/UX Round 2</a>
+  <a href="../control-studio/archive/phase10-plan.html">▸ Phase 10 計畫（封存）</a>
+  <a href="../control-studio/archive/phase10-verify.html">▸ Phase 10 驗證（封存）</a>
+<div class="section">NVIDIA 模型</div>
+  <a href="../nvidia/guide.html">落地操作指南</a>
+  <a href="../nvidia/models-zh.html">模型分類表（中文）</a>
+  <a href="../nvidia/models-en.html">Model Summary (EN)</a>
+  <a href="../nvidia/selector-plan.html" class="active">Selector Skill 計畫</a>
+<div class="section">案例輸出</div>
+  <a href="../cases/dc-motor.html">DC Motor 速度控制</a>
+  <a href="../cases/precision-servo.html">Precision Servo</a>
+  <a href="../cases/regression.html">Regression Dashboard</a>
+</nav>
+<main>
+<h1 id="nvidia-model-selector-skill-plan">NVIDIA Model Selector Skill Plan</h1>
+
+<h2 id="目標">目標</h2>
+<p>建立一個 Codex skill，讓 agent 能根據使用者需求，從 NVIDIA Build Models / NIM / 開源模型資料中快速選型，並輸出可落地的 PoC 或系統整合方案。</p>
+
+<p>此文件是給後續 agent 使用的建置規格，不是最終 skill 本體。</p>
+
+<h2 id="建議-skill-名稱">建議 Skill 名稱</h2>
+<p><code>nvidia-model-selector</code></p>
+
+<h2 id="觸發時機">觸發時機</h2>
+<p>當使用者詢問以下任一類需求時，使用此 skill：</p>
+
+<ul>
+<li>選擇 NVIDIA Build Models / NIM / 開源模型</li>
+<li>比較 NVIDIA 模型用途、API 型態、部署方式</li>
+<li>規劃 RAG、OCR、LLM Agent、多模態、語音、影像生成、影片處理、安全治理、機器人、生醫、科學模擬等功能</li>
+<li>將 NVIDIA 模型落地成 PoC、內部服務、產品功能或部署架構</li>
+<li>查詢特定模型，例如 <code>bge-m3</code>、<code>cuopt</code>、<code>FLUX</code>、<code>Cosmos</code>、<code>Nemotron</code>、<code>PaddleOCR</code></li>
+</ul>
+
+<h2 id="建議-skill-目錄">建議 Skill 目錄</h2>
+<pre><code class="lang-text">/Users/w.rc/.config/agents/skills/nvidia-model-selector/
+├── SKILL.md
+├── references/
+│   ├── model-categories.md
+│   ├── operational-guide.md
+│   └── inventory.csv
+└── scripts/
+    └── search_models.py</code></pre>
+
+<h2 id="可直接沿用的資料來源">可直接沿用的資料來源</h2>
+<p>主要資料集中在：</p>
+
+<pre><code class="lang-text">/Users/w.rc/nvdiaOSsupport/</code></pre>
+
+<p>建置 skill 時建議引用或複製以下檔案：</p>
+
+<ul>
+<li><code>nvidia-build-models-operational-guide.md</code></li>
+<li><code>nvidia-build-models-operational-guide.csv</code></li>
+<li><code>nvidia-build-models-inventory-zh-classified-sorted.csv</code></li>
+<li><code>nvidia-build-models-summary-zh-classified-sorted.md</code></li>
+</ul>
+
+<p>若要節省 context，<code>SKILL.md</code> 不要直接貼完整 157 個模型清單；只放工作流程與 reference 路徑。</p>
+
+<h2 id="skill-md-建議內容">SKILL.md 建議內容</h2>
+<pre><code class="lang-md">---
+name: nvidia-model-selector
+description: Use when selecting, comparing, or operationalizing NVIDIA Build Models, NIM APIs, open-source NVIDIA models, RAG components, OCR, multimodal, speech, safety, robotics, science, and deployment workflows.
+---
+
+# NVIDIA Model Selector
+
+Use this skill to help choose NVIDIA Build Models and turn them into implementation plans.
+
+## Workflow
+1. Identify the user's target function: RAG, OCR, LLM agent, speech, video, image generation, safety, robotics, biology, simulation, or 3D.
+2. Search the model inventory by category, model name, API/service type, and implementation goal.
+3. Recommend 1-3 candidate models.
+4. For each candidate, explain:
+   - concrete use case
+   - input/output
+   - API or deployment style
+   - POC steps
+   - production integration point
+   - risks or validation checks
+5. If the user asks for implementation, turn the recommendation into a runnable plan or code skeleton.
+
+## References
+- Main operational guide: /Users/w.rc/nvdiaOSsupport/nvidia-build-models-operational-guide.md
+- CSV inventory: /Users/w.rc/nvdiaOSsupport/nvidia-build-models-operational-guide.csv
+- Classified model list: /Users/w.rc/nvdiaOSsupport/nvidia-build-models-inventory-zh-classified-sorted.csv
+
+## Search Strategy
+- For broad category questions, inspect `nvidia-build-models-summary-zh-classified-sorted.md`.
+- For exact model or API/service questions, query the CSV with `scripts/search_models.py`.
+- Load only the relevant rows or section; avoid loading the full 157-model inventory unless necessary.</code></pre>
+
+<h2 id="search-models-py-規格">search_models.py 規格</h2>
+<p>目的：避免 agent 每次把整份 CSV 讀進 context。</p>
+
+<p>支援參數：</p>
+
+<pre><code class="lang-bash">python3 scripts/search_models.py --category RAG
+python3 scripts/search_models.py --subcategory OCR
+python3 scripts/search_models.py --query "文件解析"
+python3 scripts/search_models.py --model bge-m3
+python3 scripts/search_models.py --service "Embedding API"
+python3 scripts/search_models.py --limit 10</code></pre>
+
+<p>輸出欄位：</p>
+
+<ul>
+<li>主分類</li>
+<li>子分類</li>
+<li>模型</li>
+<li>連結</li>
+<li>API/服務型態</li>
+<li>典型輸入</li>
+<li>典型輸出</li>
+<li>落地操作步驟</li>
+<li>建議串接位置</li>
+<li>POC 檢核</li>
+</ul>
+
+<p>輸出格式建議：</p>
+
+<ul>
+<li>預設 Markdown table</li>
+<li>可選 <code>--json</code> 供後續自動化使用</li>
+</ul>
+
+<h2 id="model-categories-md-建議內容">model-categories.md 建議內容</h2>
+<p>把大分類做成快速導覽，不放完整模型清單：</p>
+
+<ul>
+<li>LLM / Agent / 程式碼</li>
+<li>RAG 與檢索</li>
+<li>文件理解與資料擷取</li>
+<li>多模態理解</li>
+<li>視覺生成與創作</li>
+<li>語音與翻譯</li>
+<li>媒體 AI 與影片工具</li>
+<li>安全與治理</li>
+<li>Physical AI / 自駕 / 機器人</li>
+<li>3D / OpenUSD / 數位分身</li>
+<li>生醫與藥物探索</li>
+<li>科學與工程模擬</li>
+</ul>
+
+<p>每類只需要寫：</p>
+
+<ul>
+<li>典型用途</li>
+<li>何時選這類</li>
+<li>常見輸入/輸出</li>
+<li>POC 評估方式</li>
+<li>建議優先查詢的 CSV 欄位</li>
+</ul>
+
+<h2 id="建置步驟">建置步驟</h2>
+<ol>
+<li>建立 skill 資料夾：</li>
+</ol>
+<p>   ```bash</p>
+<p>   mkdir -p /Users/w.rc/.config/agents/skills/nvidia-model-selector/references</p>
+<p>   mkdir -p /Users/w.rc/.config/agents/skills/nvidia-model-selector/scripts</p>
+<p>   ```</p>
+<ol>
+<li>建立 <code>SKILL.md</code>，使用上方建議內容。</li>
+<li>複製 references：</li>
+</ol>
+<p>   ```bash</p>
+<p>   cp /Users/w.rc/nvdiaOSsupport/nvidia-build-models-operational-guide.md /Users/w.rc/.config/agents/skills/nvidia-model-selector/references/operational-guide.md</p>
+<p>   cp /Users/w.rc/nvdiaOSsupport/nvidia-build-models-operational-guide.csv /Users/w.rc/.config/agents/skills/nvidia-model-selector/references/inventory.csv</p>
+<p>   ```</p>
+<ol>
+<li>建立 <code>references/model-categories.md</code>。</li>
+<li>建立 <code>scripts/search_models.py</code>，用 Python 標準函式庫 <code>csv</code> / <code>argparse</code> 即可，不需要額外依賴。</li>
+<li>驗證查詢：</li>
+</ol>
+<p>   ```bash</p>
+<p>   python3 /Users/w.rc/.config/agents/skills/nvidia-model-selector/scripts/search_models.py --query RAG --limit 5</p>
+<p>   python3 /Users/w.rc/.config/agents/skills/nvidia-model-selector/scripts/search_models.py --model bge-m3</p>
+<p>   python3 /Users/w.rc/.config/agents/skills/nvidia-model-selector/scripts/search_models.py --service "Embedding API" --limit 5</p>
+<p>   ```</p>
+
+<h2 id="驗收標準">驗收標準</h2>
+<p>完成後，其他 agent 應能回答：</p>
+
+<ul>
+<li>「我要做企業知識庫 RAG，NVIDIA 哪些模型適合？」</li>
+<li>「OCR 文件解析要用哪幾個模型？」</li>
+<li>「影像生成和圖片編輯分別選什麼？」</li>
+<li>「幫我用 NVIDIA 模型規劃一個客服知識庫 PoC。」</li>
+<li>「比較 bge-m3、nv-embed-v1、llama-nemotron-rerank 的角色差異。」</li>
+</ul>
+
+<p>回答應包含：</p>
+
+<ul>
+<li>推薦模型 1-3 個</li>
+<li>為何適合</li>
+<li>API/部署型態</li>
+<li>輸入與輸出</li>
+<li>PoC 步驟</li>
+<li>上線串接位置</li>
+<li>風險與驗證方式</li>
+</ul>
+
+<h2 id="注意事項">注意事項</h2>
+<ul>
+<li>不要在 skill 中硬塞完整模型清單到 <code>SKILL.md</code>。</li>
+<li>不要建立 <code>README.md</code>、<code>INSTALL.md</code> 等多餘文件；skill 內只保留 <code>SKILL.md</code>、必要 references、必要 scripts。</li>
+<li>若 NVIDIA Build Models 有更新，先更新 <code>/Users/w.rc/nvdiaOSsupport/</code> 的來源檔，再同步 references。</li>
+<li>若使用者只是在做研究整理，不要建立或更新 <code>.agent-handoff.md</code>。</li>
+</ul>
+
+</main>
+</body>
+</html>

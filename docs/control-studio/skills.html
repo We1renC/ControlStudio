@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ControlStudio Research Roadmap And Skill Plan — NVIDIA OS Support Docs</title>
+<style>
+:root {
+  --bg: #0f1117; --bg2: #1a1d2e; --bg3: #252840;
+  --border: #2d3155; --accent: #6366f1; --accent2: #818cf8;
+  --text: #e2e8f0; --muted: #94a3b8; --code-bg: #1e2235;
+  --success: #22c55e; --warn: #f59e0b;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+       background: var(--bg); color: var(--text); line-height: 1.7;
+       display: flex; min-height: 100vh; }
+nav { width: 240px; min-height: 100vh; background: var(--bg2);
+      border-right: 1px solid var(--border); padding: 24px 0;
+      position: sticky; top: 0; height: 100vh; overflow-y: auto;
+      flex-shrink: 0; }
+nav .logo { padding: 0 20px 20px; border-bottom: 1px solid var(--border); margin-bottom: 12px; }
+nav .logo a { text-decoration: none; font-size: 15px; font-weight: 700;
+              color: var(--accent2); }
+nav .section { padding: 6px 20px 2px; font-size: 10px; font-weight: 700;
+               text-transform: uppercase; letter-spacing: 1px; color: var(--muted);
+               margin-top: 8px; }
+nav a { display: block; padding: 5px 20px; font-size: 13px; color: var(--muted);
+        text-decoration: none; border-left: 2px solid transparent;
+        transition: all .15s; }
+nav a:hover, nav a.active { color: var(--text); border-color: var(--accent);
+                              background: rgba(99,102,241,.08); }
+main { flex: 1; padding: 40px 48px; max-width: 900px; min-width: 0; }
+h1 { font-size: 2rem; font-weight: 800; color: var(--text);
+     border-bottom: 2px solid var(--accent); padding-bottom: 12px; margin-bottom: 24px; }
+h2 { font-size: 1.4rem; font-weight: 700; color: var(--accent2);
+     margin: 32px 0 12px; padding-top: 8px; }
+h3 { font-size: 1.1rem; font-weight: 600; color: var(--text); margin: 20px 0 8px; }
+h4, h5, h6 { font-size: 1rem; font-weight: 600; color: var(--muted); margin: 16px 0 6px; }
+p { margin: 8px 0; color: var(--text); }
+a { color: var(--accent2); }
+a:hover { color: #a5b4fc; }
+code { background: var(--code-bg); border: 1px solid var(--border);
+       border-radius: 4px; padding: 1px 5px; font-size: .875em;
+       font-family: 'JetBrains Mono', 'Fira Code', monospace; color: #a5b4fc; }
+pre { background: var(--code-bg); border: 1px solid var(--border);
+      border-radius: 8px; padding: 16px; overflow-x: auto; margin: 12px 0; }
+pre code { background: none; border: none; padding: 0;
+           font-size: .82rem; color: var(--text); }
+blockquote { border-left: 3px solid var(--accent); padding: 8px 16px;
+             background: rgba(99,102,241,.06); margin: 12px 0; border-radius: 0 6px 6px 0; }
+ul, ol { padding-left: 24px; margin: 8px 0; }
+li { margin: 3px 0; }
+table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: .9rem; }
+th { background: var(--bg3); color: var(--accent2); font-weight: 700;
+     padding: 8px 12px; border: 1px solid var(--border); text-align: left; }
+td { padding: 7px 12px; border: 1px solid var(--border); color: var(--text); }
+tr:nth-child(even) td { background: rgba(255,255,255,.02); }
+hr { border: none; border-top: 1px solid var(--border); margin: 24px 0; }
+strong { color: #c7d2fe; }
+del { color: var(--muted); }
+.badge { display: inline-block; font-size: 10px; font-weight: 700; padding: 1px 6px;
+         border-radius: 9px; border: 1px solid; margin: 0 2px; vertical-align: middle; }
+.badge-green { color: var(--success); border-color: var(--success); }
+.badge-warn  { color: var(--warn);    border-color: var(--warn); }
+/* toc sidebar on large screens */
+@media (max-width: 768px) { nav { display: none; } main { padding: 20px 16px; } }
+</style>
+</head>
+<body>
+<nav>
+  <div class="logo"><a href="../index.html">📁 NVIDIA OS Support</a></div>
+  <div class="section">Agent 工作文件</div>
+  <a href="../agents/usage.html">使用指南</a>
+  <a href="../agents/continuation.html">接手狀態</a>
+  <a href="../agents/workflows.html">Runnable Workflows</a>
+<div class="section">ControlStudio</div>
+  <a href="../control-studio/roadmap.html">Roadmap（主線）</a>
+  <a href="../control-studio/plan.html">開發計畫</a>
+  <a href="../control-studio/backlog.html">Backlog</a>
+  <a href="../control-studio/scenarios.html">情境案例</a>
+  <a href="../control-studio/verification.html">驗證案例</a>
+  <a href="../control-studio/skills.html" class="active">Skill 規劃</a>
+  <a href="../control-studio/uiux-r1.html">UI/UX Round 1</a>
+  <a href="../control-studio/uiux-r2.html">UI/UX Round 2</a>
+  <a href="../control-studio/archive/phase10-plan.html">▸ Phase 10 計畫（封存）</a>
+  <a href="../control-studio/archive/phase10-verify.html">▸ Phase 10 驗證（封存）</a>
+<div class="section">NVIDIA 模型</div>
+  <a href="../nvidia/guide.html">落地操作指南</a>
+  <a href="../nvidia/models-zh.html">模型分類表（中文）</a>
+  <a href="../nvidia/models-en.html">Model Summary (EN)</a>
+  <a href="../nvidia/selector-plan.html">Selector Skill 計畫</a>
+<div class="section">案例輸出</div>
+  <a href="../cases/dc-motor.html">DC Motor 速度控制</a>
+  <a href="../cases/precision-servo.html">Precision Servo</a>
+  <a href="../cases/regression.html">Regression Dashboard</a>
+</nav>
+<main>
+<h1 id="controlstudio-research-roadmap-and-skill-plan">ControlStudio Research Roadmap And Skill Plan</h1>
+
+<p>此文件把 ControlStudio 後續可提供給控制系統工程與研究的能力，整理成 Phase 18+ 可拆成 agent skill 的規劃。實際 phase 狀態與下一步開發順序以 <code>control-studio/ROADMAP.md</code> 為準；本文件只維護 skill 邊界、輸入輸出與可重用工作流。</p>
+
+<h2 id="scope">Scope</h2>
+
+<h3 id="目標">目標</h3>
+<ul>
+<li>將 ControlStudio 從「控制分析工作台」推進成「控制系統設計、驗證、研究與 agent-assisted workflow 平台」。</li>
+<li>讓後續 agent 可依 phase、驗證基線、skill 邊界逐步開發。</li>
+<li>把適合抽成 skill 的工作流程獨立出來，避免把所有知識硬寫在 UI 或單一 advisor prompt。</li>
+</ul>
+
+<h3 id="暫停項目">暫停項目</h3>
+<ul>
+<li>Teaching Mode</li>
+<li>Electron packaging</li>
+<li>Report template / report automation</li>
+<li>Block Diagram expansion</li>
+</ul>
+
+<p>上述項目只有在使用者重新明確恢復時才可啟動。</p>
+
+<h2 id="phase-18-roadmap">Phase 18+ Roadmap</h2>
+
+<table>
+<tr><td>Phase</td><td>Priority</td><td>Status</td><td>Theme</td><td>Goal</td><td>Primary Verification</td></tr>
+<thead>
+<tr><th>Phase 18</th><th>P1</th><th>Done</th><th>Uncertainty + Monte Carlo robust validation</th><th>將 robust analysis 從 nominal 指標推進到不確定性族群驗證</th><th>deterministic uncertainty fixtures、worst-case replay、<code>verify:p18</code></th></tr>
+<tr><td>Phase 19</td><td>P2</td><td>Done baseline / P27 gap remains</td><td>Full H-infinity / mu backend</td><td>已提交 H∞ Riccati synthesis baseline；full D-K iteration 仍列為 P27 gap</td><td><code>verify_p19_hinf_riccati.mjs</code>、P27 roadmap</td></tr>
+<tr><td>Phase 20</td><td>P1</td><td>Done</td><td>MIMO MPC engineering workflow</td><td>完成 offset-free tracking、move suppression、constraints、feasibility diagnostics</td><td><code>verify_p20_mpc_engineering.mjs</code></td></tr>
+<tr><td>Phase 21</td><td>P2</td><td>Done</td><td>Research-grade system identification</td><td>已擴展 ARMAX/OE/BJ/subspace ID、experiment signals 與 uncertainty export</td><td><code>verify_p21_sysid_advanced.mjs</code></td></tr>
+<tr><td>Phase 22</td><td>P1</td><td>Done</td><td>Benchmark + cross-tool validation</td><td>已建立 CI、cross-tool comparison、full verification runner 與 benchmark script</td><td><code>run_all_verify.sh</code>、<code>compare_python_control.py</code>、CI</td></tr>
+<tr><td>Phase 23</td><td>P1</td><td>Mostly Done</td><td>Agentic design review / SysID gap closure</td><td>structured review skills 與 FRF/MISO/model-order 已提交；continuous-time CONTSID/SRIVC 未提交</td><td><code>verify_p23_*.mjs</code>、<code>control-studio/ROADMAP.md</code></td></tr>
+</thead><tbody>
+</table>
+
+<h2 id="phase-details">Phase Details</h2>
+
+<h3 id="phase-18-uncertainty-monte-carlo-robust-validation">Phase 18: Uncertainty + Monte Carlo Robust Validation</h3>
+
+<p>目的：讓工程師可評估控制器在模型誤差、增益變動、相位延遲、參數分散與噪音下是否仍可用。</p>
+
+<p>核心功能：</p>
+<ul>
+<li>Parametric uncertainty：例如 <code>m in [m_min, m_max]</code>、<code>b in [b_min, b_max]</code>、<code>K in [K_min, K_max]</code>。</li>
+<li>Additive / multiplicative uncertainty：與既有 disk margin、H-infinity norm、sensitivity 指標接軌。</li>
+<li>Monte Carlo sampling：支援固定 seed、sample count、worst-case replay。</li>
+<li>Worst-case plots：step response envelope、Bode / sensitivity envelope、margin distribution。</li>
+<li>Robust pass/fail：用規格條件判斷 settling time、overshoot、PM/GM、control effort 是否通過。</li>
+</ul>
+
+<p>UI / API：</p>
+<ul>
+<li>新增 Robust Validation panel，輸入 uncertainty model、sample count、seed、pass/fail specs。</li>
+<li>API payload 必須可序列化，以便產生 run manifest。</li>
+<li>Browser UI 應能回放 worst-case sample。</li>
+</ul>
+
+<p>驗證基線：</p>
+<ul>
+<li>deterministic seed fixture。</li>
+<li>已知一階/二階 plant 的 parameter sweep 手算邊界。</li>
+<li>nominal pass 但 uncertainty fail 的案例。</li>
+<li>unstable sample 必須被清楚標記，不可只輸出 NaN。</li>
+</ul>
+
+<p>Exit criteria：</p>
+<ul>
+<li><code>npm run verify:p18</code> 覆蓋 uncertainty parsing、Monte Carlo deterministic replay、worst-case extraction。</li>
+<li>regression dashboard 納入一個 robust validation 情境。</li>
+</ul>
+
+<h3 id="phase-19-full-h-infinity-mu-backend">Phase 19: Full H-infinity / Mu Backend</h3>
+
+<p>目的：補上接近 MATLAB Robust Control Toolbox 的核心設計能力。</p>
+
+<p>核心功能：</p>
+<ul>
+<li>Glover-Doyle style H-infinity synthesis backend。</li>
+<li>Riccati 或 LMI solver path，回傳 residual、gamma、closed-loop poles。</li>
+<li>Full DK-iteration：dynamic D scaling / K fitting，而不是目前的 static surrogate。</li>
+<li>Structured uncertainty block 定義：real scalar、complex scalar、full block。</li>
+</ul>
+
+<p>驗證基線：</p>
+<ul>
+<li>small SISO mixed-sensitivity golden case。</li>
+<li>MIMO robust synthesis golden case。</li>
+<li>H-infinity norm after synthesis 應低於設計 gamma。</li>
+<li>DK iteration 的 mu upper-bound 應單調不惡化或明確標記失敗。</li>
+</ul>
+
+<p>風險：</p>
+<ul>
+<li>完整 LMI solver 在 browser JS 內維護成本高；若要高可信度，應評估 Python backend 或 WASM numeric backend。</li>
+</ul>
+
+<h3 id="phase-20-mimo-mpc-engineering-workflow">Phase 20: MIMO MPC Engineering Workflow</h3>
+
+<p>目的：讓 MPC 能處理工程常見的多輸出 tracking、constraints 與 offset-free control。</p>
+
+<p>核心功能：</p>
+<ul>
+<li>MIMO output-space setpoint tracking 延伸至 constraints 與 move suppression。</li>
+<li>Disturbance model / integral augmentation，支援 offset-free tracking。</li>
+<li>State / output / input / delta-u constraints。</li>
+<li>Feasibility diagnostics：不可行時顯示是哪個 constraint 衝突。</li>
+<li>Scenario compare：constrained vs unconstrained、with/without disturbance model。</li>
+</ul>
+
+<p>驗證基線：</p>
+<ul>
+<li>2x2 stable plant 多輸出 tracking。</li>
+<li>constrained input 下不超限。</li>
+<li>step disturbance 後 offset-free steady-state error 接近 0。</li>
+<li>infeasible setpoint 必須給出明確 infeasible result。</li>
+</ul>
+
+<h3 id="phase-21-research-grade-system-identification">Phase 21: Research-Grade System Identification</h3>
+
+<p>目的：讓 ControlStudio 可從實驗資料建立可用的控制模型，並輸出 uncertainty 給 robust design。</p>
+
+<p>核心功能：</p>
+<ul>
+<li>Experiment design：step、PRBS、chirp、multi-sine。</li>
+<li>Model families：ARMAX、Output Error、Box-Jenkins、subspace state-space ID。</li>
+<li>Model selection：AIC/BIC、train/test split、cross-validation。</li>
+<li>Residual analysis：whiteness、correlation with input、confidence intervals。</li>
+<li>Uncertainty export：將 ID uncertainty 轉為 Phase 18 / 19 可用的 uncertainty model。</li>
+</ul>
+
+<p>驗證基線：</p>
+<ul>
+<li>known plant + synthetic noise recovery。</li>
+<li>residual whiteness pass/fail cases。</li>
+<li>overfit/underfit case 的 model order selection。</li>
+</ul>
+
+<h3 id="phase-22-benchmark-cross-tool-validation">Phase 22: Benchmark + Cross-Tool Validation</h3>
+
+<p>目的：讓所有核心控制理論功能有可重跑、可稽核、可與外部工具對照的研究基線。</p>
+
+<p>核心功能：</p>
+<ul>
+<li>Benchmark library：stable / unstable / RHP zero / time delay / MIMO coupling / ill-conditioned / nonlinear entry cases。</li>
+<li>Golden derivations：每個案例含數學推導、期望輸出、容許誤差。</li>
+<li>Cross-tool manifest：記錄 ControlStudio、MATLAB、Python Control 結果與版本。</li>
+<li>Regression dashboard：輸出 machine-readable pass/fail。</li>
+</ul>
+
+<p>驗證基線：</p>
+<ul>
+<li>既有五個 verification cases 擴充成 benchmark suite。</li>
+<li>至少一個 SISO、MIMO、MPC、robust、system ID benchmark。</li>
+</ul>
+
+<h3 id="phase-23-agentic-design-review">Phase 23: Agentic Design Review</h3>
+
+<p>目的：把 AI Advisor 從「提供建議」升級成「可審查控制設計是否工程上合理」。</p>
+
+<p>核心功能：</p>
+<ul>
+<li>Structured review schema：model assumptions、stability、margins、tracking、noise、actuator effort、robustness、implementation risk。</li>
+<li>每個建議需綁定具體數值指標或數學檢查，不可只給自然語言。</li>
+<li>Review result 應可被 UI 顯示，也可被 CLI / skill 消費。</li>
+</ul>
+
+<p>驗證基線：</p>
+<ul>
+<li>golden review cases：PM 不足、actuator saturation、不可控、不可觀、MIMO pairing 不良、uncertainty fail。</li>
+<li>Advisor 不可把不穩定系統描述成可部署。</li>
+</ul>
+
+<h2 id="skill-candidates">Skill Candidates</h2>
+
+<p>下列項目適合獨立成 skill，因為它們是可重用的工程流程，而不是單一 UI button 或低階數值函式。</p>
+
+<table>
+<tr><td>Skill Candidate</td><td>Priority</td><td>Purpose</td><td>Inputs</td><td>Outputs</td><td>Backing Modules / Docs</td></tr>
+<thead>
+<tr><th><code>control-studio-system-auditor</code></th><th>P1</th><th>盤點 plant / controller 是否具備基本可設計性</th><th>TF/SS/ZPK、controller、mode</th><th>controllability / observability / poles / margins / risks</th><th><code>CONTROL_SYSTEM_PLAN.md</code>, <code>test_control.js</code></th></tr>
+<tr><td><code>control-studio-robust-validator</code></td><td>P1</td><td>建立 uncertainty 與 Monte Carlo robust validation 計畫</td><td>nominal model、uncertainty ranges、specs</td><td>robust pass/fail、worst-case sample、fixtures</td><td>Phase 18</td></tr>
+<tr><td><code>control-studio-mimo-designer</code></td><td>P1</td><td>協助 MIMO pairing、decoupling、loop-shaping 與 diagnostics</td><td>MIMO SS、channels、target bandwidth</td><td>RGA/SV/characteristic loci diagnosis、design sequence</td><td>Phase 9 / 17</td></tr>
+<tr><td><code>control-studio-mpc-designer</code></td><td>P1</td><td>將 state-space plant 轉成 MPC tracking / constraints 設計流程</td><td>A/B/C/D、Ts、horizon、Q/R、constraints</td><td>MPC config、feasibility notes、verification plan</td><td>Phase 10 / 11 / 20</td></tr>
+<tr><td><code>control-studio-stability-prover</code></td><td>P1</td><td>產生 Lyapunov / Riccati / margin 證明摘要</td><td>A/B/C/D、Q/R、closed-loop A</td><td>proof object、residual、applicability warnings</td><td>Phase 7 / 10 / 11</td></tr>
+<tr><td><code>control-studio-sysid-planner</code></td><td>P2</td><td>設計識別實驗與模型選型流程</td><td>experiment goal、sample time、data columns</td><td>experiment signal、candidate models、validation plan</td><td>Phase 15 / 21</td></tr>
+<tr><td><code>control-studio-benchmark-author</code></td><td>P1</td><td>為新控制案例建立數學推導與 regression fixture</td><td>scenario description、plant、controller target</td><td>markdown derivation、fixture skeleton、tolerances</td><td><code>CONTROL_SYSTEM_VERIFICATION_CASES.md</code></td></tr>
+<tr><td><code>control-studio-codegen-reviewer</code></td><td>P2</td><td>審查 MATLAB / Python / embedded codegen 是否與模型一致</td><td>generated code、model config</td><td>mismatch report、runtime caveats</td><td>Phase 15</td></tr>
+<tr><td><code>control-studio-ui-verifier</code></td><td>P2</td><td>用 browser 閉環檢查 SISO/MIMO/Robust/MPC UI 流程</td><td>local URL、workflow checklist</td><td>UI issue list、screenshots、regression notes</td><td><code>control_regression_dashboard.mjs</code></td></tr>
+</thead><tbody>
+</table>
+
+<h2 id="skill-implementation-contract">Skill Implementation Contract</h2>
+
+<p>每個 ControlStudio skill 建議採以下結構：</p>
+
+<pre><code class="lang-text">skills/control-studio-&lt;name&gt;/
+  SKILL.md
+  references/
+    workflow.md
+    validation-checklist.md
+  scripts/
+    optional-helper.*
+  examples/
+    sample-input.json
+    sample-output.md</code></pre>
+
+<p>Skill 必須遵守：</p>
+<ul>
+<li><code>SKILL.md</code> 不複製大量程式碼或完整 benchmark data；大量資料放在 <code>references/</code> 或 repo 文件。</li>
+<li>Skill 輸出應是 structured checklist / JSON / markdown summary，方便 agent 後續接 UI、API 或測試。</li>
+<li>Skill 不直接修改 <code>control-studio/</code>，除非使用者明確要求實作；預設先產出設計、驗證與審查結果。</li>
+<li>Skill 涉及模型選型或外部模型時，必須使用既有 <code>nv-agent</code> runtime router，不可硬寫 endpoint。</li>
+<li>Skill 若會導向功能開發，必須要求後續 agent 先更新 <code>control-studio/ROADMAP.md</code>，再同步 <code>CONTROL_SYSTEM_PLAN.md</code>、<code>CONTROL_SYSTEM_BACKLOG.md</code>、<code>CONTROL_SYSTEM_VERIFICATION_CASES.md</code>、<code>CONTROL_SYSTEM_SCENARIOS.md</code>、<code>AGENT_CONTINUATION.md</code> 中受影響的部分。</li>
+</ul>
+
+<h2 id="not-good-skill-targets">Not Good Skill Targets</h2>
+
+<p>以下項目不建議做成 skill，應留在程式碼與測試中：</p>
+<ul>
+<li>低階數值核心：matrix inverse、polynomial roots、complex arithmetic。</li>
+<li>單一 plot rendering 行為。</li>
+<li>單次 UI 文字或 naming 調整。</li>
+<li>只服務一個案例、沒有可重用流程的臨時腳本。</li>
+</ul>
+
+<h2 id="recommended-next-step">Recommended Next Step</h2>
+
+<ol>
+<li>後續 phase 進度先查 <code>control-studio/ROADMAP.md</code>；本文件只決定是否要建立或調整 skill。</li>
+<li><code>control-studio-robust-validator</code>、<code>control-studio-system-auditor</code>、<code>control-studio-benchmark-author</code> baseline 已建立，應持續用於 robust validation、設計審查與 benchmark 建立。</li>
+<li>Phase 20 / 21 已有核心能力與全域 skill entry；下一步是依實際使用案例補 <code>control-studio-mpc-designer</code> 與 <code>control-studio-sysid-planner</code> 的 examples / references，而不是把所有 MPC/SysID 邏輯塞進 UI。</li>
+<li>Phase 24 advanced MPC 已正式化 EMPC、Tube MPC、Explicit MPC；後續若把此流程產品化，應擴充 <code>control-studio-mpc-designer</code> 的 examples / references，涵蓋 economic objective、tube tightening 與 scalar explicit policy lookup。</li>
+</ol>
+
+</main>
+</body>
+</html>

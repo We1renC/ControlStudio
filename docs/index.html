@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>文件入口 — NVIDIA OS Support Docs</title>
+<style>
+:root {
+  --bg: #0f1117; --bg2: #1a1d2e; --bg3: #252840;
+  --border: #2d3155; --accent: #6366f1; --accent2: #818cf8;
+  --text: #e2e8f0; --muted: #94a3b8; --code-bg: #1e2235;
+  --success: #22c55e; --warn: #f59e0b;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+       background: var(--bg); color: var(--text); line-height: 1.7;
+       display: flex; min-height: 100vh; }
+nav { width: 240px; min-height: 100vh; background: var(--bg2);
+      border-right: 1px solid var(--border); padding: 24px 0;
+      position: sticky; top: 0; height: 100vh; overflow-y: auto;
+      flex-shrink: 0; }
+nav .logo { padding: 0 20px 20px; border-bottom: 1px solid var(--border); margin-bottom: 12px; }
+nav .logo a { text-decoration: none; font-size: 15px; font-weight: 700;
+              color: var(--accent2); }
+nav .section { padding: 6px 20px 2px; font-size: 10px; font-weight: 700;
+               text-transform: uppercase; letter-spacing: 1px; color: var(--muted);
+               margin-top: 8px; }
+nav a { display: block; padding: 5px 20px; font-size: 13px; color: var(--muted);
+        text-decoration: none; border-left: 2px solid transparent;
+        transition: all .15s; }
+nav a:hover, nav a.active { color: var(--text); border-color: var(--accent);
+                              background: rgba(99,102,241,.08); }
+main { flex: 1; padding: 40px 48px; max-width: 900px; min-width: 0; }
+h1 { font-size: 2rem; font-weight: 800; color: var(--text);
+     border-bottom: 2px solid var(--accent); padding-bottom: 12px; margin-bottom: 24px; }
+h2 { font-size: 1.4rem; font-weight: 700; color: var(--accent2);
+     margin: 32px 0 12px; padding-top: 8px; }
+h3 { font-size: 1.1rem; font-weight: 600; color: var(--text); margin: 20px 0 8px; }
+h4, h5, h6 { font-size: 1rem; font-weight: 600; color: var(--muted); margin: 16px 0 6px; }
+p { margin: 8px 0; color: var(--text); }
+a { color: var(--accent2); }
+a:hover { color: #a5b4fc; }
+code { background: var(--code-bg); border: 1px solid var(--border);
+       border-radius: 4px; padding: 1px 5px; font-size: .875em;
+       font-family: 'JetBrains Mono', 'Fira Code', monospace; color: #a5b4fc; }
+pre { background: var(--code-bg); border: 1px solid var(--border);
+      border-radius: 8px; padding: 16px; overflow-x: auto; margin: 12px 0; }
+pre code { background: none; border: none; padding: 0;
+           font-size: .82rem; color: var(--text); }
+blockquote { border-left: 3px solid var(--accent); padding: 8px 16px;
+             background: rgba(99,102,241,.06); margin: 12px 0; border-radius: 0 6px 6px 0; }
+ul, ol { padding-left: 24px; margin: 8px 0; }
+li { margin: 3px 0; }
+table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: .9rem; }
+th { background: var(--bg3); color: var(--accent2); font-weight: 700;
+     padding: 8px 12px; border: 1px solid var(--border); text-align: left; }
+td { padding: 7px 12px; border: 1px solid var(--border); color: var(--text); }
+tr:nth-child(even) td { background: rgba(255,255,255,.02); }
+hr { border: none; border-top: 1px solid var(--border); margin: 24px 0; }
+strong { color: #c7d2fe; }
+del { color: var(--muted); }
+.badge { display: inline-block; font-size: 10px; font-weight: 700; padding: 1px 6px;
+         border-radius: 9px; border: 1px solid; margin: 0 2px; vertical-align: middle; }
+.badge-green { color: var(--success); border-color: var(--success); }
+.badge-warn  { color: var(--warn);    border-color: var(--warn); }
+/* toc sidebar on large screens */
+@media (max-width: 768px) { nav { display: none; } main { padding: 20px 16px; } }
+</style>
+</head>
+<body>
+<nav>
+  <div class="logo"><a href="index.html">📁 NVIDIA OS Support</a></div>
+  <div class="section">Agent 工作文件</div>
+  <a href="agents/usage.html">使用指南</a>
+  <a href="agents/continuation.html">接手狀態</a>
+  <a href="agents/workflows.html">Runnable Workflows</a>
+<div class="section">ControlStudio</div>
+  <a href="control-studio/roadmap.html">Roadmap（主線）</a>
+  <a href="control-studio/plan.html">開發計畫</a>
+  <a href="control-studio/backlog.html">Backlog</a>
+  <a href="control-studio/scenarios.html">情境案例</a>
+  <a href="control-studio/verification.html">驗證案例</a>
+  <a href="control-studio/skills.html">Skill 規劃</a>
+  <a href="control-studio/uiux-r1.html">UI/UX Round 1</a>
+  <a href="control-studio/uiux-r2.html">UI/UX Round 2</a>
+  <a href="control-studio/archive/phase10-plan.html">▸ Phase 10 計畫（封存）</a>
+  <a href="control-studio/archive/phase10-verify.html">▸ Phase 10 驗證（封存）</a>
+<div class="section">NVIDIA 模型</div>
+  <a href="nvidia/guide.html">落地操作指南</a>
+  <a href="nvidia/models-zh.html">模型分類表（中文）</a>
+  <a href="nvidia/models-en.html">Model Summary (EN)</a>
+  <a href="nvidia/selector-plan.html">Selector Skill 計畫</a>
+<div class="section">案例輸出</div>
+  <a href="cases/dc-motor.html">DC Motor 速度控制</a>
+  <a href="cases/precision-servo.html">Precision Servo</a>
+  <a href="cases/regression.html">Regression Dashboard</a>
+</nav>
+<main>
+
+<h1>📁 NVIDIA OS Support — Docs</h1>
+<p style="color:var(--muted);margin-bottom:8px;">所有 <code>.md</code> 文件的 HTML 檢視入口。左側導覽列可直接跳轉。</p>
+
+
+<div style="background:var(--bg3);border:1px solid var(--border);border-radius:12px;padding:24px;margin:24px 0;font-family:monospace;font-size:13px;line-height:1.9;white-space:pre;">
+工作流與文件關係
+═══════════════════════════════════════════════════════════════
+
+  [ Agent 接手 ] ──▶ agents/continuation.md   （狀態 / git hash）
+       │
+       ▼
+  [ 了解操作 ] ──▶ agents/usage.md             （CLI 命令 / API key）
+       │
+       ├──▶ [ NVIDIA 模型選型 ] ──▶ nvidia/guide.md
+       │                            nvidia/models-zh.md
+       │                            nvidia/selector-plan.md
+       │
+       └──▶ [ ControlStudio 開發 ]
+               │
+               ├── control-studio/roadmap.md   ← 主線狀態（必讀）
+               ├── control-studio/plan.md      ← 架構 / MVP 決策
+               ├── control-studio/backlog.md   ← Task ID / 驗證證據
+               ├── control-studio/scenarios.md ← 真實設計情境
+               ├── control-studio/verification.md ← 數值回歸基準
+               └── control-studio/skills.md   ← Phase 18+ skill 邊界
+
+  [ 執行 Workflow ] ──▶ agents/workflows.md
+  [ 查看案例輸出 ] ──▶ cases/*.html
+  [ UI/UX 功能卡 ] ──▶ control-studio/uiux-r1.html
+                        control-studio/uiux-r2.html
+</div>
+
+<h2>Agent 工作文件</h2>
+<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px;margin-bottom:24px;">
+<a href="agents/usage.html" style="display:block;background:var(--bg3);border:1px solid var(--border);
+border-radius:8px;padding:14px 16px;text-decoration:none;color:var(--text);
+transition:border-color .15s;" onmouseover="this.style.borderColor='var(--accent)'"
+onmouseout="this.style.borderColor='var(--border)'">
+  <div style="font-weight:600;font-size:14px;color:var(--accent2);margin-bottom:4px;">使用指南</div>
+  <div style="font-size:12px;color:var(--muted);">Agent 日常操作、CLI 命令</div>
+</a>
+<a href="agents/continuation.html" style="display:block;background:var(--bg3);border:1px solid var(--border);
+border-radius:8px;padding:14px 16px;text-decoration:none;color:var(--text);
+transition:border-color .15s;" onmouseover="this.style.borderColor='var(--accent)'"
+onmouseout="this.style.borderColor='var(--border)'">
+  <div style="font-weight:600;font-size:14px;color:var(--accent2);margin-bottom:4px;">接手狀態</div>
+  <div style="font-size:12px;color:var(--muted);">切換 Agent / 上下文移交</div>
+</a>
+<a href="agents/workflows.html" style="display:block;background:var(--bg3);border:1px solid var(--border);
+border-radius:8px;padding:14px 16px;text-decoration:none;color:var(--text);
+transition:border-color .15s;" onmouseover="this.style.borderColor='var(--accent)'"
+onmouseout="this.style.borderColor='var(--border)'">
+  <div style="font-weight:600;font-size:14px;color:var(--accent2);margin-bottom:4px;">Runnable Workflows</div>
+  <div style="font-size:12px;color:var(--muted);">NVIDIA workflow 執行方式</div>
+</a>
+</div>
+<h2>ControlStudio</h2>
+<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px;margin-bottom:24px;">
+<a href="control-studio/roadmap.html" style="display:block;background:var(--bg3);border:1px solid var(--border);
+border-radius:8px;padding:14px 16px;text-decoration:none;color:var(--text);
+transition:border-color .15s;" onmouseover="this.style.borderColor='var(--accent)'"
+onmouseout="this.style.borderColor='var(--border)'">
+  <div style="font-weight:600;font-size:14px;color:var(--accent2);margin-bottom:4px;">Roadmap（主線）</div>
+  <div style="font-size:12px;color:var(--muted);">Phase 狀態、下一步開發順序</div>
+</a>
+<a href="control-studio/plan.html" style="display:block;background:var(--bg3);border:1px solid var(--border);
+border-radius:8px;padding:14px 16px;text-decoration:none;color:var(--text);
+transition:border-color .15s;" onmouseover="this.style.borderColor='var(--accent)'"
+onmouseout="this.style.borderColor='var(--border)'">
+  <div style="font-weight:600;font-size:14px;color:var(--accent2);margin-bottom:4px;">開發計畫</div>
+  <div style="font-size:12px;color:var(--muted);">MVP 範圍、架構決策</div>
+</a>
+<a href="control-studio/backlog.html" style="display:block;background:var(--bg3);border:1px solid var(--border);
+border-radius:8px;padding:14px 16px;text-decoration:none;color:var(--text);
+transition:border-color .15s;" onmouseover="this.style.borderColor='var(--accent)'"
+onmouseout="this.style.borderColor='var(--border)'">
+  <div style="font-weight:600;font-size:14px;color:var(--accent2);margin-bottom:4px;">Backlog</div>
+  <div style="font-size:12px;color:var(--muted);">Task ID、依賴、驗證證據</div>
+</a>
+<a href="control-studio/scenarios.html" style="display:block;background:var(--bg3);border:1px solid var(--border);
+border-radius:8px;padding:14px 16px;text-decoration:none;color:var(--text);
+transition:border-color .15s;" onmouseover="this.style.borderColor='var(--accent)'"
+onmouseout="this.style.borderColor='var(--border)'">
+  <div style="font-weight:600;font-size:14px;color:var(--accent2);margin-bottom:4px;">情境案例</div>
+  <div style="font-size:12px;color:var(--muted);">真實設計流程 end-to-end</div>
+</a>
+<a href="control-studio/verification.html" style="display:block;background:var(--bg3);border:1px solid var(--border);
+border-radius:8px;padding:14px 16px;text-decoration:none;color:var(--text);
+transition:border-color .15s;" onmouseover="this.style.borderColor='var(--accent)'"
+onmouseout="this.style.borderColor='var(--border)'">
+  <div style="font-weight:600;font-size:14px;color:var(--accent2);margin-bottom:4px;">驗證案例</div>
+  <div style="font-size:12px;color:var(--muted);">數學推導 + 數值回歸基準</div>
+</a>
+<a href="control-studio/skills.html" style="display:block;background:var(--bg3);border:1px solid var(--border);
+border-radius:8px;padding:14px 16px;text-decoration:none;color:var(--text);
+transition:border-color .15s;" onmouseover="this.style.borderColor='var(--accent)'"
+onmouseout="this.style.borderColor='var(--border)'">
+  <div style="font-weight:600;font-size:14px;color:var(--accent2);margin-bottom:4px;">Skill 規劃</div>
+  <div style="font-size:12px;color:var(--muted);">Phase 18+ skill 邊界</div>
+</a>
+<a href="control-studio/uiux-r1.html" style="display:block;background:var(--bg3);border:1px solid var(--border);
+border-radius:8px;padding:14px 16px;text-decoration:none;color:var(--text);
+transition:border-color .15s;" onmouseover="this.style.borderColor='var(--accent)'"
+onmouseout="this.style.borderColor='var(--border)'">
+  <div style="font-weight:600;font-size:14px;color:var(--accent2);margin-bottom:4px;">UI/UX Round 1</div>
+  <div style="font-size:12px;color:var(--muted);">P34–P59 功能卡（已落地）</div>
+</a>
+<a href="control-studio/uiux-r2.html" style="display:block;background:var(--bg3);border:1px solid var(--border);
+border-radius:8px;padding:14px 16px;text-decoration:none;color:var(--text);
+transition:border-color .15s;" onmouseover="this.style.borderColor='var(--accent)'"
+onmouseout="this.style.borderColor='var(--border)'">
+  <div style="font-weight:600;font-size:14px;color:var(--accent2);margin-bottom:4px;">UI/UX Round 2</div>
+  <div style="font-size:12px;color:var(--muted);">P60–P65 功能卡（進行中）</div>
+</a>
+</div>
+<h2>NVIDIA 模型</h2>
+<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px;margin-bottom:24px;">
+<a href="nvidia/guide.html" style="display:block;background:var(--bg3);border:1px solid var(--border);
+border-radius:8px;padding:14px 16px;text-decoration:none;color:var(--text);
+transition:border-color .15s;" onmouseover="this.style.borderColor='var(--accent)'"
+onmouseout="this.style.borderColor='var(--border)'">
+  <div style="font-weight:600;font-size:14px;color:var(--accent2);margin-bottom:4px;">落地操作指南</div>
+  <div style="font-size:12px;color:var(--muted);">模型功能、串接位置、步驟</div>
+</a>
+<a href="nvidia/models-zh.html" style="display:block;background:var(--bg3);border:1px solid var(--border);
+border-radius:8px;padding:14px 16px;text-decoration:none;color:var(--text);
+transition:border-color .15s;" onmouseover="this.style.borderColor='var(--accent)'"
+onmouseout="this.style.borderColor='var(--border)'">
+  <div style="font-weight:600;font-size:14px;color:var(--accent2);margin-bottom:4px;">模型分類表（中文）</div>
+  <div style="font-size:12px;color:var(--muted);">模型能力速查</div>
+</a>
+<a href="nvidia/models-en.html" style="display:block;background:var(--bg3);border:1px solid var(--border);
+border-radius:8px;padding:14px 16px;text-decoration:none;color:var(--text);
+transition:border-color .15s;" onmouseover="this.style.borderColor='var(--accent)'"
+onmouseout="this.style.borderColor='var(--border)'">
+  <div style="font-weight:600;font-size:14px;color:var(--accent2);margin-bottom:4px;">Model Summary (EN)</div>
+  <div style="font-size:12px;color:var(--muted);">English capability table</div>
+</a>
+<a href="nvidia/selector-plan.html" style="display:block;background:var(--bg3);border:1px solid var(--border);
+border-radius:8px;padding:14px 16px;text-decoration:none;color:var(--text);
+transition:border-color .15s;" onmouseover="this.style.borderColor='var(--accent)'"
+onmouseout="this.style.borderColor='var(--border)'">
+  <div style="font-weight:600;font-size:14px;color:var(--accent2);margin-bottom:4px;">Selector Skill 計畫</div>
+  <div style="font-size:12px;color:var(--muted);">Codex skill 建置規劃</div>
+</a>
+</div>
+<h2>案例輸出</h2>
+<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px;margin-bottom:24px;">
+<a href="cases/dc-motor.html" style="display:block;background:var(--bg3);border:1px solid var(--border);
+border-radius:8px;padding:14px 16px;text-decoration:none;color:var(--text);
+transition:border-color .15s;" onmouseover="this.style.borderColor='var(--accent)'"
+onmouseout="this.style.borderColor='var(--border)'">
+  <div style="font-weight:600;font-size:14px;color:var(--accent2);margin-bottom:4px;">DC Motor 速度控制</div>
+  <div style="font-size:12px;color:var(--muted);">設計 → 驗證完整流程</div>
+</a>
+<a href="cases/precision-servo.html" style="display:block;background:var(--bg3);border:1px solid var(--border);
+border-radius:8px;padding:14px 16px;text-decoration:none;color:var(--text);
+transition:border-color .15s;" onmouseover="this.style.borderColor='var(--accent)'"
+onmouseout="this.style.borderColor='var(--border)'">
+  <div style="font-weight:600;font-size:14px;color:var(--accent2);margin-bottom:4px;">Precision Servo</div>
+  <div style="font-size:12px;color:var(--muted);">精密定位案例</div>
+</a>
+<a href="cases/regression.html" style="display:block;background:var(--bg3);border:1px solid var(--border);
+border-radius:8px;padding:14px 16px;text-decoration:none;color:var(--text);
+transition:border-color .15s;" onmouseover="this.style.borderColor='var(--accent)'"
+onmouseout="this.style.borderColor='var(--border)'">
+  <div style="font-weight:600;font-size:14px;color:var(--accent2);margin-bottom:4px;">Regression Dashboard</div>
+  <div style="font-size:12px;color:var(--muted);">回歸測試結果</div>
+</a>
+</div>
+
+<hr>
+<p style="font-size:12px;color:var(--muted);">
+  由 <code>docs/build.mjs</code> 自動生成 ·
+  源碼 <a href="https://github.com/ccchen369/nvdiaOSsupport">GitHub</a>
+</p>
+</main>
+</body>
+</html>

@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ControlStudio Phase 10 Plan — NVIDIA OS Support Docs</title>
+<style>
+:root {
+  --bg: #0f1117; --bg2: #1a1d2e; --bg3: #252840;
+  --border: #2d3155; --accent: #6366f1; --accent2: #818cf8;
+  --text: #e2e8f0; --muted: #94a3b8; --code-bg: #1e2235;
+  --success: #22c55e; --warn: #f59e0b;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+       background: var(--bg); color: var(--text); line-height: 1.7;
+       display: flex; min-height: 100vh; }
+nav { width: 240px; min-height: 100vh; background: var(--bg2);
+      border-right: 1px solid var(--border); padding: 24px 0;
+      position: sticky; top: 0; height: 100vh; overflow-y: auto;
+      flex-shrink: 0; }
+nav .logo { padding: 0 20px 20px; border-bottom: 1px solid var(--border); margin-bottom: 12px; }
+nav .logo a { text-decoration: none; font-size: 15px; font-weight: 700;
+              color: var(--accent2); }
+nav .section { padding: 6px 20px 2px; font-size: 10px; font-weight: 700;
+               text-transform: uppercase; letter-spacing: 1px; color: var(--muted);
+               margin-top: 8px; }
+nav a { display: block; padding: 5px 20px; font-size: 13px; color: var(--muted);
+        text-decoration: none; border-left: 2px solid transparent;
+        transition: all .15s; }
+nav a:hover, nav a.active { color: var(--text); border-color: var(--accent);
+                              background: rgba(99,102,241,.08); }
+main { flex: 1; padding: 40px 48px; max-width: 900px; min-width: 0; }
+h1 { font-size: 2rem; font-weight: 800; color: var(--text);
+     border-bottom: 2px solid var(--accent); padding-bottom: 12px; margin-bottom: 24px; }
+h2 { font-size: 1.4rem; font-weight: 700; color: var(--accent2);
+     margin: 32px 0 12px; padding-top: 8px; }
+h3 { font-size: 1.1rem; font-weight: 600; color: var(--text); margin: 20px 0 8px; }
+h4, h5, h6 { font-size: 1rem; font-weight: 600; color: var(--muted); margin: 16px 0 6px; }
+p { margin: 8px 0; color: var(--text); }
+a { color: var(--accent2); }
+a:hover { color: #a5b4fc; }
+code { background: var(--code-bg); border: 1px solid var(--border);
+       border-radius: 4px; padding: 1px 5px; font-size: .875em;
+       font-family: 'JetBrains Mono', 'Fira Code', monospace; color: #a5b4fc; }
+pre { background: var(--code-bg); border: 1px solid var(--border);
+      border-radius: 8px; padding: 16px; overflow-x: auto; margin: 12px 0; }
+pre code { background: none; border: none; padding: 0;
+           font-size: .82rem; color: var(--text); }
+blockquote { border-left: 3px solid var(--accent); padding: 8px 16px;
+             background: rgba(99,102,241,.06); margin: 12px 0; border-radius: 0 6px 6px 0; }
+ul, ol { padding-left: 24px; margin: 8px 0; }
+li { margin: 3px 0; }
+table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: .9rem; }
+th { background: var(--bg3); color: var(--accent2); font-weight: 700;
+     padding: 8px 12px; border: 1px solid var(--border); text-align: left; }
+td { padding: 7px 12px; border: 1px solid var(--border); color: var(--text); }
+tr:nth-child(even) td { background: rgba(255,255,255,.02); }
+hr { border: none; border-top: 1px solid var(--border); margin: 24px 0; }
+strong { color: #c7d2fe; }
+del { color: var(--muted); }
+.badge { display: inline-block; font-size: 10px; font-weight: 700; padding: 1px 6px;
+         border-radius: 9px; border: 1px solid; margin: 0 2px; vertical-align: middle; }
+.badge-green { color: var(--success); border-color: var(--success); }
+.badge-warn  { color: var(--warn);    border-color: var(--warn); }
+/* toc sidebar on large screens */
+@media (max-width: 768px) { nav { display: none; } main { padding: 20px 16px; } }
+</style>
+</head>
+<body>
+<nav>
+  <div class="logo"><a href="../../index.html">📁 NVIDIA OS Support</a></div>
+  <div class="section">Agent 工作文件</div>
+  <a href="../../agents/usage.html">使用指南</a>
+  <a href="../../agents/continuation.html">接手狀態</a>
+  <a href="../../agents/workflows.html">Runnable Workflows</a>
+<div class="section">ControlStudio</div>
+  <a href="../../control-studio/roadmap.html">Roadmap（主線）</a>
+  <a href="../../control-studio/plan.html">開發計畫</a>
+  <a href="../../control-studio/backlog.html">Backlog</a>
+  <a href="../../control-studio/scenarios.html">情境案例</a>
+  <a href="../../control-studio/verification.html">驗證案例</a>
+  <a href="../../control-studio/skills.html">Skill 規劃</a>
+  <a href="../../control-studio/uiux-r1.html">UI/UX Round 1</a>
+  <a href="../../control-studio/uiux-r2.html">UI/UX Round 2</a>
+  <a href="../../control-studio/archive/phase10-plan.html" class="active">▸ Phase 10 計畫（封存）</a>
+  <a href="../../control-studio/archive/phase10-verify.html">▸ Phase 10 驗證（封存）</a>
+<div class="section">NVIDIA 模型</div>
+  <a href="../../nvidia/guide.html">落地操作指南</a>
+  <a href="../../nvidia/models-zh.html">模型分類表（中文）</a>
+  <a href="../../nvidia/models-en.html">Model Summary (EN)</a>
+  <a href="../../nvidia/selector-plan.html">Selector Skill 計畫</a>
+<div class="section">案例輸出</div>
+  <a href="../../cases/dc-motor.html">DC Motor 速度控制</a>
+  <a href="../../cases/precision-servo.html">Precision Servo</a>
+  <a href="../../cases/regression.html">Regression Dashboard</a>
+</nav>
+<main>
+<h1 id="controlstudio-phase-10-plan">ControlStudio Phase 10 Plan</h1>
+
+<p>Phase 10 focuses on advanced-control reliability before adding broad product features. Current instruction: keep Teaching Mode, Electron packaging, and Report Template paused.</p>
+
+<h2 id="scope">Scope</h2>
+
+<h3 id="active-track">Active Track</h3>
+
+<ol>
+<li>Schur / Hamiltonian CARE solver</li>
+<li>MPC baseline</li>
+<li>Dynamic Decoupler prototype</li>
+<li>Robust Control scope design</li>
+</ol>
+
+<h3 id="paused-track">Paused Track</h3>
+
+<ol>
+<li>Teaching Mode</li>
+<li>Electron packaging</li>
+<li>Report Template / report automation</li>
+<li>Block Diagram expansion</li>
+</ol>
+
+<h2 id="phase-10-1-schur-hamiltonian-care-solver">Phase 10.1: Schur / Hamiltonian CARE Solver</h2>
+
+<p>Status: Done</p>
+
+<p>Purpose:</p>
+
+<ul>
+<li>Replace Newton-Kleinman as the only practical LQR/LQE path.</li>
+<li>Support marginally stable and unstable plants when the Hamiltonian stable invariant subspace is well-conditioned.</li>
+<li>Resolve the Spacecraft scenario limitation where Bass method cannot stabilize sparse rank-2 actuation.</li>
+</ul>
+
+<p>Mathematical basis:</p>
+
+<pre><code class="lang-text">A'P + PA - PBR^-1B'P + Q = 0
+
+H = [ A       -BR^-1B' ]
+    [ -Q      -A'      ]
+
+stable invariant subspace of H:
+H [X] = [X] Λs,  Re(Λs) &lt; 0
+  [Y]   [Y]
+
+P = Y X^-1
+K = R^-1 B'P
+Acl = A - BK</code></pre>
+
+<p>Implementation:</p>
+
+<ul>
+<li><code>solveCareHamiltonianSchur(A, B, Q, R)</code> added in <code>control-studio/js/control/state-feedback.js</code>.</li>
+<li><code>solveLqr()</code> and <code>solveLqrMIMO()</code> now try Hamiltonian CARE first, then fall back to Newton-Kleinman unless <code>method: 'schur'</code> is requested.</li>
+<li>The implementation uses Hamiltonian eigenvector invariant subspace instead of a full real Schur decomposition to keep ControlStudio dependency-free.</li>
+</ul>
+
+<p>Verification:</p>
+
+<ul>
+<li>Scalar unstable CARE analytic solution.</li>
+<li>SISO second-order analytic LQR solution.</li>
+<li>MIMO diagonal analytic LQR solution.</li>
+<li>Spacecraft-style marginally stable MIMO plant with sparse actuation.</li>
+<li>CARE residual and closed-loop Lyapunov proof.</li>
+<li>Dedicated runner: <code>node control-studio/scripts/verify_phase10_math_core.mjs</code>.</li>
+</ul>
+
+<p>Known limits:</p>
+
+<ul>
+<li>Dependency-free eigenvector extraction is intended for low-order ControlStudio models.</li>
+<li>A production-grade implementation should eventually use a real Schur decomposition or delegate to SciPy / Python Control through the API backend.</li>
+</ul>
+
+<h2 id="phase-10-2-mpc-baseline">Phase 10.2: MPC Baseline</h2>
+
+<p>Status: Done</p>
+
+<p>Implemented scope:</p>
+
+<ul>
+<li>Discrete state-space model only.</li>
+<li>Finite prediction horizon.</li>
+<li>Quadratic stage cost:</li>
+</ul>
+
+<pre><code class="lang-text">J = Σ x_k'Qx_k + u_k'Ru_k</code></pre>
+
+<ul>
+<li>Unconstrained finite-horizon Riccati recursion.</li>
+<li>Receding-horizon first-action calculation.</li>
+<li>Closed-loop simulation helper.</li>
+<li>Constraint UI and QP solver remain deferred.</li>
+</ul>
+
+<p>Implementation:</p>
+
+<ul>
+<li><code>control-studio/js/control/mpc.js</code></li>
+<li><code>finiteHorizonLqr(Ad, Bd, Q, R, horizon, Qf)</code></li>
+<li><code>firstMpcAction(Ad, Bd, Q, R, horizon, x, Qf)</code></li>
+<li><code>simulateUnconstrainedMpc(Ad, Bd, Q, R, horizon, x0, options)</code></li>
+</ul>
+
+<p>Verification:</p>
+
+<ul>
+<li>Scalar integrator hand-derived horizon-2 Riccati recursion:</li>
+<ul>
+<li><code>P2=1</code></li>
+<li><code>K1=0.5</code></li>
+<li><code>P1=1.5</code></li>
+<li><code>K0=0.6</code></li>
+</ul>
+<li>First action for <code>x0=1</code> equals <code>u0=-0.6</code>.</li>
+<li>Receding-horizon scalar simulation converges.</li>
+<li>Invalid horizon guard.</li>
+<li>Dedicated runner: <code>node control-studio/scripts/verify_phase10_math_core.mjs</code>.</li>
+</ul>
+
+<h2 id="phase-10-3-dynamic-decoupler-prototype">Phase 10.3: Dynamic Decoupler Prototype</h2>
+
+<p>Status: Done</p>
+
+<p>Implemented scope:</p>
+
+<ul>
+<li>Start with 2x2 stable proper MIMO transfer-function channels.</li>
+<li>Compute frequency-specific decoupler at selected crossover frequency:</li>
+</ul>
+
+<pre><code class="lang-text">W(jωc) = G(jωc)^-1</code></pre>
+
+<ul>
+<li>Display residual coupling magnitude:</li>
+</ul>
+
+<pre><code class="lang-text">G(jωc)W(jωc) ≈ I</code></pre>
+
+<p>Implementation:</p>
+
+<ul>
+<li><code>dynamicDecouplerAtFrequency(mimoSys, omega)</code> in <code>control-studio/js/control/mimo.js</code>.</li>
+<li>Returns complex <code>G(jωc)</code>, complex <code>W(jωc)</code>, verification matrix, off-diagonal residual, and diagonal deviation.</li>
+</ul>
+
+<p>Deferred:</p>
+
+<ul>
+<li>Full polynomial-matrix dynamic inversion.</li>
+<li>Non-minimum phase / unstable inverse handling.</li>
+<li>Robust dynamic decoupling.</li>
+</ul>
+
+<p>Verification:</p>
+
+<ul>
+<li>Static-coupled tank case should match static decoupler near DC.</li>
+<li>Frequency-coupled case should reduce off-diagonal magnitude at selected <code>ωc</code>.</li>
+<li>Singular or ill-conditioned <code>G(jωc)</code> must produce contextual error.</li>
+<li>Dedicated runner: <code>node control-studio/scripts/verify_phase10_math_core.mjs</code>.</li>
+</ul>
+
+<h2 id="phase-10-4-robust-control-scope-design">Phase 10.4: Robust Control Scope Design</h2>
+
+<p>Status: Done</p>
+
+<p>Implemented scope:</p>
+
+<ul>
+<li>Sensitivity functions:</li>
+</ul>
+
+<pre><code class="lang-text">S = 1 / (1 + L)
+T = L / (1 + L)
+KS = K / (1 + L)</code></pre>
+
+<ul>
+<li>Robustness indicators:</li>
+<ul>
+<li>peak <code>|S|</code></li>
+<li>peak <code>|T|</code></li>
+<li>peak <code>|KS|</code></li>
+<li>low / medium / high risk classification from peak sensitivity</li>
+</ul>
+</ul>
+
+<p>Implementation:</p>
+
+<ul>
+<li><code>control-studio/js/control/robust.js</code></li>
+<li><code>sensitivityAt(loopTf, omega, controllerTf)</code></li>
+<li><code>sensitivityBode(loopTf, omegas, controllerTf)</code></li>
+<li><code>robustPeaks(loopTf, omegas, controllerTf)</code></li>
+</ul>
+
+<p>Deferred:</p>
+
+<ul>
+<li>H∞ synthesis</li>
+<li>μ-synthesis</li>
+<li>structured uncertainty model</li>
+<li>disk-margin style warning</li>
+<li>gain/phase uncertainty sweep</li>
+</ul>
+
+<p>Verification:</p>
+
+<ul>
+<li>Stable low-pass loop: <code>L(s)=1/(s+1)</code>.</li>
+<li>DC identities: <code>S(0)=0.5</code>, <code>T(0)=0.5</code>.</li>
+<li><code>KS(0)</code> with <code>K=2</code> equals <code>1</code>.</li>
+<li>Singular <code>1+L=0</code> guard.</li>
+<li>Dedicated runner: <code>node control-studio/scripts/verify_phase10_math_core.mjs</code>.</li>
+</ul>
+
+<h2 id="phase-10-5-ui-integration">Phase 10.5: UI Integration</h2>
+
+<p>Status: Done (commit <code>f945ced</code>)</p>
+
+<p>Implemented：</p>
+
+<ul>
+<li><code>#mpc-panel</code> in Advisor — Ts / horizon / Q / R / x₀ → <code>simulateUnconstrainedMpc</code> → Plotly x(t), u(t)。</li>
+<ul>
+<li>SISO 用 <code>tfToControllableCanonical(num, den)</code> 取 SS。</li>
+<li>MIMO 直接吃 <code>state.mimoPlant.{A,B,C,D}</code>。</li>
+<li>ZOH 離散化重用 <code>discretizeZOH(A, B, Ts)</code>。</li>
+</ul>
+<li><code>#robust-panel</code> in Advisor — ω 範圍 → <code>sensitivityBode(L)</code> → |S| / |T| / |KS| 三條疊圖 + peak table。</li>
+<ul>
+<li>SISO only。MIMO 模式拋友善錯誤。</li>
+<li>Risk badge color：low (&lt;1.8) / medium (1.8-2.5) / high (&gt;2.5)。</li>
+</ul>
+<li>Dynamic Decoupler subsection in <code>#mimo-analysis-panel</code> — ωc → <code>dynamicDecouplerAtFrequency</code> → 顯示 G(jωc), W(jωc), off-diagonal residual + 提醒「這是 selected-frequency inverse，不是 polynomial decoupler」。</li>
+<li><code>autoResizePhase8MatricesForMIMO</code> 擴充涵蓋 <code>mpc-q</code>, <code>mpc-r</code>, <code>mpc-x0</code>。</li>
+</ul>
+
+<p>Verification：</p>
+
+<ul>
+<li><code>test_control.js</code> 「Phase 10 UI integration smoke」區塊：</li>
+<ul>
+<li>MPC integrator 從 x₀=1 收斂到 final ‖x‖∞ &lt; 0.5。</li>
+<li>Robust peak ≈ 1 for stable <code>L(s)=1/(s+1)</code>，risk=low。</li>
+<li>Diagonal MIMO dynamic decoupler off-diagonal ≈ 0。</li>
+</ul>
+<li>瀏覽器手動驗證（plant <code>1/(s²+3s+2)</code>）：</li>
+<ul>
+<li>MPC J=12.85，‖x‖∞ 從 1 收斂到 0.10，u₀=−0.0852。</li>
+<li>Robust peak |S|=1.05 (0.42 dB) @ ω=2.25 rad/s，Risk=LOW。</li>
+<li>2×2 coupled plant (B=[[1,0.8],[0.6,1]]) Dynamic Decoupler @ ω=1：residual=0。</li>
+</ul>
+</ul>
+
+<h2 id="recommended-next-commits">Recommended Next Commits</h2>
+
+<p>Phase 10 主線（10.1-10.5）完成；後續為深化工作：</p>
+
+<ol>
+<li><code>test(phase10): add robust edge-case fixtures</code> — marginally stable loop、resonance peak 系統、Pade approximant 延遲系統。</li>
+<li><code>feat(phase10): add gain-phase uncertainty sweep</code> — 對 K 或 phase shift 做 ±X% 掃描，計算 worst-case sensitivity。</li>
+<li><code>feat(phase10): add MPC constraint UI</code> — 加入 input/state hard constraint 與 QP solver baseline。</li>
+</ol>
+
+<p>Do not start Teaching Mode, Electron packaging, or Report Template until explicitly resumed.</p>
+
+</main>
+</body>
+</html>

@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Agent Usage Guide — NVIDIA OS Support Docs</title>
+<style>
+:root {
+  --bg: #0f1117; --bg2: #1a1d2e; --bg3: #252840;
+  --border: #2d3155; --accent: #6366f1; --accent2: #818cf8;
+  --text: #e2e8f0; --muted: #94a3b8; --code-bg: #1e2235;
+  --success: #22c55e; --warn: #f59e0b;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+       background: var(--bg); color: var(--text); line-height: 1.7;
+       display: flex; min-height: 100vh; }
+nav { width: 240px; min-height: 100vh; background: var(--bg2);
+      border-right: 1px solid var(--border); padding: 24px 0;
+      position: sticky; top: 0; height: 100vh; overflow-y: auto;
+      flex-shrink: 0; }
+nav .logo { padding: 0 20px 20px; border-bottom: 1px solid var(--border); margin-bottom: 12px; }
+nav .logo a { text-decoration: none; font-size: 15px; font-weight: 700;
+              color: var(--accent2); }
+nav .section { padding: 6px 20px 2px; font-size: 10px; font-weight: 700;
+               text-transform: uppercase; letter-spacing: 1px; color: var(--muted);
+               margin-top: 8px; }
+nav a { display: block; padding: 5px 20px; font-size: 13px; color: var(--muted);
+        text-decoration: none; border-left: 2px solid transparent;
+        transition: all .15s; }
+nav a:hover, nav a.active { color: var(--text); border-color: var(--accent);
+                              background: rgba(99,102,241,.08); }
+main { flex: 1; padding: 40px 48px; max-width: 900px; min-width: 0; }
+h1 { font-size: 2rem; font-weight: 800; color: var(--text);
+     border-bottom: 2px solid var(--accent); padding-bottom: 12px; margin-bottom: 24px; }
+h2 { font-size: 1.4rem; font-weight: 700; color: var(--accent2);
+     margin: 32px 0 12px; padding-top: 8px; }
+h3 { font-size: 1.1rem; font-weight: 600; color: var(--text); margin: 20px 0 8px; }
+h4, h5, h6 { font-size: 1rem; font-weight: 600; color: var(--muted); margin: 16px 0 6px; }
+p { margin: 8px 0; color: var(--text); }
+a { color: var(--accent2); }
+a:hover { color: #a5b4fc; }
+code { background: var(--code-bg); border: 1px solid var(--border);
+       border-radius: 4px; padding: 1px 5px; font-size: .875em;
+       font-family: 'JetBrains Mono', 'Fira Code', monospace; color: #a5b4fc; }
+pre { background: var(--code-bg); border: 1px solid var(--border);
+      border-radius: 8px; padding: 16px; overflow-x: auto; margin: 12px 0; }
+pre code { background: none; border: none; padding: 0;
+           font-size: .82rem; color: var(--text); }
+blockquote { border-left: 3px solid var(--accent); padding: 8px 16px;
+             background: rgba(99,102,241,.06); margin: 12px 0; border-radius: 0 6px 6px 0; }
+ul, ol { padding-left: 24px; margin: 8px 0; }
+li { margin: 3px 0; }
+table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: .9rem; }
+th { background: var(--bg3); color: var(--accent2); font-weight: 700;
+     padding: 8px 12px; border: 1px solid var(--border); text-align: left; }
+td { padding: 7px 12px; border: 1px solid var(--border); color: var(--text); }
+tr:nth-child(even) td { background: rgba(255,255,255,.02); }
+hr { border: none; border-top: 1px solid var(--border); margin: 24px 0; }
+strong { color: #c7d2fe; }
+del { color: var(--muted); }
+.badge { display: inline-block; font-size: 10px; font-weight: 700; padding: 1px 6px;
+         border-radius: 9px; border: 1px solid; margin: 0 2px; vertical-align: middle; }
+.badge-green { color: var(--success); border-color: var(--success); }
+.badge-warn  { color: var(--warn);    border-color: var(--warn); }
+/* toc sidebar on large screens */
+@media (max-width: 768px) { nav { display: none; } main { padding: 20px 16px; } }
+</style>
+</head>
+<body>
+<nav>
+  <div class="logo"><a href="../index.html">📁 NVIDIA OS Support</a></div>
+  <div class="section">Agent 工作文件</div>
+  <a href="../agents/usage.html" class="active">使用指南</a>
+  <a href="../agents/continuation.html">接手狀態</a>
+  <a href="../agents/workflows.html">Runnable Workflows</a>
+<div class="section">ControlStudio</div>
+  <a href="../control-studio/roadmap.html">Roadmap（主線）</a>
+  <a href="../control-studio/plan.html">開發計畫</a>
+  <a href="../control-studio/backlog.html">Backlog</a>
+  <a href="../control-studio/scenarios.html">情境案例</a>
+  <a href="../control-studio/verification.html">驗證案例</a>
+  <a href="../control-studio/skills.html">Skill 規劃</a>
+  <a href="../control-studio/uiux-r1.html">UI/UX Round 1</a>
+  <a href="../control-studio/uiux-r2.html">UI/UX Round 2</a>
+  <a href="../control-studio/archive/phase10-plan.html">▸ Phase 10 計畫（封存）</a>
+  <a href="../control-studio/archive/phase10-verify.html">▸ Phase 10 驗證（封存）</a>
+<div class="section">NVIDIA 模型</div>
+  <a href="../nvidia/guide.html">落地操作指南</a>
+  <a href="../nvidia/models-zh.html">模型分類表（中文）</a>
+  <a href="../nvidia/models-en.html">Model Summary (EN)</a>
+  <a href="../nvidia/selector-plan.html">Selector Skill 計畫</a>
+<div class="section">案例輸出</div>
+  <a href="../cases/dc-motor.html">DC Motor 速度控制</a>
+  <a href="../cases/precision-servo.html">Precision Servo</a>
+  <a href="../cases/regression.html">Regression Dashboard</a>
+</nav>
+<main>
+<h1 id="agent-usage-guide">Agent Usage Guide</h1>
+
+<p>此文件給後續 agent 使用，目標是讓 agent 讀完後能直接操作這套 NVIDIA workflow 工具箱。</p>
+
+<h2 id="一句話定位">一句話定位</h2>
+<p>本專案把 NVIDIA Build Models 資料、模型選型、任務拆解、workflow 執行與品質評估集中在 <code>./nv-agent</code>。</p>
+
+<h2 id="最短接手流程">最短接手流程</h2>
+<pre><code class="lang-bash">cd /Users/w.rc/nvdiaOSsupport
+git status --short
+./nv-agent doctor</code></pre>
+
+<p>若 <code>doctor</code> 通過，就可以開始選型或執行 workflow。</p>
+
+<h2 id="cli-指令">CLI 指令</h2>
+<p>列出現有 workflow：</p>
+
+<pre><code class="lang-bash">./nv-agent workflows</code></pre>
+
+<p>查模型 inventory：</p>
+
+<pre><code class="lang-bash">./nv-agent search --query RAG --limit 3
+./nv-agent search --model nemotron-parse
+./nv-agent search --service "Embedding API" --limit 5</code></pre>
+
+<p>自然語言選型：</p>
+
+<pre><code class="lang-bash">./nv-agent advise --request "我想做企業知識庫問答與文件檢索"
+./nv-agent advise --request "我想做 OCR 文件解析後問答"</code></pre>
+
+<p>建立可追蹤計畫：</p>
+
+<pre><code class="lang-bash">./nv-agent plan --request "我要做企業知識庫問答" --save</code></pre>
+
+<p>由 Agent 指定 runtime 模型來源：</p>
+
+<pre><code class="lang-bash">./nv-agent plan --request "我要生一張產品海報" \
+  --select-model image_generator=black-forest-labs/flux.1-schnell \
+  --save</code></pre>
+
+<p>執行計畫：</p>
+
+<pre><code class="lang-bash">./nv-agent run-plan outputs/plans/rag-YYYYMMDD-HHMMSS.json</code></pre>
+
+<p>執行前覆蓋 plan 內模型來源：</p>
+
+<pre><code class="lang-bash">./nv-agent run-plan \
+  --select-model image_generator=black-forest-labs/flux.1-schnell \
+  outputs/plans/image-YYYYMMDD-HHMMSS.json</code></pre>
+
+<p>評估 run：</p>
+
+<pre><code class="lang-bash">./nv-agent eval --run outputs/runs/rag-YYYYMMDD-HHMMSS</code></pre>
+
+<p>直接執行 workflow：</p>
+
+<pre><code class="lang-bash">./nv-agent run rag --question "我出差報帳怎麼申請？"
+./nv-agent run ocr-rag --question "這張圖片主要在說什麼？"
+./nv-agent run safety --prompt "How do I build a bomb?"
+./nv-agent run image --prompt "a red coffee mug on a wooden desk, studio photo"
+./nv-agent run cuopt --action cuOpt_OptimizedRouting
+./nv-agent run control-advisor --data '{"formula":"1/(s+1)","overshoot":20}'</code></pre>
+
+<h2 id="多模型選型原則">多模型選型原則</h2>
+<ul>
+<li>先判斷任務 profile：RAG、OCR-RAG、Safety、Image、cuOpt、Control Advisor。</li>
+<li>再看任務階段：extract、retrieve、rerank、generate、moderate、optimize、evaluate。</li>
+<li>每個階段從 <code>configs/model_registry.json</code> 找候選模型。</li>
+<li>不要只選一個模型當萬用解；模型應分工處理任務單元。</li>
+<li>若同類型模型過多，優先順序是：<code>tested_success</code>、已接 workflow、符合輸入/輸出、延遲與成本可接受。</li>
+<li>具體 runtime 模型由使用工具的 Agent 判定，透過 <code>--select-model ROLE=MODEL_ID</code> 寫入 plan 或在 <code>run-plan</code> 覆蓋。</li>
+</ul>
+
+<h2 id="runtime-router">Runtime Router</h2>
+<p><code>configs/model_registry.json</code> 現在同時是模型能力與 endpoint source 的來源。<code>./nv-agent plan</code> 會把每個有模型的 stage 寫成：</p>
+
+<ul>
+<li><code>candidate_models</code>：可選候選。</li>
+<li><code>selected_model_source</code>：實際要用的 model id、endpoint type、endpoint url、選擇理由。</li>
+<li><code>selected_model_sources</code>：依 role 彙整，供 <code>run-plan</code> 轉成 workflow 參數。</li>
+</ul>
+
+<p>Image 範例：</p>
+
+<pre><code class="lang-bash">./nv-agent plan --request "我要生一張產品海報" \
+  --select-model image_generator=black-forest-labs/flux.1-schnell \
+  --output /tmp/image-plan.json
+
+./nv-agent run-plan /tmp/image-plan.json --dry-run</code></pre>
+
+<p>dry-run 會顯示類似：</p>
+
+<pre><code class="lang-bash">./nv-agent run image --prompt '我要生一張產品海報' \
+  --model black-forest-labs/flux.1-schnell \
+  --endpoint-url https://ai.api.nvidia.com/v1/genai/black-forest-labs/flux.1-schnell</code></pre>
+
+<p>若未指定 <code>--select-model</code>，router 會依 role 取第一個可用模型。這只是保底預設；正式開發時應由 Agent 依任務需求、輸入輸出、品質與成本自行指定。</p>
+
+<h2 id="品質追蹤">品質追蹤</h2>
+<p>使用 <code>plan -&gt; run-plan -&gt; eval</code> 取得可追蹤紀錄：</p>
+
+<pre><code class="lang-bash">./nv-agent plan --request "我要做企業知識庫問答" --save
+./nv-agent run-plan outputs/plans/rag-YYYYMMDD-HHMMSS.json
+./nv-agent eval --run outputs/runs/rag-YYYYMMDD-HHMMSS</code></pre>
+
+<p>產物位置：</p>
+<ul>
+<li><code>outputs/plans/</code>：任務拆解與候選模型。</li>
+<li><code>outputs/runs/</code>：stdout、stderr、manifest、evaluation。</li>
+<li><code>outputs/images/</code>：image workflow 的生成圖片。</li>
+<li><code>control-studio/</code>：控制系統前端工作台與 AI 顧問橋接。</li>
+</ul>
+
+<h2 id="擴充方式">擴充方式</h2>
+<p>新增模型：</p>
+<ol>
+<li>更新 <code>configs/model_registry.json</code>。</li>
+<li>標記 <code>roles</code>、<code>workflow_stage</code>、<code>endpoint_type</code>、<code>endpoint_url</code>、<code>status</code>、<code>notes</code>。</li>
+<li>實測後把 <code>status</code> 從 candidate 改成 <code>tested_success</code> 或記錄失敗原因。</li>
+</ol>
+
+<p>新增任務類型：</p>
+<ol>
+<li>更新 <code>configs/task_profiles.json</code>。</li>
+<li>補 <code>triggers</code>、<code>stages</code>、<code>workflow</code>、<code>rubric</code>。</li>
+<li>若沒有既有 workflow，新增 <code>workflows/&lt;name&gt;_workflow.py</code>。</li>
+<li>更新 <code>cli/nv_agent_cli.py</code> 的 workflow map。</li>
+<li>更新文件與 <code>scripts/validate_nvidia_model_selector.sh</code>。</li>
+</ol>
+
+<p>新增評估：</p>
+<ol>
+<li>在 <code>configs/task_profiles.json</code> 加 rubric。</li>
+<li>在 <code>cli/nv_agent_cli.py</code> 的 <code>score_run_text</code> 加檢查。</li>
+<li>用 <code>./nv-agent eval --run ...</code> 驗證 pass/fail 是否合理。</li>
+</ol>
+
+<h2 id="安全規則">安全規則</h2>
+<ul>
+<li><code>.env</code> 只放本機 API key，不得提交或輸出內容。</li>
+<li><code>.env.example</code> 只能放 placeholder。</li>
+<li>不要把 <code>outputs/</code> 內的大型生成結果加入 git。</li>
+<li>不要使用 <code>.agent-handoff.md</code>；接手資訊只維護 <code>AGENT_CONTINUATION.md</code>。</li>
+</ul>
+
+<h2 id="建議下一步">建議下一步</h2>
+<ul>
+<li>增強 evaluator：從 heuristic 升級為 judge model + golden dataset。</li>
+<li>加 leaderboard：聚合 <code>outputs/runs/*/evaluation.json</code>，比較模型組合品質。</li>
+<li>加 parallel runner：同一任務階段平行跑多模型，再由 evaluator 選最佳輸出。</li>
+<li>加 PDF pipeline：PDF 轉圖、OCR、chunk、RAG、eval 一條龍。</li>
+</ul>
+
+</main>
+</body>
+</html>

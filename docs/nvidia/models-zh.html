@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NVIDIA Build Models 明確分類中文統整（按分類排序） — NVIDIA OS Support Docs</title>
+<style>
+:root {
+  --bg: #0f1117; --bg2: #1a1d2e; --bg3: #252840;
+  --border: #2d3155; --accent: #6366f1; --accent2: #818cf8;
+  --text: #e2e8f0; --muted: #94a3b8; --code-bg: #1e2235;
+  --success: #22c55e; --warn: #f59e0b;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+       background: var(--bg); color: var(--text); line-height: 1.7;
+       display: flex; min-height: 100vh; }
+nav { width: 240px; min-height: 100vh; background: var(--bg2);
+      border-right: 1px solid var(--border); padding: 24px 0;
+      position: sticky; top: 0; height: 100vh; overflow-y: auto;
+      flex-shrink: 0; }
+nav .logo { padding: 0 20px 20px; border-bottom: 1px solid var(--border); margin-bottom: 12px; }
+nav .logo a { text-decoration: none; font-size: 15px; font-weight: 700;
+              color: var(--accent2); }
+nav .section { padding: 6px 20px 2px; font-size: 10px; font-weight: 700;
+               text-transform: uppercase; letter-spacing: 1px; color: var(--muted);
+               margin-top: 8px; }
+nav a { display: block; padding: 5px 20px; font-size: 13px; color: var(--muted);
+        text-decoration: none; border-left: 2px solid transparent;
+        transition: all .15s; }
+nav a:hover, nav a.active { color: var(--text); border-color: var(--accent);
+                              background: rgba(99,102,241,.08); }
+main { flex: 1; padding: 40px 48px; max-width: 900px; min-width: 0; }
+h1 { font-size: 2rem; font-weight: 800; color: var(--text);
+     border-bottom: 2px solid var(--accent); padding-bottom: 12px; margin-bottom: 24px; }
+h2 { font-size: 1.4rem; font-weight: 700; color: var(--accent2);
+     margin: 32px 0 12px; padding-top: 8px; }
+h3 { font-size: 1.1rem; font-weight: 600; color: var(--text); margin: 20px 0 8px; }
+h4, h5, h6 { font-size: 1rem; font-weight: 600; color: var(--muted); margin: 16px 0 6px; }
+p { margin: 8px 0; color: var(--text); }
+a { color: var(--accent2); }
+a:hover { color: #a5b4fc; }
+code { background: var(--code-bg); border: 1px solid var(--border);
+       border-radius: 4px; padding: 1px 5px; font-size: .875em;
+       font-family: 'JetBrains Mono', 'Fira Code', monospace; color: #a5b4fc; }
+pre { background: var(--code-bg); border: 1px solid var(--border);
+      border-radius: 8px; padding: 16px; overflow-x: auto; margin: 12px 0; }
+pre code { background: none; border: none; padding: 0;
+           font-size: .82rem; color: var(--text); }
+blockquote { border-left: 3px solid var(--accent); padding: 8px 16px;
+             background: rgba(99,102,241,.06); margin: 12px 0; border-radius: 0 6px 6px 0; }
+ul, ol { padding-left: 24px; margin: 8px 0; }
+li { margin: 3px 0; }
+table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: .9rem; }
+th { background: var(--bg3); color: var(--accent2); font-weight: 700;
+     padding: 8px 12px; border: 1px solid var(--border); text-align: left; }
+td { padding: 7px 12px; border: 1px solid var(--border); color: var(--text); }
+tr:nth-child(even) td { background: rgba(255,255,255,.02); }
+hr { border: none; border-top: 1px solid var(--border); margin: 24px 0; }
+strong { color: #c7d2fe; }
+del { color: var(--muted); }
+.badge { display: inline-block; font-size: 10px; font-weight: 700; padding: 1px 6px;
+         border-radius: 9px; border: 1px solid; margin: 0 2px; vertical-align: middle; }
+.badge-green { color: var(--success); border-color: var(--success); }
+.badge-warn  { color: var(--warn);    border-color: var(--warn); }
+/* toc sidebar on large screens */
+@media (max-width: 768px) { nav { display: none; } main { padding: 20px 16px; } }
+</style>
+</head>
+<body>
+<nav>
+  <div class="logo"><a href="../index.html">📁 NVIDIA OS Support</a></div>
+  <div class="section">Agent 工作文件</div>
+  <a href="../agents/usage.html">使用指南</a>
+  <a href="../agents/continuation.html">接手狀態</a>
+  <a href="../agents/workflows.html">Runnable Workflows</a>
+<div class="section">ControlStudio</div>
+  <a href="../control-studio/roadmap.html">Roadmap（主線）</a>
+  <a href="../control-studio/plan.html">開發計畫</a>
+  <a href="../control-studio/backlog.html">Backlog</a>
+  <a href="../control-studio/scenarios.html">情境案例</a>
+  <a href="../control-studio/verification.html">驗證案例</a>
+  <a href="../control-studio/skills.html">Skill 規劃</a>
+  <a href="../control-studio/uiux-r1.html">UI/UX Round 1</a>
+  <a href="../control-studio/uiux-r2.html">UI/UX Round 2</a>
+  <a href="../control-studio/archive/phase10-plan.html">▸ Phase 10 計畫（封存）</a>
+  <a href="../control-studio/archive/phase10-verify.html">▸ Phase 10 驗證（封存）</a>
+<div class="section">NVIDIA 模型</div>
+  <a href="../nvidia/guide.html">落地操作指南</a>
+  <a href="../nvidia/models-zh.html" class="active">模型分類表（中文）</a>
+  <a href="../nvidia/models-en.html">Model Summary (EN)</a>
+  <a href="../nvidia/selector-plan.html">Selector Skill 計畫</a>
+<div class="section">案例輸出</div>
+  <a href="../cases/dc-motor.html">DC Motor 速度控制</a>
+  <a href="../cases/precision-servo.html">Precision Servo</a>
+  <a href="../cases/regression.html">Regression Dashboard</a>
+</nav>
+<main>
+<h1 id="nvidia-build-models-明確分類中文統整-按分類排序">NVIDIA Build Models 明確分類中文統整（按分類排序）</h1>
+
+<p>擷取時間：2026-05-10（Asia/Taipei）</p>
+
+<p>來源：https://build.nvidia.com/models</p>
+
+<p>總模型數：157</p>
+
+<h2 id="分類總覽">分類總覽</h2>
+<ul>
+<li>LLM / Agent / 程式碼：42</li>
+<li>RAG 與檢索：15</li>
+<li>文件理解與資料擷取：14</li>
+<li>多模態理解：18</li>
+<li>視覺生成與創作：7</li>
+<li>語音與翻譯：20</li>
+<li>媒體 AI 與影片工具：5</li>
+<li>安全與治理：8</li>
+<li>Physical AI / 自駕 / 機器人：7</li>
+<li>3D / OpenUSD / 數位分身：3</li>
+<li>生醫與藥物探索：14</li>
+<li>科學與工程模擬：4</li>
+</ul>
+
+<h2 id="子分類總覽">子分類總覽</h2>
+
+<h3 id="llm-agent-程式碼">LLM / Agent / 程式碼</h3>
+<ul>
+<li>Coding Agent / 程式碼生成：28</li>
+<li>通用推理 / 工具呼叫 Agent：13</li>
+<li>多語/主權語言 LLM：1</li>
+</ul>
+
+<h3 id="rag-與檢索">RAG 與檢索</h3>
+<ul>
+<li>文字 Embedding：7</li>
+<li>多模態 Embedding：2</li>
+<li>程式碼檢索 Embedding：1</li>
+<li>Reranker / 重排序：5</li>
+</ul>
+
+<h3 id="文件理解與資料擷取">文件理解與資料擷取</h3>
+<ul>
+<li>OCR / 文件解析：6</li>
+<li>版面/表格/圖表偵測：8</li>
+</ul>
+
+<h3 id="多模態理解">多模態理解</h3>
+<ul>
+<li>圖像/影片問答：14</li>
+<li>圖像/語音/文字理解：4</li>
+</ul>
+
+<h3 id="視覺生成與創作">視覺生成與創作</h3>
+<ul>
+<li>文字生圖：4</li>
+<li>圖片編輯 / In-context 編輯：3</li>
+</ul>
+
+<h3 id="語音與翻譯">語音與翻譯</h3>
+<ul>
+<li>語音轉文字 ASR：9</li>
+<li>語音辨識 + 語音翻譯：3</li>
+<li>文字翻譯：3</li>
+<li>文字轉語音 TTS：2</li>
+<li>即時語音對話：1</li>
+<li>語音增強/降噪：2</li>
+</ul>
+
+<h3 id="媒體-ai-與影片工具">媒體 AI 與影片工具</h3>
+<ul>
+<li>AI 合成影片偵測：1</li>
+<li>影片人物重打光：1</li>
+<li>說話者偵測：1</li>
+<li>嘴型同步/配音：1</li>
+<li>視線校正：1</li>
+</ul>
+
+<h3 id="安全與治理">安全與治理</h3>
+<ul>
+<li>內容安全與政策審核：5</li>
+<li>Jailbreak / Prompt Injection 偵測：1</li>
+<li>對話主題控管：1</li>
+<li>個資偵測：1</li>
+</ul>
+
+<h3 id="physical-ai-自駕-機器人">Physical AI / 自駕 / 機器人</h3>
+<ul>
+<li>物理一致影片生成：2</li>
+<li>物理世界推理：1</li>
+<li>未來世界狀態預測：1</li>
+<li>自駕 3D 感知：2</li>
+<li>自駕端到端 Stack：1</li>
+</ul>
+
+<h3 id="3d-openusd-數位分身">3D / OpenUSD / 數位分身</h3>
+<ul>
+<li>文字/圖片轉 3D：1</li>
+<li>OpenUSD 程式碼生成：1</li>
+<li>OpenUSD 資產驗證：1</li>
+</ul>
+
+<h3 id="生醫與藥物探索">生醫與藥物探索</h3>
+<ul>
+<li>蛋白質/分子結構預測：6</li>
+<li>蛋白質設計：2</li>
+<li>蛋白質嵌入向量：1</li>
+<li>多序列比對：1</li>
+<li>分子 Docking：1</li>
+<li>小分子生成/最佳化：2</li>
+<li>基因體序列建模：1</li>
+</ul>
+
+<h3 id="科學與工程模擬">科學與工程模擬</h3>
+<ul>
+<li>量子校準：1</li>
+<li>天氣/氣候預測：1</li>
+<li>醫學影像分割：1</li>
+<li>路線/組合最佳化：1</li>
+</ul>
+
+<h2 id="主要-publisher">主要 Publisher</h2>
+<ul>
+<li>nvidia：83</li>
+<li>meta：11</li>
+<li>mistralai：11</li>
+<li>qwen：8</li>
+<li>google：6</li>
+<li>black-forest-labs：4</li>
+<li>microsoft：3</li>
+<li>moonshotai：3</li>
+<li>openai：3</li>
+<li>deepseek-ai：2</li>
+<li>minimaxai：2</li>
+<li>z-ai：2</li>
+<li>deepmind：2</li>
+<li>mit：2</li>
+<li>openfold：2</li>
+<li>ipd：2</li>
+<li>abacusai：1</li>
+<li>sarvamai：1</li>
+<li>stepfun-ai：1</li>
+<li>bytedance：1</li>
+</ul>
+
+<h2 id="完整模型清單-按主分類-子分類排序">完整模型清單（按主分類/子分類排序）</h2>
+
+<table>
+<tr><td>分類序</td><td>原序</td><td>主分類</td><td>子分類</td><td>發布者</td><td>模型</td><td>具體用途</td></tr>
+<tr><td>---:</td><td>---:</td><td>---</td><td>---</td><td>---</td><td>---</td><td>---</td></tr>
+<tr><td>1</td><td>128</td><td>LLM / Agent / 程式碼</td><td>Coding Agent / 程式碼生成</td><td>abacusai</td><td><a href="https://build.nvidia.com/abacusai/dracarys-llama-3_1-70b-instruct">dracarys-llama-3.1-70b-instruct</a></td><td>生成、修改、解釋與除錯程式碼，支援長上下文 coding agent、瀏覽器操作與軟體工程自動化。</td></tr>
+<tr><td>2</td><td>6</td><td>LLM / Agent / 程式碼</td><td>Coding Agent / 程式碼生成</td><td>deepseek-ai</td><td><a href="https://build.nvidia.com/deepseek-ai/deepseek-v4-flash">deepseek-v4-flash</a></td><td>生成、修改、解釋與除錯程式碼，支援長上下文 coding agent、瀏覽器操作與軟體工程自動化。</td></tr>
+<tr><td>3</td><td>7</td><td>LLM / Agent / 程式碼</td><td>Coding Agent / 程式碼生成</td><td>deepseek-ai</td><td><a href="https://build.nvidia.com/deepseek-ai/deepseek-v4-pro">deepseek-v4-pro</a></td><td>生成、修改、解釋與除錯程式碼，支援長上下文 coding agent、瀏覽器操作與軟體工程自動化。</td></tr>
+<tr><td>4</td><td>137</td><td>LLM / Agent / 程式碼</td><td>Coding Agent / 程式碼生成</td><td>google</td><td><a href="https://build.nvidia.com/google/gemma-2-2b-it">gemma-2-2b-it</a></td><td>生成、修改、解釋與除錯程式碼，支援長上下文 coding agent、瀏覽器操作與軟體工程自動化。</td></tr>
+<tr><td>5</td><td>17</td><td>LLM / Agent / 程式碼</td><td>Coding Agent / 程式碼生成</td><td>google</td><td><a href="https://build.nvidia.com/google/gemma-4-31b-it">gemma-4-31b-it</a></td><td>生成、修改、解釋與除錯程式碼，支援長上下文 coding agent、瀏覽器操作與軟體工程自動化。</td></tr>
+<tr><td>6</td><td>140</td><td>LLM / Agent / 程式碼</td><td>Coding Agent / 程式碼生成</td><td>meta</td><td><a href="https://build.nvidia.com/meta/llama-3_1-70b-instruct">llama-3.1-70b-instruct</a></td><td>生成、修改、解釋與除錯程式碼，支援長上下文 coding agent、瀏覽器操作與軟體工程自動化。</td></tr>
+<tr><td>7</td><td>141</td><td>LLM / Agent / 程式碼</td><td>Coding Agent / 程式碼生成</td><td>meta</td><td><a href="https://build.nvidia.com/meta/llama-3_1-8b-instruct">llama-3.1-8b-instruct</a></td><td>生成、修改、解釋與除錯程式碼，支援長上下文 coding agent、瀏覽器操作與軟體工程自動化。</td></tr>
+<tr><td>8</td><td>127</td><td>LLM / Agent / 程式碼</td><td>Coding Agent / 程式碼生成</td><td>meta</td><td><a href="https://build.nvidia.com/meta/llama-3.2-1b-instruct">llama-3.2-1b-instruct</a></td><td>生成、修改、解釋與除錯程式碼，支援長上下文 coding agent、瀏覽器操作與軟體工程自動化。</td></tr>
+<tr><td>9</td><td>124</td><td>LLM / Agent / 程式碼</td><td>Coding Agent / 程式碼生成</td><td>meta</td><td><a href="https://build.nvidia.com/meta/llama-3.2-3b-instruct">llama-3.2-3b-instruct</a></td><td>生成、修改、解釋與除錯程式碼，支援長上下文 coding agent、瀏覽器操作與軟體工程自動化。</td></tr>
+<tr><td>10</td><td>118</td><td>LLM / Agent / 程式碼</td><td>Coding Agent / 程式碼生成</td><td>meta</td><td><a href="https://build.nvidia.com/meta/llama-3_3-70b-instruct">llama-3.3-70b-instruct</a></td><td>生成、修改、解釋與除錯程式碼，支援長上下文 coding agent、瀏覽器操作與軟體工程自動化。</td></tr>
+<tr><td>11</td><td>105</td><td>LLM / Agent / 程式碼</td><td>Coding Agent / 程式碼生成</td><td>microsoft</td><td><a href="https://build.nvidia.com/microsoft/phi-4-mini-instruct">phi-4-mini-instruct</a></td><td>生成、修改、解釋與除錯程式碼，支援長上下文 coding agent、瀏覽器操作與軟體工程自動化。</td></tr>
+<tr><td>12</td><td>32</td><td>LLM / Agent / 程式碼</td><td>Coding Agent / 程式碼生成</td><td>minimaxai</td><td><a href="https://build.nvidia.com/minimaxai/minimax-m2.5">minimax-m2.5</a></td><td>生成、修改、解釋與除錯程式碼，支援長上下文 coding agent、瀏覽器操作與軟體工程自動化。</td></tr>
+<tr><td>13</td><td>16</td><td>LLM / Agent / 程式碼</td><td>Coding Agent / 程式碼生成</td><td>minimaxai</td><td><a href="https://build.nvidia.com/minimaxai/minimax-m2.7">minimax-m2.7</a></td><td>生成、修改、解釋與除錯程式碼，支援長上下文 coding agent、瀏覽器操作與軟體工程自動化。</td></tr>
+<tr><td>14</td><td>42</td><td>LLM / Agent / 程式碼</td><td>Coding Agent / 程式碼生成</td><td>mistralai</td><td><a href="https://build.nvidia.com/mistralai/devstral-2-123b-instruct-2512">devstral-2-123b-instruct-2512</a></td><td>生成、修改、解釋與除錯程式碼，支援長上下文 coding agent、瀏覽器操作與軟體工程自動化。</td></tr>
+<tr><td>15</td><td>74</td><td>LLM / Agent / 程式碼</td><td>Coding Agent / 程式碼生成</td><td>mistralai</td><td><a href="https://build.nvidia.com/mistralai/magistral-small-2506">magistral-small-2506</a></td><td>生成、修改、解釋與除錯程式碼，支援長上下文 coding agent、瀏覽器操作與軟體工程自動化。</td></tr>
+<tr><td>16</td><td>4</td><td>LLM / Agent / 程式碼</td><td>Coding Agent / 程式碼生成</td><td>mistralai</td><td><a href="https://build.nvidia.com/mistralai/mistral-medium-3.5-128b">mistral-medium-3.5-128b</a></td><td>生成、修改、解釋與除錯程式碼，支援長上下文 coding agent、瀏覽器操作與軟體工程自動化。</td></tr>
+<tr><td>17</td><td>82</td><td>LLM / Agent / 程式碼</td><td>Coding Agent / 程式碼生成</td><td>mistralai</td><td><a href="https://build.nvidia.com/mistralai/mistral-nemotron">mistral-nemotron</a></td><td>生成、修改、解釋與除錯程式碼，支援長上下文 coding agent、瀏覽器操作與軟體工程自動化。</td></tr>
+<tr><td>18</td><td>150</td><td>LLM / Agent / 程式碼</td><td>Coding Agent / 程式碼生成</td><td>mistralai</td><td><a href="https://build.nvidia.com/mistralai/mixtral-8x22b-instruct">mixtral-8x22b-instruct-v0.1</a></td><td>生成、修改、解釋與除錯程式碼，支援長上下文 coding agent、瀏覽器操作與軟體工程自動化。</td></tr>
+<tr><td>19</td><td>156</td><td>LLM / Agent / 程式碼</td><td>Coding Agent / 程式碼生成</td><td>mistralai</td><td><a href="https://build.nvidia.com/mistralai/mixtral-8x7b-instruct">mixtral-8x7b-instruct-v0.1</a></td><td>生成、修改、解釋與除錯程式碼，支援長上下文 coding agent、瀏覽器操作與軟體工程自動化。</td></tr>
+<tr><td>20</td><td>73</td><td>LLM / Agent / 程式碼</td><td>Coding Agent / 程式碼生成</td><td>moonshotai</td><td><a href="https://build.nvidia.com/moonshotai/kimi-k2-instruct">kimi-k2-instruct</a></td><td>生成、修改、解釋與除錯程式碼，支援長上下文 coding agent、瀏覽器操作與軟體工程自動化。</td></tr>
+<tr><td>21</td><td>40</td><td>LLM / Agent / 程式碼</td><td>Coding Agent / 程式碼生成</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/nemotron-3-nano-30b-a3b">nemotron-3-nano-30b-a3b</a></td><td>生成、修改、解釋與除錯程式碼，支援長上下文 coding agent、瀏覽器操作與軟體工程自動化。</td></tr>
+<tr><td>22</td><td>24</td><td>LLM / Agent / 程式碼</td><td>Coding Agent / 程式碼生成</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/nemotron-3-super-120b-a12b">nemotron-3-super-120b-a12b</a></td><td>生成、修改、解釋與除錯程式碼，支援長上下文 coding agent、瀏覽器操作與軟體工程自動化。</td></tr>
+<tr><td>23</td><td>114</td><td>LLM / Agent / 程式碼</td><td>Coding Agent / 程式碼生成</td><td>qwen</td><td><a href="https://build.nvidia.com/qwen/qwen2_5-coder-32b-instruct">qwen2.5-coder-32b-instruct</a></td><td>生成、修改、解釋與除錯程式碼，支援長上下文 coding agent、瀏覽器操作與軟體工程自動化。</td></tr>
+<tr><td>24</td><td>61</td><td>LLM / Agent / 程式碼</td><td>Coding Agent / 程式碼生成</td><td>qwen</td><td><a href="https://build.nvidia.com/qwen/qwen3-coder-480b-a35b-instruct">qwen3-coder-480b-a35b-instruct</a></td><td>生成、修改、解釋與除錯程式碼，支援長上下文 coding agent、瀏覽器操作與軟體工程自動化。</td></tr>
+<tr><td>25</td><td>70</td><td>LLM / Agent / 程式碼</td><td>Coding Agent / 程式碼生成</td><td>sarvamai</td><td><a href="https://build.nvidia.com/sarvamai/sarvam-m">sarvam-m</a></td><td>生成、修改、解釋與除錯程式碼，支援長上下文 coding agent、瀏覽器操作與軟體工程自動化。</td></tr>
+<tr><td>26</td><td>36</td><td>LLM / Agent / 程式碼</td><td>Coding Agent / 程式碼生成</td><td>stepfun-ai</td><td><a href="https://build.nvidia.com/stepfun-ai/step-3.5-flash">step-3.5-flash</a></td><td>生成、修改、解釋與除錯程式碼，支援長上下文 coding agent、瀏覽器操作與軟體工程自動化。</td></tr>
+<tr><td>27</td><td>9</td><td>LLM / Agent / 程式碼</td><td>Coding Agent / 程式碼生成</td><td>z-ai</td><td><a href="https://build.nvidia.com/z-ai/glm-4.7">glm-4.7</a></td><td>生成、修改、解釋與除錯程式碼，支援長上下文 coding agent、瀏覽器操作與軟體工程自動化。</td></tr>
+<tr><td>28</td><td>8</td><td>LLM / Agent / 程式碼</td><td>Coding Agent / 程式碼生成</td><td>z-ai</td><td><a href="https://build.nvidia.com/z-ai/glm-5.1">glm-5.1</a></td><td>生成、修改、解釋與除錯程式碼，支援長上下文 coding agent、瀏覽器操作與軟體工程自動化。</td></tr>
+<tr><td>29</td><td>59</td><td>LLM / Agent / 程式碼</td><td>通用推理 / 工具呼叫 Agent</td><td>bytedance</td><td><a href="https://build.nvidia.com/bytedance/seed-oss-36b-instruct">seed-oss-36b-instruct</a></td><td>做通用文字生成、推理、工具呼叫、長文件理解與多步驟 agent 工作流，用於客服、研究、摘要、規劃與企業助理。</td></tr>
+<tr><td>30</td><td>143</td><td>LLM / Agent / 程式碼</td><td>通用推理 / 工具呼叫 Agent</td><td>mistralai</td><td><a href="https://build.nvidia.com/mistralai/mistral-7b-instruct-v03">mistral-7b-instruct-v0.3</a></td><td>做通用文字生成、推理、工具呼叫、長文件理解與多步驟 agent 工作流，用於客服、研究、摘要、規劃與企業助理。</td></tr>
+<tr><td>31</td><td>43</td><td>LLM / Agent / 程式碼</td><td>通用推理 / 工具呼叫 Agent</td><td>moonshotai</td><td><a href="https://build.nvidia.com/moonshotai/kimi-k2-thinking">kimi-k2-thinking</a></td><td>做通用文字生成、推理、工具呼叫、長文件理解與多步驟 agent 工作流，用於客服、研究、摘要、規劃與企業助理。</td></tr>
+<tr><td>32</td><td>95</td><td>LLM / Agent / 程式碼</td><td>通用推理 / 工具呼叫 Agent</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/llama-3_1-nemotron-nano-8b-v1">llama-3.1-nemotron-nano-8b-v1</a></td><td>做通用文字生成、推理、工具呼叫、長文件理解與多步驟 agent 工作流，用於客服、研究、摘要、規劃與企業助理。</td></tr>
+<tr><td>33</td><td>94</td><td>LLM / Agent / 程式碼</td><td>通用推理 / 工具呼叫 Agent</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/llama-3_3-nemotron-super-49b-v1">llama-3.3-nemotron-super-49b-v1</a></td><td>做通用文字生成、推理、工具呼叫、長文件理解與多步驟 agent 工作流，用於客服、研究、摘要、規劃與企業助理。</td></tr>
+<tr><td>34</td><td>69</td><td>LLM / Agent / 程式碼</td><td>通用推理 / 工具呼叫 Agent</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/llama-3_3-nemotron-super-49b-v1_5">llama-3.3-nemotron-super-49b-v1.5</a></td><td>做通用文字生成、推理、工具呼叫、長文件理解與多步驟 agent 工作流，用於客服、研究、摘要、規劃與企業助理。</td></tr>
+<tr><td>35</td><td>132</td><td>LLM / Agent / 程式碼</td><td>通用推理 / 工具呼叫 Agent</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/nemotron-mini-4b-instruct">nemotron-mini-4b-instruct</a></td><td>做通用文字生成、推理、工具呼叫、長文件理解與多步驟 agent 工作流，用於客服、研究、摘要、規劃與企業助理。</td></tr>
+<tr><td>36</td><td>62</td><td>LLM / Agent / 程式碼</td><td>通用推理 / 工具呼叫 Agent</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/nvidia-nemotron-nano-9b-v2">nvidia-nemotron-nano-9b-v2</a></td><td>做通用文字生成、推理、工具呼叫、長文件理解與多步驟 agent 工作流，用於客服、研究、摘要、規劃與企業助理。</td></tr>
+<tr><td>37</td><td>67</td><td>LLM / Agent / 程式碼</td><td>通用推理 / 工具呼叫 Agent</td><td>openai</td><td><a href="https://build.nvidia.com/openai/gpt-oss-120b">gpt-oss-120b</a></td><td>做通用文字生成、推理、工具呼叫、長文件理解與多步驟 agent 工作流，用於客服、研究、摘要、規劃與企業助理。</td></tr>
+<tr><td>38</td><td>66</td><td>LLM / Agent / 程式碼</td><td>通用推理 / 工具呼叫 Agent</td><td>openai</td><td><a href="https://build.nvidia.com/openai/gpt-oss-20b">gpt-oss-20b</a></td><td>做通用文字生成、推理、工具呼叫、長文件理解與多步驟 agent 工作流，用於客服、研究、摘要、規劃與企業助理。</td></tr>
+<tr><td>39</td><td>54</td><td>LLM / Agent / 程式碼</td><td>通用推理 / 工具呼叫 Agent</td><td>qwen</td><td><a href="https://build.nvidia.com/qwen/qwen3-next-80b-a3b-instruct">qwen3-next-80b-a3b-instruct</a></td><td>做通用文字生成、推理、工具呼叫、長文件理解與多步驟 agent 工作流，用於客服、研究、摘要、規劃與企業助理。</td></tr>
+<tr><td>40</td><td>55</td><td>LLM / Agent / 程式碼</td><td>通用推理 / 工具呼叫 Agent</td><td>qwen</td><td><a href="https://build.nvidia.com/qwen/qwen3-next-80b-a3b-thinking">qwen3-next-80b-a3b-thinking</a></td><td>做通用文字生成、推理、工具呼叫、長文件理解與多步驟 agent 工作流，用於客服、研究、摘要、規劃與企業助理。</td></tr>
+<tr><td>41</td><td>146</td><td>LLM / Agent / 程式碼</td><td>通用推理 / 工具呼叫 Agent</td><td>upstage</td><td><a href="https://build.nvidia.com/upstage/solar-10_7b-instruct">solar-10.7b-instruct</a></td><td>做通用文字生成、推理、工具呼叫、長文件理解與多步驟 agent 工作流，用於客服、研究、摘要、規劃與企業助理。</td></tr>
+<tr><td>42</td><td>53</td><td>LLM / Agent / 程式碼</td><td>多語/主權語言 LLM</td><td>stockmark</td><td><a href="https://build.nvidia.com/stockmark/stockmark-2-100b-instruct">stockmark-2-100b-instruct</a></td><td>理解日文企業文件與複雜商務內容，適合在地化知識助理、文件分析與企業搜尋。</td></tr>
+<tr><td>43</td><td>147</td><td>RAG 與檢索</td><td>文字 Embedding</td><td>baai</td><td><a href="https://build.nvidia.com/baai/bge-m3">bge-m3</a></td><td>把文字或文件轉成向量，建立語意搜尋、RAG 知識庫、相似度比對與跨語言檢索。</td></tr>
+<tr><td>44</td><td>115</td><td>RAG 與檢索</td><td>文字 Embedding</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/llama-3_2-nv-embedqa-1b-v2">llama-3.2-nv-embedqa-1b-v2</a></td><td>把文字或文件轉成向量，建立語意搜尋、RAG 知識庫、相似度比對與跨語言檢索。</td></tr>
+<tr><td>45</td><td>71</td><td>RAG 與檢索</td><td>文字 Embedding</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/llama-3_2-nemoretriever-300m-embed-v1">llama-3_2-nemoretriever-300m-embed-v1</a></td><td>把文字或文件轉成向量，建立語意搜尋、RAG 知識庫、相似度比對與跨語言檢索。</td></tr>
+<tr><td>46</td><td>52</td><td>RAG 與檢索</td><td>文字 Embedding</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/llama-3_2-nemoretriever-300m-embed-v2">llama-3_2-nemoretriever-300m-embed-v2</a></td><td>把文字或文件轉成向量，建立語意搜尋、RAG 知識庫、相似度比對與跨語言檢索。</td></tr>
+<tr><td>47</td><td>30</td><td>RAG 與檢索</td><td>文字 Embedding</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/llama-nemotron-embed-1b-v2">llama-nemotron-embed-1b-v2</a></td><td>把文字或文件轉成向量，建立語意搜尋、RAG 知識庫、相似度比對與跨語言檢索。</td></tr>
+<tr><td>48</td><td>145</td><td>RAG 與檢索</td><td>文字 Embedding</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/nv-embed-v1">nv-embed-v1</a></td><td>把文字或文件轉成向量，建立語意搜尋、RAG 知識庫、相似度比對與跨語言檢索。</td></tr>
+<tr><td>49</td><td>142</td><td>RAG 與檢索</td><td>文字 Embedding</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/nv-embedqa-e5-v5">nv-embedqa-e5-v5</a></td><td>把文字或文件轉成向量，建立語意搜尋、RAG 知識庫、相似度比對與跨語言檢索。</td></tr>
+<tr><td>50</td><td>35</td><td>RAG 與檢索</td><td>多模態 Embedding</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/llama-nemotron-embed-vl-1b-v2">llama-nemotron-embed-vl-1b-v2</a></td><td>把圖片與文字映射到同一語意空間，支援跨模態搜尋與圖片/文字檢索。</td></tr>
+<tr><td>51</td><td>144</td><td>RAG 與檢索</td><td>多模態 Embedding</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/nvclip">nvclip</a></td><td>把圖片與文字映射到同一語意空間，支援跨模態搜尋與圖片/文字檢索。</td></tr>
+<tr><td>52</td><td>97</td><td>RAG 與檢索</td><td>程式碼檢索 Embedding</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/nv-embedcode-7b-v1">nv-embedcode-7b-v1</a></td><td>把程式碼與文字查詢轉成向量，支援 code search、相似程式片段搜尋與工程知識庫。</td></tr>
+<tr><td>53</td><td>79</td><td>RAG 與檢索</td><td>Reranker / 重排序</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/llama-3_2-nemoretriever-500m-rerank-v2">llama-3.2-nemoretriever-500m-rerank-v2</a></td><td>替 RAG 搜尋結果重新排序，判斷段落是否能回答問題，提高企業知識庫問答準確率。</td></tr>
+<tr><td>54</td><td>116</td><td>RAG 與檢索</td><td>Reranker / 重排序</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/llama-3_2-nv-rerankqa-1b-v2">llama-3.2-nv-rerankqa-1b-v2</a></td><td>替 RAG 搜尋結果重新排序，判斷段落是否能回答問題，提高企業知識庫問答準確率。</td></tr>
+<tr><td>55</td><td>25</td><td>RAG 與檢索</td><td>Reranker / 重排序</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/llama-nemotron-rerank-1b-v2">llama-nemotron-rerank-1b-v2</a></td><td>替 RAG 搜尋結果重新排序，判斷段落是否能回答問題，提高企業知識庫問答準確率。</td></tr>
+<tr><td>56</td><td>18</td><td>RAG 與檢索</td><td>Reranker / 重排序</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/llama-nemotron-rerank-vl-1b-v2">llama-nemotron-rerank-vl-1b-v2</a></td><td>替 RAG 搜尋結果重新排序，判斷段落是否能回答問題，提高企業知識庫問答準確率。</td></tr>
+<tr><td>57</td><td>151</td><td>RAG 與檢索</td><td>Reranker / 重排序</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/rerank-qa-mistral-4b">rerank-qa-mistral-4b</a></td><td>替 RAG 搜尋結果重新排序，判斷段落是否能回答問題，提高企業知識庫問答準確率。</td></tr>
+<tr><td>58</td><td>120</td><td>文件理解與資料擷取</td><td>OCR / 文件解析</td><td>baidu</td><td><a href="https://build.nvidia.com/baidu/paddleocr">paddleocr</a></td><td>從掃描文件、圖片或頁面擷取文字、表格、版面與中繼資料，適合文件理解與 RAG 前處理。</td></tr>
+<tr><td>59</td><td>72</td><td>文件理解與資料擷取</td><td>OCR / 文件解析</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/nemoretriever-ocr">nemoretriever-ocr</a></td><td>從掃描文件、圖片或頁面擷取文字、表格、版面與中繼資料，適合文件理解與 RAG 前處理。</td></tr>
+<tr><td>60</td><td>65</td><td>文件理解與資料擷取</td><td>OCR / 文件解析</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/nemoretriever-ocr-v1">nemoretriever-ocr-v1</a></td><td>從掃描文件、圖片或頁面擷取文字、表格、版面與中繼資料，適合文件理解與 RAG 前處理。</td></tr>
+<tr><td>61</td><td>104</td><td>文件理解與資料擷取</td><td>OCR / 文件解析</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/nemoretriever-parse">nemoretriever-parse</a></td><td>從掃描文件、圖片或頁面擷取文字、表格、版面與中繼資料，適合文件理解與 RAG 前處理。</td></tr>
+<tr><td>62</td><td>23</td><td>文件理解與資料擷取</td><td>OCR / 文件解析</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/nemotron-ocr-v1">nemotron-ocr-v1</a></td><td>從掃描文件、圖片或頁面擷取文字、表格、版面與中繼資料，適合文件理解與 RAG 前處理。</td></tr>
+<tr><td>63</td><td>47</td><td>文件理解與資料擷取</td><td>OCR / 文件解析</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/nemotron-parse">nemotron-parse</a></td><td>從掃描文件、圖片或頁面擷取文字、表格、版面與中繼資料，適合文件理解與 RAG 前處理。</td></tr>
+<tr><td>64</td><td>99</td><td>文件理解與資料擷取</td><td>版面/表格/圖表偵測</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/nemoretriever-graphic-elements-v1">nemoretriever-graphic-elements-v1</a></td><td>偵測文件中的表格、圖表、標題與頁面元素，將 PDF/圖片切成可檢索結構。</td></tr>
+<tr><td>65</td><td>100</td><td>文件理解與資料擷取</td><td>版面/表格/圖表偵測</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/nemoretriever-page-elements-v2">nemoretriever-page-elements-v2</a></td><td>偵測文件中的表格、圖表、標題與頁面元素，將 PDF/圖片切成可檢索結構。</td></tr>
+<tr><td>66</td><td>39</td><td>文件理解與資料擷取</td><td>版面/表格/圖表偵測</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/nemoretriever-page-elements-v3">nemoretriever-page-elements-v3</a></td><td>偵測文件中的表格、圖表、標題與頁面元素，將 PDF/圖片切成可檢索結構。</td></tr>
+<tr><td>67</td><td>98</td><td>文件理解與資料擷取</td><td>版面/表格/圖表偵測</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/nemoretriever-table-structure-v1">nemoretriever-table-structure-v1</a></td><td>偵測文件中的表格、圖表、標題與頁面元素，將 PDF/圖片切成可檢索結構。</td></tr>
+<tr><td>68</td><td>29</td><td>文件理解與資料擷取</td><td>版面/表格/圖表偵測</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/nemotron-graphic-elements-v1">nemotron-graphic-elements-v1</a></td><td>偵測文件中的表格、圖表、標題與頁面元素，將 PDF/圖片切成可檢索結構。</td></tr>
+<tr><td>69</td><td>28</td><td>文件理解與資料擷取</td><td>版面/表格/圖表偵測</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/nemotron-page-elements-v3">nemotron-page-elements-v3</a></td><td>偵測文件中的表格、圖表、標題與頁面元素，將 PDF/圖片切成可檢索結構。</td></tr>
+<tr><td>70</td><td>27</td><td>文件理解與資料擷取</td><td>版面/表格/圖表偵測</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/nemotron-table-structure-v1">nemotron-table-structure-v1</a></td><td>偵測文件中的表格、圖表、標題與頁面元素，將 PDF/圖片切成可檢索結構。</td></tr>
+<tr><td>71</td><td>119</td><td>文件理解與資料擷取</td><td>版面/表格/圖表偵測</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/nv-yolox-page-elements-v1">nv-yolox-page-elements-v1</a></td><td>偵測文件中的表格、圖表、標題與頁面元素，將 PDF/圖片切成可檢索結構。</td></tr>
+<tr><td>72</td><td>103</td><td>多模態理解</td><td>圖像/影片問答</td><td>google</td><td><a href="https://build.nvidia.com/google/gemma-3-27b-it">gemma-3-27b-it</a></td><td>理解圖片或影片內容並回答問題/產生描述，適合視覺問答、圖表理解與內容分析。</td></tr>
+<tr><td>73</td><td>149</td><td>多模態理解</td><td>圖像/影片問答</td><td>google</td><td><a href="https://build.nvidia.com/google/google-paligemma">paligemma</a></td><td>理解圖片或影片內容並回答問題/產生描述，適合視覺問答、圖表理解與內容分析。</td></tr>
+<tr><td>74</td><td>125</td><td>多模態理解</td><td>圖像/影片問答</td><td>meta</td><td><a href="https://build.nvidia.com/meta/llama-3.2-11b-vision-instruct">llama-3.2-11b-vision-instruct</a></td><td>理解圖片或影片內容並回答問題/產生描述，適合視覺問答、圖表理解與內容分析。</td></tr>
+<tr><td>75</td><td>126</td><td>多模態理解</td><td>圖像/影片問答</td><td>meta</td><td><a href="https://build.nvidia.com/meta/llama-3.2-90b-vision-instruct">llama-3.2-90b-vision-instruct</a></td><td>理解圖片或影片內容並回答問題/產生描述，適合視覺問答、圖表理解與內容分析。</td></tr>
+<tr><td>76</td><td>90</td><td>多模態理解</td><td>圖像/影片問答</td><td>meta</td><td><a href="https://build.nvidia.com/meta/llama-4-maverick-17b-128e-instruct">llama-4-maverick-17b-128e-instruct</a></td><td>理解圖片或影片內容並回答問題/產生描述，適合視覺問答、圖表理解與內容分析。</td></tr>
+<tr><td>77</td><td>45</td><td>多模態理解</td><td>圖像/影片問答</td><td>mistralai</td><td><a href="https://build.nvidia.com/mistralai/ministral-14b-instruct-2512">ministral-14b-instruct-2512</a></td><td>理解圖片或影片內容並回答問題/產生描述，適合視覺問答、圖表理解與內容分析。</td></tr>
+<tr><td>78</td><td>44</td><td>多模態理解</td><td>圖像/影片問答</td><td>mistralai</td><td><a href="https://build.nvidia.com/mistralai/mistral-large-3-675b-instruct-2512">mistral-large-3-675b-instruct-2512</a></td><td>理解圖片或影片內容並回答問題/產生描述，適合視覺問答、圖表理解與內容分析。</td></tr>
+<tr><td>79</td><td>87</td><td>多模態理解</td><td>圖像/影片問答</td><td>mistralai</td><td><a href="https://build.nvidia.com/mistralai/mistral-medium-3-instruct">mistral-medium-3-instruct</a></td><td>理解圖片或影片內容並回答問題/產生描述，適合視覺問答、圖表理解與內容分析。</td></tr>
+<tr><td>80</td><td>19</td><td>多模態理解</td><td>圖像/影片問答</td><td>mistralai</td><td><a href="https://build.nvidia.com/mistralai/mistral-small-4-119b-2603">mistral-small-4-119b-2603</a></td><td>理解圖片或影片內容並回答問題/產生描述，適合視覺問答、圖表理解與內容分析。</td></tr>
+<tr><td>81</td><td>1</td><td>多模態理解</td><td>圖像/影片問答</td><td>moonshotai</td><td><a href="https://build.nvidia.com/moonshotai/kimi-k2.6">kimi-k2.6</a></td><td>理解圖片或影片內容並回答問題/產生描述，適合視覺問答、圖表理解與內容分析。</td></tr>
+<tr><td>82</td><td>84</td><td>多模態理解</td><td>圖像/影片問答</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/llama-3.1-nemotron-nano-vl-8b-v1">llama-3.1-nemotron-nano-vl-8b-v1</a></td><td>理解圖片或影片內容並回答問題/產生描述，適合視覺問答、圖表理解與內容分析。</td></tr>
+<tr><td>83</td><td>48</td><td>多模態理解</td><td>圖像/影片問答</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/nemotron-nano-12b-v2-vl">nemotron-nano-12b-v2-vl</a></td><td>理解圖片或影片內容並回答問題/產生描述，適合視覺問答、圖表理解與內容分析。</td></tr>
+<tr><td>84</td><td>26</td><td>多模態理解</td><td>圖像/影片問答</td><td>qwen</td><td><a href="https://build.nvidia.com/qwen/qwen3.5-122b-a10b">qwen3.5-122b-a10b</a></td><td>理解圖片或影片內容並回答問題/產生描述，適合視覺問答、圖表理解與內容分析。</td></tr>
+<tr><td>85</td><td>34</td><td>多模態理解</td><td>圖像/影片問答</td><td>qwen</td><td><a href="https://build.nvidia.com/qwen/qwen3.5-397b-a17b">qwen3.5-397b-a17b</a></td><td>理解圖片或影片內容並回答問題/產生描述，適合視覺問答、圖表理解與內容分析。</td></tr>
+<tr><td>86</td><td>78</td><td>多模態理解</td><td>圖像/語音/文字理解</td><td>google</td><td><a href="https://build.nvidia.com/google/gemma-3n-e2b-it">gemma-3n-e2b-it</a></td><td>同時理解圖片、語音與文字，適合多模態聊天、圖表問答與情境分析。</td></tr>
+<tr><td>87</td><td>77</td><td>多模態理解</td><td>圖像/語音/文字理解</td><td>google</td><td><a href="https://build.nvidia.com/google/gemma-3n-e4b-it">gemma-3n-e4b-it</a></td><td>同時理解圖片、語音與文字，適合多模態聊天、圖表問答與情境分析。</td></tr>
+<tr><td>88</td><td>106</td><td>多模態理解</td><td>圖像/語音/文字理解</td><td>microsoft</td><td><a href="https://build.nvidia.com/microsoft/phi-4-multimodal-instruct">phi-4-multimodal-instruct</a></td><td>同時理解圖片、語音與文字，適合多模態聊天、圖表問答與情境分析。</td></tr>
+<tr><td>89</td><td>5</td><td>多模態理解</td><td>圖像/語音/文字理解</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/nemotron-3-nano-omni-30b-a3b-reasoning">nemotron-3-nano-omni-30b-a3b-reasoning</a></td><td>同時理解圖片、語音與文字，適合多模態聊天、圖表問答與情境分析。</td></tr>
+<tr><td>90</td><td>89</td><td>視覺生成與創作</td><td>文字生圖</td><td>black-forest-labs</td><td><a href="https://build.nvidia.com/black-forest-labs/flux_1-dev">FLUX.1-dev</a></td><td>依文字提示生成圖片，適合行銷素材、設計草圖、概念圖與創意內容生產。</td></tr>
+<tr><td>91</td><td>86</td><td>視覺生成與創作</td><td>文字生圖</td><td>black-forest-labs</td><td><a href="https://build.nvidia.com/black-forest-labs/flux_1-schnell">FLUX.1-schnell</a></td><td>依文字提示生成圖片，適合行銷素材、設計草圖、概念圖與創意內容生產。</td></tr>
+<tr><td>92</td><td>2</td><td>視覺生成與創作</td><td>文字生圖</td><td>qwen</td><td><a href="https://build.nvidia.com/qwen/qwen-image">qwen-image</a></td><td>依文字提示生成圖片，適合行銷素材、設計草圖、概念圖與創意內容生產。</td></tr>
+<tr><td>93</td><td>63</td><td>視覺生成與創作</td><td>文字生圖</td><td>stabilityai</td><td><a href="https://build.nvidia.com/stabilityai/stable-diffusion-3_5-large">stable-diffusion-3.5-large</a></td><td>依文字提示生成圖片，適合行銷素材、設計草圖、概念圖與創意內容生產。</td></tr>
+<tr><td>94</td><td>64</td><td>視覺生成與創作</td><td>圖片編輯 / In-context 編輯</td><td>black-forest-labs</td><td><a href="https://build.nvidia.com/black-forest-labs/flux_1-kontext-dev">FLUX.1-Kontext-dev</a></td><td>依文字指令生成或編輯圖片，維持主體與場景一致性，適合素材修改與設計迭代。</td></tr>
+<tr><td>95</td><td>22</td><td>視覺生成與創作</td><td>圖片編輯 / In-context 編輯</td><td>black-forest-labs</td><td><a href="https://build.nvidia.com/black-forest-labs/flux_2-klein-4b">flux.2-klein-4b</a></td><td>依文字指令生成或編輯圖片，維持主體與場景一致性，適合素材修改與設計迭代。</td></tr>
+<tr><td>96</td><td>3</td><td>視覺生成與創作</td><td>圖片編輯 / In-context 編輯</td><td>qwen</td><td><a href="https://build.nvidia.com/qwen/qwen-image-edit">qwen-image-edit</a></td><td>依文字指令生成或編輯圖片，維持主體與場景一致性，適合素材修改與設計迭代。</td></tr>
+<tr><td>97</td><td>121</td><td>語音與翻譯</td><td>語音轉文字 ASR</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/conformer-ctc-asr">conformer-ctc-asr</a></td><td>將語音即時或批次轉成文字，支援字幕、會議記錄、客服錄音分析與語音管線。</td></tr>
+<tr><td>98</td><td>21</td><td>語音與翻譯</td><td>語音轉文字 ASR</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/nemotron-asr-streaming">nemotron-asr-streaming</a></td><td>將語音即時或批次轉成文字，支援字幕、會議記錄、客服錄音分析與語音管線。</td></tr>
+<tr><td>99</td><td>88</td><td>語音與翻譯</td><td>語音轉文字 ASR</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/parakeet-1_1b-rnnt-multilingual-asr">parakeet-1.1b-rnnt-multilingual-asr</a></td><td>將語音即時或批次轉成文字，支援字幕、會議記錄、客服錄音分析與語音管線。</td></tr>
+<tr><td>100</td><td>57</td><td>語音與翻譯</td><td>語音轉文字 ASR</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/parakeet-ctc-0_6b-es">parakeet-ctc-0.6b-es</a></td><td>將語音即時或批次轉成文字，支援字幕、會議記錄、客服錄音分析與語音管線。</td></tr>
+<tr><td>101</td><td>58</td><td>語音與翻譯</td><td>語音轉文字 ASR</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/parakeet-ctc-0_6b-vi">parakeet-ctc-0.6b-vi</a></td><td>將語音即時或批次轉成文字，支援字幕、會議記錄、客服錄音分析與語音管線。</td></tr>
+<tr><td>102</td><td>56</td><td>語音與翻譯</td><td>語音轉文字 ASR</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/parakeet-ctc-0_6b-zh-cn">parakeet-ctc-0.6b-zh-cn</a></td><td>將語音即時或批次轉成文字，支援字幕、會議記錄、客服錄音分析與語音管線。</td></tr>
+<tr><td>103</td><td>51</td><td>語音與翻譯</td><td>語音轉文字 ASR</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/parakeet-ctc-0_6b-zh-tw">parakeet-ctc-0.6b-zh-tw</a></td><td>將語音即時或批次轉成文字，支援字幕、會議記錄、客服錄音分析與語音管線。</td></tr>
+<tr><td>104</td><td>134</td><td>語音與翻譯</td><td>語音轉文字 ASR</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/parakeet-ctc-1_1b-asr">parakeet-ctc-1.1b-asr</a></td><td>將語音即時或批次轉成文字，支援字幕、會議記錄、客服錄音分析與語音管線。</td></tr>
+<tr><td>105</td><td>68</td><td>語音與翻譯</td><td>語音轉文字 ASR</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/parakeet-tdt-0_6b-v2">parakeet-tdt-0.6b-v2</a></td><td>將語音即時或批次轉成文字，支援字幕、會議記錄、客服錄音分析與語音管線。</td></tr>
+<tr><td>106</td><td>109</td><td>語音與翻譯</td><td>語音辨識 + 語音翻譯</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/canary-1b-asr">canary-1b-asr</a></td><td>將語音轉文字並可做語音翻譯，適合多語會議、字幕與語音資料處理。</td></tr>
+<tr><td>107</td><td>135</td><td>語音與翻譯</td><td>語音辨識 + 語音翻譯</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/parakeet-ctc-0_6b-asr">parakeet-ctc-0.6b-asr</a></td><td>將語音轉文字並可做語音翻譯，適合多語會議、字幕與語音資料處理。</td></tr>
+<tr><td>108</td><td>108</td><td>語音與翻譯</td><td>語音辨識 + 語音翻譯</td><td>openai</td><td><a href="https://build.nvidia.com/openai/whisper-large-v3">whisper-large-v3</a></td><td>將語音轉文字並可做語音翻譯，適合多語會議、字幕與語音資料處理。</td></tr>
+<tr><td>109</td><td>133</td><td>語音與翻譯</td><td>文字翻譯</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/megatron-1b-nmt">megatron-1b-nmt</a></td><td>做多語文字翻譯，適合客服、文件在地化、跨國協作與即時溝通。</td></tr>
+<tr><td>110</td><td>76</td><td>語音與翻譯</td><td>文字翻譯</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/riva-translate-1_6b">riva-translate-1.6b</a></td><td>做多語文字翻譯，適合客服、文件在地化、跨國協作與即時溝通。</td></tr>
+<tr><td>111</td><td>41</td><td>語音與翻譯</td><td>文字翻譯</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/riva-translate-4b-instruct-v1_1">riva-translate-4b-instruct-v1_1</a></td><td>做多語文字翻譯，適合客服、文件在地化、跨國協作與即時溝通。</td></tr>
+<tr><td>112</td><td>96</td><td>語音與翻譯</td><td>文字轉語音 TTS</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/magpie-tts-multilingual">magpie-tts-multilingual</a></td><td>把文字轉成自然語音，可用於語音助理、品牌聲音、旁白與多語內容。</td></tr>
+<tr><td>113</td><td>85</td><td>語音與翻譯</td><td>文字轉語音 TTS</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/magpie-tts-zeroshot">magpie-tts-zeroshot</a></td><td>把文字轉成自然語音，可用於語音助理、品牌聲音、旁白與多語內容。</td></tr>
+<tr><td>114</td><td>20</td><td>語音與翻譯</td><td>即時語音對話</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/nemotron-voicechat">nemotron-voicechat</a></td><td>建立可即時聽與回應的語音助理或客服語音 agent。</td></tr>
+<tr><td>115</td><td>81</td><td>語音與翻譯</td><td>語音增強/降噪</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/bnr">Background Noise Removal</a></td><td>移除音訊背景噪音，提升通話、會議、Podcast 或語音辨識前處理品質。</td></tr>
+<tr><td>116</td><td>123</td><td>語音與翻譯</td><td>語音增強/降噪</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/studiovoice">studiovoice</a></td><td>提升錄音品質或移除背景噪音，適合會議、通話、Podcast 與 ASR 前處理。</td></tr>
+<tr><td>117</td><td>12</td><td>媒體 AI 與影片工具</td><td>AI 合成影片偵測</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/synthetic-video-detector">synthetic-video-detector</a></td><td>判斷影片是否為 AI 生成/合成影片，適合媒體查核、版權審核與內容驗證。</td></tr>
+<tr><td>118</td><td>10</td><td>媒體 AI 與影片工具</td><td>影片人物重打光</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/relighting">NVIDIA AI for Media Relighting</a></td><td>把影片中的人物重新打光，讓遠端錄影、主播或訪談畫面匹配指定 HDRI/場景光源。</td></tr>
+<tr><td>119</td><td>13</td><td>媒體 AI 與影片工具</td><td>說話者偵測</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/active-speaker-detection">Active Speaker Detection</a></td><td>在影片中找出誰正在說話並追蹤說話者，適合會議、節目、字幕與剪輯自動化。</td></tr>
+<tr><td>120</td><td>14</td><td>媒體 AI 與影片工具</td><td>嘴型同步/配音</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/lipsync">LipSync</a></td><td>把影片人物嘴型同步到新音訊，適合配音、在地化、新聞/體育多語內容製作。</td></tr>
+<tr><td>121</td><td>138</td><td>媒體 AI 與影片工具</td><td>視線校正</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/eyecontact">eyecontact</a></td><td>校正影片人物視線，讓視線看起來面向鏡頭，適合遠距會議與虛擬人。</td></tr>
+<tr><td>122</td><td>75</td><td>安全與治理</td><td>內容安全與政策審核</td><td>meta</td><td><a href="https://build.nvidia.com/meta/llama-guard-4-12b">llama-guard-4-12b</a></td><td>分類不安全、毒性或政策違規的文字/圖像輸入輸出，作為 LLM moderation 與 guardrail。</td></tr>
+<tr><td>123</td><td>112</td><td>安全與治理</td><td>內容安全與政策審核</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/llama-3_1-nemoguard-8b-content-safety">llama-3.1-nemoguard-8b-content-safety</a></td><td>分類不安全、毒性或政策違規的文字/圖像輸入輸出，作為 LLM moderation 與 guardrail。</td></tr>
+<tr><td>124</td><td>49</td><td>安全與治理</td><td>內容安全與政策審核</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/llama-3_1-nemotron-safety-guard-8b-v3">llama-3.1-nemotron-safety-guard-8b-v3</a></td><td>分類不安全、毒性或政策違規的文字/圖像輸入輸出，作為 LLM moderation 與 guardrail。</td></tr>
+<tr><td>125</td><td>11</td><td>安全與治理</td><td>內容安全與政策審核</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/nemotron-3-content-safety">nemotron-3-content-safety</a></td><td>分類不安全、毒性或政策違規的文字/圖像輸入輸出，作為 LLM moderation 與 guardrail。</td></tr>
+<tr><td>126</td><td>37</td><td>安全與治理</td><td>內容安全與政策審核</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/nemotron-content-safety-reasoning-4b">nemotron-content-safety-reasoning-4b</a></td><td>分類不安全、毒性或政策違規的文字/圖像輸入輸出，作為 LLM moderation 與 guardrail。</td></tr>
+<tr><td>127</td><td>111</td><td>安全與治理</td><td>Jailbreak / Prompt Injection 偵測</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/nemoguard-jailbreak-detect">nemoguard-jailbreak-detect</a></td><td>偵測 prompt injection 與 jailbreak 攻擊，保護聊天機器人、agent 與企業內部工具。</td></tr>
+<tr><td>128</td><td>110</td><td>安全與治理</td><td>對話主題控管</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/llama-3_1-nemoguard-8b-topic-control">llama-3.1-nemoguard-8b-topic-control</a></td><td>限制對話維持在核准主題內，避免客服或企業助理偏離業務範圍。</td></tr>
+<tr><td>129</td><td>31</td><td>安全與治理</td><td>個資偵測</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/gliner-pii">gliner-pii</a></td><td>偵測文字中的個資與敏感資訊，例如姓名、電話、地址、證件號，支援遮罩與稽核。</td></tr>
+<tr><td>130</td><td>80</td><td>Physical AI / 自駕 / 機器人</td><td>物理一致影片生成</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/cosmos-transfer1-7b">cosmos-transfer1-7b</a></td><td>從文字與空間控制輸入生成物理一致的影片世界狀態，產生機器人/自駕訓練資料。</td></tr>
+<tr><td>131</td><td>33</td><td>Physical AI / 自駕 / 機器人</td><td>物理一致影片生成</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/cosmos-transfer2_5-2b">cosmos-transfer2.5-2b</a></td><td>從文字與空間控制輸入生成物理一致的影片世界狀態，產生機器人/自駕訓練資料。</td></tr>
+<tr><td>132</td><td>38</td><td>Physical AI / 自駕 / 機器人</td><td>物理世界推理</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/cosmos-reason2-8b">cosmos-reason2-8b</a></td><td>理解影片/圖像中的物理世界、物件互動與時序關係，支援機器人和自駕場景推理。</td></tr>
+<tr><td>133</td><td>91</td><td>Physical AI / 自駕 / 機器人</td><td>未來世界狀態預測</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/cosmos-predict1-5b">cosmos-predict1-5b</a></td><td>根據圖片或短影片預測未來畫面/世界狀態，用於機器人與自駕模型測試。</td></tr>
+<tr><td>134</td><td>93</td><td>Physical AI / 自駕 / 機器人</td><td>自駕 3D 感知</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/bevformer">bevformer</a></td><td>做自駕車 3D 感知、鳥瞰圖理解或物件偵測，支援自駕資料分析與模型驗證。</td></tr>
+<tr><td>135</td><td>46</td><td>Physical AI / 自駕 / 機器人</td><td>自駕 3D 感知</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/streampetr">streampetr</a></td><td>做自駕車 3D 感知、鳥瞰圖理解或物件偵測，支援自駕資料分析與模型驗證。</td></tr>
+<tr><td>136</td><td>92</td><td>Physical AI / 自駕 / 機器人</td><td>自駕端到端 Stack</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/sparsedrive">sparsedrive</a></td><td>整合感知、預測與規劃，適合自駕研究、場景評估與策略驗證。</td></tr>
+<tr><td>137</td><td>60</td><td>3D / OpenUSD / 數位分身</td><td>文字/圖片轉 3D</td><td>microsoft</td><td><a href="https://build.nvidia.com/microsoft/trellis">TRELLIS</a></td><td>從文字或圖片生成 3D 資產，支援遊戲、數位分身、模擬與創作流程。</td></tr>
+<tr><td>138</td><td>117</td><td>3D / OpenUSD / 數位分身</td><td>OpenUSD 程式碼生成</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/usdcode">usdcode</a></td><td>回答 OpenUSD 問題並產生 USD-Python 程式碼，協助建立或修改數位分身場景。</td></tr>
+<tr><td>139</td><td>139</td><td>3D / OpenUSD / 數位分身</td><td>OpenUSD 資產驗證</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/usdvalidate">usdvalidate</a></td><td>檢查 OpenUSD 資產是否符合 RTX 渲染與規則要求，支援數位分身資產驗證。</td></tr>
+<tr><td>140</td><td>131</td><td>生醫與藥物探索</td><td>蛋白質/分子結構預測</td><td>deepmind</td><td><a href="https://build.nvidia.com/deepmind/alphafold2">alphafold2</a></td><td>預測蛋白質、核酸、配體或生物分子複合體的 3D 結構，支援藥物探索與生物研究。</td></tr>
+<tr><td>141</td><td>129</td><td>生醫與藥物探索</td><td>蛋白質/分子結構預測</td><td>deepmind</td><td><a href="https://build.nvidia.com/deepmind/alphafold2-multimer">alphafold2-multimer</a></td><td>預測蛋白質、核酸、配體或生物分子複合體的 3D 結構，支援藥物探索與生物研究。</td></tr>
+<tr><td>142</td><td>154</td><td>生醫與藥物探索</td><td>蛋白質/分子結構預測</td><td>meta</td><td><a href="https://build.nvidia.com/meta/esmfold">esmfold</a></td><td>預測蛋白質、核酸、配體或生物分子複合體的 3D 結構，支援藥物探索與生物研究。</td></tr>
+<tr><td>143</td><td>83</td><td>生醫與藥物探索</td><td>蛋白質/分子結構預測</td><td>mit</td><td><a href="https://build.nvidia.com/mit/boltz2">Boltz-2</a></td><td>預測蛋白質、核酸、配體或生物分子複合體的 3D 結構，支援藥物探索與生物研究。</td></tr>
+<tr><td>144</td><td>102</td><td>生醫與藥物探索</td><td>蛋白質/分子結構預測</td><td>openfold</td><td><a href="https://build.nvidia.com/openfold/openfold2">openfold2</a></td><td>預測蛋白質、核酸、配體或生物分子複合體的 3D 結構，支援藥物探索與生物研究。</td></tr>
+<tr><td>145</td><td>50</td><td>生醫與藥物探索</td><td>蛋白質/分子結構預測</td><td>openfold</td><td><a href="https://build.nvidia.com/openfold/openfold3">openfold3</a></td><td>預測蛋白質、核酸、配體或生物分子複合體的 3D 結構，支援藥物探索與生物研究。</td></tr>
+<tr><td>146</td><td>136</td><td>生醫與藥物探索</td><td>蛋白質設計</td><td>ipd</td><td><a href="https://build.nvidia.com/ipd/proteinmpnn">proteinmpnn</a></td><td>設計蛋白質骨架或依骨架生成胺基酸序列，支援 protein binder 與蛋白工程。</td></tr>
+<tr><td>147</td><td>148</td><td>生醫與藥物探索</td><td>蛋白質設計</td><td>ipd</td><td><a href="https://build.nvidia.com/ipd/rfdiffusion">rfdiffusion</a></td><td>設計蛋白質骨架或依骨架生成胺基酸序列，支援 protein binder 與蛋白工程。</td></tr>
+<tr><td>148</td><td>130</td><td>生醫與藥物探索</td><td>蛋白質嵌入向量</td><td>meta</td><td><a href="https://build.nvidia.com/meta/esm2-650m">esm2-650m</a></td><td>將蛋白質序列轉成向量表示，用於蛋白質搜尋、相似度分析與下游生物模型。</td></tr>
+<tr><td>149</td><td>101</td><td>生醫與藥物探索</td><td>多序列比對</td><td>colabfold</td><td><a href="https://build.nvidia.com/colabfold/msa-search">msa-search</a></td><td>替蛋白質序列建立多序列比對，作為結構預測與演化分析前處理。</td></tr>
+<tr><td>150</td><td>155</td><td>生醫與藥物探索</td><td>分子 Docking</td><td>mit</td><td><a href="https://build.nvidia.com/mit/diffdock">diffdock</a></td><td>預測小分子與蛋白質的結合姿態，用於 docking、候選分子篩選與藥物設計。</td></tr>
+<tr><td>151</td><td>113</td><td>生醫與藥物探索</td><td>小分子生成/最佳化</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/genmol-generate">genmol</a></td><td>生成或最佳化具有目標性質的小分子，支援早期藥物候選探索。</td></tr>
+<tr><td>152</td><td>153</td><td>生醫與藥物探索</td><td>小分子生成/最佳化</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/molmim-generate">molmim</a></td><td>生成或最佳化具有目標性質的小分子，支援早期藥物候選探索。</td></tr>
+<tr><td>153</td><td>107</td><td>生醫與藥物探索</td><td>基因體序列建模</td><td>arc</td><td><a href="https://build.nvidia.com/arc/evo2-40b">evo2-40b</a></td><td>分析長基因序列並捕捉單核苷酸變異影響，適合基因體研究與生物序列建模。</td></tr>
+<tr><td>154</td><td>15</td><td>科學與工程模擬</td><td>量子校準</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/ising-calibration-1-35b-a3b">ising-calibration-1-35b-a3b</a></td><td>理解量子電腦校準圖表與量測資料，輔助量子晶片校準與錯誤修正工作流。</td></tr>
+<tr><td>155</td><td>122</td><td>科學與工程模擬</td><td>天氣/氣候預測</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/fourcastnet">fourcastnet</a></td><td>快速預測全球天氣與氣候變數，用於氣象模擬、風險分析與 Earth-2 工作流。</td></tr>
+<tr><td>156</td><td>152</td><td>科學與工程模擬</td><td>醫學影像分割</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/vista-3d">vista-3d</a></td><td>互動式分割與標註人體解剖結構，適合醫學影像分析與輔助標註。</td></tr>
+<tr><td>157</td><td>157</td><td>科學與工程模擬</td><td>路線/組合最佳化</td><td>nvidia</td><td><a href="https://build.nvidia.com/nvidia/nvidia-cuopt">cuopt</a></td><td>求解車隊配送、路線規劃、排程與複雜組合最佳化問題。</td></tr>
+</thead><tbody>
+</table>
+
+</main>
+</body>
+</html>

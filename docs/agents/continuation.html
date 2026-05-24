@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Agent Continuation — NVIDIA OS Support Docs</title>
+<style>
+:root {
+  --bg: #0f1117; --bg2: #1a1d2e; --bg3: #252840;
+  --border: #2d3155; --accent: #6366f1; --accent2: #818cf8;
+  --text: #e2e8f0; --muted: #94a3b8; --code-bg: #1e2235;
+  --success: #22c55e; --warn: #f59e0b;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+       background: var(--bg); color: var(--text); line-height: 1.7;
+       display: flex; min-height: 100vh; }
+nav { width: 240px; min-height: 100vh; background: var(--bg2);
+      border-right: 1px solid var(--border); padding: 24px 0;
+      position: sticky; top: 0; height: 100vh; overflow-y: auto;
+      flex-shrink: 0; }
+nav .logo { padding: 0 20px 20px; border-bottom: 1px solid var(--border); margin-bottom: 12px; }
+nav .logo a { text-decoration: none; font-size: 15px; font-weight: 700;
+              color: var(--accent2); }
+nav .section { padding: 6px 20px 2px; font-size: 10px; font-weight: 700;
+               text-transform: uppercase; letter-spacing: 1px; color: var(--muted);
+               margin-top: 8px; }
+nav a { display: block; padding: 5px 20px; font-size: 13px; color: var(--muted);
+        text-decoration: none; border-left: 2px solid transparent;
+        transition: all .15s; }
+nav a:hover, nav a.active { color: var(--text); border-color: var(--accent);
+                              background: rgba(99,102,241,.08); }
+main { flex: 1; padding: 40px 48px; max-width: 900px; min-width: 0; }
+h1 { font-size: 2rem; font-weight: 800; color: var(--text);
+     border-bottom: 2px solid var(--accent); padding-bottom: 12px; margin-bottom: 24px; }
+h2 { font-size: 1.4rem; font-weight: 700; color: var(--accent2);
+     margin: 32px 0 12px; padding-top: 8px; }
+h3 { font-size: 1.1rem; font-weight: 600; color: var(--text); margin: 20px 0 8px; }
+h4, h5, h6 { font-size: 1rem; font-weight: 600; color: var(--muted); margin: 16px 0 6px; }
+p { margin: 8px 0; color: var(--text); }
+a { color: var(--accent2); }
+a:hover { color: #a5b4fc; }
+code { background: var(--code-bg); border: 1px solid var(--border);
+       border-radius: 4px; padding: 1px 5px; font-size: .875em;
+       font-family: 'JetBrains Mono', 'Fira Code', monospace; color: #a5b4fc; }
+pre { background: var(--code-bg); border: 1px solid var(--border);
+      border-radius: 8px; padding: 16px; overflow-x: auto; margin: 12px 0; }
+pre code { background: none; border: none; padding: 0;
+           font-size: .82rem; color: var(--text); }
+blockquote { border-left: 3px solid var(--accent); padding: 8px 16px;
+             background: rgba(99,102,241,.06); margin: 12px 0; border-radius: 0 6px 6px 0; }
+ul, ol { padding-left: 24px; margin: 8px 0; }
+li { margin: 3px 0; }
+table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: .9rem; }
+th { background: var(--bg3); color: var(--accent2); font-weight: 700;
+     padding: 8px 12px; border: 1px solid var(--border); text-align: left; }
+td { padding: 7px 12px; border: 1px solid var(--border); color: var(--text); }
+tr:nth-child(even) td { background: rgba(255,255,255,.02); }
+hr { border: none; border-top: 1px solid var(--border); margin: 24px 0; }
+strong { color: #c7d2fe; }
+del { color: var(--muted); }
+.badge { display: inline-block; font-size: 10px; font-weight: 700; padding: 1px 6px;
+         border-radius: 9px; border: 1px solid; margin: 0 2px; vertical-align: middle; }
+.badge-green { color: var(--success); border-color: var(--success); }
+.badge-warn  { color: var(--warn);    border-color: var(--warn); }
+/* toc sidebar on large screens */
+@media (max-width: 768px) { nav { display: none; } main { padding: 20px 16px; } }
+</style>
+</head>
+<body>
+<nav>
+  <div class="logo"><a href="../index.html">📁 NVIDIA OS Support</a></div>
+  <div class="section">Agent 工作文件</div>
+  <a href="../agents/usage.html">使用指南</a>
+  <a href="../agents/continuation.html" class="active">接手狀態</a>
+  <a href="../agents/workflows.html">Runnable Workflows</a>
+<div class="section">ControlStudio</div>
+  <a href="../control-studio/roadmap.html">Roadmap（主線）</a>
+  <a href="../control-studio/plan.html">開發計畫</a>
+  <a href="../control-studio/backlog.html">Backlog</a>
+  <a href="../control-studio/scenarios.html">情境案例</a>
+  <a href="../control-studio/verification.html">驗證案例</a>
+  <a href="../control-studio/skills.html">Skill 規劃</a>
+  <a href="../control-studio/uiux-r1.html">UI/UX Round 1</a>
+  <a href="../control-studio/uiux-r2.html">UI/UX Round 2</a>
+  <a href="../control-studio/archive/phase10-plan.html">▸ Phase 10 計畫（封存）</a>
+  <a href="../control-studio/archive/phase10-verify.html">▸ Phase 10 驗證（封存）</a>
+<div class="section">NVIDIA 模型</div>
+  <a href="../nvidia/guide.html">落地操作指南</a>
+  <a href="../nvidia/models-zh.html">模型分類表（中文）</a>
+  <a href="../nvidia/models-en.html">Model Summary (EN)</a>
+  <a href="../nvidia/selector-plan.html">Selector Skill 計畫</a>
+<div class="section">案例輸出</div>
+  <a href="../cases/dc-motor.html">DC Motor 速度控制</a>
+  <a href="../cases/precision-servo.html">Precision Servo</a>
+  <a href="../cases/regression.html">Regression Dashboard</a>
+</nav>
+<main>
+<h1 id="agent-continuation">Agent Continuation</h1>
+
+<p>此文件用於 usage 即將耗盡、切換 agent、或中斷後續接手。不要使用 <code>.agent-handoff.md</code>。</p>
+
+<h2 id="專案根目錄">專案根目錄</h2>
+<p><code>/Users/w.rc/nvdiaOSsupport</code></p>
+
+<h2 id="目前狀態">目前狀態</h2>
+<ul>
+<li>已建立獨立 git repo，避免被 <code>/Users/w.rc</code> 外層 git 混入。</li>
+<li>控制系統目前同步基線：</li>
+<ul>
+<li>Branch: <code>main</code></li>
+<li>Latest active line: <code>7ea48fe chore(ui): remove triple-pane plot workspace and keep active-plot crosshair routing</code></li>
+<li>Full phase audit checkpoints:</li>
+<ul>
+<li><code>7a318b3 fix(control): harden phase 7-9 theory diagnostics</code></li>
+<li><code>46e20da fix(control): harden phase 0-6 theory checks</code></li>
+</ul>
+<li>近期主線已接續完成 Phase 12 ~ Phase 17；目前 codebase 已包含 H∞ 視覺化與 MIMO <code>||G||∞</code>、大幅 UI/UX 改版、time delay / IMC / disk margin / LaTeX、ARX system ID / A-B compare / codegen / root-locus animation、H∞ mixed-sensitivity PID synthesis / GA PID auto-tuner / phase portrait / describing functions，以及 Phase 17 的 plant-order dynamic H∞、structured μ、MIMO frequency-domain diagnostics、MPC MIMO output tracking。</li>
+<li>Post Phase 17 最新數學核心 hardening：<code>a2a89d3</code> 修正 <code>complex.js</code> magnitude overflow/underflow 風險、<code>polynomial.js</code> ill-conditioned conjugate root pairing、<code>realschur.js</code> Hamiltonian dead computation 與 real Schur 1x1 block swap / eigenvalue order 問題。</li>
+<li>本輪文件同步時同步修正 <code>rootsToRealPoly()</code> unpaired complex root error message，保留 <code>conjugate pairs</code> regression contract，讓 <code>./nv-agent doctor</code> / <code>test_control.js</code> 可正確分類錯誤。</li>
+<li>2026-05-22 UI/UX 計畫 P1 foundation 已開始落地：全域狀態列、toast notification infrastructure、empty-state action style、Share/Theme/Project/Compare 高頻動作通知，新增 <code>verify_p35_uiux_foundation.mjs</code> 並納入 <code>run_all_verify.sh</code>。</li>
+<li>2026-05-24 UI/UX 計畫已推進到 P59 之後的整體整理階段：P35~P59 均已落地，包含 plot workspace、context bar、dashboard/scoring/report/decision-log，以及後續的 browser-driven layout cleanup；<code>run_all_verify.sh</code> 最新基線為 <code>79/79 scripts pass</code>。</li>
+</ul>
+<li>已完成 NVIDIA Build Models 資料集中管理。</li>
+<li>已新增 agent 入口文件：</li>
+<ul>
+<li><code>AGENTS.md</code>：專案規則、標準流程、擴充規則與品質判準。</li>
+<li><code>AGENT_USAGE.md</code>：CLI 操作、選型、執行、評估與擴充手冊。</li>
+</ul>
+<li>已建立可用 skill 原始碼：</li>
+<ul>
+<li><code>skills/nvidia-model-selector/SKILL.md</code></li>
+<li><code>skills/nvidia-model-selector/references/model-categories.md</code></li>
+<li><code>skills/nvidia-model-selector/references/operational-guide.md</code></li>
+<li><code>skills/nvidia-model-selector/references/inventory.csv</code></li>
+<li><code>skills/nvidia-model-selector/scripts/search_models.py</code></li>
+</ul>
+<li>已建立可執行 workflow：</li>
+<ul>
+<li><code>workflows/rag_workflow.py</code></li>
+<li><code>workflows/ocr_rag_workflow.py</code></li>
+<li><code>workflows/safety_guard_workflow.py</code></li>
+<li><code>workflows/image_generation_workflow.py</code></li>
+<li><code>workflows/cuopt_demo_workflow.py</code></li>
+<li><code>workflows/control_advisor_workflow.py</code></li>
+<li><code>data/sample_kb.txt</code></li>
+<li><code>data/cuopt_sample_problem.json</code></li>
+<li><code>.env.example</code></li>
+<li><code>RUNNABLE_WORKFLOWS.md</code></li>
+</ul>
+<li>已建立控制系統工作台：</li>
+<ul>
+<li><code>control-studio/index.html</code></li>
+<li><code>control-studio/js/</code></li>
+<li><code>control-studio/scripts/control_api.py</code></li>
+<li><code>control-studio/requirements-api.txt</code></li>
+<li><code>test_control.js</code></li>
+<li><code>CONTROL_SYSTEM_PLAN.md</code></li>
+<li><code>CONTROL_SYSTEM_VERIFICATION_CASES.md</code></li>
+<li><code>CONTROL_SYSTEM_BACKLOG.md</code></li>
+<li><code>CONTROL_SYSTEM_SCENARIOS.md</code></li>
+<li><code>CONTROL_SYSTEM_PHASE10_PLAN.md</code></li>
+<li><code>CONTROL_SYSTEM_SKILLS_PLAN.md</code></li>
+</ul>
+<li>控制系統目前 phase 狀態：</li>
+<ul>
+<li>Phase 0 ~ Phase 9：Done</li>
+<li>Phase 10：Done</li>
+<ul>
+<li>Done：Phase 10 design baseline</li>
+<li>Done：Schur / Hamiltonian CARE solver</li>
+<li>Done：MPC baseline</li>
+<li>Done：Dynamic Decoupler prototype</li>
+<li>Done：Robust sensitivity baseline</li>
+<li>Done：MPC UI panel / Robust sensitivity UI / Dynamic Decoupler UI</li>
+<li>Done：gain/phase uncertainty envelope</li>
+<li>Done：MPC box constraints + state constraints / soft slack</li>
+<li>Done：Scenario 5 MPC / Robust UI walkthrough</li>
+<li>Done：Scenario 6 SISO / MIMO UI walkthrough 與 UI cleanup</li>
+</ul>
+<li>Phase 11：Done</li>
+<ul>
+<li>Done：DARE solver via symplectic Cayley + matrix sign</li>
+<li>Done：MPC terminal cost <code>P∞</code></li>
+<li>Done：MPC setpoint tracking（constant / time-varying reference）</li>
+<li>Done：H∞ norm estimation</li>
+<li>Done：Dynamic RGA <code>Λ(jω)</code></li>
+<li>Done：<code>verify:all</code> 納入 phase11 驗證</li>
+<li>Paused：Teaching Mode / Electron / Report Template / Block Diagram expansion</li>
+</ul>
+<li>Phase 12：Done</li>
+<ul>
+<li>Done：Robust sensitivity 圖改為 dB 尺度與 reference lines</li>
+<li>Done：bandwidth 指標與 MIMO <code>||G||∞</code> 視覺化</li>
+<li>Done：<code>H∞ Norms</code> UI 區塊整併</li>
+</ul>
+<li>Phase 13：Done</li>
+<ul>
+<li>Done：sidebar / tab / section / modal / validation hint 的 UI/UX overhaul</li>
+<li>Done：Quick Start modal（8 presets）與 keyboard shortcuts</li>
+<li>Done：destructive action confirm、live field validation、accessibility / responsive cleanup</li>
+</ul>
+<li>Phase 14：Done</li>
+<ul>
+<li>Done：time delay / Padé / delay margin / Smith predictor baseline</li>
+<li>Done：IMC / SIMC PID tuning</li>
+<li>Done：KaTeX LaTeX rendering 與 28 個 industrial presets</li>
+<li>Done：disk margin / additive uncertainty</li>
+<li>Done：seedable RNG 與 LQG random-seed control</li>
+</ul>
+<li>Phase 15：Done</li>
+<ul>
+<li>Done：ARX system identification（含 auto order）</li>
+<li>Done：controller A/B compare（含 open-loop Bode overlay）</li>
+<li>Done：MATLAB / Python codegen</li>
+<li>Done：root locus K-sweep animation</li>
+</ul>
+<li>Phase 16：Done</li>
+<ul>
+<li>Done：H∞ mixed-sensitivity PID synthesis helper</li>
+<li>Done：GA-based PID auto-tuner</li>
+<li>Done：2D phase portrait</li>
+<li>Done：describing functions（saturation / relay / dead-zone）</li>
+</ul>
+<li>Phase 17：Done</li>
+<ul>
+<li>Done：plant-order dynamic H∞ mixed-sensitivity synthesis</li>
+<li>Done：structured μ D-scaling upper-bound</li>
+<li>Done：DK-style static gain robust design surrogate</li>
+<li>Done：MIMO characteristic loci / Gershgorin bands / inverse Nyquist array</li>
+<li>Done：MPC MIMO output-space setpoint tracking</li>
+</ul>
+<li>Post Phase 17 Math Core Hardening：Done</li>
+<ul>
+<li>Done：<code>Complex.abs()</code> 使用 <code>Math.hypot()</code> 避免極端尺度 overflow / underflow。</li>
+<li>Done：<code>Complex.div()</code> 使用 scaled Smith division，避免極大尺度除法 NaN 與極小尺度 divisor 被誤判 zero。</li>
+<li>Done：<code>rootsToRealPoly()</code> 改為 best-match + relative tolerance，改善重根與 ill-conditioned roots。</li>
+<li>Done：<code>rootsToRealPoly()</code> unpaired complex root error 保留 <code>conjugate pairs</code> wording，維持 regression 相容性。</li>
+<li>Done：二階 <code>polyroots()</code> 改為 stable quadratic formula，保留 separated roots 的小根。</li>
+<li>Done：<code>matInverse()</code> / <code>matSolve()</code> / <code>matRank()</code> / <code>matIsPositiveDefinite()</code> 改用相對尺度 tolerance，避免縮放很小但條件良好的矩陣被誤判。</li>
+<li>Done：discrete frequency response 改用共用 robust complex division。</li>
+<li>Done：Hamiltonian stable subspace 清除未使用且轉置錯誤的 dead computation。</li>
+<li>Done：real Schur 1x1 block swap 修正 Givens rotation 公式、乘法方向 / 符號與 reordered eigenvalue 回傳順序。</li>
+</ul>
+<li>Phase 18+ Research / Engineering Extension：Active through P28</li>
+<ul>
+<li>Done：Phase 18 uncertainty + Monte Carlo robust validation。</li>
+<li>Done：Phase 18 core API in <code>control-studio/js/control/robust.js</code>，包含 uncertainty schema、deterministic Monte Carlo sampling、worst-case metrics、robust pass/fail 與 unstable sample classification。</li>
+<li>Done：<code>control-studio/scripts/verify_p18_robust_validation.mjs</code> 與 <code>npm run verify:p18</code>。</li>
+<li>Done：<code>skills/control-studio-robust-validator/</code> skill baseline。</li>
+<li>Done：<code>skills/control-studio-system-auditor/</code> 與 <code>skills/control-studio-benchmark-author/</code> skill baseline。</li>
+<li>Done：Robust Validation UI panel，接上 Phase 18 core；Playwright/Chrome walkthrough 已確認 button/output/chart。</li>
+<li>Done：Phase 19 H∞ Riccati synthesis baseline；full D-K iteration 仍列為 P27 gap。</li>
+<li>Done：Phase 20 MIMO MPC engineering workflow，含 offset-free tracking、move suppression、constraints、feasibility diagnostics。</li>
+<li>Done：Phase 21 research-grade system identification，含 ARMAX / OE / BJ / subspace ID、experiment design、residual validation、uncertainty export。</li>
+<li>Done：Phase 22 benchmark + cross-tool validation，含 CI、cross-tool comparison、full verification runner、benchmark script。</li>
+<li>Mostly Done：Phase 23 agentic / SysID gap closure；FRF、model order、MISO ARX 已提交，CONTSID / SRIVC 尚未提交。</li>
+<li>Done：Phase 24 advanced MPC；NMPC、EMPC、Tube MPC、Explicit MPC 已提交，含 deterministic regression runners。</li>
+<li>Mostly Done：Phase 25 model order reduction；balanced truncation / SS minreal 已提交，Hankel norm approximation 尚未提交。</li>
+<li>Mostly Done：Phase 26 nonlinear control；gain-scheduled PID / SMC 已提交，LPV synthesis 尚未提交。</li>
+<li>Mostly Done：Phase 27 H∞ design extensions；MIMO H∞ verification / loop-shaping H∞ 已提交，full D-K iteration 尚未提交。</li>
+<li>Mostly Done：Phase 28 infrastructure quality；TypeScript definitions / benchmark 已提交，JSDoc API docs 尚未提交。</li>
+<li>主執行看板：<code>control-studio/ROADMAP.md</code>。若 phase status、下一步順序或 dirty worktree 分類改變，先更新 roadmap，再同步 backlog / plan / skills / scenarios / verification cases / continuation。</li>
+<li>Skill plan：<code>CONTROL_SYSTEM_SKILLS_PLAN.md</code> 已規劃 <code>control-studio-robust-validator</code>、<code>control-studio-system-auditor</code>、<code>control-studio-benchmark-author</code>、<code>control-studio-mpc-designer</code>、<code>control-studio-sysid-planner</code> 等候選 skill。</li>
+</ul>
+<li>Block Diagram expansion：Paused</li>
+<li>Phase 0 ~ Phase 28 已完成一次文件進度對齊。後續若修改數值核心，至少依 roadmap 對應 phase 重跑 targeted verify、<code>npm run verify:all</code>、<code>node test_control.js</code>、<code>node control-studio/scripts/control_regression_dashboard.mjs</code>。</li>
+</ul>
+<li>已建立 symlink：</li>
+<ul>
+<li><code>/Users/w.rc/.config/agents/skills/nvidia-model-selector</code></li>
+<li>指向 <code>/Users/w.rc/nvdiaOSsupport/skills/nvidia-model-selector</code></li>
+</ul>
+<li>已建立整合 CLI：</li>
+<ul>
+<li><code>/Users/w.rc/nvdiaOSsupport/nv-agent</code></li>
+<li><code>search</code>：查本地 inventory</li>
+<li><code>advise</code> / <code>request</code>：做選型提問</li>
+<li><code>plan</code>：依 task profile 產生多階段計畫與候選模型</li>
+<li><code>run-plan</code>：執行計畫並寫入 run manifest</li>
+<li><code>eval</code>：對 run manifest 做基本品質檢查</li>
+<li><code>run</code>：執行各 runnable workflow</li>
+<li><code>doctor</code>：跑整體驗證</li>
+</ul>
+<li>已建立架構設定：</li>
+<ul>
+<li><code>configs/model_registry.json</code></li>
+<li><code>configs/task_profiles.json</code></li>
+</ul>
+<li>已建立 runtime router：</li>
+<ul>
+<li><code>workflows/common.py</code> 會從 <code>configs/model_registry.json</code> 解析 role、model id、endpoint type、endpoint url。</li>
+<li><code>./nv-agent plan --select-model ROLE=MODEL_ID</code> 可讓 Agent 指定每個任務單元的模型來源。</li>
+<li><code>./nv-agent run-plan --select-model ROLE=MODEL_ID ...</code> 可在執行前覆蓋來源。</li>
+<li>image / safety / cuOpt workflow 已支援 registry endpoint source 與 CLI 覆蓋。</li>
+<li>control-advisor workflow 已接入 <code>control_expert</code> role。</li>
+</ul>
+</ul>
+
+<h2 id="git-checkpoints">Git Checkpoints</h2>
+<ul>
+<li><code>338986f docs(nvidia): baseline model inventory and skill plan</code></li>
+<li><code>ce335b3 feat(skill): add nvidia model selector</code></li>
+<li><code>374f2c2 docs(agent): add continuation and validation workflow</code></li>
+<li><code>5c05766 feat(workflow): add runnable nvidia rag flow</code></li>
+<li><code>7160ebd fix(workflow): use shared key with runnable defaults</code></li>
+<li><code>772abef feat(workflow): add safety guard flow</code></li>
+<li><code>0b52114 feat(workflow): add image generation flow</code></li>
+<li><code>1e66585 feat(workflow): add cuopt demo flow</code></li>
+<li><code>438ce9b feat(workflow): add ocr rag flow</code></li>
+</ul>
+
+<h2 id="接手第一步">接手第一步</h2>
+<pre><code class="lang-bash">cd /Users/w.rc/nvdiaOSsupport
+git status --short
+cat AGENTS.md
+cat AGENT_USAGE.md
+git log --oneline -5
+./scripts/validate_nvidia_model_selector.sh</code></pre>
+
+<h2 id="git-維護提醒">Git 維護提醒</h2>
+<ul>
+<li>控制系統開發必須持續用 git 維護；每完成一批功能、修正、或驗證補強，就立刻 commit，不要讓 <code>control-studio/</code> 與 <code>test_control.js</code> 長時間停留在未提交狀態。</li>
+<li>控制系統 commit 請帶 phase / scope，例如 <code>feat(phase9): ...</code>、<code>fix(phase9): ...</code>、<code>test(phase9): ...</code>、<code>docs(control): ...</code>。</li>
+<li>控制系統 checkpoint 前必須同步文件：若本輪改到功能範圍、數學核心、UI 行為、驗證覆蓋或已知限制，先更新 <code>control-studio/ROADMAP.md</code>，再同步 <code>CONTROL_SYSTEM_PLAN.md</code> / backlog / scenarios / verification cases / 本文件中相符項目，再 commit。</li>
+<li>在切換 agent 前，若本輪有控制系統改動，先確認至少有一個可回溯的 git checkpoint。</li>
+</ul>
+
+<h2 id="已驗證">已驗證</h2>
+<ul>
+<li><code>bge-m3</code> model search works.</li>
+<li><code>Embedding API</code> service search works.</li>
+<li><code>OCR</code> JSON search works.</li>
+<li><code>search_models.py</code> compiles with Python 3.13.</li>
+<li><code>rag_workflow.py</code> compiles with Python 3.13.</li>
+<li>預設 <code>.env</code> / <code>.env.example</code> 現在使用已實測可跑的 <code>nvidia/nv-embed-v1</code> + <code>meta/llama-3.1-8b-instruct</code>。</li>
+<li><code>safety_guard_workflow.py</code> 已實測 safe / unsafe 兩種 prompt。</li>
+<li><code>image_generation_workflow.py</code> 已實測可生成 PNG 到 <code>outputs/images/</code>。</li>
+<li><code>cuopt_demo_workflow.py</code> 已實測 validator 與 optimized routing。</li>
+<li><code>ocr_rag_workflow.py</code> 已實測 OCR 抽取與後續問答。</li>
+<li><code>nv-agent workflows</code>、<code>nv-agent search</code>、<code>nv-agent advise</code>、<code>nv-agent run rag</code> 已實測。</li>
+<li><code>nv-agent plan</code>、<code>nv-agent run-plan</code>、<code>nv-agent eval</code> 已實測一輪 RAG 閉環。</li>
+<li><code>AGENTS.md</code> 與 <code>AGENT_USAGE.md</code> 已納入驗證腳本，確保後續 agent 有固定入口。</li>
+<li>image runtime router 已用 dry-run 驗證會輸出 <code>--model</code> 與 <code>--endpoint-url</code>。</li>
+<li><code>test_control.js</code> 已驗證基本極點判定與 step response 指標。</li>
+<li><code>control_advisor_workflow.py --help</code> 可正常執行。</li>
+<li><code>CONTROL_SYSTEM_PLAN.md</code> 已整理控制系統盤點、MVP 範圍與後續 roadmap。</li>
+<li><code>CONTROL_SYSTEM_VERIFICATION_CASES.md</code> 已定義五個具數學推導的控制系統驗證案例，涵蓋一階、二階欠阻尼、初始不穩定/pole-zero/低 PM、RHP zero、State-Space 等價。</li>
+<li><code>control-studio/ROADMAP.md</code> 已整併為 ControlStudio 主執行看板，記錄 P23~P28 進度、dirty worktree 分類、文件工作流與下一步順序；P24 advanced MPC 已完成。</li>
+<li><code>CONTROL_SYSTEM_BACKLOG.md</code> 已改為 detailed task ledger；目前 Phase 0~24 已完成，P25/P26/P27/P28 mostly done。</li>
+<li><code>CONTROL_SYSTEM_SKILLS_PLAN.md</code> 已新增 Phase 18+ skill candidates，且 <code>control-studio-robust-validator</code>、<code>control-studio-system-auditor</code>、<code>control-studio-benchmark-author</code> baseline 已建立；MPC / SysID / UI verifier 目前以全域 skill 或候選工作流存在，專案版 examples / references 可後續補。</li>
+<li><code>control-studio</code> 已補上 State Space（SISO）輸入、Step/Impulse/Ramp 切換、Nyquist Plot、project save/load 與 JSON/CSV 匯出。</li>
+<li><code>control-studio</code> UI 已改成 sidebar workspace tabs（Model / Sim / Advisor / Compare），並支援 comparison snapshots 疊圖比較。</li>
+<li><code>control-studio</code> plot workspace 已改為固定 <code>主圖全寬 + 下排兩張 companion charts</code>；各 plot tab 有明確 main / companion mapping，<code>Root Locus</code> 主圖時左下為 <code>Step @ K</code>，<code>Pole-Zero</code> 主圖時下排改顯示 <code>Step Response + Bode Plot</code>，避免重複圖表。</li>
+<li><code>control-studio/scripts/serve_studio.py</code> 已提供固定的本地前端啟動入口（預設 <code>http://127.0.0.1:8765</code>）。</li>
+<li><code>control-studio</code> 已補上 simulation config（duration/sample count/amplitude/disturbance/initial state）、autosave/restore session、waveform 擴充與 comparison 指標摘要。</li>
+<li><code>control-studio/scripts/control_api.py</code> 已提供統合的 FastAPI 服務，整合原本的 Advisor Bridge 與基礎分析；前端 AI advisor 已優先改打 <code>127.0.0.1:8770/api/control/advisor</code>。</li>
+<li><code>control-studio/requirements-api.txt</code> 已列出 FastAPI / uvicorn / pydantic 依賴，可用 <code>./.venv/bin/pip install -r control-studio/requirements-api.txt</code> 安裝。</li>
+<li><code>control-studio/js/analysis/time-response.js</code> 已補內部 RK4 substepping，避免低 sample count 時穩定系統數值爆掉。</li>
+<li><code>control-studio</code> 已補 Nichols Chart、ZPK 輸入、Export PNG、Routh-Hurwitz 表、autoFreqRange、Root Locus asymptotes、Nyquist encirclement 計數、輸入驗證強化。</li>
+<li><code>control-studio</code> 已補 Lead/Lag 補償器，作為 PID 後串接的 <code>Cc(s)=Kc(tau<em>s+1)/(alpha</em>tau*s+1)</code>。</li>
+<li><code>control-studio/scripts/verify_control_cases.mjs</code> 已將 <code>CONTROL_SYSTEM_VERIFICATION_CASES.md</code> 的五個數學案例轉為 fixture-based regression runner，並納入 validation script。</li>
+<li><code>control-studio/scripts/verify_control_api_contract.mjs</code> 已用同一組 verification fixtures 比對 FastAPI <code>/api/control/system/response</code>、<code>/api/control/system/stability</code> 與 JS CLI 的 formula / metrics / plot shape，並納入 validation script。</li>
+<li><code>control-studio/js/app.js</code> 已暴露 <code>window.ControlStudioSmoke.run()</code> 與 <code>getState()</code>，供 in-app browser 驗證 UI 公式、plot traces、legend、snapshot 與錯誤狀態。</li>
+<li><code>control-studio</code> 已強化輸入驗證：TF 分母不可全 0、ZPK zeros/poles 有欄位錯誤、State-Space A/B/C/D 會標示對應欄位、Lead/Lag alpha/tau/gain 有模式限制；本輪已用 in-app browser 驗證壞輸入不會覆蓋原可用模型。</li>
+<li><code>control-studio</code> 已補 PID presets 與 Lead design helper：UI 可套用 Ziegler-Nichols / Cohen-Coon PID preset，Lead helper 可用 target phase boost 與 crossover 產生 <code>alpha/tau/gain</code>；<code>test_control.js</code> 已驗證公式。</li>
+<li><code>control-studio</code> Compare 面板已補 controller comparison table，snapshot 會保存 PM/GM/rise/settling/overshoot/ESS、controller formula、open/closed-loop formula 與 compensator config；本輪已用 in-app browser 驗證表格與 comparison plot。</li>
+<li><code>control-studio</code> 已補 Lag design helper：以 improvement factor 與 crossover 產生 lag <code>gain/tau/alpha</code>，用於提升低頻 DC gain；<code>test_control.js</code> 與 in-app browser 已驗證。</li>
+<li><code>control-studio</code> 已補離散系統核心 baseline：<code>DiscreteTransferFunction</code> 使用 z^-1 係數與 sample time，<code>discreteStepResponse</code> 用差分方程產生 step response；<code>test_control.js</code> 已用 <code>0.5/(1-0.5z^-1)</code> 驗證。</li>
+<li><code>control-studio</code> 已補離散時間 UI mode、z-plane pole-zero / unit-circle stability metrics，以及 continuous-to-discrete conversion（Tustin / ZOH）。</li>
+<li><code>control-studio</code> 已補 <code>discreteBodeData</code> 與 high-order ZOH；<code>test_control.js</code> 已覆蓋 C2D、high-order ZOH 與 discrete Bode。</li>
+<li><code>control-studio</code> Root Locus 已補 break points、jω crossings、branch sorting 與 interactive gain picker；<code>test_control.js</code> 已覆蓋 Root Locus 進階案例。</li>
+<li><code>control-studio</code> Root Locus 已補由 ultimate gain Ku/Tu 產生 Ziegler-Nichols P / PI / PID，最新 checkpoint 為 <code>3f77118</code>。</li>
+<li><code>control-studio</code> 已補 closed-loop design assistant：由 overshoot / settling time 轉 target poles，並可根據 target phase margin 產生 Lead design。</li>
+<li><code>control-studio</code> Advisor / design result 已支援 apply-back 到 controller；直接 pole-placement K computation 已移除不必要的手動 Root Locus 步驟。</li>
+<li><code>control-studio</code> 已補 z-domain interaction 與 Deadbeat gain design；UI 可 copy/apply deadbeat K。</li>
+<li><code>control-studio</code> 已補工程化 Stability Analysis summary：continuous/discrete 都可輸出 risk level、dominant pole、stability margin、damping ratio、natural frequency 與 recommendations；<code>test_control.js</code> 已覆蓋 continuous stable/unstable 與 discrete stable/unstable。</li>
+<li><code>control-studio</code> Phase 6 已補齊：Markdown report export、Local JS / FastAPI / Compare Local/API analysis source toggle、API analysis status surface、<code>control_regression_dashboard.mjs</code> 回歸 dashboard 指令。</li>
+<li><code>control-studio/js/math/matrix.js</code> 已補 matrix definiteness utilities：<code>matSolve</code>、<code>matKronecker</code>、<code>matSymmetrize</code>、symmetric eigenvalue / positive-definite checks。</li>
+<li><code>control-studio/js/control/state-feedback.js</code> 已新增 Phase 7 核心：continuous Lyapunov solver / proof、SISO pole placement、low-order LQR baseline、state-feedback closed-loop TF preview。</li>
+<li><code>control-studio</code> Advisor 面板已新增 Phase 7 區塊，可直接輸入 desired poles、Lyapunov <code>Q</code>、LQR <code>Q/R</code>，並顯示 <code>K</code>、<code>P</code>、閉迴路 poles、step metrics。</li>
+<li><code>test_control.js</code> 已新增手推等價驗證：Lyapunov <code>AᵀP + PA = -I</code>、Ackermann pole placement、LQR CARE 小型解析案例。</li>
+<li><code>control-studio</code> 已完成 Phase 8：Luenberger observer、連續/離散 Kalman、Bryson auto Q/R、innovation whiteness、LQG 模擬與 Pole-Zero overlay。</li>
+<li><code>control-studio</code> 已完成 Phase 9：SISO/MIMO mode toggle、MIMO State-Space matrix input、channel selector、All matrix grid、RGA、Singular Value Bode、Static Decoupler、MIMO LQR（R matrix）。</li>
+<li><code>test_control.js</code> 已補 Phase 8/9 驗證，涵蓋 observer pole placement、Kalman/LQG 穩定性、RGA、decoupler、MIMO LQR。</li>
+<li><code>node test_control.js</code>、<code>node control-studio/scripts/verify_control_cases.mjs</code>、<code>node control-studio/scripts/verify_control_api_contract.mjs</code> 是目前控制系統主要驗證基線。</li>
+<li>Block Diagram 目前暫時擱置，UI 入口已標示 paused；後續進階控制先走 SISO transfer function / frequency response / stability validation。</li>
+<li><code>control-studio</code> Block Editor 已補上拓撲分析（串聯 / 回授）、節點編輯（雙擊）、節點刪除、Zoom/Pan、Undo/Redo、Diagram save/load。</li>
+<li><code>control-studio/js/control/zpk.js</code> 新增 ZPK model 輸入與複數根解析。</li>
+<li><code>control-studio/js/math/matrix.js</code> 新增 <code>matRank</code> 用於計算矩陣秩。</li>
+<li><code>control-studio/js/control/state-space.js</code> 新增 <code>controllabilityMatrix</code> 與 <code>observabilityMatrix</code>，並在 UI 直接顯示可控性與可觀察性。</li>
+<li><code>control-studio/js/math/polynomial.js</code> 新增 <code>polydiv</code> 多項式除法。</li>
+<li><code>control-studio/js/control/stability.js</code> 新增 <code>routhTable</code> Routh-Hurwitz 穩定性表。</li>
+<li><code>control-studio/js/analysis/frequency-response.js</code> 新增 <code>nicholsData</code>、<code>nyquistEncirclements</code>。</li>
+<li><code>test_control.js</code> 已擴充涵蓋 ZPK、polydiv、Routh、Nichols、encirclement、asymptotes、SS Rank 測試。</li>
+<li><code>control-studio/scripts/verify_math_core.mjs</code> 已新增為獨立數學核心驗證：覆蓋 Complex、Polynomial roots、Matrix solve/inverse/exp、RK4/RK45、TF/DTF guard、State-Space roundtrip、C2D DC gain。</li>
+<li><code>control-studio/js/math/polynomial.js</code> 已改用 Durand-Kerner 處理三階以上根；舊 QR path 對 <code>s^3+1</code> 會錯誤收斂為 0，勿恢復。</li>
+<li><code>control-studio/js/math/ode.js</code> 已修正 RK45 Dormand-Prince 5th-order 權重缺第 7 項 <code>0</code> 造成 NaN / infinite loop 的問題。</li>
+<li><code>CONTROL_SYSTEM_SCENARIOS.md</code> 已新增 precision servo stage position control 情境，使用 ControlStudio 核心完成 PID + Lead 設計，並記錄後續改善思考。</li>
+<li><code>control-studio/scripts/run_servo_stage_case.mjs</code> 可重跑 servo-stage 情境並輸出 <code>outputs/controlstudio/precision-servo-stage-case.json</code>；<code>control_regression_dashboard.mjs</code> 已納入此情境檢查。</li>
+<li><code>CONTROL_SYSTEM_PHASE10_PLAN.md</code> 已新增 Phase 10 規劃，明確擱置 Teaching Mode / Electron / Report Template。</li>
+<li><code>control-studio/js/control/state-feedback.js</code> 已新增 <code>solveCareHamiltonianSchur(A,B,Q,R)</code>，以 Hamiltonian stable invariant subspace 求解 CARE；<code>solveLqr()</code> / <code>solveLqrMIMO()</code> 現在優先使用此路徑，失敗才 fallback Newton-Kleinman。</li>
+<li><code>test_control.js</code> 已新增 Hamiltonian CARE 驗證，涵蓋 SISO / MIMO analytic CARE 與 Spacecraft marginally stable MIMO case。</li>
+<li><code>control-studio/js/control/mpc.js</code> 已新增 Phase 10 MPC baseline：finite-horizon Riccati、first action、unconstrained receding-horizon simulation；<code>test_control.js</code> 以 scalar integrator 手推驗證 <code>K0=0.6</code>。</li>
+<li><code>control-studio/js/control/mimo.js</code> 已新增 <code>dynamicDecouplerAtFrequency(mimoSys, omega)</code>，可在指定 <code>ωc</code> 計算 <code>W(jωc)=G(jωc)⁻¹</code> 並回傳 <code>G(jωc)·W(jωc)</code> residual；<code>test_control.js</code> 已驗證 selected-frequency inverse。</li>
+<li><code>control-studio/js/control/robust.js</code> 已新增 Robust sensitivity baseline：<code>S/T/KS</code>、peak sensitivity、risk classification；<code>test_control.js</code> 已驗證 DC identity 與 singular guard。</li>
+<li>Scenario 5 已用 in-app browser 實際操作 MPC / Robust 情境，結論是 Phase 10 math-core ready 但 UI-not-ready；改善項目已寫入 <code>CONTROL_SYSTEM_SCENARIOS.md</code> 與 <code>CONTROL_SYSTEM_BACKLOG.md</code>。</li>
+<li>Scenario 6 已用 in-app browser 實際操作 SISO / MIMO 情境；SISO plant/PID/Lead/Stability/LQR 與 MIMO RGA/SV/Static Decoupler/MIMO LQR 均可透過 UI 完成。S6 問題已修正：切 MIMO 會清空 Phase 7/8 SISO-only 舊輸出，MIMO Analysis 置頂，RGA/Decoupler 表格化，SV plot 加高並顯示 legend，PID 支援 numeric input，LQR output 顯示 solver path。</li>
+<li><code>control-studio/scripts/verify_phase10_math_core.mjs</code> 已新增 Phase 10 專用數學核心驗證，覆蓋 Hamiltonian CARE analytic cases、Spacecraft marginal MIMO、MPC Riccati、Dynamic Decoupler、Robust <code>S/T/KS</code>；已納入 regression dashboard 與 <code>scripts/validate_nvidia_model_selector.sh</code>。</li>
+<li><code>control-studio/js/math/matrix.js</code> 已新增 matrix sign function；<code>control-studio/js/control/state-feedback.js</code> 已補 matrix-sign CARE 與 DARE solver，支援高階 CARE 與離散 terminal-cost 設計。</li>
+<li><code>control-studio/js/control/mpc.js</code> 已補 MPC setpoint tracking、steady-state target solver、state constraints / soft slack；<code>control-studio/js/control/robust.js</code> 已補 <code>hInfNorm()</code>；<code>control-studio/js/control/mimo.js</code> 已補 <code>dynamicRGA()</code>。</li>
+<li><code>control-studio/scripts/verify_phase11_dare.mjs</code>、<code>verify_phase11_setpoint_and_state_constraints.mjs</code>、<code>verify_phase11_hinf.mjs</code>、<code>verify_phase11_dynamic_rga.mjs</code> 已加入；<code>package.json</code> 現在可用 <code>npm run verify:math</code> / <code>npm run verify:all</code> 聚合驗證。</li>
+<li><code>control-studio</code> 已補 Phase 12：robust sensitivity dB scale、0 / 5.1 / 8 dB reference lines、bandwidth 指標、MIMO <code>||G||∞</code> 視覺化與 peak marker。</li>
+<li><code>control-studio</code> 已補 Phase 13：可折疊 section、Quick Start modal、confirm modal、live field validation、keyboard shortcuts、tablet / reduced-motion / a11y 整理。</li>
+<li><code>control-studio</code> 已補 Phase 14：time delay / Padé、delay margin、Smith predictor 包裝、IMC / SIMC tuning、KaTeX 公式、28 個 presets、disk margin / additive uncertainty、seedable RNG；<code>npm run verify:p14</code> 可重跑 3 組驗證。</li>
+<li><code>control-studio</code> 已補 Phase 15：ARX system ID（least squares + AIC auto order）、Compare Bode overlay、MATLAB / Python codegen、root-locus K-sweep animation；<code>npm run verify:p15</code> 可重跑驗證。</li>
+<li><code>control-studio</code> 已補 Phase 16：mixed-sensitivity H∞ PID synthesis helper、GA PID auto-tuner、phase portrait、describing functions；<code>npm run verify:p16</code> 可重跑驗證。</li>
+<li><code>control-studio</code> 已補 Phase 17：plant-order dynamic H∞ mixed-sensitivity synthesis、structured μ D-scaling upper-bound / DK-style static gain surrogate、MIMO characteristic loci / Gershgorin bands / inverse Nyquist array、MPC MIMO output-space setpoint tracking；<code>npm run verify:p17</code> 可重跑驗證。</li>
+<li><code>control-studio</code> 已補 Phase 24：EMPC (<code>empc.js</code>)、Tube MPC (<code>tube_mpc.js</code>)、Explicit MPC (<code>explicit_mpc.js</code>)；<code>verify_p24_empc.mjs</code> 與 <code>verify_p24_tube_explicit_mpc.mjs</code> 可重跑驗證。</li>
+<li><code>a2a89d3 fix(math): 4 defects in complex / polynomial / realschur</code> 已完成 post Phase 17 數學核心修復；commit 記錄 TF/SS/ZPK/C2D <code>36/36</code> 與 PID <code>21/21</code> 通過。</li>
+<li>本輪補上 unpaired complex root error wording 相容性後，<code>node test_control.js</code> / <code>./nv-agent doctor</code> 不應再因錯誤訊息分類失敗。</li>
+<li>本輪同步 <code>scripts/validate_nvidia_model_selector.sh</code> 的 Phase 10 math-core 預期值為 <code>16/16</code>，避免標準 <code>doctor</code> workflow 停留在舊 <code>12/12</code> 基線。</li>
+<li><code>workflows/cuopt_demo_workflow.py</code> 已新增 <code>--local-validate</code>，<code>./nv-agent doctor</code> 改用本地 cuOpt payload validator，不再因外部 cuOpt API timeout 讓本地健康檢查失敗。</li>
+<li>本輪完成 math-core audit hardening，新增 regression 覆蓋 extreme complex division、separated quadratic roots、tiny-scale inverse / solve / rank / positive-definite checks；<code>npm run verify:all</code>、<code>node test_control.js</code>、<code>node control-studio/scripts/control_regression_dashboard.mjs</code>、<code>./nv-agent doctor</code> 均已通過。</li>
+<li>2026-05-23 browser UI check 發現 <code>buildCodegenPayload()</code> 重複宣告造成 browser module 初始化中止，已移除 P36/P37 區塊的重複宣告並讓 Code Preview 共用 P15 payload；<code>verify_p36_uiux_p1_remaining.mjs</code> 已新增 single-declaration regression guard。瀏覽器 walkthrough 覆蓋 SISO step / Bode legend / MIMO switch / P50 E1~E4 / mobile overflow，結果無 console/page error。</li>
+<li>2026-05-24 browser UI audit 補做 workflow / mode / plot tabs 全面操作檢查：workflow tab routing 已穩定，plot workspace companion charts 已加大到約 <code>404×276</code> / <code>404×250</code>，<code>Stability Map</code> 現在會顯示 <code>穩定邊界 + 當前設計點 + 顏色註記</code>，且 <code>NVIDIA Control Advisor</code> 已恢復為 MIMO-only（SISO 隱藏 panel 與 response container）。<code>bash control-studio/scripts/run_all_verify.sh</code> 維持 <code>79/79 passed</code>。</li>
+<li>2026-05-24 首次進站 UX 已再修正：移除 Quick Start 自動跳出，現在第一次進站只顯示 onboarding；結束導覽後以 toast 提示 <code>▶ 範例 / Ctrl+/</code> 入口，避免 onboarding + quickstart 連續雙重 blocking。</li>
+<li>2026-05-24 sidebar IA 已補做結構整理：workflow sidebar 依任務分為 <code>Core / ID / Reuse</code>、<code>Core / Specs / Advanced</code>、<code>Sim / Deploy / QA</code> 等群組；對次要 panel 套用 default collapsed preset，並將 <code>Controller Tuning</code>、<code>Simulation</code> 兩個最長卡片再拆成 nested subsections。Browser 實測 <code>Design</code> tab nav scroll height 約由 <code>6225</code> 降到 <code>2052</code>，切 workflow / mode / search 後分類標籤仍能正確跟隨可見面板刷新。</li>
+</ul>
+
+<h2 id="後續可做">後續可做</h2>
+<ol>
+<li>決定 <code>package.json</code> / <code>package-lock.json</code> 的 dependency policy；若 TypeScript workflow 正式化才提交 lockfile，<code>node_modules/</code> 永不提交。</li>
+<li>UI/UX 下一步先延續 sidebar information architecture：檢查是否仍有單一卡片高度過長、是否需要把 <code>Analyse</code> 下的 model diagnostics 再拆成更細 group，並評估把 group collapse state 做成 user preference；Teaching Mode / Electron / Report Template 仍維持暫停。</li>
+<li>下一個控制理論主線做 P27 full D-K iteration；不要把目前 structured μ surrogate 說成完整 μ-synthesis。</li>
+<li>補 P23 continuous-time identification、P25 Hankel norm approximation、P26 LPV synthesis、P28 JSDoc API docs。</li>
+<li>使用 <code>control-studio-system-auditor</code> 審查下一個控制設計缺口，並用 <code>control-studio-benchmark-author</code> 補 benchmark fixture。</li>
+<li>Teaching Mode / Electron / Report Template 目前使用者要求擱置，不要開發。</li>
+<li>Block Diagram 目前維持 paused；不要新增 block diagram 功能，除非使用者重新明確恢復。</li>
+<li>加 <code>agents/openai.yaml</code> UI metadata。</li>
+<li>增強 evaluator：從 heuristic 檢查升級成 judge model + golden dataset。</li>
+<li>若 NVIDIA Build Models 更新，先更新根目錄資料檔，再同步 <code>skills/nvidia-model-selector/references/</code>。</li>
+<li>視需求把 <code>search_models.py</code> 加上 <code>--top-category-summary</code> 或 fuzzy ranking。</li>
+<li>若要更實用，補上本地文件切 chunk / PDF 轉圖 / OCR 結果快取。</li>
+<li>加 parallel runner 與 leaderboard，追蹤同任務多模型輸出品質。</li>
+<li>將 OCR/RAG 的 endpoint source 也改成完整 registry-driven，而不只傳入 model id。</li>
+</ol>
+
+<h2 id="注意事項">注意事項</h2>
+<ul>
+<li>這個專案不需要 <code>.agent-handoff.md</code>。</li>
+<li>不要把敏感檔或個人 API key 寫入此 repo。</li>
+<li>skill 內容避免把完整 157 筆模型塞進 <code>SKILL.md</code>；大量資料留在 references 與 CSV。</li>
+</ul>
+
+</main>
+</body>
+</html>

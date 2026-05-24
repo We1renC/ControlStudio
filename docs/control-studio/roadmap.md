@@ -1,0 +1,383 @@
+# ControlStudio Development Roadmap
+
+> Last updated: 2026-05-24
+> Current committed baseline: `7ea48fe chore(ui): remove triple-pane plot workspace and keep active-plot crosshair routing`
+> Scope: this is the canonical execution roadmap for ControlStudio implementation status.
+> Do not use this file for product vision, proof derivations, or handoff notes; see the document workflow below.
+
+## Document Workflow
+
+| Document | Role | Update when |
+| --- | --- | --- |
+| `control-studio/ROADMAP.md` | Canonical execution board: phase status, next actions, verification commands | Any phase item changes status, or a new implementation phase starts |
+| `CONTROL_SYSTEM_PLAN.md` | Product / architecture plan and high-level capability inventory | A user-visible capability, architecture direction, or major risk changes |
+| `CONTROL_SYSTEM_BACKLOG.md` | Detailed task ledger with IDs, dependencies, and verification evidence | A backlog item moves between Planned / In Progress / Done / Paused |
+| `CONTROL_SYSTEM_SKILLS_PLAN.md` | Agent skill decomposition and workflow boundaries | A skill is added, retired, or changes scope |
+| `CONTROL_SYSTEM_VERIFICATION_CASES.md` | Mathematical proof and golden verification cases | A benchmark or expected numeric result changes |
+| `CONTROL_SYSTEM_SCENARIOS.md` | Realistic engineering walkthroughs and UI findings | Browser workflow, scenario issue, or field-use note changes |
+| `AGENT_CONTINUATION.md` | Current handoff / operational snapshot | Before switching agents or after a meaningful checkpoint |
+
+## Required Development Workflow
+
+1. Run `git status --short` and classify dirty files before editing.
+2. Read `control-studio/ROADMAP.md`, `CONTROL_SYSTEM_PLAN.md`, `CONTROL_SYSTEM_BACKLOG.md`, and `AGENT_CONTINUATION.md`.
+3. If a workflow can become reusable agent behavior, check `CONTROL_SYSTEM_SKILLS_PLAN.md` before coding.
+4. Implement the smallest phase slice that can be verified independently.
+5. Add or update a deterministic verification script for every math/control feature.
+6. For UI work, run a browser walkthrough against `http://127.0.0.1:8765`.
+7. Sync affected docs in this order: roadmap → backlog → plan → skills/scenarios/verification cases → continuation.
+8. Commit with both a subject and body, for example:
+   ```bash
+   git commit -m "feat(p24): add economic MPC baseline" \
+     -m "Implement deterministic EMPC optimization and verification fixtures." \
+     -m "Sync roadmap and continuation docs with the new Phase 24 status."
+   ```
+9. Do not commit `node_modules/`, scratch files, `.env*`, keys, local databases, or handoff files.
+
+## Progress Overview
+
+| Phase | Theme | Status | Verification |
+| --- | --- | --- | --- |
+| P9 | Math core: polynomial / complex / Schur | Done | `verify_phase9_*.mjs` |
+| P10 | CARE / LQR / MPC baseline | Done | `verify_phase10_*.mjs` |
+| P11 | DARE / MIMO / dynamic RGA | Done | `verify_phase11_*.mjs` |
+| P14 | Delay / IMC / RNG | Done | `verify_p14_*.mjs` |
+| P15 | ARX system identification | Done | `verify_p15_sysid.mjs` |
+| P16 | GA tuning / H∞ Nelder-Mead | Done | `verify_p16_*.mjs` |
+| P17 | ARMAX / NSGA-II / EKF-UKF / advanced robust baseline | Done | `verify_p17_*.mjs` |
+| P18 | Monte Carlo robust validation + UI + skill | Done | `verify_p18_robust_validation.mjs` |
+| P19 | H∞ Riccati synthesis baseline | Done | `verify_p19_hinf_riccati.mjs` |
+| P20 | MPC engineering: offset-free, move suppression, feasibility | Done | `verify_p20_mpc_engineering.mjs` |
+| P21 | Advanced SysID: OE / BJ / subspace / experiment signals | Done | `verify_p21_sysid_advanced.mjs` |
+| P22 | Verification infrastructure / cross-tool regression / CI | Done | `run_all_verify.sh`, `compare_python_control.py`, `.github/workflows/ci.yml` |
+| P23 | SysID gap closure: FRF, model order, MISO ARX | Mostly Done | `verify_p23_*.mjs` |
+| P24 | Advanced MPC: NMPC, EMPC, Tube MPC, Explicit MPC | Done | `verify_p24_nmpc.mjs`, `verify_p24_empc.mjs`, `verify_p24_tube_explicit_mpc.mjs` |
+| P25 | Model order reduction: minreal SS + balanced truncation + Hankel norm | Done | `verify_p25_model_reduction.mjs`, `verify_p25_hankel.mjs` |
+| P26 | Nonlinear control: gain scheduling + SMC + LPV | Done | `verify_p26_nonlinear.mjs`, `verify_p29_lpv.mjs` |
+| P27 | H∞ extensions: MIMO H∞ verify + loop shaping + D-K | Done | `verify_p27_mimo_hinf.mjs`, `verify_p27_loop_shaping.mjs`, `verify_p29_dk.mjs` |
+| P28 | Infrastructure quality: TS definitions + JSDoc API docs + benchmark | Done | `control-studio/types/control-studio.d.ts`, `docs/api/index.html`, `benchmark.mjs` |
+| **P29** | **Numerical optimization core: QP / LP / SDP-LMI** | Done | `verify_p29_{qp,lp,sdp,lpv,dk}.mjs` — 43 scripts total |
+| **P30** | **Adaptive & learning control: RLS / MRAC / STR / ILC** | Done | `verify_p30_adaptive.mjs` |
+| **P31** | **Estimation & monitoring: MHE / particle filter / FDD / FTC** | Done | `verify_p31_estimation.mjs` |
+| **P32** | **Advanced nonlinear: feedback linearization / backstepping / CLF-CBF** | Done | `verify_p32_nonlinear_advanced.mjs` |
+| **P33** | **Productization & interop: codegen / report / python-control bridge** | Done | `verify_p33_productization.mjs` |
+| **P34** | **UI/UX experience & design system** | Done | `verify_p34_ui.mjs` |
+| **P35** | **UI/UX plan P1 foundation: status bar / toast / empty state** | Done | `verify_p35_uiux_foundation.mjs` |
+| **P36** | **UI/UX plan P1 remaining: slider / confirmDialog / skeleton / codeBlock / 3-way theme / SideNav icons / code preview / unit switcher** | Done | `verify_p36_uiux_p1_remaining.mjs` |
+| **P37** | **UI/UX plan P2: command palette / keyboard shortcut modal / unit switcher behaviour / print theme** | Done | `verify_p37_uiux_p2.mjs` |
+| **P38** | **UI/UX P2 batch 1: dirty marker / progress bar / prefs modal / fullscreen / chart export / field hints** | Done | `verify_p38_uiux_p2_batch1.mjs` |
+| **P39** | **UI/UX P2 batch 2: axis range popover / PZ map OL-CL toggle + ζ grid / Hankel SVD bars / error guidance** | Done | `verify_p39_uiux_p2_batch2.mjs` |
+| **P40** | **UI/UX P2 batch 3: 4-step design wizard / cursor readout / chart theme toggle** | Done | `verify_p40_uiux_p2_batch3.mjs` |
+| **P41** | **UI/UX P2 batch 4: D2-1~4 discretization comparison table / A2-2 spec overlay / A2-3 compliance badges** | Done | `verify_p41_disc_spec.mjs` |
+| **P42** | **UI/UX P2 batch 5: B1-2 best-value ★ / sortable compare table / B1-3 diff heatmap + CSV export** | Done | `verify_p42_compare_enhancements.mjs` |
+| **P43** | **UI/UX P2 batch 6: A1-1 system input wizard / A5-2 sensitivity plot / A5-3 robustness badges** | Done | `verify_p43_syswin_a5.mjs` |
+| **P44** | **UI/UX P2 batch 7: F2-1 draggable split pane / F2-2 multi-design tab bar** | Done | `verify_p44_split_tabs.mjs` |
+| **P45** | **UI/UX P3 batch 1: D3 FLOP/memory/platform + B4 CSV import/export** | Done | `verify_p45_d3_b4.mjs` |
+| **P46** | **UI/UX P3 batch 2: B5 calculation steps / tooltip / condition warnings + B2 matrix expand** | Done | `verify_p46_b5_b2.mjs` |
+| **P47** | **UI/UX P3 batch 3: C1 topic cards + C4 drafts/notes/completion** | Done | `verify_p47_c1_c4.mjs` |
+| **P48** | **UI/UX P3 batch 4: A3 draggable poles / Bode breakpoint / history drawer** | Done | `verify_p48_a3.mjs` |
+| **P49** | **UI/UX P3 batch 5: C3 interactive animations** | Done | `verify_p49_c3.mjs` |
+| **P50** | **UI/UX P3 batch 6: E1~E4 dashboard / scoring / report / decision log** | Done | `verify_p50_e1_e4.mjs` |
+| **P51** | **F4/F5/G7 accessibility: colors / keyboard / screen-reader** | Done | `verify_p51_a11y.mjs` |
+| **P52** | **G5/G6/G8/G9 i18n skeleton / responsive / onboarding / multi-project** | Done | `verify_p52_g5689.mjs` |
+| **P53** | **A1-2/A1-3/A1-4 SysID entry / example library / health badge** | Done | `verify_p53_a1234.mjs` |
+| **P54** | **A4-1/A4-2/A4-3 design wizard / complexity indicator / AI explain** | Done | `verify_p54_a4.mjs` |
+| **P55** | **B2-4/B4-3/B4-4 Gramian / Python bridge / LaTeX export** | Done | `verify_p55_b24_b43_b44.mjs` |
+| **P56** | **C2-3/C5-2/C5-3/D1-4 error hints / screenshot / summary / codegen** | Done | `verify_p56_c23_c52_c53_d14.mjs` |
+| **P57** | **D4/D5 unit-test / diff / HIL / docs / wiring / warnings** | Done | `verify_p57_d4_d5.mjs` |
+| **P58** | **G11 app-loading skeleton screen** | Done | `verify_p58_g11.mjs` |
+| **P59** | **F1-2 Context Bar / view-nav / A5-1 Plot Workspace (main + 2 companion charts)** | Done | `verify_p59_ctxbar_triple.mjs` |
+
+## Verification Suite Status (2026-05-24)
+
+**79/79 scripts pass** — run via `bash scripts/run_all_verify.sh`
+
+| Group | Scripts | Pass |
+| --- | --- | --- |
+| Phase 9/10/11 foundations | 11 | 11 |
+| Phase 14–65 advanced control / UI | 64 | 64 |
+| General math & PID | 4 | 4 |
+
+## P1/P2 UI/UX Completion Summary
+
+All **P1** and **P2** items from `UI_UX_PLAN.md` have been implemented:
+
+### P1 Items (completed P35/P36)
+- G1 Frequency unit switcher, G11 Skeleton / codeBlock, G12 confirmDialog
+- F1-1 SideNav icons, F4-1 3-way theme (Dark/Light/Print)
+- A3-1 Slider component, D1 Code preview, Status bar, Toast notifications
+
+### P2 Items (completed P37–P44)
+- G3 Command palette (Ctrl+K), G4 Preferences modal, G13 Keyboard shortcuts
+- F3-2 Dirty marker, F3-3 Progress bar, F2-1 Split pane, F2-2 Design tabs, F2-3 Fullscreen
+- B3-1 Axis range popover, B3-2 Cursor readout, B3-3 Chart theme, B3-4 SVG/PNG/CSV export
+- B2-2 Hankel SVD bar chart, B2-3 PZ map OL/CL + ζ grid
+- B1-1~3 Compare mode + ★ table + diff heatmap + CSV
+- A1-1 System input wizard (TF/SS/ZPK), A2-2/A2-3 Spec overlay + compliance badges
+- A5-2 Sensitivity plot (S/T/KS), A5-3 Robustness badges (PM/GM/Ms/Dm)
+- C2-1 4-step design wizard, C2-2 Field hints, C2-3 Error guidance
+- D2-1~4 Discretization comparison tool
+
+## P3 UI/UX Progress Summary
+
+The following **P3** items from `UI_UX_PLAN.md` are now implemented through P50:
+
+### P3 Items (completed P45–P50)
+- D3-1~3 FLOP, memory, and platform labels; B4 CSV import/export.
+- B5-1~3 calculation steps, tooltip context, and condition warnings; B2 matrix expansion.
+- C1-1~3 topic index cards and example entry points; C4-1~3 draft, notes, and completion badge.
+- A3-2~4 draggable root-locus poles, Bode breakpoint interaction, and history drawer.
+- C3-1~4 interactive animation surfaces for pole sensitivity, phase portrait, and Nyquist-style workflows.
+- E1~E4 assessment dashboard, scoring matrix with radar chart, full HTML report output, and decision log/sign-off workflow.
+
+Remaining P3-oriented UI/UX work should continue from the unchecked portions of `UI_UX_PLAN.md`, with Teaching Mode / Electron / Report Template still paused unless explicitly resumed.
+
+## Remaining Dirty Worktree
+
+| Path | Classification | Action |
+| --- | --- | --- |
+| `package.json` | Adds `typescript` devDependency (used for `.d.ts` validation) | Commit if TS type-checking becomes an official CI step |
+| `package-lock.json` | Generated lockfile | Commit alongside `package.json` decision |
+| `node_modules/` | Generated dependency directory | Never commit (covered by `.gitignore`) |
+
+### P35 — UI/UX Plan P1 Foundation
+
+| Item | Status | Evidence |
+| --- | --- | --- |
+| P35-01 Global status bar | Done | `index.html#app-status-bar`, `updateGlobalStatusBar()` |
+| P35-02 Toast notification infrastructure | Done | `#toast-stack`, `notify()` |
+| P35-03 High-frequency action feedback | Done | Share, theme, project export/load, compare snapshot actions |
+| P35-04 Empty-state action style | Done | `.empty-state-actions` |
+| P35-05 Regression guard | Done | `verify_p35_uiux_foundation.mjs`, `run_all_verify.sh` |
+
+### Post-P59 UI Refinement — Sidebar Information Architecture
+
+| Item | Status | Evidence |
+| --- | --- | --- |
+| Workflow-specific group headers | Done | `SIDEBAR_GROUP_SPECS`, `.section-group-label`, grouped sidebar sections by `identify/design/analyse/implement/learn` |
+| Default collapsed preset for secondary panels | Done | `DEFAULT_COLLAPSED_SECTION_IDS`, `applyDefaultSidebarCollapsePreset()` |
+| Nested subsections for oversized panels | Done | `PANEL_SUBSECTION_SPECS`, `buildPanelSubsections()` |
+| Group visibility refresh on tab/search/mode change | Done | `refreshSidebarGroups()` wired from workflow tab switch, sidebar search, system-mode switch, advisor visibility sync |
+
+### P36 — UI/UX Plan P1 Remaining Items
+
+| Item | Status | Evidence |
+| --- | --- | --- |
+| P36-01 A3-1 `slider()` component | Done | `js/ui/components.js` — linear/log, aria-value* attributes |
+| P36-02 G12 `confirmDialog()` component | Done | `js/ui/components.js` — accessible modal HTML generator |
+| P36-03 G11 `skeleton()` / `skeletonBlock()` | Done | `js/ui/components.js` — CSS pulse animation in `index.html` |
+| P36-04 D1 `codeBlock()` component | Done | `js/ui/components.js` — lang header + copy button |
+| P36-05 F4-1 Three-way theme (Dark/Light/Print) | Done | `THEME_CYCLE`, `toggleTheme()`, print CSS in `index.html` |
+| P36-06 F1-1 SideNav tabs with SVG icons | Done | `index.html` sidebar-tabs with `.tab-label` + icons |
+| P36-07 G1 Frequency unit switcher | Done | `#freq-unit-switcher` in status bar, `state._freqUnit` |
+| P36-08 D1 Live code preview panel | Done | `#code-preview-panel` in Design tab, `refreshCodePreview()` |
+
+### P37–P44 — UI/UX Plan P2 Items
+
+| Item | Phase | Status | Evidence |
+| --- | --- | --- | --- |
+| G3 Command Palette | P37 | Done | `#cmd-overlay`, `COMMANDS`, Ctrl+K |
+| G13 Keyboard shortcuts modal | P37 | Done | `#shortcuts-modal`, Ctrl+? |
+| G4 Preferences modal | P38 | Done | `#prefs-modal`, `PREFS_KEY`, `loadPrefs/savePrefs/applyPrefs` |
+| F3-2 Dirty marker | P38 | Done | `#dirty-dot`, `markDirty/clearDirty`, beforeunload guard |
+| F3-3 Progress bar | P38 | Done | `#calc-progress-wrap`, `startCalcProgress/completeCalcProgress` |
+| F2-3 Chart fullscreen | P38 | Done | `initChartFullscreen`, requestFullscreen API |
+| B3-4 Chart export SVG/PNG/CSV | P38 | Done | `initChartExport`, Plotly.downloadImage |
+| C2-2 Field hints | P38 | Done | `FIELD_HINTS`, `initFieldHints`, focus/blur popover |
+| B3-1 Axis range popover | P39 | Done | `initAxisRangeControl`, `.axis-range-popover`, Plotly.relayout |
+| B2-3 PZ map OL/CL + ζ grid | P39 | Done | `initPZMapControls`, `_overlayDampingGrid` |
+| B2-2 Hankel SVD bar chart | P39 | Done | `initHankelSVD`, Gramian approximation, `.hsv-bar-*` |
+| C2-3 Error guidance | P39 | Done | `ERROR_GUIDANCE_MAP`, `initErrorGuidance`, contextual hints |
+| C2-1 4-step Design Wizard | P40 | Done | `WIZARD_STEPS`, `initDesignWizard`, sessionStorage |
+| B3-2 Cursor crosshair readout | P40 | Done | `initChartCursorReadout`, plotly_hover, `.chart-readout` |
+| B3-3 Chart theme toggle | P40 | Done | `initChartThemeToggle`, `CHART_THEMES`, Plotly.restyle |
+| D2-1~4 Discretization tool | P41 | Done | `initDiscretizationTool`, D2_METHODS, Bode overlay |
+| A2-2 Spec overlay | P41 | Done | `chk-spec-overlay` (pre-existing), wired to render |
+| A2-3 Spec compliance badges | P41 | Done | `updateSpecComplianceBadges`, #sc-os/ts/pm/ess |
+| B1-2 Best-value ★ + sortable table | P42 | Done | `initCompareTableEnhancements`, `compare-best` class |
+| B1-3 Diff heatmap + CSV export | P42 | Done | `_diffMode`, `compare-diff-warn/bad`, Blob CSV |
+| A1-1 System input wizard | P43 | Done | `initSystemInputWizard`, TF/SS/ZPK modal, health badges |
+| A5-2 Sensitivity plot | P43 | Done | `renderSensitivityPlot`, S/T/KS Bode, Sensitivity tab |
+| A5-3 Robustness badge bar | P43 | Done | `updateRobustnessBadges`, PM/GM/Ms/Dm in sidebar |
+| F2-1 Split pane | P44 | Done | `initSplitPane`, RAF drag, 240px min, localStorage |
+| F2-2 Design tab system | P44 | Done | `initDesignTabs`, snapshot, add/switch/close |
+
+## Phase Details
+
+### P22 — Verification Infrastructure
+
+| Item | Status | Evidence |
+| --- | --- | --- |
+| P22-01 CI workflow | Done | `.github/workflows/ci.yml` |
+| P22-02 Cross-tool numeric regression | Done | `control-studio/scripts/compare_python_control.py` |
+| P22-03 Full verification runner | Done | `control-studio/scripts/run_all_verify.sh` |
+
+### P23 — SysID Gap Closure
+
+| Item | Status | Evidence |
+| --- | --- | --- |
+| P23-01 Frequency-domain identification | Done | `sysid_freq.js`, `verify_p23_freq_sysid.mjs` |
+| P23-02 MISO ARX | Done | `identifyMISOARX`, `verify_p23_miso.mjs` |
+| P23-03 Model order selection | Done | `autoModelOrder`, `verify_p23_model_order.mjs` |
+| P23-04 Continuous-time identification | Planned | No committed CONTSID / SRIVC runner yet |
+
+### P24 — Advanced MPC
+
+| Item | Status | Evidence |
+| --- | --- | --- |
+| P24-01 NMPC / SQP-lite | Done | `nmpc.js`, `verify_p24_nmpc.mjs` |
+| P24-02 Tube MPC | Done | `tube_mpc.js`, `verify_p24_tube_explicit_mpc.mjs` |
+| P24-03 Economic MPC | Done | `empc.js`, `verify_p24_empc.mjs` |
+| P24-04 Explicit MPC | Done | `explicit_mpc.js`, `verify_p24_tube_explicit_mpc.mjs` |
+
+### P25 — Model Order Reduction
+
+| Item | Status | Evidence |
+| --- | --- | --- |
+| P25-01 Balanced truncation | Done | `model_reduction.js`, `verify_p25_model_reduction.mjs` |
+| P25-02 Hankel norm approximation | Done | `hankelSingularValues/hankelNorm/hankelNormApprox` in `model_reduction.js`, `verify_p25_hankel.mjs` (23 tests) |
+| P25-03 SS minreal / Kalman decomposition | Done | `minrealSS`, `verify_p25_model_reduction.mjs` |
+
+### P26 — Nonlinear Control
+
+| Item | Status | Evidence |
+| --- | --- | --- |
+| P26-01 Gain-scheduled PID | Done | `gainScheduledPID`, `verify_p26_nonlinear.mjs` |
+| P26-02 LPV synthesis | Done | `lpv.js` — `synthesizeLPV/analyzeLPV`, `verify_p29_lpv.mjs` |
+| P26-03 Sliding mode control | Done | `designSMC`, `verify_p26_nonlinear.mjs` |
+
+### P27 — H∞ Design Extensions
+
+| Item | Status | Evidence |
+| --- | --- | --- |
+| P27-01 Full D-K iteration | Done | `dk_iteration.js` — `computeMuUpperBound/dkIteration`, `verify_p29_dk.mjs` |
+| P27-02 Loop-shaping H∞ | Done | `loopShapingHinf`, `verify_p27_loop_shaping.mjs` |
+| P27-03 MIMO H∞ verification | Done | `verify_p27_mimo_hinf.mjs` |
+
+### P28 — Infrastructure Quality
+
+| Item | Status | Evidence |
+| --- | --- | --- |
+| P28-01 TypeScript definitions | Done | `control-studio/types/control-studio.d.ts` |
+| P28-02 JSDoc API docs | Done | `generate_api_docs.mjs` → `docs/api/index.html` (333 symbols, dark-theme, searchable) + `symbols.json` |
+| P28-03 Performance benchmark | Done | `control-studio/scripts/benchmark.mjs` |
+
+---
+
+# Future Roadmap (P29–P34)
+
+> Strategic blueprint approved 2026-05-21. Sequencing rationale:
+> **enabling technology (P29 optimization) → new control paradigms (P30–P32) → productization (P33) → experience (P34)**.
+> P29 is the highest-leverage start: a general QP/LP/SDP solver unblocks LPV (P26-02),
+> D-K iteration (P27-01), and hardens constrained MPC.
+
+### P29 — Numerical Optimization Core
+
+> **Why:** ControlStudio currently has no general optimizer; MPC constraint handling is an inlined
+> simplified routine, and LMI-based methods (LPV, D-K) are blocked. This is the key enabling layer.
+> **Benchmark target:** MATLAB `quadprog` / `linprog` / CVX-class problems.
+
+| Item | Goal | API | Effort | Dependency |
+| --- | --- | --- | :---: | --- |
+| **P29-01 QP solver** ✅ | Convex QP via primal-dual interior-point + direct KKT | `solveQP(H, f, opts)`, `solveEqualityQP`, `solveBoxQP` in `js/math/optimization.js` (`verify_p29_qp.mjs`, 20 tests) | 3d | matrix core |
+| **P29-02 LP solver** ✅ | Regularized interior-point LP (min-norm tie-break) | `solveLP(c, opts)` in `js/math/optimization.js` (`verify_p29_lp.mjs`, 21 tests) | 2d | P29-01 |
+| **P29-03 SDP / LMI solver** ✅ | ADMM splitting + PSD-cone projection (Jacobi eig) | `solveSDP(F0, Flist, c, opts)`, `solveLMIFeasibility`, `symmetricEig` (`verify_p29_sdp.mjs`, 12 tests) | 4d | P29-01 |
+| **P29-04 Retrofit MPC** ✅ | Replace inlined Hildreth QP in `mpc.js` with `solveQP`; adds general A·u≤b support | (internal `mpc.js`) | 1d | P29-01 |
+| **P29-05 Close LPV (P26-02)** ✅ | LMI-based LPV synthesis on parameter grid | `synthesizeLPV/analyzeLPV` in `js/control/lpv.js` (`verify_p29_lpv.mjs`, 14 tests) | 3d | P29-03 |
+| **P29-06 Close D-K (P27-01)** ✅ | μ upper bound via D-scaling + D-K iteration | `computeMuUpperBound/dkIteration` in `js/control/dk_iteration.js` (`verify_p29_dk.mjs`, 14 tests) | 4d | P29-03 |
+
+### P30 — Adaptive & Learning Control
+
+> **Why:** ControlStudio has rich offline SysID; the natural extension is *online* identification
+> and self-adjusting controllers. Entirely new paradigm.
+> **Benchmark target:** MATLAB Adaptive Control / self-tuning toolboxes.
+
+| Item | Goal | API | Effort | Dependency |
+| --- | --- | --- | :---: | --- |
+| P30-01 Recursive least squares | Online parameter ID with forgetting factor | `identifyRLS(opts)` → streaming estimator | 2d | sysid |
+| P30-02 MRAC | Model-reference adaptive control (MIT rule / Lyapunov) | `designMRAC(refModel, plant, gains)` | 3d | P30-01 |
+| P30-03 Self-tuning regulator | RLS + pole-placement / minimum-variance | `selfTuningRegulator(opts)` | 3d | P30-01 |
+| P30-04 Iterative learning control | ILC for repetitive tasks (P-type / Q-filter) | `iterativeLearningControl(plant, trials, opts)` | 2d | — |
+| P30-05 Close SRIVC (P23-04) | Continuous-time ID via prefiltered IV | `identifyContinuousARX(...)` | 3d | sysid |
+
+### P31 — Estimation & Health Monitoring
+
+> **Why:** EKF/UKF exist; extend to optimization-based estimation (MHE) and a brand-new
+> fault-detection/fault-tolerant domain. **Benchmark target:** MATLAB FDI Toolbox.
+
+| Item | Goal | API | Effort | Dependency |
+| --- | --- | --- | :---: | --- |
+| P31-01 Moving horizon estimation | Constrained optimization-based state estimation | `movingHorizonEstimation(model, opts)` | 3d | P29-01 |
+| P31-02 Particle filter | Sequential Monte Carlo for nonlinear/non-Gaussian | `particleFilter(f, h, opts)` | 2d | rng |
+| P31-03 Fault detection & diagnosis | Residual generation + statistical evaluation | `designFDD(model, opts)` | 3d | observer |
+| P31-04 Fault-tolerant control | Reconfigurable control after fault isolation | `reconfigurableFTC(model, faultSet, opts)` | 3d | P31-03 |
+
+### P32 — Advanced Nonlinear Control
+
+> **Why:** Extends P26 (gain scheduling / SMC) to model-based nonlinear synthesis and
+> safety-critical control. **Benchmark target:** academic nonlinear control references.
+
+| Item | Goal | API | Effort | Dependency |
+| --- | --- | --- | :---: | --- |
+| P32-01 Feedback linearization | Input-output / input-state exact linearization | `feedbackLinearization(f, g, h, opts)` | 3d | — |
+| P32-02 Backstepping | Recursive Lyapunov design for strict-feedback | `backstepping(systemChain, opts)` | 3d | — |
+| P32-03 CLF / CBF safety control | Control Lyapunov + barrier functions via QP | `controlBarrierFunction(dynamics, safeSet, opts)` | 3d | P29-01 |
+
+### P33 — Productization & Interop
+
+> **Why:** Turn designs into deliverables. `js/utils/codegen.js` already exists as a seed.
+> **Benchmark target:** Embedded Coder / report generation / data interchange.
+
+| Item | Goal | API | Effort | Dependency |
+| --- | --- | --- | :---: | --- |
+| P33-01 Controller codegen | Export designed controllers to C / Python / MATLAB | `exportController(ctrl, target)` | 3d | codegen.js |
+| P33-02 Design report generator | Auto HTML/PDF report (Bode, RL, margins, verification) | `generateDesignReport(design, opts)` | 2d | analysis |
+| P33-03 python-control bridge | Bidirectional JSON interchange (TF/SS/results) | `toPythonControl()` / `fromPythonControl()` | 2d | — |
+| P33-04 Design wizard skill | Agent skill: spec → recommended workflow + design | `control-studio-design-wizard` skill | 2d | skills |
+
+### P34 — UI/UX Experience & Design System
+
+> **Why:** Design tokens (`css/variables.css`) are mature, but `js/ui/` is empty (6520-line `app.js`),
+> responsive coverage is thin (~7 `@media`), and a11y is partial (~33 aria attrs).
+> Goal: elevate usability and *design experience* for control engineers.
+
+| Item | Goal | Deliverable | Effort | Dependency |
+| --- | --- | --- | :---: | --- |
+| P34-01 UI module extraction | Split `app.js` UI logic into `js/ui/` modules | `js/ui/panels/*.js` | 3d | — |
+| P34-02 Component library | Tokenized reusable components (cards, inputs, charts) | `css/components.css` refactor + `js/ui/widgets/` | 2d | P34-01 |
+| P34-03 Responsive layout | Mobile/tablet breakpoints; collapsible panels | `layout.css` breakpoints | 2d | — |
+| P34-04 Accessibility (WCAG AA) | Keyboard nav, ARIA, focus rings, contrast audit | a11y pass + `verify` walkthrough | 2d | — |
+| P34-05 Design wizard UI | Guided spec→design flow with live feedback | `view-wizard` panel | 3d | P33-04 |
+| P34-06 Chart interaction | Zoom, cursor readout, export PNG/CSV on all plots | `js/ui/widgets/chart.js` | 2d | P34-02 |
+
+## Execution Order (Approved Blueprint)
+
+The full P29–P34 blueprint is approved. Execution proceeds phase-by-phase, each item
+shipping with a deterministic `verify_pNN_*.mjs` script wired into `run_all_verify.sh`.
+
+| Order | Item | Effort | Why now |
+| :---: | --- | :---: | --- |
+| 1 | P29-01 QP solver | 3d | Enabling tech; unblocks LMI/MPC/CBF — start here |
+| 2 | P29-02 LP solver | 2d | Completes the convex-program trio |
+| 3 | P29-03 SDP/LMI solver | 4d | Unblocks LPV + D-K |
+| 4 | P29-04 Retrofit MPC with `solveQP` | 1d | Hardens existing constrained MPC |
+| 5 | P29-05 / P29-06 Close LPV + D-K | 7d | Clears the two oldest "Planned" gaps |
+| 6 | P30 Adaptive & learning (RLS→MRAC→STR→ILC, +SRIVC) | 13d | New paradigm on top of SysID |
+| 7 | P31 Estimation & monitoring (MHE/PF/FDD/FTC) | 11d | New domain on top of EKF/UKF |
+| 8 | P32 Advanced nonlinear (FBL/backstepping/CBF) | 9d | Extends P26 |
+| 9 | P33 Productization (codegen/report/bridge/wizard) | 9d | Turns designs into deliverables |
+| 10 | P34 UI/UX & design system | 14d | Elevates experience across all phases |
+
+Legacy small gaps folded into the above: P23-04 SRIVC → P30-05; P26-02 LPV → P29-05;
+P27-01 D-K → P29-06; P25-02 Hankel norm and P28-02 JSDoc docs completed (2026-05-21).
+
+## Next Immediate Action
+
+Start **P30-01 Recursive Least Squares** (`js/control/adaptive.js` + `verify_p30_rls.mjs`):
+
+```bash
+# After implementing identifyRLS + verification script
+bash scripts/run_all_verify.sh        # confirm 44+/43 pass
+```
+
+P30 implementation order: RLS → MRAC → STR → ILC → SRIVC

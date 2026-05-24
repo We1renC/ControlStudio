@@ -1,0 +1,662 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Control System Backlog — NVIDIA OS Support Docs</title>
+<style>
+:root {
+  --bg: #0f1117; --bg2: #1a1d2e; --bg3: #252840;
+  --border: #2d3155; --accent: #6366f1; --accent2: #818cf8;
+  --text: #e2e8f0; --muted: #94a3b8; --code-bg: #1e2235;
+  --success: #22c55e; --warn: #f59e0b;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+       background: var(--bg); color: var(--text); line-height: 1.7;
+       display: flex; min-height: 100vh; }
+nav { width: 240px; min-height: 100vh; background: var(--bg2);
+      border-right: 1px solid var(--border); padding: 24px 0;
+      position: sticky; top: 0; height: 100vh; overflow-y: auto;
+      flex-shrink: 0; }
+nav .logo { padding: 0 20px 20px; border-bottom: 1px solid var(--border); margin-bottom: 12px; }
+nav .logo a { text-decoration: none; font-size: 15px; font-weight: 700;
+              color: var(--accent2); }
+nav .section { padding: 6px 20px 2px; font-size: 10px; font-weight: 700;
+               text-transform: uppercase; letter-spacing: 1px; color: var(--muted);
+               margin-top: 8px; }
+nav a { display: block; padding: 5px 20px; font-size: 13px; color: var(--muted);
+        text-decoration: none; border-left: 2px solid transparent;
+        transition: all .15s; }
+nav a:hover, nav a.active { color: var(--text); border-color: var(--accent);
+                              background: rgba(99,102,241,.08); }
+main { flex: 1; padding: 40px 48px; max-width: 900px; min-width: 0; }
+h1 { font-size: 2rem; font-weight: 800; color: var(--text);
+     border-bottom: 2px solid var(--accent); padding-bottom: 12px; margin-bottom: 24px; }
+h2 { font-size: 1.4rem; font-weight: 700; color: var(--accent2);
+     margin: 32px 0 12px; padding-top: 8px; }
+h3 { font-size: 1.1rem; font-weight: 600; color: var(--text); margin: 20px 0 8px; }
+h4, h5, h6 { font-size: 1rem; font-weight: 600; color: var(--muted); margin: 16px 0 6px; }
+p { margin: 8px 0; color: var(--text); }
+a { color: var(--accent2); }
+a:hover { color: #a5b4fc; }
+code { background: var(--code-bg); border: 1px solid var(--border);
+       border-radius: 4px; padding: 1px 5px; font-size: .875em;
+       font-family: 'JetBrains Mono', 'Fira Code', monospace; color: #a5b4fc; }
+pre { background: var(--code-bg); border: 1px solid var(--border);
+      border-radius: 8px; padding: 16px; overflow-x: auto; margin: 12px 0; }
+pre code { background: none; border: none; padding: 0;
+           font-size: .82rem; color: var(--text); }
+blockquote { border-left: 3px solid var(--accent); padding: 8px 16px;
+             background: rgba(99,102,241,.06); margin: 12px 0; border-radius: 0 6px 6px 0; }
+ul, ol { padding-left: 24px; margin: 8px 0; }
+li { margin: 3px 0; }
+table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: .9rem; }
+th { background: var(--bg3); color: var(--accent2); font-weight: 700;
+     padding: 8px 12px; border: 1px solid var(--border); text-align: left; }
+td { padding: 7px 12px; border: 1px solid var(--border); color: var(--text); }
+tr:nth-child(even) td { background: rgba(255,255,255,.02); }
+hr { border: none; border-top: 1px solid var(--border); margin: 24px 0; }
+strong { color: #c7d2fe; }
+del { color: var(--muted); }
+.badge { display: inline-block; font-size: 10px; font-weight: 700; padding: 1px 6px;
+         border-radius: 9px; border: 1px solid; margin: 0 2px; vertical-align: middle; }
+.badge-green { color: var(--success); border-color: var(--success); }
+.badge-warn  { color: var(--warn);    border-color: var(--warn); }
+/* toc sidebar on large screens */
+@media (max-width: 768px) { nav { display: none; } main { padding: 20px 16px; } }
+</style>
+</head>
+<body>
+<nav>
+  <div class="logo"><a href="../index.html">📁 NVIDIA OS Support</a></div>
+  <div class="section">Agent 工作文件</div>
+  <a href="../agents/usage.html">使用指南</a>
+  <a href="../agents/continuation.html">接手狀態</a>
+  <a href="../agents/workflows.html">Runnable Workflows</a>
+<div class="section">ControlStudio</div>
+  <a href="../control-studio/roadmap.html">Roadmap（主線）</a>
+  <a href="../control-studio/plan.html">開發計畫</a>
+  <a href="../control-studio/backlog.html" class="active">Backlog</a>
+  <a href="../control-studio/scenarios.html">情境案例</a>
+  <a href="../control-studio/verification.html">驗證案例</a>
+  <a href="../control-studio/skills.html">Skill 規劃</a>
+  <a href="../control-studio/uiux-r1.html">UI/UX Round 1</a>
+  <a href="../control-studio/uiux-r2.html">UI/UX Round 2</a>
+  <a href="../control-studio/archive/phase10-plan.html">▸ Phase 10 計畫（封存）</a>
+  <a href="../control-studio/archive/phase10-verify.html">▸ Phase 10 驗證（封存）</a>
+<div class="section">NVIDIA 模型</div>
+  <a href="../nvidia/guide.html">落地操作指南</a>
+  <a href="../nvidia/models-zh.html">模型分類表（中文）</a>
+  <a href="../nvidia/models-en.html">Model Summary (EN)</a>
+  <a href="../nvidia/selector-plan.html">Selector Skill 計畫</a>
+<div class="section">案例輸出</div>
+  <a href="../cases/dc-motor.html">DC Motor 速度控制</a>
+  <a href="../cases/precision-servo.html">Precision Servo</a>
+  <a href="../cases/regression.html">Regression Dashboard</a>
+</nav>
+<main>
+<h1 id="control-system-backlog">Control System Backlog</h1>
+
+<p>此文件定義 ControlStudio 詳細 task ledger。實際 phase 狀態、下一步開發順序與文件同步工作流以 <code>control-studio/ROADMAP.md</code> 為準；本文件保留 task ID、依賴與驗證證據。</p>
+
+<p>後續 agent 若要開發控制系統功能，應先讀：</p>
+
+<ol>
+<li><code>control-studio/ROADMAP.md</code></li>
+<li><code>CONTROL_SYSTEM_PLAN.md</code></li>
+<li><code>CONTROL_SYSTEM_VERIFICATION_CASES.md</code></li>
+<li><code>CONTROL_SYSTEM_BACKLOG.md</code></li>
+<li><code>CONTROL_SYSTEM_SKILLS_PLAN.md</code></li>
+</ol>
+
+<p>目前策略：</p>
+<ul>
+<li>Block Diagram 暫時擱置，不在近期主線投入新功能。</li>
+<li>Phase 0-22 已完成主線：SISO 全鏈、State Feedback / Lyapunov / LQR、Observer / Kalman / LQG、MIMO 基礎與設計、MPC / Robust baseline、P12~P17 product maturity、P18 robust validation、P19 H∞ Riccati baseline、P20 MPC engineering、P21 advanced SysID、P22 verification infrastructure。</li>
+<li>Phase 23-28 目前狀態以 <code>control-studio/ROADMAP.md</code> 為準：P23/P25/P26/P27/P28 mostly done；P24 advanced MPC in progress。</li>
+<li><code>CONTROL_SYSTEM_PHASE10_PLAN.md</code> 已屬歷史設計基線；目前主線已超過該文件。</li>
+<li>使用者已要求擱置：教學模式、Electron packaging、報告模板 / 報告自動化。</li>
+<li>每個功能必須有數學推導或 fixture 驗證，不只看 UI 是否可操作。</li>
+<li>控制理論新增功能需先有數學與驗證基線，避免直接擴大 UI 面。</li>
+</ul>
+
+<h2 id="priority-legend">Priority Legend</h2>
+
+<ul>
+<li><code>P0</code>: 必須先完成，否則後續功能容易不穩。</li>
+<li><code>P1</code>: 近期主線，高價值且與現有架構相容。</li>
+<li><code>P2</code>: 進階能力，需建立在 P0/P1 之上。</li>
+<li><code>P3</code>: 產品化或高複雜度功能，暫不優先。</li>
+</ul>
+
+<h2 id="status-legend">Status Legend</h2>
+
+<ul>
+<li><code>Done</code>: 已完成。</li>
+<li><code>Next</code>: 下一批優先開發。</li>
+<li><code>Planned</code>: 已規劃，等待前置項。</li>
+<li><code>Paused</code>: 暫停。</li>
+</ul>
+
+<h2 id="current-baseline">Current Baseline</h2>
+
+<ul>
+<li>Branch: <code>main</code></li>
+<li>Latest synced commit: <code>1259565 feat(p27-p28): loop shaping H∞ + TypeScript type definitions</code></li>
+<li>Current checkpoint: <strong>CS-P0 ~ CS-P24 done; P25/P26/P27/P28 mostly done.</strong> 詳細執行看板見 <code>control-studio/ROADMAP.md</code>。目前主要未完成項目是 P27 full D-K iteration、P28 JSDoc API docs、P23 continuous-time identification、P25 Hankel norm approximation 與 P26 LPV synthesis。</li>
+<li>Scenario 5 browser walkthrough result: Phase 10 math + UI both operational.</li>
+<li>Scenario 6 browser walkthrough result: SISO / MIMO core workflows are UI-operable.</li>
+<li>Latest full-theory audit:</li>
+<ul>
+<li><code>7a318b3 fix(control): harden phase 7-9 theory diagnostics</code></li>
+<li><code>46e20da fix(control): harden phase 0-6 theory checks</code></li>
+</ul>
+<li>Validation baseline (aggregated via <code>npm run verify:math</code> / <code>npm run verify:all</code>)：</li>
+<ul>
+<li><code>node control-studio/scripts/verify_math_core.mjs</code></li>
+<li><code>node control-studio/scripts/verify_phase10_math_core.mjs</code></li>
+<li><code>node control-studio/scripts/verify_phase9_math_core.mjs</code></li>
+<li><code>node control-studio/scripts/verify_phase10_cross_method.mjs</code></li>
+<li><code>node control-studio/scripts/verify_phase9_phase10_edge_cases.mjs</code></li>
+<li><code>node control-studio/scripts/verify_phase10_care_robustness.mjs</code></li>
+<li><code>node control-studio/scripts/verify_phase10_high_order_care.mjs</code></li>
+<li><code>node control-studio/scripts/verify_phase10_mpc_constraints.mjs</code></li>
+<li><code>node control-studio/scripts/verify_phase11_dare.mjs</code></li>
+<li><code>node control-studio/scripts/verify_phase11_setpoint_and_state_constraints.mjs</code></li>
+<li><code>node control-studio/scripts/verify_phase11_hinf.mjs</code></li>
+<li><code>node control-studio/scripts/verify_phase11_dynamic_rga.mjs</code></li>
+<li><code>node control-studio/scripts/verify_p14_delay.mjs</code></li>
+<li><code>node control-studio/scripts/verify_p14_imc.mjs</code></li>
+<li><code>node control-studio/scripts/verify_p14_rng.mjs</code></li>
+<li><code>node control-studio/scripts/verify_p15_sysid.mjs</code></li>
+<li><code>node control-studio/scripts/verify_p16_hinf.mjs</code></li>
+<li><code>node control-studio/scripts/verify_p16_ga.mjs</code></li>
+<li><code>node test_control.js</code></li>
+<li><code>node control-studio/scripts/verify_control_cases.mjs</code></li>
+<li><code>node control-studio/scripts/verify_control_api_contract.mjs</code></li>
+<li><code>node control-studio/scripts/control_regression_dashboard.mjs</code></li>
+<li><code>./scripts/validate_nvidia_model_selector.sh</code></li>
+</ul>
+<li>Pre-push hook：<code>bash scripts/install-hooks.sh</code> 啟用後，每次 <code>git push</code> 會跑 <code>verify:math</code>；失敗阻擋 push（用 <code>git push --no-verify</code> 可跳過）。</li>
+</ul>
+
+<h2 id="development-sequence">Development Sequence</h2>
+
+<h3 id="phase-0-stabilize-verification-and-api-contract">Phase 0: Stabilize Verification And API Contract</h3>
+
+<p>目標：先把目前已完成能力鎖穩，讓後續進階功能有可信基準。</p>
+
+<table>
+<tr><td>ID</td><td>Priority</td><td>Status</td><td>Item</td><td>Rationale</td><td>Dependencies</td><td>Verification</td></tr>
+<thead>
+<tr><th>CS-P0-01</th><th>P0</th><th>Done</th><th>Fixture-based verification runner</th><th>五個數學推導案例已轉成可重跑 fixture，避免手動驗證流失</th><th><code>CONTROL_SYSTEM_VERIFICATION_CASES.md</code></th><th><code>node control-studio/scripts/verify_control_cases.mjs</code></th></tr>
+<tr><td>CS-P0-02</td><td>P0</td><td>Done</td><td>API contract tests</td><td>防止 FastAPI 與 JS CLI schema / formula drift</td><td><code>control_analysis_cli.mjs</code>, <code>control_api.py</code></td><td><code>node control-studio/scripts/verify_control_api_contract.mjs</code></td></tr>
+<tr><td>CS-P0-03</td><td>P0</td><td>Done</td><td>Browser regression smoke</td><td>固定核心 UI 流程：輸入 plant、調 controller、看 plot、匯出</td><td>前端服務 <code>8765</code>, API <code>8770</code></td><td><code>window.ControlStudioSmoke.run()</code></td></tr>
+<tr><td>CS-P0-04</td><td>P0</td><td>Done</td><td>Input validation hardening</td><td>統一 TF/SS/ZPK/Lead/Lag 錯誤提示與邊界條件</td><td>現有 field error helper</td><td><code>test_control.js</code> 與 browser smoke</td></tr>
+<tr><td>CS-P0-05</td><td>P0</td><td>Done</td><td>Math core verification runner</td><td>獨立鎖住 Complex / Polynomial / Matrix / ODE / TF / DTF / State-Space / C2D 基礎不變量</td><td>math/control core modules</td><td><code>node control-studio/scripts/verify_math_core.mjs</code></td></tr>
+</thead><tbody>
+</table>
+
+<p>Exit criteria: 已達成。</p>
+
+<h3 id="phase-1-controller-design-presets">Phase 1: Controller Design Presets</h3>
+
+<p>目標：讓 PID + Lead/Lag 變成「可設計」而不只是「可調參」。</p>
+
+<table>
+<tr><td>ID</td><td>Priority</td><td>Status</td><td>Item</td><td>Rationale</td><td>Dependencies</td><td>Verification</td></tr>
+<thead>
+<tr><th>CS-P1-01</th><th>P1</th><th>Done</th><th>PID tuning presets UI</th><th>UI 可套用 Ziegler-Nichols / Cohen-Coon</th><th><code>pid.js</code></th><th><code>test_control.js</code> 驗證公式</th></tr>
+<tr><td>CS-P1-02</td><td>P1</td><td>Done</td><td>Lead design helper</td><td>可根據 target phase boost / crossover 給 Lead 參數</td><td><code>compensator.js</code>, Bode data</td><td><code>test_control.js</code> 驗證 <code>alpha/tau</code></td></tr>
+<tr><td>CS-P1-03</td><td>P1</td><td>Done</td><td>Lag design helper</td><td>可用低頻增益改善 steady-state error</td><td><code>compensator.js</code>, DC gain</td><td><code>test_control.js</code> 驗證低頻 DC gain</td></tr>
+<tr><td>CS-P1-04</td><td>P1</td><td>Done</td><td>Controller comparison table</td><td>Compare 面板列出 controller candidates 與指標</td><td>comparison snapshots</td><td>Snapshot/export 包含 controller formula、metrics、compensator config</td></tr>
+</thead><tbody>
+</table>
+
+<p>Exit criteria: 已達成。</p>
+
+<h3 id="phase-2-discrete-time-z-domain">Phase 2: Discrete-Time / z-domain</h3>
+
+<p>目標：補控制工具常見的離散系統基礎能力，但仍保持 SISO 範圍。</p>
+
+<table>
+<tr><td>ID</td><td>Priority</td><td>Status</td><td>Item</td><td>Rationale</td><td>Dependencies</td><td>Verification</td></tr>
+<thead>
+<tr><th>CS-P2-01</th><th>P1</th><th>Done</th><th>Discrete transfer function model</th><th>支援 <code>G(z)</code>、sample time、poles/zeros</th><th>TF parser extension</th><th><code>DiscreteTransferFunction</code> tests</th></tr>
+<tr><td>CS-P2-02</td><td>P1</td><td>Done</td><td>Discrete step response</td><td>離散系統使用差分方程，不沿用 continuous RK4</td><td>discrete TF model</td><td><code>G(z)=0.5/(1-0.5z^-1)</code> fixture</td></tr>
+<tr><td>CS-P2-03</td><td>P1</td><td>Done</td><td>z-plane pole-zero map</td><td>顯示 unit circle 與離散穩定性</td><td>Plotly pzmap</td><td>poles inside unit circle = stable</td></tr>
+<tr><td>CS-P2-04</td><td>P1</td><td>Done</td><td>Continuous-to-discrete conversion</td><td>支援 Tustin / ZOH 基礎轉換</td><td>sample time UI</td><td>C2D tests</td></tr>
+<tr><td>CS-P2-05</td><td>P1</td><td>Done</td><td>Discrete Bode response</td><td>離散模式需頻域分析</td><td><code>discreteBodeData</code></td><td>Phase 5 discrete Bode tests</td></tr>
+<tr><td>CS-P2-06</td><td>P1</td><td>Done</td><td>High-order ZOH</td><td>支援高階 continuous plant 離散化</td><td>matrix exponential utilities</td><td>Phase 5 high-order ZOH tests</td></tr>
+</thead><tbody>
+</table>
+
+<p>Exit criteria: 已達成。</p>
+
+<h3 id="phase-3-root-locus-interactive-design">Phase 3: Root Locus Interactive Design</h3>
+
+<p>目標：讓 Root Locus 成為可互動設計工具，而不只是圖表。</p>
+
+<table>
+<tr><td>ID</td><td>Priority</td><td>Status</td><td>Item</td><td>Rationale</td><td>Dependencies</td><td>Verification</td></tr>
+<thead>
+<tr><th>CS-P3-01</th><th>P1</th><th>Done</th><th>Root Locus break points</th><th>顯示 breakaway / break-in 候選點</th><th><code>root-locus.js</code></th><th>Root Locus break point tests</th></tr>
+<tr><td>CS-P3-02</td><td>P1</td><td>Done</td><td>jω crossing detection</td><td>找出低 K 系統的 imaginary-axis crossing</td><td><code>root-locus.js</code></td><td>jω crossing regression tests</td></tr>
+<tr><td>CS-P3-03</td><td>P1</td><td>Done</td><td>Branch sorting</td><td>讓 Root Locus branch 顯示穩定可讀</td><td><code>sortRootLocusBranches</code></td><td>branch sort tests</td></tr>
+<tr><td>CS-P3-04</td><td>P1</td><td>Done</td><td>Interactive gain picker</td><td>使用者可由 Root Locus 選 gain 並套用</td><td>UI plot interaction</td><td>browser smoke / app handler</td></tr>
+<tr><td>CS-P3-05</td><td>P1</td><td>Done</td><td>ZN PID from ultimate gain Ku/Tu</td><td>由 Root Locus ultimate gain 轉成 P/PI/PID 參數</td><td>Root Locus + PID</td><td><code>3f77118</code> latest baseline</td></tr>
+</thead><tbody>
+</table>
+
+<p>Exit criteria: 已達成。</p>
+
+<h3 id="phase-4-closed-loop-design-assistant">Phase 4: Closed-Loop Design Assistant</h3>
+
+<p>目標：由規格反推 controller 建議，降低手動試參數成本。</p>
+
+<table>
+<tr><td>ID</td><td>Priority</td><td>Status</td><td>Item</td><td>Rationale</td><td>Dependencies</td><td>Verification</td></tr>
+<thead>
+<tr><th>CS-P4-01</th><th>P1</th><th>Done</th><th>Specs to target poles</th><th>由 overshoot / settling time 轉目標極點</th><th><code>specsToTargetPoles</code></th><th>Phase 4 tests</th></tr>
+<tr><td>CS-P4-02</td><td>P1</td><td>Done</td><td>Lead design for target PM</td><td>由目標 PM 產生 Lead 補償器</td><td><code>designLeadForPM</code></td><td>Phase 4 tests</td></tr>
+<tr><td>CS-P4-03</td><td>P1</td><td>Done</td><td>Apply-back design result</td><td>Advisor / design result 可套回 controller</td><td><code>app.js</code> handlers</td><td><code>08f887d</code> baseline</td></tr>
+<tr><td>CS-P4-04</td><td>P1</td><td>Done</td><td>Direct pole-placement K computation</td><td>移除不必要手動 Root Locus 步驟</td><td>advisor logic</td><td><code>08b388b</code> baseline</td></tr>
+</thead><tbody>
+</table>
+
+<p>Exit criteria: 已達成。</p>
+
+<h3 id="phase-5-z-domain-advanced-siso-design">Phase 5: z-domain Advanced SISO Design</h3>
+
+<p>目標：把離散系統從分析推進到可設計。</p>
+
+<table>
+<tr><td>ID</td><td>Priority</td><td>Status</td><td>Item</td><td>Rationale</td><td>Dependencies</td><td>Verification</td></tr>
+<thead>
+<tr><th>CS-P5-01</th><th>P1</th><th>Done</th><th>z-plane interaction</th><th>z-domain 圖表可支援設計回饋</th><th>z-plane plot</th><th>Phase 5 browser/app verification</th></tr>
+<tr><td>CS-P5-02</td><td>P1</td><td>Done</td><td>Deadbeat gain design</td><td>離散控制常見基準設計</td><td><code>deadbeatGain</code></td><td>Phase 5 Deadbeat test</td></tr>
+<tr><td>CS-P5-03</td><td>P1</td><td>Done</td><td>Copy/apply Deadbeat K</td><td>設計結果可回寫 controller</td><td>UI handlers</td><td><code>btn-copy-deadbeat-k</code></td></tr>
+<tr><td>CS-P5-04</td><td>P1</td><td>Done</td><td>Math audit corrections</td><td>修正數學推導與互動提示弱點</td><td>audit fixture</td><td>Audit follow-up tests</td></tr>
+</thead><tbody>
+</table>
+
+<p>Exit criteria: 已達成。</p>
+
+<h3 id="phase-6-api-migration-and-product-reliability">Phase 6: API Migration And Product Reliability</h3>
+
+<p>目標：把現有前端 JS 計算逐步切到統一 API，而不是一次重寫。</p>
+
+<table>
+<tr><td>ID</td><td>Priority</td><td>Status</td><td>Item</td><td>Rationale</td><td>Dependencies</td><td>Verification</td></tr>
+<thead>
+<tr><th>CS-P6-01</th><th>P1</th><th>Done</th><th>Frontend analysis API toggle</th><th>讓前端可選 local JS 或 API backend</th><th>API contract tests</th><th><code>analysis-source</code> 支援 Local JS / FastAPI / Compare Local/API</th></tr>
+<tr><td>CS-P6-02</td><td>P1</td><td>Done</td><td>API error surface in UI</td><td>API down / invalid payload 時 UI 應明確可恢復</td><td>unified API</td><td><code>api-analysis-status</code> 顯示 checking / ok / diff / error</td></tr>
+<tr><td>CS-P6-03</td><td>P1</td><td>Done</td><td>Report export baseline</td><td>先輸出 JSON/Markdown 報告</td><td>existing export</td><td><code>btn-export-report</code> 匯出 Markdown，包含 model/controller/metrics/stability/API status</td></tr>
+<tr><td>CS-P6-04</td><td>P2</td><td>Done</td><td>Regression dashboard command</td><td>一條命令跑 CLI/API/browser smoke</td><td>validation script</td><td><code>node control-studio/scripts/control_regression_dashboard.mjs</code></td></tr>
+</thead><tbody>
+</table>
+
+<p>Exit criteria: 已達成。</p>
+
+<h3 id="phase-7-state-feedback-lyapunov-lqr">Phase 7: State Feedback / Lyapunov / LQR</h3>
+
+<p>目標：利用目前已有 State-Space、controllability / observability rank，補第一批 state-space controller design 與理論穩定性證明能力。</p>
+
+<table>
+<tr><td>ID</td><td>Priority</td><td>Status</td><td>Item</td><td>Rationale</td><td>Dependencies</td><td>Verification</td></tr>
+<thead>
+<tr><th>CS-P7-01</th><th>P1</th><th>Done</th><th>Matrix definiteness utilities</th><th>Lyapunov / LQR 都需要 symmetric、positive definite、eigenvalue checks</th><th>matrix utilities</th><th><code>test_control.js</code> Phase 7 fixture</th></tr>
+<tr><td>CS-P7-02</td><td>P1</td><td>Done</td><td>Continuous Lyapunov stability analysis</td><td>理論驗證：<code>AᵀP + PA = -Q</code>，預設 <code>Q=I</code></td><td>State-Space model, definiteness utilities</td><td>穩定二階 A 解出 <code>P&gt;0</code>；不穩定 A 回報 failed</td></tr>
+<tr><td>CS-P7-03</td><td>P1</td><td>Done</td><td>Lyapunov UI proof panel</td><td>顯示 <code>V(x)=xᵀPx</code>、<code>dV/dt=-xᵀQx</code>、P matrix、min eig(P)</td><td>CS-P7-02</td><td>Advisor 面板已可顯示 Proven Stable / Failed</td></tr>
+<tr><td>CS-P7-04</td><td>P1</td><td>Done</td><td>Pole placement for SISO State-Space</td><td>進入 state feedback 的最小可行功能</td><td>controllability matrix</td><td>二階案例指定 poles 後，<code>eig(A-BK)</code> 等於目標 poles</td></tr>
+<tr><td>CS-P7-05</td><td>P2</td><td>Done</td><td>State feedback UI</td><td>輸入 desired poles、顯示 K、閉迴路 A matrix</td><td>CS-P7-04</td><td>UI 顯示 K、閉迴路 poles、step response</td></tr>
+<tr><td>CS-P7-06</td><td>P2</td><td>Done</td><td>LQR solver for 2x2/low-order systems</td><td>LQR 是進階控制主線，但需先限制範圍</td><td>matrix utilities, Lyapunov utilities</td><td>與已知小型 CARE 解對齊</td></tr>
+<tr><td>CS-P7-07</td><td>P2</td><td>Done</td><td>LQR Q/R tuning panel</td><td>讓使用者調 Q/R 並看 response tradeoff</td><td>CS-P7-06</td><td>Advisor 面板可調 Q/R 並顯示 K / poles / P</td></tr>
+</thead><tbody>
+</table>
+
+<p>Exit criteria: 已達成。</p>
+<ul>
+<li>僅支援 SISO / low-order state-space 起步。</li>
+<li>不做 MIMO UI。</li>
+<li>每個 state feedback 案例需檢查 controllability。</li>
+<li>Lyapunov analysis 必須明確顯示適用條件：continuous-time、finite-dimensional state-space、Q positive definite。</li>
+<li>理論驗證結果需同時列出 P matrix 與正定性判定，不只顯示自然語言。</li>
+</ul>
+
+<h3 id="phase-8-observer-kalman-lqg">Phase 8: Observer / Kalman / LQG</h3>
+
+<p>目標：在 State Feedback 穩定後補估測器，並完整覆蓋連續/離散 Kalman 與 LQG 整合。</p>
+
+<table>
+<tr><td>ID</td><td>Priority</td><td>Status</td><td>Item</td><td>Verification</td></tr>
+<thead>
+<tr><th>CS-P8-01</th><th>P2</th><th>Done</th><th>Luenberger observer pole placement</th><th><code>eig(A-LC)=[-4,-5]</code> 等於目標 poles，<code>L=[[7],[1]]</code> 對 G(s)=1/(s²+3s+2)</th></tr>
+<tr><td>CS-P8-02</td><td>P2</td><td>Done</td><td>Observer simulation（含噪音注入）</td><td>x₀=[1,0]、x̂=0 時 eNorm 由 1 收斂到 &lt;1e-8（無噪音）；噪音模式下顯示 yNoisy + innovation</td></tr>
+<tr><td>CS-P8-03</td><td>P2</td><td>Done</td><td>Steady-state Kalman (LQE)</td><td>Dual of LQR，filter CARE 解出 <code>L_kf=[[0.672],[-0.274]]</code>，CARE residual ≈ 0</td></tr>
+<tr><td>CS-P8-04</td><td>P2</td><td>Done</td><td>Bryson 法則 Q/R 自動建議</td><td><code>Q_ii=1/δ²</code>, <code>R=1/δ_y²</code> 公式一致</td></tr>
+<tr><td>CS-P8-05</td><td>P2</td><td>Done</td><td>Q/R sensitivity slider</td><td>拖動即時更新 L_kf 與 observer poles</td></tr>
+<tr><td>CS-P8-06</td><td>P2</td><td>Done</td><td>Observer poles 疊加 Pole-Zero Map</td><td>紫色菱形 ◆，計算後自動刷新</td></tr>
+<tr><td>CS-P8-07</td><td>P2</td><td>Done</td><td>Innovation 白噪音統計</td><td>mean / std / ACF lag-1,2 vs ±1.96/√N 95% CI，自動診斷</td></tr>
+<tr><td>CS-P8-08</td><td>P2</td><td>Done</td><td>離散 Kalman Filter</td><td>ZOH 離散化 + Riccati 差分方程，z-plane poles 全在 \</td><td>z\</td><td>&lt;1</td></tr>
+<tr><td>CS-P8-09</td><td>P2</td><td>Done</td><td>LQG 模擬（FSF vs LQG 對比）</td><td>自動 fallback 計算 K_lqr 與 L_kf（預設 Q=I, R=1），兩條響應曲線疊圖</td></tr>
+</thead><tbody>
+</table>
+
+<h3 id="phase-9-mimo-基礎與設計">Phase 9: MIMO 基礎與設計</h3>
+
+<p>目標：把 ControlStudio 從 SISO 推進到 MIMO，但保持 SISO 流程零破壞。</p>
+
+<table>
+<tr><td>ID</td><td>Priority</td><td>Status</td><td>Item</td><td>Verification</td></tr>
+<thead>
+<tr><th>CS-P9-01</th><th>P2</th><th>Done</th><th>SISO/MIMO mode toggle</th><th>SISO 模式完全不變；MIMO 模式自動顯示矩陣輸入與 channel selector</th></tr>
+<tr><td>CS-P9-02</td><td>P2</td><td>Done</td><td>MIMO State-Space 矩陣輸入</td><td>n/m/p 維度，A/B/C/D textarea + 維度驗證</td></tr>
+<tr><td>CS-P9-03</td><td>P2</td><td>Done</td><td>Channel selector bar</td><td>u_j→y_i 個別檢視，重用全部 6 個 SISO plot tabs</td></tr>
+<tr><td>CS-P9-04</td><td>P2</td><td>Done</td><td>⊞ All view（matrix grid）</td><td>p×m 小格 step response 全覽，CSS grid 自適應</td></tr>
+<tr><td>CS-P9-05</td><td>P2</td><td>Done</td><td>RGA + 配對診斷</td><td>對角系統 RGA=I；耦合系統 λ≠1 並提示 swap</td></tr>
+<tr><td>CS-P9-06</td><td>P2</td><td>Done</td><td>Singular Value Bode</td><td>σ_max / σ_min vs 頻率，log-log 軸 + 條件數 κ</td></tr>
+<tr><td>CS-P9-07</td><td>P2</td><td>Done</td><td>Static Decoupler</td><td>W=G(0)⁻¹，套用後 RGA = I</td></tr>
+<tr><td>CS-P9-08</td><td>P2</td><td>Done</td><td>MIMO LQR (R matrix)</td><td>Newton-Kleinman 迭代 CARE，K=m×n 矩陣，對解耦後對角系統 K=(√2−1)·I</td></tr>
+<tr><td>CS-P9-09</td><td>P1</td><td>Done</td><td>MIMO mode UI cleanup</td><td>清空/摺疊 Phase 7 SISO-only 舊結果，並讓 MIMO Analysis 更容易發現</td><td>Browser walkthrough：切 SISO 算 LQR → 切 MIMO → <code>phase7-lqr-out</code> 隱藏且無舊 K；MIMO Analysis order = -1</td></tr>
+<tr><td>CS-P9-10</td><td>P2</td><td>Done</td><td>MIMO matrix output readability</td><td>RGA / decoupler / G(0)W 改為 row/column-labeled matrix table</td><td>Browser smoke：RGA 1 table；Decoupler 3 tables，含 <code>y_i/u_j</code>、<code>u_i/v_j</code>、<code>y_i/v_j</code></td></tr>
+<tr><td>CS-P9-11</td><td>P2</td><td>Done</td><td>Singular Value chart readability</td><td>提高 <code>#chart-mimo-sv</code> 高度並顯示 <code>σ_max</code> / <code>σ_min</code> legend</td><td>Browser smoke：chart height = 280px；DOM legend text = <code>σ_max</code>, <code>σ_min</code></td></tr>
+</thead><tbody>
+</table>
+
+<h3 id="phase-10-deferred-high-complexity-productization">Phase 10: Deferred High-Complexity / Productization</h3>
+
+<p>目標：依實際情境暴露出的缺口完善高階控制數學核心；產品化項目先暫緩。</p>
+
+<table>
+<tr><td>ID</td><td>Priority</td><td>Status</td><td>Item</td><td>Rationale</td><td>Dependencies</td><td>Verification</td></tr>
+<thead>
+<tr><th>CS-P10-00</th><th>P0</th><th>Done</th><th>Phase 10 design baseline</th><th>明確排除暫緩項，收斂高階控制開發順序</th><th>Phase 0-9 complete</th><th><code>CONTROL_SYSTEM_PHASE10_PLAN.md</code></th></tr>
+<tr><td>CS-P10-01</td><td>P0</td><td>Done</td><td>Schur / Hamiltonian CARE solver</td><td>Newton-Kleinman 對 marginally stable / unstable plant 不通用，需穩定 invariant-subspace CARE 路徑</td><td>Phase 7-9 LQR/LQE/MIMO LQR</td><td><code>verify_phase10_math_core.mjs</code> analytic CARE + Spacecraft case</td></tr>
+<tr><td>CS-P10-02</td><td>P1</td><td>Done</td><td>MPC baseline</td><td>discrete finite-horizon / unconstrained receding-horizon baseline</td><td>discrete + state-space mature</td><td><code>verify_phase10_math_core.mjs</code> scalar Riccati + convergence</td></tr>
+<tr><td>CS-P10-03</td><td>P2</td><td>Done</td><td>Dynamic Decoupler</td><td>頻域解耦（非僅 DC），先做 selected-frequency inverse prototype</td><td>MIMO mature</td><td><code>verify_phase10_math_core.mjs</code> checks <code>G(jωc)·W(jωc)≈I</code></td></tr>
+<tr><td>CS-P10-04</td><td>P2</td><td>Done</td><td>Robust Control sensitivity baseline</td><td><code>S/T/KS</code> 與 peak sensitivity，不直接 H∞ synthesis</td><td>numerical engine mature</td><td><code>verify_phase10_math_core.mjs</code> checks <code>S/T/KS</code> identity + singular guard</td></tr>
+<tr><td>CS-P10-09</td><td>P1</td><td>Done</td><td>MPC UI panel</td><td>Advisor <code>#mpc-panel</code>：Ts/horizon/Q/R/x₀，receding-horizon sim + Plotly x(t)/u(t)</td><td>CS-P10-02</td><td>f945ced；<code>test_control.js</code> MPC integrator 收斂測試</td></tr>
+<tr><td>CS-P10-10</td><td>P1</td><td>Done</td><td>Robust sensitivity UI</td><td>Advisor <code>#robust-panel</code>：ω 範圍 → \</td><td>S\</td><td>/\</td><td>T\</td><td>/\</td><td>KS\</td><td>Bode + peak + risk badge</td><td>CS-P10-04</td><td>f945ced；瀏覽器驗證 peak \</td><td>S\</td><td>=1.05 for <code>1/(s²+3s+2)</code></td></tr>
+<tr><td>CS-P10-11</td><td>P1</td><td>Done</td><td>Dynamic Decoupler UI</td><td>MIMO Analysis <code>#mimo-dyn-decoupler-out</code>：ωc → G(jωc), W=G⁻¹, off-diagonal residual</td><td>CS-P10-03</td><td>f945ced；2×2 coupled plant residual=0</td></tr>
+<tr><td>CS-P10-12</td><td>P2</td><td>Done</td><td>Robust edge-case fixtures</td><td>補 NMP (RHP zero) / Padé delay / 1+L=0 / 高 \</td><td>S\</td><td>等高風險 case</td><td>CS-P10-04</td><td><code>verify_phase9_phase10_edge_cases.mjs</code> 15/15 pass，含 NMP peak \</td><td>S\</td><td>=1.35、Padé delay loop、S+T=1 identity</td></tr>
+<tr><td>CS-P10-13</td><td>P2</td><td>Done</td><td>Gain/phase uncertainty sweep</td><td><code>uncertaintyEnvelope(loop, ω, {gainFactors, phaseShiftsDeg, controllerTf})</code> 計算最壞情況 \</td><td>S\</td><td>/\</td><td>T\</td><td>/\</td><td>KS\</td><td>envelope；Advisor robust panel 加 <code>±gain%</code> / <code>±phase°</code> / samples 與 worst-vs-nominal 疊圖 + worst/nominal 比值</td><td>CS-P10-10</td><td><code>verify_phase10_math_core.mjs</code> 4 cases；UI 驗證：plant <code>1/(s²+3s+2)</code> ±20%/±15° 7×7 sweep → worst\</td><td>S\</td><td>=1.114 vs nominal 1.05</td></tr>
+<tr><td>CS-P10-14</td><td>P2</td><td>Done</td><td>MPC constraint UI + QP solver</td><td>condensed MPC formulation + Hildreth 座標下降 box QP (u_min ≤ u ≤ u_max)；Advisor MPC panel 加 u_min/u_max 輸入與「Compare Constrained vs Unconstrained」按鈕 + 疊圖；11/11 L1-L4 驗證 case</td><td>CS-P10-09</td><td><code>verify_phase10_mpc_constraints.mjs</code> 11/11 pass；UI 驗證：double-integrator ±0.5 bound 比較疊圖</td></tr>
+<tr><td>CS-P10-15</td><td>P1</td><td>Done</td><td>Schur CARE jω-boundary case</td><td>Hamiltonian 特徵值靠近虛軸 / 不 stabilizable 時 eigenvector path 會 fail；改為丟出含「stabilizability / boundary」友善訊息（非 NaN）。真正的 real Schur fallback 留待後續</td><td>CS-P10-01</td><td><code>verify_phase10_care_robustness.mjs</code> 3 cases：jω uncontrollable、fully unstabilizable、near-boundary 仍可解</td></tr>
+<tr><td>CS-P10-16</td><td>P1</td><td>Done</td><td>Schur vs Bass 對比測試（spacecraft sparse-B）</td><td>Spacecraft case 同時測 Schur 通過 (residual 1e-15) 與 Newton-Kleinman/Bass 失敗的友善訊息（已更新訊息明確推薦 Schur path）</td><td>CS-P10-01 / CS-P10-15</td><td><code>verify_phase10_care_robustness.mjs</code> 3 cases：Schur 通過 + Lyapunov 證、Kleinman 失敗含 Schur 提示、default path = Schur</td></tr>
+<tr><td>CS-P10-17</td><td>P2</td><td>Done</td><td>高階 CARE 壓測 (n ≥ 4) + Matrix Sign Fallback</td><td>matrix sign function (Newton iteration)：n≥5 改用 sign(H) = Newton iteration → P=(I−Z)/2 stable projector → QR basis → P=YX⁻¹；n=4,5,6,8 全部 100% pass，residual ≤ 1e-13</td><td>CS-P10-01</td><td><code>verify_phase10_high_order_care.mjs</code> 6×{n,m} 配置 + 4 assertions（n=8 從 0%→100%）</td></tr>
+<tr><td>CS-P10-18</td><td>P2</td><td>Done</td><td>CI / pre-push verification hook</td><td><code>package.json</code> 加 <code>verify:math</code> (串接 7 個 runner) + <code>verify:all</code>；<code>scripts/git-hooks/pre-push</code> + <code>bash scripts/install-hooks.sh</code> 設 core.hooksPath；失敗 block push（可用 <code>--no-verify</code> 跳過）</td><td>CS-P10-12 / Phase 9-10 runners</td><td><code>npm run verify:math</code> 跑 ~70+ cases；pre-push 失敗阻擋 push</td></tr>
+<tr><td>CS-P10-05</td><td>P3</td><td>Paused</td><td>Electron packaging</td><td>使用者要求擱置</td><td>主功能凍結</td><td>暫不做</td></tr>
+<tr><td>CS-P10-06</td><td>P3</td><td>Paused</td><td>教學模式</td><td>使用者要求擱置</td><td>UI 穩定</td><td>暫不做</td></tr>
+<tr><td>CS-P10-07</td><td>P3</td><td>Paused</td><td>報告模板 / 報告自動化</td><td>使用者要求擱置</td><td>Scenario docs mature</td><td>暫不做</td></tr>
+<tr><td>CS-P10-08</td><td>P3</td><td>Paused</td><td>Block Diagram expansion</td><td>使用者已要求先暫置</td><td>SISO advanced stable</td><td>恢復前需重新確認需求</td></tr>
+</thead><tbody>
+</table>
+
+<h3 id="phase-11-math-gap-closure-cs-p11">Phase 11: Math Gap Closure (CS-P11)</h3>
+
+<p>目標：補足 Phase 9/10 審視出的五大數學缺口，對齊業界工具水準。</p>
+
+<table>
+<tr><td>ID</td><td>Priority</td><td>Status</td><td>Item</td><td>Rationale</td><td>Dependencies</td><td>Verification</td></tr>
+<thead>
+<tr><th>CS-P11-01</th><th>P0</th><th>Done</th><th>DARE 求解器 + MPC terminal cost P∞</th><th>symplectic Cayley + matrix sign function；<code>solveDAREHamiltonianSign</code>；<code>finiteHorizonLqr</code> 加 <code>autoTerminalCost: true</code> 選項使 Qf = P∞，保證有限域成本 ≤ 無限域</th><th>CS-P10-17 matrix sign</th><th><code>verify_phase11_dare.mjs</code> 16/16：scalar golden ratio、DARE residual &lt; 1e-15、Riccati limit 比對、MIMO 3×2</th></tr>
+<tr><td>CS-P11-02</td><td>P1</td><td>Done</td><td>MPC Setpoint Tracking (r ≠ 0)</td><td>error-state formulation e=x−r, v=u−u_ss；<code>solveSetpointSteadyState</code> + <code>simulateMpcTracking</code>；支援 constant 或 time-varying reference、u constraints；11/11 驗證</td><td>CS-P11-01</td><td><code>verify_phase11_setpoint_and_state_constraints.mjs</code> 18/18：r=[2,0] 收斂到 1e-7、constrained 收斂、step reference 切換</td></tr>
+<tr><td>CS-P11-03</td><td>P1</td><td>Done</td><td>H∞ norm 估算</td><td><code>hInfNorm(mimoSys)</code> 粗網格 + golden-section 細化；<code>hInfNormUpperBound</code> 快速版；SISO/MIMO 均適用；1/(s+1)→1.0、K/(s+1)→K DC gain 均正確</td><td>CS-P10-04 robust engine</td><td><code>verify_phase11_hinf.mjs</code> 8/8</td></tr>
+<tr><td>CS-P11-04</td><td>P2</td><td>Done</td><td>動態 RGA Λ(jω)</td><td><code>dynamicRGA(mimoSys, omegas)</code>、<code>dynamicRGAMagnitude</code>、<code>dynamicRGADiagonal</code>；ω→0 收斂靜態 RGA；欄和 = 1 恆等式；non-square throws</td><td>CS-P9-05 static RGA</td><td><code>verify_phase11_dynamic_rga.mjs</code> 8/8</td></tr>
+<tr><td>CS-P11-05</td><td>P2</td><td>Done</td><td>State constraints + soft slack</td><td>condensed QP 加 x_min/x_max 行（free-response active-set + 二次罰函數）；<code>firstMpcActionStateConstrained</code> + <code>simulateStateConstrainedMpc</code>；violation log 回報</td><td>CS-P10-14 Hildreth QP</td><td><code>verify_phase11_setpoint_and_state_constraints.mjs</code> 18/18：soft constraint 抑制速度超限、violation log 正確</td></tr>
+</thead><tbody>
+</table>
+
+<h2 id="completed-phase-10-11-checkpoint">Completed Phase 10/11 Checkpoint</h2>
+
+<p>Phase 10 + Phase 11 全部完成：</p>
+<ul>
+<li><strong>CS-P10（全數）Done</strong>：CARE/MPC/Robust/MIMO/Constraints 完整</li>
+<li><strong>CS-P11-01 Done</strong>：DARE solver (symplectic Cayley + matrix sign) + <code>autoTerminalCost</code> — 16/16</li>
+<li><strong>CS-P11-02 Done</strong>：MPC Setpoint Tracking (error-state, time-varying ref) — 18/18</li>
+<li><strong>CS-P11-03 Done</strong>：H∞ norm grid + golden-section — 8/8</li>
+<li><strong>CS-P11-04 Done</strong>：Dynamic RGA Λ(jω) — 8/8</li>
+<li><strong>CS-P11-05 Done</strong>：State constraints + soft slack — 18/18</li>
+</ul>
+
+<h3 id="phase-12-robust-visualisation-upgrade-cs-p12">Phase 12: Robust Visualisation Upgrade (CS-P12)</h3>
+
+<p>目標：把 robust analysis 從「有數字」提升成工程師可直接判讀的圖表。</p>
+
+<table>
+<tr><td>ID</td><td>Priority</td><td>Status</td><td>Item</td><td>Verification</td></tr>
+<thead>
+<tr><th>CS-P12-01</th><th>P1</th><th>Done</th><th>Robust sensitivity dB scale + reference lines</th><th>Browser / UI regression；<code>5eb8e8f</code></th></tr>
+<tr><td>CS-P12-02</td><td>P1</td><td>Done</td><td>Bandwidth metric + MIMO `</td><td></td><td>G</td><td></td><td>∞` visualisation</td><td><code>hInfNorm()</code> + peak marker；<code>5eb8e8f</code></td></tr>
+</thead><tbody>
+</table>
+
+<h3 id="phase-13-ui-ux-usability-overhaul-cs-p13">Phase 13: UI/UX Usability Overhaul (CS-P13)</h3>
+
+<p>目標：整理可用性、可發現性、鍵盤操作與 accessibility，不改變數學核心。</p>
+
+<table>
+<tr><td>ID</td><td>Priority</td><td>Status</td><td>Item</td><td>Verification</td></tr>
+<thead>
+<tr><th>CS-P13-01</th><th>P1</th><th>Done</th><th>Collapsible sections / quick-start presets / confirm modal</th><th>Manual browser walkthrough；<code>9763296</code></th></tr>
+<tr><td>CS-P13-02</td><td>P1</td><td>Done</td><td>Live validation hints / loading states / keyboard shortcuts</td><td>Manual browser walkthrough；<code>9763296</code></td></tr>
+<tr><td>CS-P13-03</td><td>P1</td><td>Done</td><td>Responsive + a11y cleanup</td><td>Manual browser walkthrough；<code>9763296</code></td></tr>
+</thead><tbody>
+</table>
+
+<h3 id="phase-14-delay-imc-formula-robust-margin-cs-p14">Phase 14: Delay / IMC / Formula / Robust Margin (CS-P14)</h3>
+
+<p>目標：補工業控制常用 dead-time / tuning / formula 表示與 robust margin 指標。</p>
+
+<table>
+<tr><td>ID</td><td>Priority</td><td>Status</td><td>Item</td><td>Verification</td></tr>
+<thead>
+<tr><th>CS-P14-01</th><th>P1</th><th>Done</th><th>Time delay / Padé / delay margin / Smith predictor</th><th><code>node control-studio/scripts/verify_p14_delay.mjs</code></th></tr>
+<tr><td>CS-P14-02</td><td>P1</td><td>Done</td><td>IMC / SIMC PID tuning</td><td><code>node control-studio/scripts/verify_p14_imc.mjs</code></td></tr>
+<tr><td>CS-P14-03</td><td>P2</td><td>Done</td><td>KaTeX LaTeX rendering</td><td>Browser regression；<code>e025a91</code></td></tr>
+<tr><td>CS-P14-04</td><td>P2</td><td>Done</td><td>Preset library expansion (8 → 28)</td><td>Manual browser walkthrough；<code>e025a91</code></td></tr>
+<tr><td>CS-P14-05</td><td>P2</td><td>Done</td><td>Disk margin + additive uncertainty</td><td><code>test_control.js</code> + UI check；<code>e025a91</code></td></tr>
+<tr><td>CS-P14-06</td><td>P1</td><td>Done</td><td>Seedable RNG / reproducible LQG randomness</td><td><code>node control-studio/scripts/verify_p14_rng.mjs</code></td></tr>
+</thead><tbody>
+</table>
+
+<h3 id="phase-15-identification-compare-codegen-animation-cs-p15">Phase 15: Identification / Compare / Codegen / Animation (CS-P15)</h3>
+
+<p>目標：補工程流程能力，讓 Studio 不只分析既有模型，也能從資料識別並導出外部工具腳本。</p>
+
+<table>
+<tr><td>ID</td><td>Priority</td><td>Status</td><td>Item</td><td>Verification</td></tr>
+<thead>
+<tr><th>CS-P15-01</th><th>P1</th><th>Done</th><th>ARX system identification + auto order</th><th><code>node control-studio/scripts/verify_p15_sysid.mjs</code></th></tr>
+<tr><td>CS-P15-02</td><td>P2</td><td>Done</td><td>Controller A/B compare with open-loop Bode overlay</td><td>Browser regression；<code>c2cc25d</code></td></tr>
+<tr><td>CS-P15-03</td><td>P2</td><td>Done</td><td>MATLAB / Python code generator</td><td>Generated script smoke；<code>c2cc25d</code></td></tr>
+<tr><td>CS-P15-04</td><td>P2</td><td>Done</td><td>Root-locus K-sweep animation</td><td>Browser regression；<code>c2cc25d</code></td></tr>
+</thead><tbody>
+</table>
+
+<h3 id="phase-16-advanced-synthesis-nonlinear-analysis-cs-p16">Phase 16: Advanced Synthesis / Nonlinear Analysis (CS-P16)</h3>
+
+<p>目標：補更高階的 controller search 與非線性分析入口，但仍維持現有工作台結構。</p>
+
+<table>
+<tr><td>ID</td><td>Priority</td><td>Status</td><td>Item</td><td>Verification</td></tr>
+<thead>
+<tr><th>CS-P16-01</th><th>P1</th><th>Done</th><th>H∞ mixed-sensitivity PID synthesis helper</th><th><code>node control-studio/scripts/verify_p16_hinf.mjs</code></th></tr>
+<tr><td>CS-P16-02</td><td>P2</td><td>Done</td><td>Loop shaping workflow（由 H∞ weights 承擔）</td><td><code>84241c7</code></td></tr>
+<tr><td>CS-P16-03</td><td>P2</td><td>Done</td><td>Phase portrait + describing functions</td><td>Browser regression；<code>84241c7</code></td></tr>
+<tr><td>CS-P16-04</td><td>P1</td><td>Done</td><td>GA-based PID auto-tuner</td><td><code>node control-studio/scripts/verify_p16_ga.mjs</code></td></tr>
+</thead><tbody>
+</table>
+
+<h3 id="phase-17-advanced-robust-mimo-mpc-extensions-cs-p17">Phase 17: Advanced Robust / MIMO / MPC Extensions (CS-P17)</h3>
+
+<p>目標：把 Phase 16 後仍未展開的高階控制理論入口補成可驗證的數學核心。此 phase 採 browser-side deterministic baseline：H∞ 以 plant-order dynamic mixed-sensitivity optimizer 實作，μ synthesis 以 diagonal D-scaling upper-bound 與 DK-style static gain surrogate 實作；若未來要 MATLAB Robust Control Toolbox 等級，可再接 Riccati/LMI backend。</p>
+
+<table>
+<tr><td>ID</td><td>Priority</td><td>Status</td><td>Item</td><td>Verification</td></tr>
+<thead>
+<tr><th>CS-P17-01</th><th>P1</th><th>Done</th><th>Plant-order dynamic H∞ mixed-sensitivity synthesis</th><th><code>node control-studio/scripts/verify_p17_advanced_control.mjs</code></th></tr>
+<tr><td>CS-P17-02</td><td>P1</td><td>Done</td><td>Structured μ D-scaling upper-bound + DK-style static gain surrogate</td><td><code>node control-studio/scripts/verify_p17_advanced_control.mjs</code></td></tr>
+<tr><td>CS-P17-03</td><td>P2</td><td>Done</td><td>MIMO frequency-domain design diagnostics: characteristic loci, Gershgorin bands, inverse Nyquist array</td><td><code>node control-studio/scripts/verify_p17_advanced_control.mjs</code></td></tr>
+<tr><td>CS-P17-04</td><td>P1</td><td>Done</td><td>MPC MIMO output-space setpoint tracking (<code>y_ref = Cx + Du</code>)</td><td><code>node control-studio/scripts/verify_p17_advanced_control.mjs</code></td></tr>
+</thead><tbody>
+</table>
+
+<p><strong>Validation aggregate status：<code>control-studio/scripts/run_all_verify.sh</code> 與 <code>npm run verify:all</code> 是目前主驗證入口；P22+ 新增的 P23 / P24 / P25 / P26 / P27 runner 以 roadmap 與 package scripts 為準。</strong></p>
+
+<h2 id="phase-18-research-engineering-extension-ledger">Phase 18+ Research / Engineering Extension Ledger</h2>
+
+<p>Phase 18+ 已進入持續擴充狀態。下一步順序以 <code>control-studio/ROADMAP.md</code> 為準；本 ledger 必須維持三個邊界：</p>
+<ul>
+<li>每個控制理論功能先補數學定義與 fixture，再補 UI。</li>
+<li>若功能可拆成 agent workflow，需同步評估是否建立 skill。</li>
+<li>Teaching Mode / Electron / Report Template / Block Diagram expansion 持續 paused。</li>
+</ul>
+
+<h3 id="phase-18-uncertainty-monte-carlo-robust-validation-cs-p18">Phase 18: Uncertainty + Monte Carlo Robust Validation (CS-P18)</h3>
+
+<p>目標：把 robust analysis 從 nominal sensitivity 指標推進到 uncertainty family 驗證，讓工程師能看到 worst-case response 與 robust pass/fail。</p>
+
+<table>
+<tr><td>ID</td><td>Priority</td><td>Status</td><td>Item</td><td>Rationale</td><td>Dependencies</td><td>Verification</td></tr>
+<thead>
+<tr><th>CS-P18-01</th><th>P1</th><th>Done</th><th>Uncertainty model schema</th><th>支援 parametric / additive / multiplicative uncertainty，且 payload 可序列化</th><th>robust.js / project model</th><th><code>verify:p18</code> schema fixtures</th></tr>
+<tr><td>CS-P18-02</td><td>P1</td><td>Done</td><td>Deterministic Monte Carlo sampling</td><td>固定 seed、sample count、sample replay，避免驗證不可重現</td><td>seedable RNG</td><td><code>verify:p18</code> deterministic replay</td></tr>
+<tr><td>CS-P18-03</td><td>P1</td><td>Done</td><td>Worst-case robust metrics</td><td>擷取 worst PM/GM、peak \</td><td>S\</td><td>、settling、overshoot、control effort</td><td>frequency/time response core</td><td><code>verify:p18</code> worst-case extraction</td></tr>
+<tr><td>CS-P18-04</td><td>P1</td><td>Done</td><td>Robust pass/fail specs</td><td>以設計規格判斷 sample family 是否通過</td><td>stability + metrics</td><td><code>verify:p18</code> nominal-pass / uncertainty-fail case</td></tr>
+<tr><td>CS-P18-05</td><td>P2</td><td>Done</td><td>Robust validation UI</td><td>顯示 uncertainty inputs、sample distribution、worst-case replay、pass/fail summary</td><td>CS-P18-01~04</td><td>Playwright/Chrome walkthrough on <code>127.0.0.1:8765</code></td></tr>
+<tr><td>CS-P18-06</td><td>P1</td><td>Done</td><td><code>control-studio-robust-validator</code> skill baseline</td><td>將 uncertainty validation workflow 抽成 agent 可重用流程</td><td><code>CONTROL_SYSTEM_SKILLS_PLAN.md</code></td><td>skill checklist + sample output</td></tr>
+</thead><tbody>
+</table>
+
+<h3 id="phase-19-full-h-infinity-mu-backend-cs-p19">Phase 19: Full H-infinity / Mu Backend (CS-P19)</h3>
+
+<table>
+<tr><td>ID</td><td>Priority</td><td>Status</td><td>Item</td><td>Rationale</td><td>Dependencies</td><td>Verification</td></tr>
+<thead>
+<tr><th>CS-P19-01</th><th>P2</th><th>Done</th><th>Riccati/LMI H∞ synthesis backend decision</th><th>決定使用 Python backend、WASM 或 JS baseline</th><th>Phase 17 robust baseline</th><th>design doc + numeric spike</th></tr>
+<tr><td>CS-P19-02</td><td>P2</td><td>Done</td><td>Glover-Doyle H∞ synthesis</td><td>取代 browser-side heuristic optimizer 的 full-order path</td><td>CS-P19-01</td><td>residual + gamma golden cases</td></tr>
+<tr><td>CS-P19-03</td><td>P2</td><td>Planned</td><td>Full DK-iteration</td><td>dynamic D scaling / K fitting，取代 static surrogate；目前仍由 P27 gap 追蹤</td><td>CS-P19-02</td><td>mu upper-bound non-worsening fixtures</td></tr>
+</thead><tbody>
+</table>
+
+<h3 id="phase-20-mimo-mpc-engineering-workflow-cs-p20">Phase 20: MIMO MPC Engineering Workflow (CS-P20)</h3>
+
+<table>
+<tr><td>ID</td><td>Priority</td><td>Status</td><td>Item</td><td>Rationale</td><td>Dependencies</td><td>Verification</td></tr>
+<thead>
+<tr><th>CS-P20-01</th><th>P1</th><th>Done</th><th>Offset-free MIMO tracking</th><th>擾動存在時仍能消除 steady-state error</th><th>Phase 17 MPC MIMO tracking</th><th>step disturbance fixture</th></tr>
+<tr><td>CS-P20-02</td><td>P1</td><td>Done</td><td>Output / delta-u constraints</td><td>工程 MPC 需要輸出限制與 move suppression</td><td>Phase 11 state/input constraints</td><td>constrained MIMO tracking fixture</td></tr>
+<tr><td>CS-P20-03</td><td>P2</td><td>Done</td><td>Feasibility diagnostics</td><td>不可行時指出 constraint conflict</td><td>QP solver</td><td>infeasible setpoint fixture</td></tr>
+<tr><td>CS-P20-04</td><td>P1</td><td>Planned</td><td>Project-local <code>control-studio-mpc-designer</code> skill package</td><td>將 MPC 建模、權重、constraint 設計流程標準化；目前已有全域 skill，可視需要回寫專案版 examples / references</td><td><code>CONTROL_SYSTEM_SKILLS_PLAN.md</code></td><td>sample MPC design checklist</td></tr>
+</thead><tbody>
+</table>
+
+<h3 id="phase-21-research-grade-system-identification-cs-p21">Phase 21: Research-Grade System Identification (CS-P21)</h3>
+
+<table>
+<tr><td>ID</td><td>Priority</td><td>Status</td><td>Item</td><td>Rationale</td><td>Dependencies</td><td>Verification</td></tr>
+<thead>
+<tr><th>CS-P21-01</th><th>P2</th><th>Done</th><th>Experiment signal design</th><th>PRBS / chirp / multi-sine，改善識別資料品質</th><th>Phase 15 ARX</th><th>known signal spectrum fixtures</th></tr>
+<tr><td>CS-P21-02</td><td>P2</td><td>Done</td><td>ARMAX / OE / BJ candidates</td><td>補 ARX 以外常用模型族</td><td>sysid core</td><td>synthetic plant recovery</td></tr>
+<tr><td>CS-P21-03</td><td>P2</td><td>Done</td><td>Subspace state-space ID</td><td>支援 MIMO 與狀態空間研究流程</td><td>matrix core</td><td>low-order MIMO recovery</td></tr>
+<tr><td>CS-P21-04</td><td>P1</td><td>Done</td><td>Residual validation + uncertainty export</td><td>讓 sysid 結果可接 Phase 18 robust validation</td><td>CS-P18</td><td>whiteness + uncertainty fixtures</td></tr>
+<tr><td>CS-P21-05</td><td>P2</td><td>Planned</td><td>Project-local <code>control-studio-sysid-planner</code> skill package</td><td>將實驗設計與模型選型流程抽成 agent skill；目前已有全域 skill，可視需要回寫專案版 examples / references</td><td><code>CONTROL_SYSTEM_SKILLS_PLAN.md</code></td><td>sample sysid plan</td></tr>
+</thead><tbody>
+</table>
+
+<h3 id="phase-22-benchmark-cross-tool-validation-cs-p22">Phase 22: Benchmark + Cross-Tool Validation (CS-P22)</h3>
+
+<table>
+<tr><td>ID</td><td>Priority</td><td>Status</td><td>Item</td><td>Rationale</td><td>Dependencies</td><td>Verification</td></tr>
+<thead>
+<tr><th>CS-P22-01</th><th>P1</th><th>Done</th><th>Benchmark suite expansion</th><th>將 SISO/MIMO/MPC/robust/sysid 案例統一成 benchmark library</th><th>verification cases</th><th>golden fixture manifest</th></tr>
+<tr><td>CS-P22-02</td><td>P1</td><td>Done</td><td>MATLAB / Python Control comparison</td><td>建立 cross-tool tolerance 與 drift detection</td><td>codegen + external scripts</td><td>comparison artifacts</td></tr>
+<tr><td>CS-P22-03</td><td>P1</td><td>Done</td><td><code>control-studio-benchmark-author</code> skill</td><td>標準化新控制案例的推導與 fixture 產生</td><td><code>CONTROL_SYSTEM_SKILLS_PLAN.md</code></td><td>generated benchmark skeleton</td></tr>
+</thead><tbody>
+</table>
+
+<h3 id="phase-23-agentic-design-review-cs-p23">Phase 23: Agentic Design Review (CS-P23)</h3>
+
+<table>
+<tr><td>ID</td><td>Priority</td><td>Status</td><td>Item</td><td>Rationale</td><td>Dependencies</td><td>Verification</td></tr>
+<thead>
+<tr><th>CS-P23-01</th><th>P1</th><th>Done</th><th>Structured design review schema</th><th>Advisor 建議需綁定數值證據與適用條件</th><th>existing advisor</th><th>golden review cases</th></tr>
+<tr><td>CS-P23-02</td><td>P1</td><td>Done</td><td><code>control-studio-system-auditor</code> skill</td><td>讓 agent 能先做 plant/controller 審查再開發</td><td><code>CONTROL_SYSTEM_SKILLS_PLAN.md</code></td><td>audit checklist examples</td></tr>
+<tr><td>CS-P23-03</td><td>P2</td><td>Planned</td><td>Project-local <code>control-studio-ui-verifier</code> skill package</td><td>將 browser UI walkthrough 標準化；目前已有全域 skill，可視需要回寫專案版 examples / references</td><td>browser smoke</td><td>UI issue report example</td></tr>
+</thead><tbody>
+</table>
+
+<h3 id="phase-24-advanced-mpc-cs-p24">Phase 24: Advanced MPC (CS-P24)</h3>
+
+<table>
+<tr><td>ID</td><td>Priority</td><td>Status</td><td>Item</td><td>Rationale</td><td>Dependencies</td><td>Verification</td></tr>
+<thead>
+<tr><th>CS-P24-01</th><th>P1</th><th>Done</th><th>NMPC / SQP-lite</th><th>支援非線性模型的 deterministic receding-horizon baseline</th><th>Phase 20 MPC engineering</th><th><code>verify_p24_nmpc.mjs</code></th></tr>
+<tr><td>CS-P24-02</td><td>P1</td><td>Done</td><td>Tube MPC</td><td>將 uncertainty 與 constrained MPC 接起來，支援 robust invariant tube</td><td>Phase 18 + Phase 20</td><td><code>verify_p24_tube_explicit_mpc.mjs</code></td></tr>
+<tr><td>CS-P24-03</td><td>P1</td><td>Done</td><td>Economic MPC</td><td>Differential Evolution finite-horizon non-quadratic economic objective，含 seed reproducibility 與 warm-start candidate</td><td>Phase 20</td><td><code>verify_p24_empc.mjs</code></td></tr>
+<tr><td>CS-P24-04</td><td>P2</td><td>Done</td><td>Explicit MPC</td><td>scalar PWA lookup policy，對照 online constrained MPC</td><td>Phase 20</td><td><code>verify_p24_tube_explicit_mpc.mjs</code></td></tr>
+</thead><tbody>
+</table>
+
+<h3 id="phase-25-model-order-reduction-cs-p25">Phase 25: Model Order Reduction (CS-P25)</h3>
+
+<table>
+<tr><td>ID</td><td>Priority</td><td>Status</td><td>Item</td><td>Rationale</td><td>Dependencies</td><td>Verification</td></tr>
+<thead>
+<tr><th>CS-P25-01</th><th>P1</th><th>Done</th><th>Balanced truncation</th><th>對高階 plant 產生低階控制設計模型</th><th>matrix / state-space core</th><th><code>verify_p25_model_reduction.mjs</code></th></tr>
+<tr><td>CS-P25-02</td><td>P2</td><td>Planned</td><td>Hankel norm approximation</td><td>補更研究級的 model reduction 誤差界工具</td><td>CS-P25-01</td><td>Hankel singular value fixture</td></tr>
+<tr><td>CS-P25-03</td><td>P1</td><td>Done</td><td>SS minreal / Kalman decomposition</td><td>移除不可控/不可觀 mode，降低 controller design 風險</td><td>state-space core</td><td><code>verify_p25_model_reduction.mjs</code></td></tr>
+</thead><tbody>
+</table>
+
+<h3 id="phase-26-nonlinear-control-cs-p26">Phase 26: Nonlinear Control (CS-P26)</h3>
+
+<table>
+<tr><td>ID</td><td>Priority</td><td>Status</td><td>Item</td><td>Rationale</td><td>Dependencies</td><td>Verification</td></tr>
+<thead>
+<tr><th>CS-P26-01</th><th>P1</th><th>Done</th><th>Gain-scheduled PID</th><th>支援 operating-region dependent PID baseline</th><th>PID + nonlinear core</th><th><code>verify_p26_nonlinear.mjs</code></th></tr>
+<tr><td>CS-P26-02</td><td>P2</td><td>Planned</td><td>LPV synthesis</td><td>將 gain scheduling 推進到更正式的 LPV design path</td><td>CS-P26-01</td><td>LPV scheduling fixture</td></tr>
+<tr><td>CS-P26-03</td><td>P1</td><td>Done</td><td>Sliding mode control</td><td>提供 robust nonlinear control baseline</td><td>nonlinear core</td><td><code>verify_p26_nonlinear.mjs</code></td></tr>
+</thead><tbody>
+</table>
+
+<h3 id="phase-27-h-infinity-design-extensions-cs-p27">Phase 27: H-infinity Design Extensions (CS-P27)</h3>
+
+<table>
+<tr><td>ID</td><td>Priority</td><td>Status</td><td>Item</td><td>Rationale</td><td>Dependencies</td><td>Verification</td></tr>
+<thead>
+<tr><th>CS-P27-01</th><th>P1</th><th>Planned</th><th>Full D-K iteration</th><th>目前 structured μ 仍是 surrogate / baseline；full-order dynamic D/K fitting 尚未完成</th><th>Phase 19</th><th>mu non-worsening fixture</th></tr>
+<tr><td>CS-P27-02</td><td>P1</td><td>Done</td><td>Loop-shaping H∞</td><td>補 weighted loop-shaping design workflow</td><td>Phase 19</td><td><code>verify_p27_loop_shaping.mjs</code></td></tr>
+<tr><td>CS-P27-03</td><td>P1</td><td>Done</td><td>MIMO H∞ verification</td><td>補 MIMO closed-loop robust performance verification</td><td>Phase 19</td><td><code>verify_p27_mimo_hinf.mjs</code></td></tr>
+</thead><tbody>
+</table>
+
+<h3 id="phase-28-infrastructure-quality-cs-p28">Phase 28: Infrastructure Quality (CS-P28)</h3>
+
+<table>
+<tr><td>ID</td><td>Priority</td><td>Status</td><td>Item</td><td>Rationale</td><td>Dependencies</td><td>Verification</td></tr>
+<thead>
+<tr><th>CS-P28-01</th><th>P1</th><th>Done</th><th>TypeScript definitions</th><th>讓外部工具與 agent 可引用穩定 API surface</th><th>current JS modules</th><th><code>control-studio/types/control-studio.d.ts</code></th></tr>
+<tr><td>CS-P28-02</td><td>P2</td><td>Planned</td><td>JSDoc API docs</td><td>將核心模組文件化，降低後續 agent 誤用數學 API 的風險</td><td>CS-P28-01</td><td>generated docs smoke</td></tr>
+<tr><td>CS-P28-03</td><td>P1</td><td>Done</td><td>Performance benchmark</td><td>追蹤數學核心與控制演算法速度退化</td><td>verification runners</td><td><code>control-studio/scripts/benchmark.mjs</code></td></tr>
+</thead><tbody>
+</table>
+
+<h2 id="do-not-start-yet">Do Not Start Yet</h2>
+
+<p>以下項目先不要直接開發：</p>
+<ul>
+<li>教學模式</li>
+<li>Electron packaging</li>
+<li>報告模板 / 報告自動化</li>
+<li>Block Diagram 新功能</li>
+</ul>
+
+<p>原因：使用者已明確要求擱置，後續 agent 不應自行恢復。</p>
+
+</main>
+</body>
+</html>

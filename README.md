@@ -3,21 +3,29 @@
 此資料夾集中管理 NVIDIA Build Models 與近期 NVIDIA 開源/模型支援相關整理。
 
 ## 主要入口
-- `AGENTS.md`：Agent 進入此專案時的工作規則、標準流程與品質判準。
-- `AGENT_USAGE.md`：Agent 可直接照做的 CLI 使用手冊，含選型、plan、run、eval 與擴充方式。
-- `nvidia-build-models-operational-guide.md`：中文功能落地操作指南，含分類、用途、輸入/輸出、落地步驟與串接位置。
-- `nvidia-build-models-operational-guide.csv`：同上，表格版，適合篩選與後續整理。
-- `nvidia-model-selector-skill-plan.md`：把這批 NVIDIA 模型資料做成 Codex skill 的建置規劃，供其他 agent 接手。
-- `skills/nvidia-model-selector/`：已建置的 Codex skill 原始碼，透過 symlink 掛到 `~/.config/agents/skills/nvidia-model-selector`。
-- `AGENT_CONTINUATION.md`：usage 耗盡或切換 agent 時的接手狀態。
-- `RUNNABLE_WORKFLOWS.md`：可執行 workflow 與 API key 放置說明。
-- `CONTROL_SYSTEM_PLAN.md`：控制系統工作台的盤點、MVP 範圍與後續開發路線圖。
-- `CONTROL_SYSTEM_VERIFICATION_CASES.md`：控制系統五個數學推導驗證案例，作為後續回歸測試依據。
-- `CONTROL_SYSTEM_BACKLOG.md`：控制系統後續開發優先順序、依賴與驗證計畫。
-- `workflows/`：已實作的 runnable NVIDIA workflows。
-- `nv-agent`：整合選型提問、workflow 列表、功能執行的 CLI。
-- `configs/model_registry.json`：模型能力、角色、endpoint 與實測狀態。
-- `configs/task_profiles.json`：任務拆解、workflow、階段與品質 rubric。
+
+### 📄 文件站（Docs）
+所有 `.md` 文件已統一整理至 `docs/`，並轉換為 HTML 便於閱讀：
+
+| 路徑 | 說明 |
+|------|------|
+| `docs/index.html` | 文件導覽入口（工作流關係圖） |
+| `docs/agents/` | Agent 工作文件（接手、使用指南、Workflows） |
+| `docs/control-studio/` | ControlStudio 產品文件（Roadmap、計畫、Backlog、UI/UX） |
+| `docs/nvidia/` | NVIDIA 模型文件（指南、分類表、Skill 規劃） |
+| `docs/cases/` | 案例輸出（DC Motor、Precision Servo、Regression） |
+
+> 更新文件：編輯 `docs/**/*.md`，再執行 `node docs/build.mjs` 重新生成 HTML。
+
+### 🔑 常用入口
+- `AGENTS.md`：Agent 工作規則與品質判準（保留於根目錄）
+- `docs/agents/continuation.md`：切換 Agent 時的接手狀態
+- `control-studio/ROADMAP.md`：ControlStudio 主線狀態（source of truth）
+- `workflows/`：已實作的 runnable NVIDIA workflows
+- `nv-agent`：整合選型提問、workflow 列表、功能執行的 CLI
+- `configs/model_registry.json`：模型能力、角色、endpoint 與實測狀態
+- `configs/task_profiles.json`：任務拆解、workflow、階段與品質 rubric
+- `skills/nvidia-model-selector/`：已建置的 Codex skill 原始碼
 - `control-studio/`：控制系統視覺化工作台，含 PID 調參、穩定性分析與 AI 建議橋接。
   - 目前已支援 Transfer Function / State Space（SISO）輸入、Lead/Lag 補償器、Step/Impulse/Ramp/Sine/Square/Pulse、Nyquist、project save/load、autosave/restore session、結果快照比較與較低擁擠度的 sidebar workspace。
   - Block Diagram 目前暫時擱置，進階功能優先走 SISO transfer function / frequency response / stability validation。
