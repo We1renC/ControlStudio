@@ -467,6 +467,12 @@ function initEventListeners() {
   document.getElementById('tf-den')?.addEventListener('input', debounce(updateSystem, 300));
   document.getElementById('tf-delay')?.addEventListener('input', debounce(updateSystem, 300));
   document.getElementById('tf-pade-order')?.addEventListener('change', updateSystem);
+
+  // ── Live polynomial preview (continuous TF) ──────────────────────────────
+  initTFPolyPreview('tf-num',  'tf-num-preview',  's');
+  initTFPolyPreview('tf-den',  'tf-den-preview',  's');
+  initTFPolyPreview('dtf-num', 'dtf-num-preview', 'z');
+  initTFPolyPreview('dtf-den', 'dtf-den-preview', 'z');
   ['ss-a', 'ss-b', 'ss-c', 'ss-d'].forEach((id) => {
     document.getElementById(id)?.addEventListener('input', debounce(updateSystem, 300));
   });
@@ -1085,11 +1091,30 @@ function switchSidebarPanel(panelName) {
   updateGlobalStatusBar(`${panelName} panel active`);
 }
 
+// ── Mini Root Locus redundancy guard ────────────────────────────────────────
+// When the main chart shows Root Locus, overlay the mini-rlocus with a hint.
+function updateMiniRlocusVisibility(plotName) {
+  const cell   = document.getElementById('mini-rlocus-cell');
+  const same   = document.getElementById('mini-rlocus-same');
+  const body   = document.getElementById('chart-rlocus');
+  const hint   = document.getElementById('rl-interact-hint');
+  if (!cell || !same) return;
+  if (plotName === 'rlocus') {
+    same.style.display = 'flex';
+    if (body) body.style.visibility = 'hidden';
+    if (hint) hint.style.display = 'none';
+  } else {
+    same.style.display = 'none';
+    if (body) body.style.visibility = '';
+  }
+}
+
 function switchPlot(plotName) {
   state.activePlot = plotName;
   document.querySelectorAll('.plot-tab').forEach((tab) => {
     tab.classList.toggle('active', tab.dataset.plot === plotName);
   });
+  updateMiniRlocusVisibility(plotName);
   // Switching plot tabs exits MIMO All-view (grid only meaningful for step response)
   if (state.mimoChannel && state.mimoChannel.all) {
     state.mimoChannel.all = false;
@@ -1111,6 +1136,56 @@ function escapeHtml(value) {
     .replaceAll('>', '&gt;')
     .replaceAll('"', '&quot;')
     .replaceAll("'", '&#39;');
+}
+
+// ── Live Inline TF Polynomial Preview ───────────────────────────────────────
+// Converts coefficient array to human-readable polynomial string.
+// e.g. [4, 5, 6] → "4s² + 5s + 6"   [1, 0, -2] → "s² − 2"
+function _coeffsToPolyStr(rawStr, variable) {
+  // Parse: support comma, space, or mixed separators; allow negatives & floats
+  const parts = rawStr.trim().split(/[\s,]+/).filter(Boolean);
+  const coeffs = parts.map(Number);
+  if (coeffs.length === 0 || coeffs.some(isNaN)) return null;
+
+  const SUP = ['⁰','¹','²','³','⁴','⁵','⁶','⁷','⁸','⁹'];
+  const toSup = n => String(n).split('').map(d => SUP[+d] ?? d).join('');
+
+  const n = coeffs.length - 1;
+  const terms = [];
+  for (let i = 0; i <= n; i++) {
+    const c = coeffs[i];
+    if (c === 0) continue;
+    const power = n - i;
+    const absC = Math.abs(c);
+    // coefficient display: omit '1' when a variable follows
+    const coefStr = (absC === 1 && power > 0) ? '' : (Number.isInteger(absC) ? String(absC) : absC.toFixed(4).replace(/\.?0+$/, ''));
+    // variable+exponent
+    const varStr = power === 0 ? '' : power === 1 ? variable : `${variable}${toSup(power)}`;
+    // sign
+    const sign = c < 0 ? (terms.length > 0 ? ' − ' : '−') : (terms.length > 0 ? ' + ' : '');
+    terms.push(`${sign}${coefStr}${varStr}`);
+  }
+  return terms.length ? terms.join('') : '0';
+}
+
+function initTFPolyPreview(inputId, previewId, variable) {
+  const input   = document.getElementById(inputId);
+  const preview = document.getElementById(previewId);
+  if (!input || !preview) return;
+
+  const render = () => {
+    const result = _coeffsToPolyStr(input.value, variable);
+    if (result === null) {
+      preview.textContent = '⚠ 無效輸入';
+      preview.className = 'tf-poly-preview invalid';
+    } else {
+      preview.textContent = result;
+      preview.className = 'tf-poly-preview';
+    }
+  };
+
+  input.addEventListener('input', render);
+  render(); // initial render for default value
 }
 
 function waveformLabel(type) {
@@ -13780,4 +13855,6 @@ function initTriplePane() {
 document.addEventListener('DOMContentLoaded', () => {
   initTriplePane();
   updateContextBar();
+  // Sync mini rlocus overlay to current activePlot on load
+  updateMiniRlocusVisibility(state.activePlot);
 }, { once: true });
