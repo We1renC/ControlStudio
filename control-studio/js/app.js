@@ -3703,6 +3703,255 @@ function compactLegend() {
   };
 }
 
+// ═══════════════════════════════════════════════════════════════════════════════
+// P61 — In-Chart Engineering Annotations (J1-1 ~ J1-5)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+// J1-5: Global annotation toggle
+if (!('chartAnnotationsEnabled' in state)) state.chartAnnotationsEnabled = true;
+
+function initChartAnnotationToggle() {
+  const btn = document.getElementById('btn-toggle-annotations');
+  if (!btn) return;
+  // Restore from localStorage
+  const saved = localStorage.getItem('cs-chart-annotations');
+  if (saved !== null) state.chartAnnotationsEnabled = saved === 'true';
+  _updateAnnotationBtnState(btn);
+
+  btn.addEventListener('click', () => {
+    state.chartAnnotationsEnabled = !state.chartAnnotationsEnabled;
+    localStorage.setItem('cs-chart-annotations', state.chartAnnotationsEnabled);
+    _updateAnnotationBtnState(btn);
+    refreshAllCharts();
+  });
+}
+
+function _updateAnnotationBtnState(btn) {
+  if (!btn) return;
+  btn.style.opacity = state.chartAnnotationsEnabled ? '1' : '0.45';
+  btn.setAttribute('aria-pressed', state.chartAnnotationsEnabled ? 'true' : 'false');
+}
+
+// ── J1-1: Step Response Annotations ─────────────────────────────────────────
+function buildStepAnnotations(resp, info) {
+  if (!state.chartAnnotationsEnabled) return { annotations: [], shapes: [] };
+  if (!info || !resp || resp.t.length < 4) return { annotations: [], shapes: [] };
+  const annotations = [], shapes = [];
+  const t = resp.t, y = resp.y;
+  const yss = info.steadyState ?? y[y.length - 1];
+  if (!Number.isFinite(yss) || Math.abs(yss) < 1e-10) return { annotations: [], shapes: [] };
+  const accentColor = '#818cf8';
+  const stableColor = '#22c55e';
+  const warnColor = '#f59e0b';
+  const dangerColor = '#ef4444';
+
+  // ① Rise Time arrow (horizontal, at y = 50% steady-state)
+  if (Number.isFinite(info.riseTime) && info.riseTime > 0) {
+    const t10 = t.find((_, i) => y[i] >= yss * 0.1) ?? 0;
+    const t90 = t.find((_, i) => y[i] >= yss * 0.9) ?? info.riseTime;
+    const yMid = yss * 0.5;
+    shapes.push({ type: 'line', x0: t10, x1: t90, y0: yMid, y1: yMid, line: { color: accentColor, width: 1.5 } });
+    // tick marks at each end
+    const tickH = Math.abs(yss) * 0.03;
+    shapes.push({ type: 'line', x0: t10, x1: t10, y0: yMid - tickH, y1: yMid + tickH, line: { color: accentColor, width: 1.5 } });
+    shapes.push({ type: 'line', x0: t90, x1: t90, y0: yMid - tickH, y1: yMid + tickH, line: { color: accentColor, width: 1.5 } });
+    annotations.push({
+      x: (t10 + t90) / 2, y: yMid, xref: 'x', yref: 'y',
+      text: `Tr=${fmtTime(info.riseTime)}`, showarrow: false,
+      font: { size: 10, color: accentColor }, yshift: 10,
+      bgcolor: 'rgba(0,0,0,0.55)', borderpad: 2,
+    });
+  }
+
+  // ② Overshoot arrow (vertical, only when OS > 2%)
+  const os = info.overshoot ?? 0;
+  if (os > 2 && Number.isFinite(os)) {
+    const yMax = yss * (1 + os / 100);
+    const tPeak = (() => {
+      let tmax = t[0], ymax = y[0];
+      for (let i = 1; i < y.length; i++) { if (y[i] > ymax) { ymax = y[i]; tmax = t[i]; } }
+      return tmax;
+    })();
+    const osColor = os > 20 ? dangerColor : os > 10 ? warnColor : accentColor;
+    shapes.push({ type: 'line', x0: tPeak, x1: tPeak, y0: yss, y1: yMax, line: { color: osColor, width: 1.5 } });
+    const tickW = (t[t.length - 1] - t[0]) * 0.01;
+    shapes.push({ type: 'line', x0: tPeak - tickW, x1: tPeak + tickW, y0: yss, y1: yss, line: { color: osColor, width: 1.5 } });
+    shapes.push({ type: 'line', x0: tPeak - tickW, x1: tPeak + tickW, y0: yMax, y1: yMax, line: { color: osColor, width: 1.5 } });
+    annotations.push({
+      x: tPeak, y: (yss + yMax) / 2, xref: 'x', yref: 'y',
+      text: `OS=${fmtPercent(os)}`, showarrow: false,
+      font: { size: 10, color: osColor }, xshift: 28,
+      bgcolor: 'rgba(0,0,0,0.55)', borderpad: 2,
+    });
+  }
+
+  // ③+④ Settling Band + Settling Time line
+  const band = 0.02 * Math.abs(yss);
+  if (Number.isFinite(info.settlingTime) && info.settlingTime > 0) {
+    // ±2% band dashed lines
+    const tEnd = t[t.length - 1];
+    shapes.push({ type: 'line', x0: 0, x1: tEnd, y0: yss + band, y1: yss + band, line: { color: 'rgba(34,197,94,0.45)', width: 1, dash: 'dash' } });
+    shapes.push({ type: 'line', x0: 0, x1: tEnd, y0: yss - band, y1: yss - band, line: { color: 'rgba(34,197,94,0.45)', width: 1, dash: 'dash' } });
+    // Settling time vertical line
+    const ts = info.settlingTime;
+    const yMin = Math.min(0, ...y), yMaxAll = Math.max(...y);
+    shapes.push({ type: 'line', x0: ts, x1: ts, y0: yMin, y1: yMaxAll, line: { color: stableColor, width: 1, dash: 'dot' } });
+    annotations.push({
+      x: ts, y: yMaxAll, xref: 'x', yref: 'y',
+      text: `Ts=${fmtTime(ts)}`, showarrow: false,
+      font: { size: 10, color: stableColor }, yshift: -14,
+      bgcolor: 'rgba(0,0,0,0.55)', borderpad: 2,
+    });
+    annotations.push({
+      x: tEnd, y: yss + band, xref: 'x', yref: 'y',
+      text: '±2%', showarrow: false,
+      font: { size: 9, color: 'rgba(34,197,94,0.7)' }, xshift: 14,
+    });
+  }
+
+  // ⑤ Steady-State Error (right edge, when ess > 0.5%)
+  const ess = Math.abs(info.steadyStateError ?? (1 - yss));
+  if (Number.isFinite(ess) && ess > 0.005 && Number.isFinite(yss)) {
+    const essColor = ess > 0.05 ? dangerColor : warnColor;
+    const tEnd = t[t.length - 1];
+    shapes.push({ type: 'line', x0: tEnd * 0.97, x1: tEnd * 0.97, y0: yss, y1: 1.0, line: { color: essColor, width: 1.5 } });
+    annotations.push({
+      x: tEnd, y: (yss + 1) / 2, xref: 'x', yref: 'y',
+      text: `ess=${ess.toPrecision(3)}`, showarrow: false,
+      font: { size: 9, color: essColor }, xshift: -4,
+      bgcolor: 'rgba(0,0,0,0.55)', borderpad: 2,
+    });
+  }
+
+  return { annotations, shapes };
+}
+
+// ── J1-2: Bode PM/GM Double-Headed Arrows ────────────────────────────────────
+function buildBodeAnnotations(margins, bodeData) {
+  if (!state.chartAnnotationsEnabled) return { annotations: [], shapes: [] };
+  const annotations = [], shapes = [];
+  const { phaseMargin: pm, gainMarginDB: gm, gainCrossover: wgc, phaseCrossover: wpc } = margins;
+  const phaseDeg = bodeData.phaseDeg ?? [];
+  const magDB = bodeData.magDB ?? [];
+  const w = bodeData.w ?? [];
+
+  // PM: double-headed arrow on phase subplot from Phase(ωgc) to -180°
+  if (Number.isFinite(pm) && Number.isFinite(wgc) && wgc > 0 && phaseDeg.length > 0) {
+    const phAtWgc = (() => {
+      const idx = w.reduce((best, wi, i) => Math.abs(wi - wgc) < Math.abs(w[best] - wgc) ? i : best, 0);
+      return phaseDeg[idx];
+    })();
+    if (Number.isFinite(phAtWgc)) {
+      const pmColor = pm > 45 ? '#22c55e' : pm > 30 ? '#f59e0b' : '#ef4444';
+      // Vertical bar showing PM gap on phase plot
+      shapes.push({
+        type: 'line', xref: 'x', yref: 'y2',
+        x0: Math.log10(wgc), x1: Math.log10(wgc),
+        y0: -180, y1: phAtWgc,
+        line: { color: pmColor, width: 2 },
+      });
+      annotations.push({
+        xref: 'x', yref: 'y2',
+        x: Math.log10(wgc), y: (-180 + phAtWgc) / 2,
+        text: `PM=${pm.toFixed(1)}°`, showarrow: false,
+        font: { size: 10, color: pmColor }, xshift: 28,
+        bgcolor: 'rgba(0,0,0,0.55)', borderpad: 2,
+      });
+    }
+  }
+
+  // GM: double-headed arrow on magnitude subplot from Mag(ωpc) to 0 dB
+  if (Number.isFinite(gm) && Number.isFinite(wpc) && wpc > 0 && magDB.length > 0) {
+    const magAtWpc = (() => {
+      const idx = w.reduce((best, wi, i) => Math.abs(wi - wpc) < Math.abs(w[best] - wpc) ? i : best, 0);
+      return magDB[idx];
+    })();
+    if (Number.isFinite(magAtWpc)) {
+      const gmColor = gm > 6 ? '#22c55e' : gm > 3 ? '#f59e0b' : '#ef4444';
+      shapes.push({
+        type: 'line', xref: 'x', yref: 'y',
+        x0: Math.log10(wpc), x1: Math.log10(wpc),
+        y0: magAtWpc, y1: 0,
+        line: { color: gmColor, width: 2 },
+      });
+      annotations.push({
+        xref: 'x', yref: 'y',
+        x: Math.log10(wpc), y: magAtWpc / 2,
+        text: `GM=${gm.toFixed(1)}dB`, showarrow: false,
+        font: { size: 10, color: gmColor }, xshift: -28,
+        bgcolor: 'rgba(0,0,0,0.55)', borderpad: 2,
+      });
+    }
+  }
+  return { annotations, shapes };
+}
+
+// ── J1-4: Nyquist Frequency Ticks + Minimum Distance Circle ──────────────────
+function buildNyquistAnnotations(sys, data) {
+  if (!state.chartAnnotationsEnabled) return { annotations: [], shapes: [] };
+  const annotations = [], shapes = [];
+  const re = data.re ?? [], im = data.im ?? [], wArr = data.w ?? [];
+  if (re.length < 4 || wArr.length < 4) return { annotations, shapes };
+
+  // ① Frequency tick marks at decade intervals
+  const wMin = wArr[0], wMax = wArr[wArr.length - 1];
+  const log0 = Math.ceil(Math.log10(wMin)), log1 = Math.floor(Math.log10(wMax));
+  for (let logW = log0; logW <= log1; logW++) {
+    const wTick = Math.pow(10, logW);
+    const idx = wArr.reduce((best, wi, i) => Math.abs(wi - wTick) < Math.abs(wArr[best] - wTick) ? i : best, 0);
+    if (!Number.isFinite(re[idx]) || !Number.isFinite(im[idx])) continue;
+    annotations.push({
+      x: re[idx], y: im[idx], xref: 'x', yref: 'y',
+      text: `ω=${wTick<1?wTick.toFixed(2):wTick<10?wTick.toFixed(1):fmtNum(wTick)}`,
+      showarrow: true, arrowhead: 0, arrowwidth: 1,
+      arrowcolor: 'rgba(148,163,184,0.5)', ax: 18, ay: -18,
+      font: { size: 9, color: 'rgba(148,163,184,0.8)' },
+      bgcolor: 'rgba(0,0,0,0.4)', borderpad: 2,
+    });
+  }
+
+  // ② Minimum distance circle (1/Ms)
+  try {
+    let minDist = Infinity;
+    for (let i = 0; i < re.length; i++) {
+      const dist = Math.sqrt((re[i] + 1) ** 2 + im[i] ** 2);
+      if (Number.isFinite(dist) && dist < minDist) minDist = dist;
+    }
+    if (Number.isFinite(minDist) && minDist > 0 && minDist < 5) {
+      const Ms = 1 / minDist;
+      const MsdB = 20 * Math.log10(Ms);
+      // Draw circle centered at -1+j0 with radius = minDist (approximate using ellipse SVG hack via shape)
+      // Plotly shapes don't support circles in data coords directly, use many-point trace instead
+      const circlePts = 120;
+      const cxArr = [], cyArr = [];
+      for (let i = 0; i <= circlePts; i++) {
+        const ang = (i / circlePts) * 2 * Math.PI;
+        cxArr.push(-1 + minDist * Math.cos(ang));
+        cyArr.push(minDist * Math.sin(ang));
+      }
+      // Return as trace data to be appended (caller adds to traces array)
+      data._msCircleTrace = {
+        x: cxArr, y: cyArr,
+        type: 'scatter', mode: 'lines',
+        line: { color: 'rgba(249,115,22,0.55)', width: 1.5, dash: 'dot' },
+        name: `1/Ms=${minDist.toFixed(3)}`, hoverinfo: 'name', showlegend: false,
+      };
+      annotations.push({
+        x: -1 + minDist, y: 0, xref: 'x', yref: 'y',
+        text: `Ms=${Ms.toFixed(2)}(${MsdB.toFixed(1)}dB)`,
+        showarrow: true, arrowhead: 0, arrowwidth: 1,
+        arrowcolor: 'rgba(249,115,22,0.5)', ax: 30, ay: -20,
+        font: { size: 9, color: 'rgba(249,115,22,0.85)' },
+        bgcolor: 'rgba(0,0,0,0.4)', borderpad: 2,
+      });
+    }
+  } catch { /* ignore */ }
+
+  return { annotations, shapes };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+
 function renderTimeResponse(sys, targetId = 'chart-active') {
   const resp = currentResponseData(sys);
   const traces = [{
@@ -3822,6 +4071,17 @@ function renderTimeResponse(sys, targetId = 'chart-active') {
   if (satEnabled && state.responseType === 'step') {
     layout.yaxis2 = { overlaying: 'y', side: 'right', gridcolor: 'transparent', title: { text: 'u(t)', font: { size: 10 } } };
   }
+
+  // J1-1: Step response engineering annotations (Tr, OS, Ts, ess)
+  if (state.responseType === 'step' && resp.y.length > 10) {
+    try {
+      const info = stepInfo(resp.t, resp.y);
+      const { annotations: stepAnnots, shapes: stepShapes } = buildStepAnnotations(resp, info);
+      if (stepAnnots.length) layout.annotations = [...(layout.annotations || []), ...stepAnnots];
+      if (stepShapes.length) layout.shapes = [...(layout.shapes || []), ...stepShapes];
+    } catch (_) { /* silent — annotations are optional */ }
+  }
+
   Plotly.react(targetId, traces, layout, { responsive: true, displayModeBar: false });
 }
 
@@ -3990,6 +4250,15 @@ function renderBodePlot(sys, targetId = 'chart-active') {
     } catch (_) { /* ignore */ }
   }
 
+  // J1-2: Bode PM/GM double-headed arrow annotations
+  if (!isDiscrete) {
+    try {
+      const { annotations: bodeAnnots, shapes: bodeShapes } = buildBodeAnnotations(stabilityMargins(sys), data);
+      if (bodeAnnots.length) layout.annotations = [...(layout.annotations || []), ...bodeAnnots];
+      if (bodeShapes.length) layout.shapes = [...(layout.shapes || []), ...bodeShapes];
+    } catch (_) { /* silent — annotations are optional */ }
+  }
+
   Plotly.react(targetId, traces, layout, { responsive: true, displayModeBar: false });
 }
 
@@ -4103,7 +4372,15 @@ function renderNyquistPlot(sys, targetId = 'chart-active') {
         text: `N=${encirclements}`, showarrow: false, font: { size: 12, color: getCSS('--color-unstable') } });
     }
   }
-  layout.annotations = annotList;
+  // J1-4: Nyquist frequency ticks + Ms minimum-distance circle
+  try {
+    const { annotations: nyAnnots, shapes: nyShapes } = buildNyquistAnnotations(sys, data);
+    layout.annotations = [...annotList, ...nyAnnots];
+    if (nyShapes.length) layout.shapes = nyShapes;
+    if (data._msCircleTrace) traces.push(data._msCircleTrace);
+  } catch (_) {
+    layout.annotations = annotList;
+  }
 
   Plotly.react(targetId, traces, layout, { responsive: true, displayModeBar: false });
 }
@@ -13004,6 +13281,12 @@ document.addEventListener('DOMContentLoaded', () => {
 document.addEventListener('DOMContentLoaded', () => {
   initMethodComplexityLabels();
   initRecommendExplain();
+}, { once: true });
+
+// ── P61 init ──────────────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  if (!('chartAnnotationsEnabled' in state)) state.chartAnnotationsEnabled = true;
+  initChartAnnotationToggle();
 }, { once: true });
 
 // ── P55 — B2-4: Gramian / SVD Detail ──────────────────────────────────────────

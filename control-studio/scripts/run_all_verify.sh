@@ -125,6 +125,7 @@ run_script "P56 C2-3/C5-2/C5-3/D1-4 err-hints/screenshot/summary/codegen" "node 
 run_script "P57 D4-1/D4-2/D4-3/D5-1/D5-2/D5-3 unit-test/diff/hil/docs/wiring/warnings" "node scripts/verify_p57_d4_d5.mjs"
 run_script "P58 G11 app-loading skeleton screen"                    "node scripts/verify_p58_g11.mjs"
 run_script "P59 F1-2 Context Bar / view-nav / A5-1 Triple Pane"    "node scripts/verify_p59_ctxbar_triple.mjs"
+run_script "P61 J1-1/J1-2/J1-4/J1-5 in-chart engineering annotations" "node scripts/verify_p61_chart_annotations.mjs"
 echo ""
 
 # ── General Math & PID ───────────────────────────────────────────────────────
