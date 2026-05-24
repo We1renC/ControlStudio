@@ -1,7 +1,7 @@
 # ControlStudio Development Roadmap
 
 > Last updated: 2026-05-24
-> Current committed baseline: `7ea48fe chore(ui): remove triple-pane plot workspace and keep active-plot crosshair routing`
+> Current committed baseline: `956d8c3 feat(phase34+J13+H14): module split P62-P65 → js/ui/, J1-3 root locus geo annotations, H1-4 sidebar quick pin`
 > Scope: this is the canonical execution roadmap for ControlStudio implementation status.
 > Do not use this file for product vision, proof derivations, or handoff notes; see the document workflow below.
 
@@ -87,15 +87,23 @@
 | **P57** | **D4/D5 unit-test / diff / HIL / docs / wiring / warnings** | Done | `verify_p57_d4_d5.mjs` |
 | **P58** | **G11 app-loading skeleton screen** | Done | `verify_p58_g11.mjs` |
 | **P59** | **F1-2 Context Bar / view-nav / A5-1 Plot Workspace (main + 2 companion charts)** | Done | `verify_p59_ctxbar_triple.mjs` |
+| **P61** | **J1-1/J1-2/J1-4/J1-5 in-chart engineering annotations** | Done | `verify_p61_chart_annotations.mjs` |
+| **P62** | **K1-1/K1-2/K1-4 design flow state machine** | Done | `verify_p62_flow_state.mjs` |
+| **P63** | **L1-1/L1-2/L1-3 chart measurement tools** | Done | `verify_p63_measure_tools.mjs` |
+| **P64** | **P1-1/P1-2/P1-3 parameter sweep visualization** | Done | `verify_p64_param_sweep.mjs` |
+| **P65** | **Q1-1/Q1-2/Q1-3/Q1-4 share & export enhancement** | Done | `verify_p65_share_export.mjs` |
+| **P34-01** | **Module split: P62-P65 → js/ui/ sub-modules** | Done | Verify scripts updated to check module files |
+| **J1-3** | **Root Locus geometric annotations (damping lines, ωn arcs, Ku labels)** | Done | `verify_j13_rlocus_geo.mjs` |
+| **H1-4** | **Sidebar Quick Pin (📌 per section, localStorage, max 3, float to top)** | Done | `verify_h14_sidebar_pin.mjs` |
 
 ## Verification Suite Status (2026-05-24)
 
-**79/79 scripts pass** — run via `bash scripts/run_all_verify.sh`
+**81/81 scripts pass** — run via `bash scripts/run_all_verify.sh`
 
 | Group | Scripts | Pass |
 | --- | --- | --- |
 | Phase 9/10/11 foundations | 11 | 11 |
-| Phase 14–65 advanced control / UI | 64 | 64 |
+| Phase 14–65 advanced control / UI | 66 | 66 |
 | General math & PID | 4 | 4 |
 
 ## P1/P2 UI/UX Completion Summary
