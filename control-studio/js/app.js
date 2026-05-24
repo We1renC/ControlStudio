@@ -14212,7 +14212,7 @@ function computeFlowSteps() {
     {
       id: 'plant',
       label: '建立 Plant',
-      emoji: '🔍',
+      step: 1,
       status: hasPlant ? 'done' : 'active',
       hint: hasPlant ? null : '在識別 Tab 輸入傳遞函數',
       wfTab: 'identify',
@@ -14220,7 +14220,7 @@ function computeFlowSteps() {
     {
       id: 'specs',
       label: '設定規格',
-      emoji: '📋',
+      step: 2,
       status: hasSpec
         ? (specOk ? 'done' : 'warning')
         : (hasPlant ? 'active' : 'pending'),
@@ -14230,7 +14230,7 @@ function computeFlowSteps() {
     {
       id: 'controller',
       label: '設計控制器',
-      emoji: '⚙',
+      step: 3,
       status: hasController
         ? 'done'
         : (hasSpec ? 'active' : 'pending'),
@@ -14240,7 +14240,7 @@ function computeFlowSteps() {
     {
       id: 'verify',
       label: '驗證',
-      emoji: '✅',
+      step: 4,
       status: specPass ? 'done'
         : (hasController ? 'active' : 'pending'),
       hint: specPass ? null : '檢查穩定裕度與規格合規',
@@ -14249,7 +14249,7 @@ function computeFlowSteps() {
     {
       id: 'export',
       label: '匯出',
-      emoji: '💾',
+      step: 5,
       status: exported ? 'done' : 'pending',
       hint: '在實作 Tab 生成程式碼或下載報告',
       wfTab: 'implement',
@@ -14262,12 +14262,13 @@ function renderFlowBar(steps) {
   if (!container) return;
   container.innerHTML = steps.map(s => {
     const icon = s.status === 'done' ? '✓'
-      : s.status === 'warning' ? '⚠'
-      : s.emoji;
+      : s.status === 'warning' ? '!'
+      : s.status === 'active' ? String(s.step)
+      : String(s.step);
     const hintHtml = s.hint ? `<span class="fb-hint">${s.hint}</span>` : '';
     return `<button class="fb-step fb-${s.status}" role="listitem"
       data-wf="${s.wfTab}" title="${s.label}${s.hint ? ': ' + s.hint : ''}"
-      aria-label="步驟：${s.label}（${s.status === 'done' ? '完成' : s.status === 'active' ? '進行中' : s.status === 'warning' ? '警告' : '待做'}）">
+      aria-label="步驟 ${s.step}：${s.label}（${s.status === 'done' ? '完成' : s.status === 'active' ? '進行中' : s.status === 'warning' ? '警告' : '待做'}）">
       <span class="fb-icon">${icon}</span>
       <span class="fb-label">${s.label}</span>
       ${hintHtml}
