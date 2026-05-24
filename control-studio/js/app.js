@@ -34,6 +34,26 @@ import { findEquilibrium, classifyEquilibrium, scanEquilibria } from './analysis
 import { phasePortrait, linearVelocityField } from './analysis/phase-portrait.js';
 import { tfToControllableCanonical } from './control/state-space.js?v=p5';
 
+// ── P34-01: Sub-module imports (module split) ─────────────────────────────────
+import {
+  buildStepAnnotations as _buildStepAnnotationsM,
+  buildBodeAnnotations as _buildBodeAnnotationsM,
+  buildNyquistAnnotations as _buildNyquistAnnotationsM,
+  buildRLocusAnnotations,
+} from './ui/annotations.js';
+import { initShareModule, initShareExport, restoreFromURL } from './ui/share.js';
+import {
+  initSweepModule, initSweepVisualization, renderStabilityMap,
+} from './ui/sweep.js';
+import {
+  initMeasurementModule, initMeasurementTools,
+  _applyChartPins as _applyChartPinsM,
+} from './ui/measurement.js';
+import {
+  initFlowModule, initFlowBar, initKpRecommend,
+  updateFlowBar as _updateFlowBarM, updateKpRecommend as _updateKpRecommendM,
+} from './ui/flow.js';
+
 // ============================================================
 // STATE
 // ============================================================
@@ -3347,11 +3367,11 @@ function refreshAllCharts() {
   // P60: update workflow tab badges & smart warning banner
   try { updateTabBadges(); } catch (_) {}
   try { updateSmartWarningBanner(); } catch (_) {}
-  // P62: update flow bar + Kp recommendation
-  try { updateFlowBar(); } catch (_) {}
-  try { updateKpRecommend(); } catch (_) {}
-  // P63: restore chart annotation pins
-  try { _applyChartPins(state.activePlot || 'step'); } catch (_) {}
+  // P62: update flow bar + Kp recommendation (delegated to flow.js module)
+  try { _updateFlowBarM(); } catch (_) {}
+  try { _updateKpRecommendM(); } catch (_) {}
+  // P63: restore chart annotation pins (delegated to measurement.js module)
+  try { _applyChartPinsM(state.activePlot || 'step'); } catch (_) {}
 }
 
 function renderDiscreteStepChart(targetId = 'chart-active') {
@@ -3841,222 +3861,15 @@ function _updateAnnotationBtnState(btn) {
   btn.setAttribute('aria-pressed', state.chartAnnotationsEnabled ? 'true' : 'false');
 }
 
-// ── J1-1: Step Response Annotations ─────────────────────────────────────────
+// ── J1-1/J1-2/J1-4 annotation shims — implementations live in js/ui/annotations.js ──
 function buildStepAnnotations(resp, info) {
-  if (!state.chartAnnotationsEnabled) return { annotations: [], shapes: [] };
-  if (!info || !resp || resp.t.length < 4) return { annotations: [], shapes: [] };
-  const annotations = [], shapes = [];
-  const t = resp.t, y = resp.y;
-  const yss = info.steadyState ?? y[y.length - 1];
-  if (!Number.isFinite(yss) || Math.abs(yss) < 1e-10) return { annotations: [], shapes: [] };
-  const accentColor = '#818cf8';
-  const stableColor = '#22c55e';
-  const warnColor = '#f59e0b';
-  const dangerColor = '#ef4444';
-
-  // ① Rise Time arrow (horizontal, at y = 50% steady-state)
-  if (Number.isFinite(info.riseTime) && info.riseTime > 0) {
-    const t10 = t.find((_, i) => y[i] >= yss * 0.1) ?? 0;
-    const t90 = t.find((_, i) => y[i] >= yss * 0.9) ?? info.riseTime;
-    const yMid = yss * 0.5;
-    shapes.push({ type: 'line', x0: t10, x1: t90, y0: yMid, y1: yMid, line: { color: accentColor, width: 1.5 } });
-    // tick marks at each end
-    const tickH = Math.abs(yss) * 0.03;
-    shapes.push({ type: 'line', x0: t10, x1: t10, y0: yMid - tickH, y1: yMid + tickH, line: { color: accentColor, width: 1.5 } });
-    shapes.push({ type: 'line', x0: t90, x1: t90, y0: yMid - tickH, y1: yMid + tickH, line: { color: accentColor, width: 1.5 } });
-    annotations.push({
-      x: (t10 + t90) / 2, y: yMid, xref: 'x', yref: 'y',
-      text: `Tr=${fmtTime(info.riseTime)}`, showarrow: false,
-      font: { size: 10, color: accentColor }, yshift: 10,
-      bgcolor: 'rgba(0,0,0,0.55)', borderpad: 2,
-    });
-  }
-
-  // ② Overshoot arrow (vertical, only when OS > 2%)
-  const os = info.overshoot ?? 0;
-  if (os > 2 && Number.isFinite(os)) {
-    const yMax = yss * (1 + os / 100);
-    const tPeak = (() => {
-      let tmax = t[0], ymax = y[0];
-      for (let i = 1; i < y.length; i++) { if (y[i] > ymax) { ymax = y[i]; tmax = t[i]; } }
-      return tmax;
-    })();
-    const osColor = os > 20 ? dangerColor : os > 10 ? warnColor : accentColor;
-    shapes.push({ type: 'line', x0: tPeak, x1: tPeak, y0: yss, y1: yMax, line: { color: osColor, width: 1.5 } });
-    const tickW = (t[t.length - 1] - t[0]) * 0.01;
-    shapes.push({ type: 'line', x0: tPeak - tickW, x1: tPeak + tickW, y0: yss, y1: yss, line: { color: osColor, width: 1.5 } });
-    shapes.push({ type: 'line', x0: tPeak - tickW, x1: tPeak + tickW, y0: yMax, y1: yMax, line: { color: osColor, width: 1.5 } });
-    annotations.push({
-      x: tPeak, y: (yss + yMax) / 2, xref: 'x', yref: 'y',
-      text: `OS=${fmtPercent(os)}`, showarrow: false,
-      font: { size: 10, color: osColor }, xshift: 28,
-      bgcolor: 'rgba(0,0,0,0.55)', borderpad: 2,
-    });
-  }
-
-  // ③+④ Settling Band + Settling Time line
-  const band = 0.02 * Math.abs(yss);
-  if (Number.isFinite(info.settlingTime) && info.settlingTime > 0) {
-    // ±2% band dashed lines
-    const tEnd = t[t.length - 1];
-    shapes.push({ type: 'line', x0: 0, x1: tEnd, y0: yss + band, y1: yss + band, line: { color: 'rgba(34,197,94,0.45)', width: 1, dash: 'dash' } });
-    shapes.push({ type: 'line', x0: 0, x1: tEnd, y0: yss - band, y1: yss - band, line: { color: 'rgba(34,197,94,0.45)', width: 1, dash: 'dash' } });
-    // Settling time vertical line
-    const ts = info.settlingTime;
-    const yMin = Math.min(0, ...y), yMaxAll = Math.max(...y);
-    shapes.push({ type: 'line', x0: ts, x1: ts, y0: yMin, y1: yMaxAll, line: { color: stableColor, width: 1, dash: 'dot' } });
-    annotations.push({
-      x: ts, y: yMaxAll, xref: 'x', yref: 'y',
-      text: `Ts=${fmtTime(ts)}`, showarrow: false,
-      font: { size: 10, color: stableColor }, yshift: -14,
-      bgcolor: 'rgba(0,0,0,0.55)', borderpad: 2,
-    });
-    annotations.push({
-      x: tEnd, y: yss + band, xref: 'x', yref: 'y',
-      text: '±2%', showarrow: false,
-      font: { size: 9, color: 'rgba(34,197,94,0.7)' }, xshift: 14,
-    });
-  }
-
-  // ⑤ Steady-State Error (right edge, when ess > 0.5%)
-  const ess = Math.abs(info.steadyStateError ?? (1 - yss));
-  if (Number.isFinite(ess) && ess > 0.005 && Number.isFinite(yss)) {
-    const essColor = ess > 0.05 ? dangerColor : warnColor;
-    const tEnd = t[t.length - 1];
-    shapes.push({ type: 'line', x0: tEnd * 0.97, x1: tEnd * 0.97, y0: yss, y1: 1.0, line: { color: essColor, width: 1.5 } });
-    annotations.push({
-      x: tEnd, y: (yss + 1) / 2, xref: 'x', yref: 'y',
-      text: `ess=${ess.toPrecision(3)}`, showarrow: false,
-      font: { size: 9, color: essColor }, xshift: -4,
-      bgcolor: 'rgba(0,0,0,0.55)', borderpad: 2,
-    });
-  }
-
-  return { annotations, shapes };
+  return _buildStepAnnotationsM(resp, info, state.chartAnnotationsEnabled);
 }
-
-// ── J1-2: Bode PM/GM Double-Headed Arrows ────────────────────────────────────
-function buildBodeAnnotations(margins, bodeData) {
-  if (!state.chartAnnotationsEnabled) return { annotations: [], shapes: [] };
-  const annotations = [], shapes = [];
-  const { phaseMargin: pm, gainMarginDB: gm, gainCrossover: wgc, phaseCrossover: wpc } = margins;
-  const phaseDeg = bodeData.phaseDeg ?? [];
-  const magDB = bodeData.magDB ?? [];
-  const w = bodeData.w ?? [];
-
-  // PM: double-headed arrow on phase subplot from Phase(ωgc) to -180°
-  if (Number.isFinite(pm) && Number.isFinite(wgc) && wgc > 0 && phaseDeg.length > 0) {
-    const phAtWgc = (() => {
-      const idx = w.reduce((best, wi, i) => Math.abs(wi - wgc) < Math.abs(w[best] - wgc) ? i : best, 0);
-      return phaseDeg[idx];
-    })();
-    if (Number.isFinite(phAtWgc)) {
-      const pmColor = pm > 45 ? '#22c55e' : pm > 30 ? '#f59e0b' : '#ef4444';
-      // Vertical bar showing PM gap on phase plot
-      shapes.push({
-        type: 'line', xref: 'x', yref: 'y2',
-        x0: Math.log10(wgc), x1: Math.log10(wgc),
-        y0: -180, y1: phAtWgc,
-        line: { color: pmColor, width: 2 },
-      });
-      annotations.push({
-        xref: 'x', yref: 'y2',
-        x: Math.log10(wgc), y: (-180 + phAtWgc) / 2,
-        text: `PM=${pm.toFixed(1)}°`, showarrow: false,
-        font: { size: 10, color: pmColor }, xshift: 28,
-        bgcolor: 'rgba(0,0,0,0.55)', borderpad: 2,
-      });
-    }
-  }
-
-  // GM: double-headed arrow on magnitude subplot from Mag(ωpc) to 0 dB
-  if (Number.isFinite(gm) && Number.isFinite(wpc) && wpc > 0 && magDB.length > 0) {
-    const magAtWpc = (() => {
-      const idx = w.reduce((best, wi, i) => Math.abs(wi - wpc) < Math.abs(w[best] - wpc) ? i : best, 0);
-      return magDB[idx];
-    })();
-    if (Number.isFinite(magAtWpc)) {
-      const gmColor = gm > 6 ? '#22c55e' : gm > 3 ? '#f59e0b' : '#ef4444';
-      shapes.push({
-        type: 'line', xref: 'x', yref: 'y',
-        x0: Math.log10(wpc), x1: Math.log10(wpc),
-        y0: magAtWpc, y1: 0,
-        line: { color: gmColor, width: 2 },
-      });
-      annotations.push({
-        xref: 'x', yref: 'y',
-        x: Math.log10(wpc), y: magAtWpc / 2,
-        text: `GM=${gm.toFixed(1)}dB`, showarrow: false,
-        font: { size: 10, color: gmColor }, xshift: -28,
-        bgcolor: 'rgba(0,0,0,0.55)', borderpad: 2,
-      });
-    }
-  }
-  return { annotations, shapes };
+function buildBodeAnnotations(margins, data) {
+  return _buildBodeAnnotationsM(margins, data, state.chartAnnotationsEnabled);
 }
-
-// ── J1-4: Nyquist Frequency Ticks + Minimum Distance Circle ──────────────────
 function buildNyquistAnnotations(sys, data) {
-  if (!state.chartAnnotationsEnabled) return { annotations: [], shapes: [] };
-  const annotations = [], shapes = [];
-  const re = data.re ?? [], im = data.im ?? [], wArr = data.w ?? [];
-  if (re.length < 4 || wArr.length < 4) return { annotations, shapes };
-
-  // ① Frequency tick marks at decade intervals
-  const wMin = wArr[0], wMax = wArr[wArr.length - 1];
-  const log0 = Math.ceil(Math.log10(wMin)), log1 = Math.floor(Math.log10(wMax));
-  for (let logW = log0; logW <= log1; logW++) {
-    const wTick = Math.pow(10, logW);
-    const idx = wArr.reduce((best, wi, i) => Math.abs(wi - wTick) < Math.abs(wArr[best] - wTick) ? i : best, 0);
-    if (!Number.isFinite(re[idx]) || !Number.isFinite(im[idx])) continue;
-    annotations.push({
-      x: re[idx], y: im[idx], xref: 'x', yref: 'y',
-      text: `ω=${wTick<1?wTick.toFixed(2):wTick<10?wTick.toFixed(1):fmtNum(wTick)}`,
-      showarrow: true, arrowhead: 0, arrowwidth: 1,
-      arrowcolor: 'rgba(148,163,184,0.5)', ax: 18, ay: -18,
-      font: { size: 9, color: 'rgba(148,163,184,0.8)' },
-      bgcolor: 'rgba(0,0,0,0.4)', borderpad: 2,
-    });
-  }
-
-  // ② Minimum distance circle (1/Ms)
-  try {
-    let minDist = Infinity;
-    for (let i = 0; i < re.length; i++) {
-      const dist = Math.sqrt((re[i] + 1) ** 2 + im[i] ** 2);
-      if (Number.isFinite(dist) && dist < minDist) minDist = dist;
-    }
-    if (Number.isFinite(minDist) && minDist > 0 && minDist < 5) {
-      const Ms = 1 / minDist;
-      const MsdB = 20 * Math.log10(Ms);
-      // Draw circle centered at -1+j0 with radius = minDist (approximate using ellipse SVG hack via shape)
-      // Plotly shapes don't support circles in data coords directly, use many-point trace instead
-      const circlePts = 120;
-      const cxArr = [], cyArr = [];
-      for (let i = 0; i <= circlePts; i++) {
-        const ang = (i / circlePts) * 2 * Math.PI;
-        cxArr.push(-1 + minDist * Math.cos(ang));
-        cyArr.push(minDist * Math.sin(ang));
-      }
-      // Return as trace data to be appended (caller adds to traces array)
-      data._msCircleTrace = {
-        x: cxArr, y: cyArr,
-        type: 'scatter', mode: 'lines',
-        line: { color: 'rgba(249,115,22,0.55)', width: 1.5, dash: 'dot' },
-        name: `1/Ms=${minDist.toFixed(3)}`, hoverinfo: 'name', showlegend: false,
-      };
-      annotations.push({
-        x: -1 + minDist, y: 0, xref: 'x', yref: 'y',
-        text: `Ms=${Ms.toFixed(2)}(${MsdB.toFixed(1)}dB)`,
-        showarrow: true, arrowhead: 0, arrowwidth: 1,
-        arrowcolor: 'rgba(249,115,22,0.5)', ax: 30, ay: -20,
-        font: { size: 9, color: 'rgba(249,115,22,0.85)' },
-        bgcolor: 'rgba(0,0,0,0.4)', borderpad: 2,
-      });
-    }
-  } catch { /* ignore */ }
-
-  return { annotations, shapes };
+  return _buildNyquistAnnotationsM(sys, data, state.chartAnnotationsEnabled);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -4801,6 +4614,16 @@ function renderRootLocus(sys, targetId = 'chart-rlocus') {
       bgcolor: 'rgba(15,17,23,.6)', borderpad: 4,
     }];
   }
+
+  // J1-3: Root Locus geometric annotations (damping ratio lines, ωn arcs, critical gain labels)
+  try {
+    const { annotations: rlAnnots, shapes: rlShapes } = buildRLocusAnnotations(
+      branches, jwCrossings, state.chartAnnotationsEnabled
+    );
+    if (rlAnnots.length) layout.annotations = [...(layout.annotations || []), ...rlAnnots];
+    if (rlShapes.length) layout.shapes = [...(layout.shapes || []), ...rlShapes];
+  } catch (_) { /* geometric annotations are optional */ }
+
   Plotly.react(targetId, traces, layout, { responsive: true, displayModeBar: false });
 
   if (targetId === 'chart-active') {
@@ -13608,1165 +13431,66 @@ document.addEventListener('DOMContentLoaded', () => {
   initHealthBadge();
 }, { once: true });
 
-// ── P65: Share & Export Enhancement ──────────────────────────────────────────
 
-// Q1-1: URL Design Sharing
-function serializePlant(plant) {
-  if (!plant) return null;
-  if (plant instanceof TransferFunction) {
-    return { type: 'tf', num: plant.num?.[0] ?? plant.num, den: plant.den };
-  }
-  if (plant?.A !== undefined) {
-    return { type: 'ss', A: plant.A, B: plant.B, C: plant.C, D: plant.D };
-  }
-  return null;
+// ── H1-4: Sidebar Quick Pin ───────────────────────────────────────────────────
+const _SP_KEY   = 'cs-sidebar-pins';
+const _SP_MAX   = 3;
+
+function _spLoadPins() {
+  try { return JSON.parse(localStorage.getItem(_SP_KEY) || '[]'); } catch { return []; }
 }
-
-function serializeSpecs() {
-  const fields = ['design-os', 'design-ts', 'design-pm', 'design-tr', 'design-gm'];
-  const specs = {};
-  fields.forEach(id => {
-    const v = document.getElementById(id)?.value;
-    if (v) specs[id.replace('design-', '')] = v;
+function _spSavePins(pins) {
+  try { localStorage.setItem(_SP_KEY, JSON.stringify(pins)); } catch {}
+}
+function _spApply(panels) {
+  const pins = _spLoadPins();
+  panels.forEach(panel => {
+    const id = panel.id;
+    const isPinned = pins.includes(id);
+    panel.classList.toggle('sp-pinned', isPinned);
+    const btn = panel.querySelector('.section-pin-btn');
+    if (btn) btn.classList.toggle('sp-active', isPinned);
+    // Move pinned panels to top of their parent
+    if (isPinned && panel.parentElement) {
+      const parent = panel.parentElement;
+      const firstNonPinned = [...parent.children].find(el => !el.classList.contains('sp-pinned'));
+      if (firstNonPinned && firstNonPinned !== panel) parent.insertBefore(panel, firstNonPinned);
+    }
   });
-  return specs;
 }
 
-function serializeDesign() {
-  return {
-    v: 2,
-    plant: serializePlant(state.plant),
-    pid: state.pidParams,
-    compensator: state.compensator,
-    domain: state.domain,
-    showClosedLoop: state.showClosedLoop,
-    specs: serializeSpecs(),
-    activePlot: state.activePlot,
-    sidebarTab: state.sidebarTab,
-    chartAnnotations: state.chartAnnotationsEnabled,
-    snapshots: (state.comparisonSnapshots || []).slice(0, 3),
-    notes: localStorage.getItem('cs-design-notes') ?? '',
-  };
-}
-
-async function shareDesign() {
-  try {
-    const payload = serializeDesign();
-    const json = JSON.stringify(payload);
-    // Use btoa for simple encoding (no LZ-string dependency)
-    const encoded = btoa(encodeURIComponent(json).replace(/%([0-9A-F]{2})/g,
-      (_, p1) => String.fromCharCode(parseInt(p1, 16))));
-    const url = `${location.origin}${location.pathname}#design=${encoded}`;
-    await navigator.clipboard.writeText(url);
-    updateGlobalStatusBar(`🔗 分享連結已複製（${url.length} 字元）`);
-    setTimeout(() => updateGlobalStatusBar(''), 3000);
-  } catch (err) {
-    console.warn('[CS P65] share error', err);
-    updateGlobalStatusBar('分享失敗：請手動複製網址');
-  }
-}
-
-function restoreFromURL() {
-  const hash = location.hash;
-  if (!hash.startsWith('#design=')) return false;
-  try {
-    const encoded = hash.slice(8);
-    const json = decodeURIComponent(
-      atob(encoded).split('').map(c => '%' + c.charCodeAt(0).toString(16).padStart(2, '0')).join('')
-    );
-    const payload = JSON.parse(json);
-    if (payload.v !== 2) throw new Error('version mismatch');
-    applyDesignPayload?.(payload);
-    history.replaceState(null, '', location.pathname);
-    updateGlobalStatusBar('✓ 已載入分享的設計');
-    setTimeout(() => updateGlobalStatusBar(''), 3000);
-    return true;
-  } catch {
-    updateGlobalStatusBar('連結格式錯誤或版本不符');
-    setTimeout(() => updateGlobalStatusBar(''), 3000);
-    return false;
-  }
-}
-
-function initShareDesign() {
-  document.getElementById('btn-share-design')?.addEventListener('click', shareDesign);
-}
-
-// Q1-2: Code Generation v2 (C99 + annotated comments)
-function toC99Script(design) {
-  const kp = design?.controller?.Kp ?? 1;
-  const ki = design?.controller?.Ki ?? 0;
-  const kd = design?.controller?.Kd ?? 0;
-  const n = design?.controller?.N ?? 100;
-  const pm = design?.stability?.phaseMargin;
-  const gm = design?.stability?.gainMarginDB;
-  const ts = design?.metrics?.settlingTime;
-  const os = design?.metrics?.overshoot;
-  const date = new Date().toISOString().slice(0, 10);
-  return `/* ControlStudio Auto-Generated PID — ${date}
- * PM = ${Number.isFinite(pm) ? pm.toFixed(1) + '°' : 'N/A'}  GM = ${Number.isFinite(gm) ? gm.toFixed(1) + ' dB' : 'N/A'}
- * Ts = ${Number.isFinite(ts) ? ts.toFixed(3) + ' s' : 'N/A'}  OS = ${Number.isFinite(os) ? os.toFixed(1) + '%' : 'N/A'}
- */
-
-typedef struct {
-  double kp;    /* Proportional gain = ${kp} */
-  double ki;    /* Integral gain     = ${ki} */
-  double kd;    /* Derivative gain   = ${kd} */
-  double n;     /* Filter coeff      = ${n}  */
-  double integral;
-  double prev_error;
-} PIDState;
-
-static PIDState pid_state = { ${kp}, ${ki}, ${kd}, ${n}, 0.0, 0.0 };
-
-double pid_update(PIDState *s, double setpoint, double measurement, double dt) {
-  double error = setpoint - measurement;
-  s->integral += error * dt;
-  double derivative = (error - s->prev_error) / dt;
-  s->prev_error = error;
-  return s->kp * error + s->ki * s->integral + s->kd * derivative;
-}`;
-}
-
-function initCodegenV2() {
-  // Expose C99 generator globally and hook into code-lang tabs
-  window.toC99Script = toC99Script;
-  // Extend code preview to support C99 tab
-  document.querySelectorAll('.code-lang-tab[data-codelang]').forEach(tab => {
-    tab.addEventListener('click', () => {
-      const lang = tab.dataset.codelang;
-      if (lang === 'c99') {
-        state._codeLang = 'c99';
-        const codeEl = document.getElementById('code-preview-code');
-        if (codeEl) {
-          try {
-            const design = buildCodegenPayload();
-            codeEl.textContent = toC99Script(design);
-          } catch { codeEl.textContent = '// C99 generation requires plant + controller'; }
+export function initSidebarQuickPin() {
+  const panels = [...document.querySelectorAll('.section-panel')];
+  if (!panels.length) return;
+  panels.forEach(panel => {
+    const titleEl = panel.querySelector('.section-title');
+    if (!titleEl || panel.querySelector('.section-pin-btn')) return;
+    const btn = document.createElement('button');
+    btn.className = 'section-pin-btn';
+    btn.textContent = '📌';
+    btn.title = '固定此面板到頂部（最多 3 個）';
+    btn.setAttribute('aria-label', '固定面板');
+    btn.setAttribute('type', 'button');
+    titleEl.appendChild(btn);
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      const pins = _spLoadPins();
+      const id = panel.id;
+      if (!id) return;
+      if (pins.includes(id)) {
+        pins.splice(pins.indexOf(id), 1);
+      } else {
+        if (pins.length >= _SP_MAX) {
+          try { updateGlobalStatusBar(`最多固定 ${_SP_MAX} 個面板`); setTimeout(() => updateGlobalStatusBar(''), 2000); } catch {}
+          return;
         }
+        pins.push(id);
       }
+      _spSavePins(pins);
+      _spApply(panels);
     });
   });
-}
-
-// Q1-3: PDF Report Generation
-function buildReportHTML(opts = {}) {
-  const { svgMap = {}, designState = {} } = opts;
-  const stab = designState._lastStability ?? state._lastStability ?? {};
-  const date = new Date().toLocaleDateString('zh-TW');
-  const pm = stab.phaseMargin, gm = stab.gainMarginDb;
-  const pid = state.pidParams ?? {};
-  const metrics = (() => {
-    try {
-      if (!state.plant) return {};
-      const sys = state.closedLoop || state.plant;
-      const resp = stepResponse(sys, { duration: 20, sampleCount: 300 });
-      return stepInfo(resp.t, resp.y);
-    } catch { return {}; }
-  })();
-  const specRows = [
-    { spec: 'Phase Margin', target: '> 45°', actual: Number.isFinite(pm) ? pm.toFixed(1) + '°' : 'N/A', pass: Number.isFinite(pm) && pm >= 45 },
-    { spec: 'Gain Margin', target: '> 6 dB', actual: Number.isFinite(gm) ? gm.toFixed(1) + ' dB' : 'N/A', pass: Number.isFinite(gm) && gm >= 6 },
-    { spec: 'Overshoot', target: '< 20%', actual: Number.isFinite(metrics.overshoot) ? metrics.overshoot.toFixed(1) + '%' : 'N/A', pass: Number.isFinite(metrics.overshoot) && metrics.overshoot < 20 },
-    { spec: 'Settling Time', target: '—', actual: Number.isFinite(metrics.settlingTime) ? metrics.settlingTime.toFixed(3) + ' s' : 'N/A', pass: true },
-  ];
-  const stepSvg = svgMap['chart-active'] || '';
-  return `<!DOCTYPE html>
-<html lang="zh-TW"><head><meta charset="UTF-8">
-<title>ControlStudio 設計報告</title>
-<style>
-body { font-family: 'Georgia', serif; color: #000; background: #fff; margin: 0; padding: 24px; font-size: 13px; }
-h1 { font-size: 24px; margin-bottom: 4px; } h2 { font-size: 16px; border-bottom: 1px solid #ccc; padding-bottom: 4px; }
-table { border-collapse: collapse; width: 100%; margin: 12px 0; }
-td, th { border: 1px solid #ccc; padding: 6px 10px; text-align: left; }
-th { background: #f5f5f5; font-weight: 700; }
-.pass { color: #16a34a; font-weight: 700; } .fail { color: #dc2626; font-weight: 700; }
-.page-break { page-break-before: always; }
-pre { background: #f8f8f8; padding: 12px; border: 1px solid #ddd; font-size: 11px; overflow: auto; }
-img { max-width: 100%; } .no-print { display: none; }
-@media print { .no-print { display: none; } body { padding: 0; } }
-</style></head><body>
-<h1>⚙ ControlStudio 設計報告</h1>
-<p>生成日期：${date} | ControlStudio v2 | 自動生成，僅供參考</p>
-<h2>1. 系統摘要</h2>
-<table><tr><th>項目</th><th>值</th></tr>
-<tr><td>Kp</td><td>${pid.Kp ?? '—'}</td></tr>
-<tr><td>Ki</td><td>${pid.Ki ?? '—'}</td></tr>
-<tr><td>Kd</td><td>${pid.Kd ?? '—'}</td></tr>
-<tr><td>Phase Margin</td><td>${Number.isFinite(pm) ? pm.toFixed(1) + '°' : 'N/A'}</td></tr>
-<tr><td>Gain Margin</td><td>${Number.isFinite(gm) ? gm.toFixed(1) + ' dB' : 'N/A'}</td></tr>
-</table>
-<h2>2. 規格合規</h2>
-<table><tr><th>規格</th><th>目標</th><th>實際值</th><th>狀態</th></tr>
-${specRows.map(r => `<tr><td>${r.spec}</td><td>${r.target}</td><td>${r.actual}</td><td class="${r.pass ? 'pass' : 'fail'}">${r.pass ? '✓' : '✗'}</td></tr>`).join('')}
-</table>
-<h2>3. 圖表</h2>
-${stepSvg ? `<img src="${stepSvg}" alt="Step Response">` : '<p><em>（圖表不可用）</em></p>'}
-<h2>4. 程式碼</h2>
-<pre>${typeof toPythonScript !== 'undefined' && state.plant ? toPythonScript(buildCodegenPayload()) : '# No plant defined'}</pre>
-<p class="no-print"><button onclick="window.print()">🖨 列印 / 儲存為 PDF</button></p>
-</body></html>`;
-}
-
-async function generatePDFReport() {
-  const btn = document.getElementById('btn-pdf-report');
-  if (btn) btn.textContent = '⌛ 生成中…';
-  try {
-    const svgMap = {};
-    try {
-      const chartEl = document.getElementById('chart-active');
-      if (chartEl?._fullLayout) {
-        svgMap['chart-active'] = await Plotly.toImage('chart-active', { format: 'svg', width: 800, height: 400 });
-      }
-    } catch {}
-    const html = buildReportHTML({ svgMap, designState: state });
-    const w = window.open('', '_blank');
-    if (w) {
-      w.document.write(html);
-      w.document.close();
-    }
-  } catch (err) { console.warn('[CS P65] PDF report error', err); }
-  if (btn) { btn.textContent = '📄 報告'; }
-}
-
-function initPDFReport() {
-  document.getElementById('btn-pdf-report')?.addEventListener('click', generatePDFReport);
-}
-
-// Q1-4: Chart Quick Copy
-async function copyChartToClipboard(chartId) {
-  const btn = document.getElementById('btn-copy-chart');
-  const origText = btn?.textContent ?? '📋';
-  try {
-    if (btn) btn.textContent = '⌛';
-    const dataURL = await Plotly.toImage(chartId, { format: 'png', width: 1200, height: 600, scale: 2 });
-    const res = await fetch(dataURL);
-    const blob = await res.blob();
-    await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
-    if (btn) { btn.textContent = '✓ 已複製'; setTimeout(() => { if (btn) btn.textContent = origText; }, 1500); }
-    updateGlobalStatusBar('📋 圖表已複製為 PNG（@2x）');
-    setTimeout(() => updateGlobalStatusBar(''), 2000);
-  } catch {
-    // Fallback: open image in new tab
-    try {
-      const dataURL = await Plotly.toImage(chartId, { format: 'png', width: 1200, height: 600, scale: 2 });
-      const w = window.open();
-      if (w) { w.document.write(`<img src="${dataURL}" style="max-width:100%">`); }
-    } catch {}
-    if (btn) btn.textContent = origText;
-    updateGlobalStatusBar('📋 已在新分頁開啟（請右鍵儲存）');
-    setTimeout(() => updateGlobalStatusBar(''), 2000);
-  }
-}
-
-function initChartCopy() {
-  document.getElementById('btn-copy-chart')?.addEventListener('click', () => {
-    copyChartToClipboard('chart-active');
-  });
-}
-
-function initShareExport() {
-  initShareDesign();
-  initCodegenV2();
-  initPDFReport();
-  initChartCopy();
-}
-
-// ── P64: Parameter Sweep Visualization ───────────────────────────────────────
-
-// P1-1: Single Parameter Sweep
-let _sweepParam = 'Kp';
-let _sweepRunning = false;
-let _sweepAbort = false;
-
-function _sweepColor(t) {
-  // Blue (0,120,255) → Red (255,60,0) gradient
-  const r = Math.round(t * 255);
-  const g = Math.round(60 * (1 - t) + 60 * t);
-  const b = Math.round((1 - t) * 255);
-  return `rgb(${r},${g},${b})`;
-}
-
-async function runParameterSweep(param, minVal, maxVal, n, scale) {
-  if (!state.plant) return;
-  const values = scale === 'log'
-    ? Array.from({ length: n }, (_, i) =>
-        Math.pow(10, Math.log10(minVal) + (i / (n - 1)) * Math.log10(maxVal / minVal)))
-    : Array.from({ length: n }, (_, i) => minVal + (i / (n - 1)) * (maxVal - minVal));
-
-  const fillEl = document.getElementById('sweep-progress-fill');
-  const currentKp = state.pidParams?.[param] ?? 1;
-  const traces = [];
-
-  for (let i = 0; i < n; i++) {
-    if (_sweepAbort) break;
-    if (fillEl) fillEl.style.width = `${Math.round((i / n) * 100)}%`;
-    const k = values[i];
-    try {
-      const ctrl = { ...(state.pidParams || { Kp: 1, Ki: 0, Kd: 0, N: 100 }), [param]: k };
-      const pid = new PIDController(ctrl.Kp, ctrl.Ki, ctrl.Kd, ctrl.N ?? 100);
-      const loop = pid.toTransferFunction().series(state.plant);
-      const cl = loop.feedback();
-      const resp = stepResponse(cl, { duration: state.simulationConfig?.duration ?? 20, sampleCount: 200 });
-      const metrics = stepInfo(resp.t, resp.y);
-      const t = i / Math.max(n - 1, 1);
-      traces.push({
-        x: resp.t, y: resp.y,
-        type: 'scatter', mode: 'lines',
-        line: { color: _sweepColor(t), width: Math.abs(k - currentKp) < (maxVal - minVal) / n ? 3 : 1.5 },
-        name: `${param}=${fmtNum(k, 2)}`,
-        hovertemplate: `${param}=${fmtNum(k, 2)}<br>OS=${(metrics.overshoot ?? 0).toFixed(1)}%<br>Ts=${fmtTime(metrics.settlingTime ?? 0)}<extra></extra>`,
-      });
-    } catch {}
-    await new Promise(r => setTimeout(r, 0)); // yield to UI
-  }
-  if (fillEl) fillEl.style.width = '100%';
-  return traces;
-}
-
-function initParameterSweep() {
-  // Open drawer on sweep buttons
-  document.querySelectorAll('[data-sweep-param]').forEach(btn => {
-    btn.addEventListener('click', () => {
-      _sweepParam = btn.dataset.sweepParam;
-      document.getElementById('sweep-param-label').textContent = _sweepParam;
-      const drawer = document.getElementById('sweep-drawer');
-      drawer.style.display = drawer.style.display === 'block' ? 'none' : 'block';
-    });
-  });
-
-  const cancelBtn = document.getElementById('sweep-cancel-btn');
-  cancelBtn?.addEventListener('click', () => {
-    _sweepAbort = true;
-    document.getElementById('sweep-drawer').style.display = 'none';
-  });
-
-  const exitBtn = document.getElementById('sweep-exit-btn');
-  exitBtn?.addEventListener('click', () => {
-    exitBtn.style.display = 'none';
-    state._sweepMode = false;
-    refreshAllCharts();
-  });
-
-  document.getElementById('sweep-run-btn')?.addEventListener('click', async () => {
-    if (!state.plant) { try { updateGlobalStatusBar('請先定義 Plant'); } catch {} return; }
-    _sweepAbort = false;
-    _sweepRunning = true;
-    const minVal = parseFloat(document.getElementById('sweep-min').value) || 0.1;
-    const maxVal = parseFloat(document.getElementById('sweep-max').value) || 10;
-    const n = parseInt(document.getElementById('sweep-count').value) || 8;
-    const scale = document.querySelector('input[name="sweep-scale"]:checked')?.value || 'log';
-    document.getElementById('sweep-progress-fill').style.width = '0%';
-    try {
-      const traces = await runParameterSweep(_sweepParam, minVal, maxVal, n, scale);
-      if (traces?.length && !_sweepAbort) {
-        state._sweepMode = true;
-        state._sweepTraces = traces;
-        // Show in chart-active (switch to step plot)
-        const plotTabStep = document.querySelector('.plot-tab[data-plot="step"]');
-        plotTabStep?.click();
-        const layout = PLOTLY_LAYOUT_BASE();
-        layout.showlegend = true;
-        layout.legend = compactLegend();
-        layout.xaxis.title = { text: 'Time (s)' };
-        layout.yaxis.title = { text: 'Amplitude' };
-        Plotly.react('chart-active', traces, layout, { responsive: true, displayModeBar: false });
-        document.getElementById('sweep-exit-btn').style.display = '';
-        try { updateActivePlotHeader(`掃描 ${_sweepParam}`, `${n} 條曲線`); } catch {}
-      }
-    } catch (err) { console.warn('[CS P64] sweep error', err); }
-    _sweepRunning = false;
-    document.getElementById('sweep-drawer').style.display = 'none';
-  });
-}
-
-// P1-2: 2D Stability Map
-async function computeStabilityMap(sys, kpRange, kiRange, N) {
-  const { kpMin, kpMax } = kpRange;
-  const { kiMin, kiMax } = kiRange;
-  const zData = [], kpVals = [], kiVals = [];
-  for (let i = 0; i < N; i++) {
-    kpVals.push(Math.pow(10, Math.log10(kpMin) + (i / (N - 1)) * Math.log10(kpMax / kpMin)));
-  }
-  for (let j = 0; j < N; j++) {
-    kiVals.push(Math.pow(10, Math.log10(kiMin) + (j / (N - 1)) * Math.log10(kiMax / kiMin)));
-  }
-  for (let j = 0; j < N; j++) {
-    const row = [];
-    for (let i = 0; i < N; i++) {
-      try {
-        const kp = kpVals[i], ki = kiVals[j];
-        const pid = new PIDController(kp, ki, 0, 0);
-        const cl = pid.toTransferFunction().series(sys).feedback();
-        const poles = cl.poles ? cl.poles() : [];
-        const maxRe = poles.length ? Math.max(...poles.map(p => p.re ?? p)) : 0;
-        row.push(-maxRe); // positive = stable margin
-      } catch { row.push(NaN); }
-    }
-    zData.push(row);
-    await new Promise(r => setTimeout(r, 0));
-  }
-  return { zData, kpVals, kiVals };
-}
-
-async function renderStabilityMap(targetId) {
-  const el = document.getElementById(targetId);
-  if (!el || !state.plant) return;
-  const N = 20;
-  const kpCur = state.pidParams?.Kp ?? 1;
-  const kiCur = state.pidParams?.Ki ?? 0.1;
-  const kpMin = Math.max(kpCur / 100, 0.001), kpMax = kpCur * 50 + 1;
-  const kiMin = Math.max(kiCur / 100, 0.001), kiMax = kiCur * 50 + 1;
-  try {
-    const { zData, kpVals, kiVals } = await computeStabilityMap(
-      state.plant,
-      { kpMin, kpMax }, { kiMin, kiMax }, N
-    );
-    const finiteMargins = zData.flat().filter((value) => Number.isFinite(value));
-    const displayScale = Math.max(...finiteMargins.map((value) => Math.abs(value)), 1e-6);
-    const zDisplay = zData.map((row) => row.map((value) => {
-      if (!Number.isFinite(value)) return NaN;
-      const normalized = value / displayScale;
-      return Math.max(-1, Math.min(1, normalized));
-    }));
-    const trace = {
-      type: 'heatmap',
-      x: kpVals, y: kiVals, z: zDisplay, customdata: zData,
-      colorscale: [
-        [0, '#ef4444'], [0.45, '#f97316'], [0.5, '#ffffff'],
-        [0.55, '#22c55e'], [1, '#166534'],
-      ],
-      zmin: -1,
-      zmax: 1,
-      zmid: 0,
-      colorbar: {
-        title: { text: '穩定性' },
-        thickness: 12,
-        len: 0.74,
-        tickvals: [-1, 0, 1],
-        ticktext: ['不穩定', '邊界', '穩定'],
-      },
-      hovertemplate: 'Kp=%{x:.3f}<br>Ki=%{y:.3f}<br>raw margin=%{customdata:.4f}<extra></extra>',
-    };
-    const boundaryTrace = {
-      type: 'contour',
-      x: kpVals,
-      y: kiVals,
-      z: zData,
-      contours: {
-        start: 0,
-        end: 0,
-        size: 1,
-        coloring: 'none',
-        showlabels: true,
-        labelfont: { size: 10, color: getCSS('--text-secondary') },
-      },
-      line: { color: '#0f172a', width: 2 },
-      name: '穩定邊界',
-      hoverinfo: 'skip',
-      showscale: false,
-    };
-    const currentPoint = {
-      x: [kpCur], y: [kiCur],
-      type: 'scatter', mode: 'markers+text',
-      marker: { size: 12, color: '#fff', line: { color: '#6366f1', width: 2 } },
-      text: [`目前 Kp=${fmtNum(kpCur, 3)}, Ki=${fmtNum(kiCur, 3)}`],
-      textposition: 'top right',
-      textfont: { size: 10, color: getCSS('--text-secondary') },
-      name: '當前設計點',
-      hovertemplate: '目前設計點<br>Kp=%{x:.3f}<br>Ki=%{y:.3f}<extra></extra>',
-    };
-    const layout = PLOTLY_LAYOUT_BASE();
-    layout.xaxis = { ...layout.xaxis, type: 'log', title: { text: 'Kp' } };
-    layout.yaxis = { ...layout.yaxis, type: 'log', title: { text: 'Ki' } };
-    layout.showlegend = targetId === 'chart-active';
-    layout.legend = compactLegend();
-    layout.title = { text: 'Kp-Ki 穩定地圖', font: { size: 12 } };
-    layout.annotations = [
-      {
-        x: 0.02,
-        y: 0.98,
-        xref: 'paper',
-        yref: 'paper',
-        xanchor: 'left',
-        yanchor: 'top',
-        showarrow: false,
-        text: '綠色 = 穩定裕度較高，紅色 = 不穩定',
-        font: { size: 10, color: getCSS('--text-muted') },
-        bgcolor: 'rgba(15,17,23,0.72)',
-        bordercolor: getCSS('--border-primary'),
-        borderwidth: 1,
-        borderpad: 4,
-      },
-    ];
-    Plotly.react(targetId, [trace, boundaryTrace, currentPoint], layout, { responsive: true, displayModeBar: false });
-  } catch (err) { console.warn('[CS P64] stability map error', err); }
-}
-
-// P1-3: Bode Animation
-let _bodeAnimFrame = null;
-let _bodeAnimRunning = false;
-
-function initBodeAnimation() {
-  const playBtn = document.getElementById('bode-anim-play');
-  const pauseBtn = document.getElementById('bode-anim-pause');
-  const resetBtn = document.getElementById('bode-anim-reset');
-  const closeBtn = document.getElementById('bode-anim-close');
-  const animBtn = document.getElementById('btn-bode-animate');
-  const panel = document.getElementById('bode-anim-panel');
-  const scrub = document.getElementById('bode-anim-scrub');
-  if (!animBtn || !panel) return;
-
-  animBtn.addEventListener('click', () => {
-    const active = animBtn.getAttribute('aria-pressed') === 'true';
-    animBtn.setAttribute('aria-pressed', active ? 'false' : 'true');
-    panel.style.display = active ? 'none' : 'flex';
-    if (active) _stopBodeAnim();
-  });
-  closeBtn?.addEventListener('click', () => {
-    panel.style.display = 'none';
-    animBtn.setAttribute('aria-pressed', 'false');
-    _stopBodeAnim();
-  });
-
-  const _getKpFromScrub = (t) => {
-    const fromV = parseFloat(document.getElementById('bode-anim-from').value) || 0.1;
-    const toV = parseFloat(document.getElementById('bode-anim-to').value) || 10;
-    return Math.pow(10, Math.log10(fromV) + t * Math.log10(toV / fromV));
-  };
-
-  const _applyAnimFrame = (t) => {
-    if (!state.plant) return;
-    if (scrub) scrub.value = t;
-    const kp = _getKpFromScrub(t);
-    try { updateGlobalStatusBar(`動畫 Kp = ${fmtNum(kp, 3)}`); } catch {}
-    try {
-      const ctrl = { ...(state.pidParams || { Kp: 1, Ki: 0, Kd: 0 }), Kp: kp };
-      const pid = new PIDController(ctrl.Kp, ctrl.Ki, ctrl.Kd, ctrl.N ?? 100);
-      const loop = pid.toTransferFunction().series(state.plant);
-      renderBodePlot(loop, 'chart-active');
-    } catch {}
-  };
-
-  scrub?.addEventListener('input', () => { _stopBodeAnim(); _applyAnimFrame(parseFloat(scrub.value)); });
-
-  playBtn?.addEventListener('click', () => {
-    if (!state.plant || state.activePlot !== 'bode') return;
-    _bodeAnimRunning = true;
-    const speed = parseFloat(document.getElementById('bode-anim-speed')?.value || '1');
-    const totalMs = (2000 / speed);
-    const startT = parseFloat(scrub?.value || '0');
-    const startTime = performance.now() - startT * totalMs;
-    const tick = (now) => {
-      if (!_bodeAnimRunning) return;
-      const t = Math.min(((now - startTime) / totalMs), 1);
-      _applyAnimFrame(t);
-      if (t < 1) { _bodeAnimFrame = requestAnimationFrame(tick); }
-      else { _bodeAnimRunning = false; }
-    };
-    _bodeAnimFrame = requestAnimationFrame(tick);
-  });
-
-  pauseBtn?.addEventListener('click', _stopBodeAnim);
-  resetBtn?.addEventListener('click', () => {
-    _stopBodeAnim();
-    if (scrub) scrub.value = '0';
-    _applyAnimFrame(0);
-    // Restore original Kp
-    const origKp = state.pidParams?.Kp ?? 1;
-    try {
-      const ctrl = { ...(state.pidParams || {}), Kp: origKp };
-      const pid = new PIDController(ctrl.Kp, ctrl.Ki, ctrl.Kd, ctrl.N ?? 100);
-      const loop = pid.toTransferFunction().series(state.plant);
-      renderBodePlot(loop, 'chart-active');
-    } catch {}
-  });
-
-  // Show animate button when Bode plot is active
-  document.addEventListener('cs:plot-changed', e => {
-    if (!animBtn) return;
-    animBtn.style.display = e.detail?.plot === 'bode' ? 'inline-flex' : 'none';
-  });
-}
-
-function _stopBodeAnim() {
-  _bodeAnimRunning = false;
-  if (_bodeAnimFrame) { cancelAnimationFrame(_bodeAnimFrame); _bodeAnimFrame = null; }
-}
-
-function initSweepVisualization() {
-  initParameterSweep();
-  initBodeAnimation();
-  // Hook stability-map render when tab is clicked
-  document.addEventListener('cs:plot-changed', async e => {
-    if (e.detail?.plot === 'stability-map') {
-      await renderStabilityMap('chart-active');
-    }
-  });
-}
-
-// ── P63: Chart Measurement Tools ─────────────────────────────────────────────
-
-// ── L1-1: Delta Measurement Cursor ───────────────────────────────────────────
-const _deltaCursor = { mode: 'idle', pointA: null, pointB: null };
-
-function _setDeltaMode(mode) {
-  _deltaCursor.mode = mode;
-  const btn = document.getElementById('btn-delta-cursor');
-  const cell = document.querySelector('.chart-cell.plot-main');
-  if (!btn || !cell) return;
-  const active = mode !== 'idle';
-  btn.setAttribute('aria-pressed', active ? 'true' : 'false');
-  btn.style.opacity = active ? '1' : '';
-  btn.style.background = active ? 'rgba(99,102,241,0.25)' : '';
-  cell.classList.toggle('delta-mode-active', active);
-  const hint = active
-    ? (mode === 'point_a' ? '點擊設定量測點 A' : '點擊設定量測點 B')
-    : '';
-  try { updateGlobalStatusBar(hint); } catch {}
-}
-
-function _clearDeltaMeasurement() {
-  _deltaCursor.mode = 'idle';
-  _deltaCursor.pointA = null;
-  _deltaCursor.pointB = null;
-  _setDeltaMode('idle');
-  document.getElementById('delta-panel').style.display = 'none';
-  // Remove delta shapes from chart
-  try {
-    const el = document.getElementById('chart-active');
-    if (el?._fullLayout) {
-      const existing = el._fullLayout.shapes || [];
-      const existAnnot = el._fullLayout.annotations || [];
-      Plotly.relayout(el, {
-        shapes: existing.filter(s => !s._delta),
-        annotations: existAnnot.filter(a => !a._delta),
-      });
-    }
-  } catch {}
-}
-
-function computeDeltaMeasurement(A, B, plotType) {
-  const dx = B.x - A.x;
-  const dy = B.y - A.y;
-  if (plotType === 'bode') {
-    // x axis is in log scale (rad/s), y is dB
-    const dLog = Math.log10(Math.abs(B.x)) - Math.log10(Math.abs(A.x));
-    const slope = Math.abs(dLog) > 1e-10 ? dy / dLog : 0;
-    const approxOrder = Math.round(slope / (-20));
-    return {
-      label: 'Bode 幅值量測',
-      rows: [
-        { key: 'Δ頻率', value: `${dLog.toFixed(3)} decade` },
-        { key: 'Δ幅值', value: `${dy > 0 ? '+' : ''}${dy.toFixed(2)} dB` },
-        { key: '斜率', value: `${slope.toFixed(1)} dB/dec ≈ ${approxOrder} 階` },
-      ],
-    };
-  }
-  if (plotType === 'step') {
-    const slope = Math.abs(dx) > 1e-10 ? dy / dx : 0;
-    return {
-      label: 'Step Response 量測',
-      rows: [
-        { key: 'Δ時間', value: `${Math.abs(dx).toFixed(4)} s` },
-        { key: 'Δ幅值', value: `${dy > 0 ? '+' : ''}${dy.toFixed(4)}` },
-        { key: '平均斜率', value: `${slope.toFixed(4)} /s` },
-      ],
-    };
-  }
-  return {
-    label: '量測結果',
-    rows: [
-      { key: 'Δx', value: `${dx > 0 ? '+' : ''}${dx.toFixed(4)}` },
-      { key: 'Δy', value: `${dy > 0 ? '+' : ''}${dy.toFixed(4)}` },
-    ],
-  };
-}
-
-function _renderDeltaPanel(result) {
-  const panel = document.getElementById('delta-panel');
-  const rows = document.getElementById('delta-panel-rows');
-  if (!panel || !rows) return;
-  rows.innerHTML = result.rows.map(r =>
-    `<div class="dp-row"><span class="dp-key">${r.key}</span><span class="dp-val">${r.value}</span></div>`
-  ).join('');
-  panel.querySelector('.dp-title span').textContent = `△ ${result.label}`;
-  panel.style.display = 'block';
-}
-
-function _applyDeltaMarkersToChart(A, B) {
-  const el = document.getElementById('chart-active');
-  if (!el?._fullLayout) return;
-  const existing = (el._fullLayout.shapes || []).filter(s => !s._delta);
-  const existAnnot = (el._fullLayout.annotations || []).filter(a => !a._delta);
-  const newShapes = [
-    // A vertical
-    { _delta: true, type: 'line', x0: A.x, x1: A.x, y0: A.y * 0.5, y1: A.y * 1.5 + 0.01,
-      line: { color: '#3b82f6', width: 1, dash: 'dot' }, xref: 'x', yref: 'y' },
-    // B vertical
-    { _delta: true, type: 'line', x0: B.x, x1: B.x, y0: B.y * 0.5, y1: B.y * 1.5 + 0.01,
-      line: { color: '#f97316', width: 1, dash: 'dot' }, xref: 'x', yref: 'y' },
-  ];
-  const newAnnot = [
-    { _delta: true, x: A.x, y: A.y, xref: 'x', yref: 'y',
-      text: 'A', showarrow: false, font: { size: 11, color: '#fff' },
-      bgcolor: '#3b82f6', borderpad: 3, borderrad: 10 },
-    { _delta: true, x: B.x, y: B.y, xref: 'x', yref: 'y',
-      text: 'B', showarrow: false, font: { size: 11, color: '#fff' },
-      bgcolor: '#f97316', borderpad: 3, borderrad: 10 },
-  ];
-  Plotly.relayout(el, {
-    shapes: [...existing, ...newShapes],
-    annotations: [...existAnnot, ...newAnnot],
-  });
-}
-
-function initDeltaCursor() {
-  const btn = document.getElementById('btn-delta-cursor');
-  const closeBtn = document.getElementById('delta-panel-close');
-  const clearBtn = document.getElementById('delta-clear-btn');
-  const copyBtn = document.getElementById('delta-copy-btn');
-  if (!btn) return;
-
-  btn.addEventListener('click', () => {
-    if (_deltaCursor.mode !== 'idle') { _clearDeltaMeasurement(); }
-    else { _deltaCursor.mode = 'point_a'; _setDeltaMode('point_a'); }
-  });
-  closeBtn?.addEventListener('click', _clearDeltaMeasurement);
-  clearBtn?.addEventListener('click', _clearDeltaMeasurement);
-  copyBtn?.addEventListener('click', () => {
-    const rows = document.querySelectorAll('#delta-panel-rows .dp-row');
-    const text = [...rows].map(r => `${r.querySelector('.dp-key').textContent}: ${r.querySelector('.dp-val').textContent}`).join('\n');
-    navigator.clipboard?.writeText(text).catch(() => {});
-  });
-
-  // Keyboard: M key
-  document.addEventListener('keydown', e => {
-    if (e.key === 'm' || e.key === 'M') {
-      if (document.activeElement?.matches('input,textarea,select')) return;
-      e.preventDefault();
-      if (_deltaCursor.mode !== 'idle') { _clearDeltaMeasurement(); }
-      else { _deltaCursor.mode = 'point_a'; _setDeltaMode('point_a'); }
-    }
-    if (e.key === 'Escape' && _deltaCursor.mode !== 'idle') { _clearDeltaMeasurement(); }
-    if (e.key === 'Backspace' && _deltaCursor.mode === 'point_b') {
-      _deltaCursor.mode = 'point_a'; _deltaCursor.pointB = null;
-      _setDeltaMode('point_a');
-    }
-  });
-
-  // Plotly click handler
-  const el = document.getElementById('chart-active');
-  if (!el) return;
-  el.on('plotly_click', data => {
-    if (_deltaCursor.mode === 'idle') return;
-    const pt = data.points?.[0];
-    if (!pt) return;
-    const point = { x: pt.x, y: pt.y };
-    if (_deltaCursor.mode === 'point_a') {
-      _deltaCursor.pointA = point;
-      _deltaCursor.mode = 'point_b';
-      _setDeltaMode('point_b');
-    } else if (_deltaCursor.mode === 'point_b') {
-      _deltaCursor.pointB = point;
-      _deltaCursor.mode = 'showing';
-      _setDeltaMode('idle');
-      _applyDeltaMarkersToChart(_deltaCursor.pointA, _deltaCursor.pointB);
-      const result = computeDeltaMeasurement(_deltaCursor.pointA, _deltaCursor.pointB, state.activePlot || 'step');
-      _renderDeltaPanel(result);
-    }
-  });
-}
-
-// ── L1-2: Linked Crosshair ────────────────────────────────────────────────────
-let _linkedCrosshairEnabled = false;
-let _linkedCrosshairTimer = null;
-
-function initLinkedCrosshair() {
-  const btn = document.getElementById('btn-linked-crosshair');
-  if (!btn) return;
-  btn.addEventListener('click', () => {
-    _linkedCrosshairEnabled = !_linkedCrosshairEnabled;
-    btn.setAttribute('aria-pressed', _linkedCrosshairEnabled ? 'true' : 'false');
-    btn.style.opacity = _linkedCrosshairEnabled ? '1' : '';
-    btn.style.background = _linkedCrosshairEnabled ? 'rgba(99,102,241,0.25)' : '';
-    if (!_linkedCrosshairEnabled) _clearLinkedCrosshair();
-  });
-
-  const el = document.getElementById('chart-active');
-  if (!el) return;
-  el.on('plotly_hover', data => {
-    if (!_linkedCrosshairEnabled || !state.chartAnnotationsEnabled) return;
-    clearTimeout(_linkedCrosshairTimer);
-    _linkedCrosshairTimer = setTimeout(() => {
-      try { _updateLinkedCrosshair(data); } catch {}
-    }, 80);
-  });
-  el.on('plotly_unhover', () => {
-    clearTimeout(_linkedCrosshairTimer);
-    _clearLinkedCrosshair();
-  });
-}
-
-function _updateLinkedCrosshair(hoverData) {
-  // Linked crosshair: Bode hover → Nyquist main chart moving dot
-  const pts = hoverData.points;
-  if (!pts?.length) return;
-  const x = pts[0].x;
-  if (!Number.isFinite(x) || x <= 0) return;
-  // Only active if Nyquist is the current plot
-  if (state.activePlot === 'nyquist') {
-    const nyquistEl = document.getElementById('chart-active');
-    if (nyquistEl?._fullLayout && state.plant) {
-      try {
-        const sys = state.showClosedLoop ? (state.closedLoop || state.plant) : state.plant;
-        const bd = bodeData(sys, x * 0.999, x * 1.001);
-        if (bd.re?.length && Number.isFinite(bd.re[0]) && Number.isFinite(bd.im?.[0])) {
-          const re = bd.re[0], im = bd.im[0];
-          Plotly.relayout(nyquistEl, {
-            shapes: [...(nyquistEl._fullLayout.shapes || []).filter(s => !s._crosshair),
-              { _crosshair: true, type: 'circle', x0: re - 0.05, x1: re + 0.05,
-                y0: im - 0.05, y1: im + 0.05,
-                line: { color: 'rgba(255,255,255,0.8)', width: 2 },
-                fillcolor: 'rgba(99,102,241,0.5)' },
-            ],
-          });
-        }
-      } catch {}
-    }
-  }
-}
-
-function _clearLinkedCrosshair() {
-  const el = document.getElementById('chart-active');
-  if (el?._fullLayout) {
-    try {
-      Plotly.relayout(el, {
-        shapes: (el._fullLayout.shapes || []).filter(s => !s._crosshair),
-      });
-    } catch {}
-  }
-}
-
-// ── L1-3: Chart Annotation Pins ───────────────────────────────────────────────
-const _CHART_PINS_KEY = 'cs-chart-pins';
-const _PIN_MAX = 20;
-
-function _getPinsForPlot(plotType) {
-  try { return JSON.parse(localStorage.getItem(`${_CHART_PINS_KEY}-${plotType}`) || '[]'); }
-  catch { return []; }
-}
-function _savePinsForPlot(plotType, pins) {
-  try { localStorage.setItem(`${_CHART_PINS_KEY}-${plotType}`, JSON.stringify(pins)); }
-  catch {}
-}
-
-function _applyChartPins(plotType) {
-  const pins = _getPinsForPlot(plotType);
-  if (!pins.length) return;
-  const el = document.getElementById('chart-active');
-  if (!el?._fullLayout) return;
-  try {
-    const pinAnnotations = pins.map(p => ({
-      _pin: true, _pinId: p.id,
-      x: p.x, y: p.y, xref: 'x', yref: 'y',
-      text: '📌', showarrow: false,
-      font: { size: 14 }, bgcolor: 'transparent',
-    }));
-    const existing = (el._fullLayout.annotations || []).filter(a => !a._pin);
-    Plotly.relayout(el, { annotations: [...existing, ...pinAnnotations] });
-  } catch {}
-}
-
-function initAnnotationPins() {
-  const el = document.getElementById('chart-active');
-  if (!el) return;
-  el.on('plotly_doubleclick', data => {
-    // data is click event with offsetX/Y on the chart DOM element
-    // We need to use the raw click coords — Plotly passes the event as-is
-    const event = data;
-    if (!event?.offsetX) return; // Not a point click
-    const layer = document.getElementById('chart-pin-layer');
-    if (!layer) return;
-    const plotType = state.activePlot || 'step';
-    const pins = _getPinsForPlot(plotType);
-    if (pins.length >= _PIN_MAX) {
-      try { updateGlobalStatusBar(`備注已達上限 ${_PIN_MAX} 個，請先刪除舊備注`); } catch {}
-      return;
-    }
-    // Position textarea at click point (relative to chart-body)
-    const chartBody = document.getElementById('chart-active');
-    const rect = chartBody.getBoundingClientRect();
-    const parentRect = chartBody.closest('.chart-cell.plot-main').getBoundingClientRect();
-
-    const textarea = document.createElement('textarea');
-    textarea.className = 'chart-pin-input';
-    textarea.placeholder = '輸入備注…';
-    const offsetX = event.offsetX ?? 50;
-    const offsetY = event.offsetY ?? 50;
-    textarea.style.left = `${offsetX + 8}px`;
-    textarea.style.top = `${offsetY + 8}px`;
-    layer.appendChild(textarea);
-    layer.style.pointerEvents = 'auto';
-    textarea.focus();
-
-    const finish = (save) => {
-      const text = textarea.value.trim();
-      layer.removeChild(textarea);
-      layer.style.pointerEvents = 'none';
-      if (save && text) {
-        // Convert pixel coords to data coords via Plotly's layout
-        const layout = el._fullLayout;
-        let x = offsetX, y = offsetY;
-        try {
-          // Approximate inverse: use layout xaxis/yaxis range + chart area
-          const xa = layout.xaxis, ya = layout.yaxis;
-          const plotArea = layout._size;
-          const fracX = (offsetX - plotArea.l) / plotArea.w;
-          const fracY = 1 - (offsetY - plotArea.t) / plotArea.h;
-          if (xa.type === 'log') {
-            x = Math.pow(10, xa.range[0] + fracX * (xa.range[1] - xa.range[0]));
-          } else {
-            x = xa.range[0] + fracX * (xa.range[1] - xa.range[0]);
-          }
-          y = ya.range[0] + fracY * (ya.range[1] - ya.range[0]);
-        } catch {}
-        const pin = { id: `pin-${Date.now()}`, plotType, x, y, text, timestamp: Date.now(), color: '#f59e0b' };
-        pins.push(pin);
-        _savePinsForPlot(plotType, pins);
-        _applyChartPins(plotType);
-      }
-    };
-    textarea.addEventListener('keydown', e => {
-      if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); finish(true); }
-      if (e.key === 'Escape') finish(false);
-    });
-    textarea.addEventListener('blur', () => finish(true));
-  });
-}
-
-function initMeasurementTools() {
-  initDeltaCursor();
-  initLinkedCrosshair();
-  initAnnotationPins();
-}
-
-// ── P62: Design Flow State Machine ───────────────────────────────────────────
-
-// K1-2: Spec helper predicates
-function hasAnySpec() {
-  return !!(
-    document.getElementById('design-os')?.value ||
-    document.getElementById('design-ts')?.value ||
-    document.getElementById('design-pm')?.value ||
-    document.getElementById('design-tr')?.value
-  );
-}
-
-function allSpecsReasonable() {
-  const os = parseFloat(document.getElementById('design-os')?.value);
-  const pm = parseFloat(document.getElementById('design-pm')?.value);
-  const ts = parseFloat(document.getElementById('design-ts')?.value);
-  if (Number.isFinite(os) && (os < 0 || os > 80)) return false;
-  if (Number.isFinite(pm) && (pm < 0 || pm > 90)) return false;
-  if (Number.isFinite(ts) && ts <= 0) return false;
-  return true;
-}
-
-function allSpecsPassing() {
-  const stab = state._lastStability;
-  if (!stab || stab.status === 'unstable') return false;
-  const pm = stab.phaseMargin;
-  const gm = stab.gainMarginDb;
-  const pmOk = !Number.isFinite(pm) || pm >= 30;
-  const gmOk = !Number.isFinite(gm) || gm >= 6;
-  return pmOk && gmOk;
-}
-
-// K1-1: Compute step statuses
-function computeFlowSteps() {
-  const hasPlant = !!state.plant;
-  const hasController = !!(state.pidParams && (state.pidParams.Kp !== 0 || state.pidParams.Ki !== 0 || state.pidParams.Kd !== 0));
-  const hasSpec = hasAnySpec();
-  const specOk = allSpecsReasonable();
-  const specPass = allSpecsPassing();
-  const exported = !!state._lastExportTime;
-
-  return [
-    {
-      id: 'plant',
-      label: '建立 Plant',
-      step: 1,
-      status: hasPlant ? 'done' : 'active',
-      hint: hasPlant ? null : '在識別 Tab 輸入傳遞函數',
-      wfTab: 'identify',
-    },
-    {
-      id: 'specs',
-      label: '設定規格',
-      step: 2,
-      status: hasSpec
-        ? (specOk ? 'done' : 'warning')
-        : (hasPlant ? 'active' : 'pending'),
-      hint: hasSpec ? null : '在設計 Tab 設定 OS / PM 規格',
-      wfTab: 'design',
-    },
-    {
-      id: 'controller',
-      label: '設計控制器',
-      step: 3,
-      status: hasController
-        ? 'done'
-        : (hasSpec ? 'active' : 'pending'),
-      hint: hasController ? null : '調整 PID 或使用設計精靈',
-      wfTab: 'design',
-    },
-    {
-      id: 'verify',
-      label: '驗證',
-      step: 4,
-      status: specPass ? 'done'
-        : (hasController ? 'active' : 'pending'),
-      hint: specPass ? null : '檢查穩定裕度與規格合規',
-      wfTab: 'analyse',
-    },
-    {
-      id: 'export',
-      label: '匯出',
-      step: 5,
-      status: exported ? 'done' : 'pending',
-      hint: '在實作 Tab 生成程式碼或下載報告',
-      wfTab: 'implement',
-    },
-  ];
-}
-
-function renderFlowBar(steps) {
-  const container = document.getElementById('flow-bar-steps');
-  if (!container) return;
-  container.innerHTML = steps.map(s => {
-    const icon = s.status === 'done' ? '✓'
-      : s.status === 'warning' ? '!'
-      : s.status === 'active' ? String(s.step)
-      : String(s.step);
-    const hintHtml = s.hint ? `<span class="fb-hint">${s.hint}</span>` : '';
-    return `<button class="fb-step fb-${s.status}" role="listitem"
-      data-wf="${s.wfTab}" title="${s.label}${s.hint ? ': ' + s.hint : ''}"
-      aria-label="步驟 ${s.step}：${s.label}（${s.status === 'done' ? '完成' : s.status === 'active' ? '進行中' : s.status === 'warning' ? '警告' : '待做'}）">
-      <span class="fb-icon">${icon}</span>
-      <span class="fb-label">${s.label}</span>
-      ${hintHtml}
-    </button>`;
-  }).join('');
-  // Bind click handlers
-  container.querySelectorAll('.fb-step[data-wf]').forEach(btn => {
-    btn.addEventListener('click', () => switchWorkflowTab(btn.dataset.wf));
-  });
-}
-
-function updateFlowBar() {
-  const bar = document.getElementById('flow-bar');
-  if (!bar) return;
-  const steps = computeFlowSteps();
-  renderFlowBar(steps);
-}
-
-function initFlowBar() {
-  const toggle = document.getElementById('flow-bar-toggle');
-  const bar = document.getElementById('flow-bar');
-  if (!toggle || !bar) return;
-  const KEY = 'cs-flow-bar-collapsed';
-  if (localStorage.getItem(KEY) === '1') {
-    bar.classList.add('fb-collapsed');
-    toggle.textContent = '∨';
-    toggle.setAttribute('aria-expanded', 'false');
-  }
-  toggle.addEventListener('click', () => {
-    const collapsed = bar.classList.toggle('fb-collapsed');
-    toggle.textContent = collapsed ? '∨' : '∧';
-    toggle.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
-    localStorage.setItem(KEY, collapsed ? '1' : '0');
-  });
-  updateFlowBar();
-}
-
-// K1-4: Kp Quick Recommendation
-function recommendInitialKp(sys) {
-  try {
-    const dcGain = Math.abs(sys.dcGain?.() ?? evaluateTF?.(sys, 0) ?? NaN);
-    if (Number.isFinite(dcGain) && dcGain > 1e-10) {
-      // Check if integrating system (Type-1+): dcGain → ∞
-      const kpByDC = 1 / dcGain;
-      const kpRecommended = +(Math.min(kpByDC, kpByDC * 0.8)).toPrecision(2);
-      return {
-        value: kpRecommended,
-        reasoning: `G(s) DC Gain ≈ ${dcGain.toPrecision(3)}，推薦 Kp ≈ 1/|G(0)|×0.8 = ${kpRecommended}`,
-        confidence: 'medium',
-      };
-    }
-    // Integrating plant: use frequency-based heuristic
-    try {
-      const range = autoFreqRange(sys);
-      const wm = Math.sqrt(range.wMin * range.wMax);
-      const bd = bodeData(sys, wm * 0.9, wm * 1.1);
-      const magAtWm = bd.magDB?.[Math.floor(bd.magDB.length / 2)];
-      if (Number.isFinite(magAtWm)) {
-        const kpHz = +(Math.pow(10, -magAtWm / 20) * 0.5).toPrecision(2);
-        return {
-          value: kpHz,
-          reasoning: `積分型系統，以中頻增益估算 Kp ≈ ${kpHz}（保守值）`,
-          confidence: 'low',
-        };
-      }
-    } catch {}
-  } catch {}
-  return { value: 1.0, reasoning: '無法自動估算，使用預設值 Kp = 1', confidence: 'low' };
-}
-
-let _kpRecDismissed = false;
-
-function updateKpRecommend() {
-  const card = document.getElementById('kp-recommend-card');
-  if (!card) return;
-  // Show only when: have plant, no meaningful controller (Kp=0 or all zeros), not dismissed
-  const hasPlant = !!state.plant;
-  const pidKp = parseFloat(document.getElementById('pid-Kp')?.value ?? '1');
-  const noController = !hasPlant || (pidKp === 0);
-  // Hide if dismissed, no plant, or already has non-trivial Kp
-  if (!hasPlant || _kpRecDismissed || pidKp > 0.01) {
-    card.style.display = 'none';
-    return;
-  }
-  // Compute recommendation
-  const rec = recommendInitialKp(state.plant);
-  document.getElementById('kp-rec-value').textContent = `Kp ≈ ${rec.value}`;
-  document.getElementById('kp-rec-reason').textContent = rec.reasoning;
-  card.style.display = 'block';
-}
-
-function initKpRecommend() {
-  const applyBtn = document.getElementById('kp-rec-apply');
-  const dismissBtn = document.getElementById('kp-rec-dismiss');
-  if (!applyBtn || !dismissBtn) return;
-
-  applyBtn.addEventListener('click', () => {
-    if (!state.plant) return;
-    const rec = recommendInitialKp(state.plant);
-    const kpSlider = document.getElementById('pid-Kp');
-    const kpNum = document.getElementById('pid-Kp-num');
-    if (kpSlider && kpNum) {
-      kpSlider.value = rec.value;
-      kpNum.value = rec.value;
-      kpSlider.dispatchEvent(new Event('input', { bubbles: true }));
-    }
-    _kpRecDismissed = true;
-    document.getElementById('kp-recommend-card').style.display = 'none';
-  });
-
-  dismissBtn.addEventListener('click', () => {
-    _kpRecDismissed = true;
-    document.getElementById('kp-recommend-card').style.display = 'none';
-  });
+  _spApply(panels);
 }
 
 // ── P54 init ──────────────────────────────────────────────────────────────────
@@ -14779,26 +13503,38 @@ document.addEventListener('DOMContentLoaded', () => {
 document.addEventListener('DOMContentLoaded', () => {
   if (!('chartAnnotationsEnabled' in state)) state.chartAnnotationsEnabled = true;
   initChartAnnotationToggle();
+  initSidebarQuickPin();   // H1-4: sidebar section quick pin
 }, { once: true });
 
 // ── P62 init ──────────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
+  initFlowModule({ state, switchWorkflowTab, bodeData, autoFreqRange });
   initFlowBar();
   initKpRecommend();
 }, { once: true });
 
 // ── P63 init ──────────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
+  initMeasurementModule({ state, updateGlobalStatusBar, bodeData });
   initMeasurementTools();
 }, { once: true });
 
 // ── P64 init ──────────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
+  initSweepModule({
+    state, PIDController, stepResponse, stepInfo, fmtNum, fmtTime,
+    getCSS, updateGlobalStatusBar, PLOTLY_LAYOUT_BASE, compactLegend,
+    updateActivePlotHeader, refreshAllCharts, renderBodePlot, bodeData,
+  });
   initSweepVisualization();
 }, { once: true });
 
 // ── P65 init ──────────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
+  initShareModule({
+    state, updateGlobalStatusBar, buildCodegenPayload, toPythonScript,
+    stepResponse, stepInfo, TransferFunction, applyDesignPayload,
+  });
   initShareExport();
   // Q1-1: Restore from URL hash on page load
   if (location.hash.startsWith('#design=')) {

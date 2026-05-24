@@ -22,8 +22,10 @@ function ok(label)       { console.log(`  ✓ ${label}`); pass++; }
 function bad(label, msg) { console.error(`  ✗ ${label}: ${msg}`); fail++; errors.push(label); }
 function assert(cond, label, msg = '') { cond ? ok(label) : bad(label, msg || 'condition failed'); }
 
-const appJs     = readFileSync(path.join(ROOT, 'js/app.js'),  'utf8');
-const indexHtml = readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+const appJs      = readFileSync(path.join(ROOT, 'js/app.js'),  'utf8');
+const annotJs    = readFileSync(path.join(ROOT, 'js/ui/annotations.js'), 'utf8');
+const src        = appJs + '\n' + annotJs;  // combined: shims in app.js, implementations in annotations.js
+const indexHtml  = readFileSync(path.join(ROOT, 'index.html'), 'utf8');
 
 // ── J1-5: Annotation toggle ───────────────────────────────────────────────────
 console.log('\n▶ J1-5 Chart Annotation Toggle');
@@ -61,11 +63,11 @@ assert(appJs.match(/bodeAnnots.*bodeShapes|buildBodeAnnotations/), 'bode annotat
 console.log('\n▶ J1-4 Nyquist Frequency Ticks + Ms Circle');
 
 assert(appJs.includes('function buildNyquistAnnotations('),       'buildNyquistAnnotations() defined');
-assert(appJs.includes('_msCircleTrace'),                          'Ms circle trace generated');
-assert(appJs.includes('minDist'),                                 'minimum distance to -1+j0 computed');
+assert(src.includes('_msCircleTrace'),                            'Ms circle trace generated');
+assert(src.includes('minDist'),                                   'minimum distance to -1+j0 computed');
 // Hook into renderNyquistPlot
 assert(appJs.includes('buildNyquistAnnotations(sys, data)'),      'buildNyquistAnnotations hooked into renderNyquistPlot');
-assert(appJs.includes('data._msCircleTrace') && appJs.includes('traces.push(data._msCircleTrace)'),
+assert(src.includes('data._msCircleTrace') && src.includes('traces.push(data._msCircleTrace)'),
                                                                    'Ms circle trace pushed to Nyquist traces');
 
 // ── Summary ───────────────────────────────────────────────────────────────────

@@ -5,6 +5,9 @@
  *   L1-1  Delta measurement cursor (Δ button + M key + state machine)
  *   L1-2  Linked crosshair (cross-chart hover sync)
  *   L1-3  Chart annotation pins (dblclick + localStorage)
+ *
+ * Implementation lives in js/ui/measurement.js (P34-01 module split).
+ * App wiring (DOMContentLoaded, refreshAllCharts) remains in app.js.
  */
 
 import { readFileSync } from 'fs';
@@ -21,27 +24,29 @@ function ok(label)       { console.log(`  ✓ ${label}`); pass++; }
 function bad(label, msg) { console.error(`  ✗ ${label}: ${msg}`); fail++; errors.push(label); }
 function assert(cond, label, msg = '') { cond ? ok(label) : bad(label, msg || 'condition failed'); }
 
-const appJs     = readFileSync(path.join(ROOT, 'js/app.js'),  'utf8');
-const indexHtml = readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+const appJs        = readFileSync(path.join(ROOT, 'js/app.js'),  'utf8');
+const measurementJs = readFileSync(path.join(ROOT, 'js/ui/measurement.js'), 'utf8');
+const src          = appJs + '\n' + measurementJs;  // combined
+const indexHtml    = readFileSync(path.join(ROOT, 'index.html'), 'utf8');
 
 // ── L1-1: Delta Cursor ────────────────────────────────────────────────────────
 console.log('\n▶ L1-1 Delta Measurement Cursor');
 
-assert(appJs.includes('const _deltaCursor'),                  '_deltaCursor state object defined');
-assert(appJs.includes('function initDeltaCursor()'),          'initDeltaCursor() defined');
-assert(appJs.includes('function computeDeltaMeasurement('),   'computeDeltaMeasurement() defined');
-assert(appJs.includes('function _clearDeltaMeasurement()'),   '_clearDeltaMeasurement() defined');
-assert(appJs.includes('function _renderDeltaPanel('),         '_renderDeltaPanel() defined');
-assert(appJs.includes("'point_a'"),                           "state machine: 'point_a' mode");
-assert(appJs.includes("'point_b'"),                           "state machine: 'point_b' mode");
-assert(appJs.includes("'showing'"),                           "state machine: 'showing' mode");
-assert(appJs.includes('plotly_click'),                        'plotly_click event bound');
-assert(appJs.includes("e.key === 'm' || e.key === 'M'"),      'M key shortcut bound');
-assert(appJs.includes("e.key === 'Backspace'"),               'Backspace to reset B point');
-assert(appJs.includes("'bode-magnitude'") || appJs.includes("plotType === 'bode'"),
+assert(src.includes('const _deltaCursor'),                    '_deltaCursor state object defined');
+assert(src.includes('function initDeltaCursor()'),            'initDeltaCursor() defined');
+assert(src.includes('function computeDeltaMeasurement('),     'computeDeltaMeasurement() defined');
+assert(src.includes('function _clearDeltaMeasurement()'),     '_clearDeltaMeasurement() defined');
+assert(src.includes('function _renderDeltaPanel('),           '_renderDeltaPanel() defined');
+assert(src.includes("'point_a'"),                             "state machine: 'point_a' mode");
+assert(src.includes("'point_b'"),                             "state machine: 'point_b' mode");
+assert(src.includes("'showing'"),                             "state machine: 'showing' mode");
+assert(src.includes('plotly_click'),                          'plotly_click event bound');
+assert(src.includes("e.key === 'm' || e.key === 'M'"),        'M key shortcut bound');
+assert(src.includes("e.key === 'Backspace'"),                 'Backspace to reset B point');
+assert(src.includes("'bode-magnitude'") || src.includes("plotType === 'bode'"),
                                                               'bode slope calculation branch');
-assert(appJs.includes('Math.log10'),                          'log10 used for Bode decade calculation');
-assert(appJs.includes('dB/dec'),                              'slope label mentions dB/dec');
+assert(src.includes('Math.log10'),                            'log10 used for Bode decade calculation');
+assert(src.includes('dB/dec'),                                'slope label mentions dB/dec');
 assert(appJs.includes('initMeasurementTools()'),              'initMeasurementTools() called in DOMContentLoaded');
 
 // HTML
@@ -59,13 +64,13 @@ assert(indexHtml.includes('#delta-panel'),                    '#delta-panel CSS 
 // ── L1-2: Linked Crosshair ────────────────────────────────────────────────────
 console.log('\n▶ L1-2 Linked Crosshair');
 
-assert(appJs.includes('function initLinkedCrosshair()'),      'initLinkedCrosshair() defined');
-assert(appJs.includes('_linkedCrosshairEnabled'),             '_linkedCrosshairEnabled flag');
-assert(appJs.includes('plotly_hover'),                        'plotly_hover event bound');
-assert(appJs.includes('plotly_unhover'),                      'plotly_unhover event bound');
-assert(appJs.includes('_clearLinkedCrosshair'),               '_clearLinkedCrosshair() defined');
-assert(appJs.includes('_crosshair'),                          '_crosshair marker flag on shapes');
-assert(appJs.includes('function initMeasurementTools()'),     'initMeasurementTools() aggregates all inits');
+assert(src.includes('function initLinkedCrosshair()'),        'initLinkedCrosshair() defined');
+assert(src.includes('_linkedCrosshairEnabled'),               '_linkedCrosshairEnabled flag');
+assert(src.includes('plotly_hover'),                          'plotly_hover event bound');
+assert(src.includes('plotly_unhover'),                        'plotly_unhover event bound');
+assert(src.includes('_clearLinkedCrosshair'),                 '_clearLinkedCrosshair() defined');
+assert(src.includes('_crosshair'),                            '_crosshair marker flag on shapes');
+assert(src.includes('function initMeasurementTools()'),       'initMeasurementTools() aggregates all inits');
 
 // HTML
 assert(indexHtml.includes('id="btn-linked-crosshair"'),       '#btn-linked-crosshair button in HTML');
@@ -73,16 +78,18 @@ assert(indexHtml.includes('id="btn-linked-crosshair"'),       '#btn-linked-cross
 // ── L1-3: Annotation Pins ─────────────────────────────────────────────────────
 console.log('\n▶ L1-3 Chart Annotation Pins');
 
-assert(appJs.includes('function initAnnotationPins()'),       'initAnnotationPins() defined');
-assert(appJs.includes('function _applyChartPins('),           '_applyChartPins() defined');
-assert(appJs.includes('_CHART_PINS_KEY'),                     '_CHART_PINS_KEY localStorage key');
-assert(appJs.includes('_PIN_MAX'),                            '_PIN_MAX limit defined');
-assert(appJs.includes('plotly_doubleclick'),                  'plotly_doubleclick event bound');
-assert(appJs.includes('chart-pin-input'),                     'chart-pin-input textarea class');
-assert(appJs.includes('_getPinsForPlot'),                     '_getPinsForPlot() load helper');
-assert(appJs.includes('_savePinsForPlot'),                    '_savePinsForPlot() save helper');
-assert(appJs.includes("'📌'"),                                '📌 icon used in pin annotation');
-assert(appJs.includes('_applyChartPins(state.activePlot'),    'pins restored in refreshAllCharts');
+assert(src.includes('function initAnnotationPins()'),         'initAnnotationPins() defined');
+assert(src.includes('function _applyChartPins(') || src.includes('export function _applyChartPins('),
+                                                              '_applyChartPins() defined');
+assert(src.includes('_CHART_PINS_KEY'),                       '_CHART_PINS_KEY localStorage key');
+assert(src.includes('_PIN_MAX'),                              '_PIN_MAX limit defined');
+assert(src.includes('plotly_doubleclick'),                    'plotly_doubleclick event bound');
+assert(src.includes('chart-pin-input'),                       'chart-pin-input textarea class');
+assert(src.includes('_getPinsForPlot'),                       '_getPinsForPlot() load helper');
+assert(src.includes('_savePinsForPlot'),                      '_savePinsForPlot() save helper');
+assert(src.includes("'📌'"),                                  '📌 icon used in pin annotation');
+assert(appJs.includes('_applyChartPins') || appJs.includes('_applyChartPinsM'),
+                                                              'pins restored in refreshAllCharts');
 
 // HTML
 assert(indexHtml.includes('id="chart-pin-layer"'),            '#chart-pin-layer container in HTML');

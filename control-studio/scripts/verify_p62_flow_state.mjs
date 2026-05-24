@@ -5,6 +5,9 @@
  *   K1-1  Five-step progress bar (flow bar)
  *   K1-2  Step completion condition logic
  *   K1-4  Kp quick recommendation
+ *
+ * Implementation lives in js/ui/flow.js (P34-01 module split).
+ * App wiring (DOMContentLoaded, refreshAllCharts calls) remains in app.js.
  */
 
 import { readFileSync } from 'fs';
@@ -22,30 +25,33 @@ function bad(label, msg) { console.error(`  ✗ ${label}: ${msg}`); fail++; erro
 function assert(cond, label, msg = '') { cond ? ok(label) : bad(label, msg || 'condition failed'); }
 
 const appJs     = readFileSync(path.join(ROOT, 'js/app.js'),  'utf8');
+const flowJs    = readFileSync(path.join(ROOT, 'js/ui/flow.js'), 'utf8');
+const src       = appJs + '\n' + flowJs;   // combined — checks implementation in either file
 const indexHtml = readFileSync(path.join(ROOT, 'index.html'), 'utf8');
 
 // ── K1-1: Flow Bar ────────────────────────────────────────────────────────────
 console.log('\n▶ K1-1 Five-Step Design Flow Bar');
 
-assert(appJs.includes('function computeFlowSteps()'),     'computeFlowSteps() defined');
-assert(appJs.includes('function renderFlowBar('),         'renderFlowBar() defined');
-assert(appJs.includes('function updateFlowBar()'),        'updateFlowBar() defined');
-assert(appJs.includes('function initFlowBar()'),          'initFlowBar() defined');
+assert(src.includes('function computeFlowSteps()'),       'computeFlowSteps() defined');
+assert(src.includes('function renderFlowBar('),           'renderFlowBar() defined');
+assert(src.includes('function updateFlowBar()'),          'updateFlowBar() defined');
+assert(src.includes('function initFlowBar()'),            'initFlowBar() defined');
 assert(appJs.includes('initFlowBar()'),                   'initFlowBar() called in DOMContentLoaded');
 // 5 steps
-assert(appJs.includes("id: 'plant'"),                     "flow step 'plant' defined");
-assert(appJs.includes("id: 'specs'"),                     "flow step 'specs' defined");
-assert(appJs.includes("id: 'controller'"),                "flow step 'controller' defined");
-assert(appJs.includes("id: 'verify'"),                    "flow step 'verify' defined");
-assert(appJs.includes("id: 'export'"),                    "flow step 'export' defined");
+assert(src.includes("id: 'plant'"),                       "flow step 'plant' defined");
+assert(src.includes("id: 'specs'"),                       "flow step 'specs' defined");
+assert(src.includes("id: 'controller'"),                  "flow step 'controller' defined");
+assert(src.includes("id: 'verify'"),                      "flow step 'verify' defined");
+assert(src.includes("id: 'export'"),                      "flow step 'export' defined");
 // Statuses
-assert(appJs.includes("'done'") && appJs.includes("'active'") && appJs.includes("'pending'") && appJs.includes("'warning'"),
+assert(src.includes("'done'") && src.includes("'active'") && src.includes("'pending'") && src.includes("'warning'"),
                                                           'all 4 step statuses present');
 // Collapse
-assert(appJs.includes('fb-collapsed'),                    'fb-collapsed class for collapse');
-assert(appJs.includes("'cs-flow-bar-collapsed'"),         'localStorage persist for collapse state');
-// Hook into refreshAllCharts
-assert(appJs.includes('updateFlowBar()'),                 'updateFlowBar() called in refreshAllCharts');
+assert(src.includes('fb-collapsed'),                      'fb-collapsed class for collapse');
+assert(src.includes("'cs-flow-bar-collapsed'"),           'localStorage persist for collapse state');
+// Hook into refreshAllCharts (via module alias _updateFlowBarM or direct call)
+assert(appJs.includes('updateFlowBar') || appJs.includes('_updateFlowBarM'),
+                                                          'updateFlowBar wired into refreshAllCharts');
 
 // HTML
 assert(indexHtml.includes('id="flow-bar"'),               '#flow-bar in HTML');
@@ -61,26 +67,27 @@ assert(indexHtml.includes('@keyframes fb-pulse'),         'fb-pulse animation de
 // ── K1-2: Step Completion Logic ───────────────────────────────────────────────
 console.log('\n▶ K1-2 Step Completion Conditions');
 
-assert(appJs.includes('function hasAnySpec()'),           'hasAnySpec() defined');
-assert(appJs.includes('function allSpecsReasonable()'),   'allSpecsReasonable() defined');
-assert(appJs.includes('function allSpecsPassing()'),      'allSpecsPassing() defined');
-assert(appJs.includes('hasPlant'),                        'hasPlant condition checked');
-assert(appJs.includes('hasController'),                   'hasController condition checked');
-assert(appJs.includes('phaseMargin') && appJs.includes('gainMarginDb'),
+assert(src.includes('function hasAnySpec()'),             'hasAnySpec() defined');
+assert(src.includes('function allSpecsReasonable()'),     'allSpecsReasonable() defined');
+assert(src.includes('function allSpecsPassing()'),        'allSpecsPassing() defined');
+assert(src.includes('hasPlant'),                          'hasPlant condition checked');
+assert(src.includes('hasController'),                     'hasController condition checked');
+assert(src.includes('phaseMargin') && src.includes('gainMarginDb'),
                                                           'PM/GM checked in allSpecsPassing');
 
 // ── K1-4: Kp Recommendation ───────────────────────────────────────────────────
 console.log('\n▶ K1-4 Kp Quick Recommendation');
 
-assert(appJs.includes('function recommendInitialKp('),    'recommendInitialKp() defined');
-assert(appJs.includes('function updateKpRecommend()'),    'updateKpRecommend() defined');
-assert(appJs.includes('function initKpRecommend()'),      'initKpRecommend() defined');
+assert(src.includes('function recommendInitialKp('),      'recommendInitialKp() defined');
+assert(src.includes('function updateKpRecommend()'),      'updateKpRecommend() defined');
+assert(src.includes('function initKpRecommend()'),        'initKpRecommend() defined');
 assert(appJs.includes('initKpRecommend()'),               'initKpRecommend() called in DOMContentLoaded');
-assert(appJs.includes('_kpRecDismissed'),                 'dismiss flag tracked');
-assert(appJs.includes("kp-rec-apply"),                    'apply button bound');
-assert(appJs.includes("kp-rec-dismiss"),                  'dismiss button bound');
-assert(appJs.includes('dcGain'),                          'DC gain used in recommendation');
-assert(appJs.includes('updateKpRecommend()'),             'updateKpRecommend() called in refreshAllCharts');
+assert(src.includes('_kpRecDismissed'),                   'dismiss flag tracked');
+assert(src.includes("kp-rec-apply"),                      'apply button bound');
+assert(src.includes("kp-rec-dismiss"),                    'dismiss button bound');
+assert(src.includes('dcGain'),                            'DC gain used in recommendation');
+assert(appJs.includes('updateKpRecommend') || appJs.includes('_updateKpRecommendM'),
+                                                          'updateKpRecommend wired into refreshAllCharts');
 
 // HTML
 assert(indexHtml.includes('id="kp-recommend-card"'),      '#kp-recommend-card in HTML');
