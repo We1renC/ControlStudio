@@ -127,6 +127,7 @@ run_script "P58 G11 app-loading skeleton screen"                    "node script
 run_script "P59 F1-2 Context Bar / view-nav / A5-1 Triple Pane"    "node scripts/verify_p59_ctxbar_triple.mjs"
 run_script "P61 J1-1/J1-2/J1-4/J1-5 in-chart engineering annotations" "node scripts/verify_p61_chart_annotations.mjs"
 run_script "P62 K1-1/K1-2/K1-4 design flow state machine"           "node scripts/verify_p62_flow_state.mjs"
+run_script "P63 L1-1/L1-2/L1-3 chart measurement tools"             "node scripts/verify_p63_measure_tools.mjs"
 echo ""
 
 # ── General Math & PID ───────────────────────────────────────────────────────
