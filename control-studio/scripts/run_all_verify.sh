@@ -124,7 +124,7 @@ run_script "P55 B2-4/B4-3/B4-4 gramian/python-bridge/latex"        "node scripts
 run_script "P56 C2-3/C5-2/C5-3/D1-4 err-hints/screenshot/summary/codegen" "node scripts/verify_p56_c23_c52_c53_d14.mjs"
 run_script "P57 D4-1/D4-2/D4-3/D5-1/D5-2/D5-3 unit-test/diff/hil/docs/wiring/warnings" "node scripts/verify_p57_d4_d5.mjs"
 run_script "P58 G11 app-loading skeleton screen"                    "node scripts/verify_p58_g11.mjs"
-run_script "P59 F1-2 Context Bar / view-nav / A5-1 Triple Pane"    "node scripts/verify_p59_ctxbar_triple.mjs"
+run_script "P59 F1-2 Context Bar / view-nav / A5-1 Plot Workspace" "node scripts/verify_p59_ctxbar_triple.mjs"
 run_script "P61 J1-1/J1-2/J1-4/J1-5 in-chart engineering annotations" "node scripts/verify_p61_chart_annotations.mjs"
 run_script "P62 K1-1/K1-2/K1-4 design flow state machine"           "node scripts/verify_p62_flow_state.mjs"
 run_script "P63 L1-1/L1-2/L1-3 chart measurement tools"             "node scripts/verify_p63_measure_tools.mjs"

@@ -977,38 +977,55 @@ hover chip → tooltip 展開說明：
 
 ---
 
-### A5-1｜閉迴路三窗格並排
+### A5-1｜Plot Workspace（主圖 + 兩張 companion plots）
 
 **使用者故事**
-驗證控制器時，我想同時看到時域步階響應、Bode 圖和 Nyquist 圖，不必反覆切頁。
+驗證控制器時，我想在同一個 workspace 內看到一張主圖與兩張對應的輔助圖，避免切換不同分析視角時失去上下文。
 
 **觸發位置**
-「分析 → 綜合驗證」或主工作區右上角「3 窗格」按鈕
+主工作區 plot tab 切換區（Time Response / Bode / Nyquist / Nichols / Root Locus / Pole-Zero / Sensitivity / Stability Map）
 
 **佈局**
 ```
-┌──────────────┬──────────────┬──────────────┐
-│  步階響應     │  Bode 圖     │  Nyquist 圖  │
-│  buildSVG    │  buildSVG    │  buildSVG    │
-│              │              │              │
-│  OS: 8.3%   │  PM: 52°     │  GM: 6.2dB  │
-│  Ts: 1.85s  │  GM: 6.2dB  │              │
-└──────────────┴──────────────┴──────────────┘
-  [靈敏度 S]  [補靈敏度 T]  [KS]  三個額外圖切換 tab
+┌─────────────────────────────────────────┐
+│  Main plot（全寬）                      │
+├──────────────────┬──────────────────────┤
+│  Companion 1     │  Companion 2         │
+└──────────────────┴──────────────────────┘
 ```
 
 **互動細節**
-- 三圖共用同一個「當前頻率」游標（垂直線同步）
-- Bode 圖 hover 某頻率 → Nyquist 游標跳到對應點
-- 每個圖右上角有「展開」按鈕 → 切換到全螢幕模式
+- 主圖永遠跨滿第一列；第二列固定兩張 companion plots。
+- companion plots 內容隨 plot tab 切換，不再使用固定三窗格。
+- `Root Locus` 作主圖時，左下 companion 改為 `Step @ K`，直接看選定增益的閉迴路時域後果。
+- `Pole-Zero` 作主圖時，兩張 companion 分別補 `Step Response` 與 `Bode Plot`，避免主圖與次圖重複。
+- `Bode` / `Nyquist` / `Nichols` 之間互相提供頻域對照，另搭配 Pole-Zero 作為幾何補充。
+- 桌面維持 `1 + 2`；窄螢幕可退化為單欄堆疊。
+
+**內容對應**
+
+| Active plot | Main | Companion 1 | Companion 2 |
+|-------------|------|-------------|-------------|
+| Time Response | Step / Impulse / Ramp / waveform response | Root Locus | Pole-Zero Map |
+| Bode | Loop Bode | Nyquist Plot | Pole-Zero Map |
+| Nyquist | Nyquist Plot | Bode Plot | Pole-Zero Map |
+| Nichols | Nichols Chart | Bode Plot | Pole-Zero Map |
+| Root Locus | Root Locus | Step @ K | Pole-Zero Map |
+| Pole-Zero | Pole-Zero Map | Step Response | Bode Plot |
+| Sensitivity | S / T / KS | Bode Plot | Pole-Zero Map |
+| Stability Map | Kp-Ki stability map | Step Response | Root Locus |
+| z-domain Step | Discrete step | Bode (DTFT) | Pole-Zero Map |
+| z-domain Bode | Bode (DTFT) | Discrete step | Pole-Zero Map |
+| z-domain Pole-Zero | z-plane pole-zero map | Discrete step | Bode (DTFT) |
 
 **依賴模組**
-`stepResponse`, `stepInfo`, `bodeData`, `nyquistData`, `sensitivityAt`, `sensitivityBode`, `stabilityMargins`, `buildSVGChart`, `createZoomState`
+`stepResponse`, `impulseResponse`, `rampResponse`, `bodeData`, `nyquistData`, `nicholsData`, `rootLocusData`, `sensitivityBode`, `stabilityMargins`, `renderStabilityMap`
 
 **驗收標準**
-- [ ] 三圖游標同步，頻率誤差 < 1%
-- [ ] 靈敏度 S/T/KS tab 切換後圖表在 100ms 內出現
-- [ ] 全螢幕展開後 Esc 可回到三窗格
+- [ ] 桌面 workspace 使用固定 `上 1 下 2` 佈局
+- [ ] 每個 active plot 都有明確且不重複的 companion plot 對應
+- [ ] `Root Locus` 主圖時左下必為 `Step @ K`
+- [ ] `Pole-Zero` 主圖時次圖不可再次顯示 `Pole-Zero`
 
 ---
 
@@ -1016,7 +1033,7 @@ hover chip → tooltip 展開說明：
 
 **使用者故事**：身為控制設計者，我想一鍵看到 S、T、KS 三個靈敏度函數，確認閉迴路頻域行為。
 
-**觸發位置**：分析頁面工具列「靈敏度」按鈕；A5-1 三窗格底部 tab
+**觸發位置**：分析頁面 plot tab「靈敏度」按鈕；A5-1 plot workspace 內
 
 **互動流程**
 1. 點擊「靈敏度」→ 顯示三個 Bode 圖（S, T, KS）
@@ -1799,7 +1816,7 @@ Step 1 建模                Step 2 規格               Step 3 設計          
 Step 1：觸發 A1-1 系統輸入精靈
 Step 2：觸發 A2-1 規格面板（有引導說明）
 Step 3：推薦 PID，顯示 A3-1 滑桿
-Step 4：顯示 A5-1 三窗格驗證 + C5-1 報告按鈕
+Step 4：顯示 A5-1 plot workspace 驗證 + C5-1 報告按鈕
 ```
 
 **視覺規格**
@@ -3645,7 +3662,7 @@ modal：寬 560px，置中偏上（top 20vh），backdrop blur
 | xs/sm | <768px | SideNav 收為漢堡選單（抽屜式）；單窗格；圖表全寬堆疊 |
 | md | 768–1024 | SideNav 可收合為 icon-only（48px）；雙窗格改上下 |
 | lg | 1024–1280 | 標準佈局（SideNav 220px + 左右窗格） |
-| xl+ | >1280 | 寬佈局，可三窗格並排（A5-1） |
+| xl+ | >1280 | 寬佈局，主圖全寬 + 下排雙 companion charts（A5-1） |
 
 **行動裝置特化**
 ```
@@ -3973,7 +3990,7 @@ P1 小計：**15d**
 |------|---------|---------|---------|
 | A1-1 系統輸入精靈 | modal + tabs + formField | 3d | A、C |
 | A2-2/2-3 規格線 + 合規 indicator | overlayLines + badge | 2d | A、E |
-| A5-1/5-2/5-3 驗證三窗格 + 靈敏度 + 穩健性 | splitPane×3 + 同步游標 | 4d | A、B |
+| A5-1/5-2/5-3 plot workspace + 靈敏度 + 穩健性 | main+2 companion layout + 同步游標 | 4d | A、B |
 | B1-1~3 比較模式 + 指標表 + 差異 | buildSVGChart 多系列 + table | 3d | B、E |
 | B2-2 Hankel 長條圖 | barChart + 截斷滑桿 | 2d | B |
 | B2-3 極零點地圖 | complexPlane + createZoomState | 3d | A、B |
@@ -4051,7 +4068,7 @@ A1-1 系統輸入精靈 · A1-2 SysID 入口 · A1-3 範例庫 · A1-4 模型健
 A2-1 設計規格面板 · A2-2 規格邊界線 · A2-3 規格合規 indicator  
 A3-1 參數滑桿即時重繪 · A3-2 根軌跡拖曳極點 · A3-3 Bode 拖移折點 · A3-4 調參歷史 Undo/Redo  
 A4-1 designWizard 嵌入 · A4-2 方法複雜度標籤 · A4-3 推薦說明面板  
-A5-1 三窗格並排 · A5-2 靈敏度一鍵繪製 · A5-3 穩健性 badge
+A5-1 plot workspace（1+2） · A5-2 靈敏度一鍵繪製 · A5-3 穩健性 badge
 
 ### B — 分析研究者 (18)
 B1-1 比較模式疊加圖 · B1-2 指標比較表 · B1-3 差異 highlight  
@@ -4294,4 +4311,3 @@ Q1-1 URL 分享 · Q1-2 程式碼生成 v2 · Q1-3 一鍵 PDF 報告 · Q1-4 圖
 
 *Round 2 合計：34 張功能規格卡，總估計工時 55d*  
 *前四 Phase（P60–P63）合計 35d，可顯著改善核心工作流體驗*
-

@@ -134,11 +134,12 @@
     .mimo-channel-btn.active { background: var(--color-accent); border-color: var(--color-accent); color: white; }
     .mimo-all-btn { background: rgba(139,92,246,0.15) !important; border-color: rgba(139,92,246,0.3) !important; }
     .mimo-all-btn.active { background: var(--color-accent) !important; color: white !important; }
-    .plot-stage { display:grid; grid-template-columns: minmax(0, 1fr) 220px; gap:var(--space-4); align-items:stretch; min-width: 0; }
-    .plot-main { min-width: 0; min-height: clamp(340px, 58vh, 560px); }
+    .plot-stage { display:grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap:var(--space-4); align-items:stretch; min-width: 0; }
+    .plot-main { min-width: 0; min-height: clamp(340px, 58vh, 560px); grid-column: 1 / -1; }
     .plot-main .chart-body { min-height: clamp(280px, 48vh, 480px); }
-    .plot-side { display:flex; flex-direction:column; gap:var(--space-4); min-width: 0; }
-    .mini-chart .chart-body { min-height: 150px; }
+    .plot-side { display:grid; grid-column: 1 / -1; grid-template-columns: repeat(2, minmax(0, 1fr)); gap:var(--space-4); min-width: 0; }
+    .mini-chart { min-height: clamp(220px, 26vh, 300px); }
+    .mini-chart .chart-body { min-height: clamp(180px, 22vh, 240px); }
     /* ── P60 Workflow Tab Bar ─────────────────────────────────── */
     .wf-tab-bar { display: grid; grid-template-columns: repeat(5,1fr); background: var(--bg-tertiary); border-bottom: 1px solid var(--border-primary); flex-shrink: 0; }
     .wf-tab { border: 0; background: transparent; color: var(--text-muted); padding: 8px 2px 5px; font-size: 9px; font-weight: 700; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 2px; position: relative; transition: color 0.15s, background 0.15s; border-bottom: 3px solid transparent; text-transform: none; line-height: 1.2; }
@@ -311,15 +312,14 @@
     .compare-shell.active { display: flex; }
     .chart-cell.compare-wide { min-height: 280px; }
     .compare-wide .chart-body { min-height: 220px; }
-    @media (max-width: 1360px) {
+    @media (max-width: 980px) {
       aside { width: 320px; }
       .plot-stage { grid-template-columns: minmax(0, 1fr); }
-      .plot-side { display:grid; grid-template-columns: 1fr 1fr; }
+      .plot-side { grid-template-columns: minmax(0, 1fr); }
     }
     @media (max-width: 1180px) {
       aside { width: 320px; }
       .plot-main { min-height: 440px; }
-      .plot-side { display:grid; grid-template-columns: 1fr 1fr; }
     }
     @media (max-width: 760px) {
       header { padding: 0 var(--space-4); gap: var(--space-2); overflow: hidden; }
@@ -3706,7 +3706,7 @@
             </div>
           </div>
 
-          <div class="chart-cell plot-main" id="mimo-grid-cell" style="display:none;grid-column:1 / 2;">
+          <div class="chart-cell plot-main" id="mimo-grid-cell" style="display:none;grid-column:1 / -1;">
             <div class="chart-header">
               <span id="mimo-grid-title">All Plant Channels (Open-Loop Step Response)</span>
               <span style="font-size:11px;color:var(--text-muted);">u<sub>j</sub> → y<sub>i</sub></span>
@@ -3729,7 +3729,7 @@
               <div class="chart-body" id="chart-rlocus"></div>
             </div>
             <div class="chart-cell mini-chart">
-              <div class="chart-header"><div class="chart-header-info"><span>Pole-Zero Map</span><span class="mini-context" title="Closed-loop pole-zero map — current controller applied">Closed-Loop</span></div></div>
+              <div class="chart-header"><div class="chart-header-info"><span id="secondary-right-name">Pole-Zero Map</span><span id="secondary-right-ctx" class="mini-context" title="Closed-loop pole-zero map — current controller applied">Closed-Loop</span></div></div>
               <div class="chart-body" id="chart-pzmap"></div>
             </div>
           </div>

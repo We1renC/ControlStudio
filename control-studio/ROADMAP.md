@@ -1,6 +1,6 @@
 # ControlStudio Development Roadmap
 
-> Last updated: 2026-05-23
+> Last updated: 2026-05-24
 > Current committed baseline: `d14dfc2 feat(ui): P44 — F2-1 split pane divider, F2-2 multi-design tab system`
 > Scope: this is the canonical execution roadmap for ControlStudio implementation status.
 > Do not use this file for product vision, proof derivations, or handoff notes; see the document workflow below.
@@ -86,7 +86,7 @@
 | **P56** | **C2-3/C5-2/C5-3/D1-4 error hints / screenshot / summary / codegen** | Done | `verify_p56_c23_c52_c53_d14.mjs` |
 | **P57** | **D4/D5 unit-test / diff / HIL / docs / wiring / warnings** | Done | `verify_p57_d4_d5.mjs` |
 | **P58** | **G11 app-loading skeleton screen** | Done | `verify_p58_g11.mjs` |
-| **P59** | **F1-2 Context Bar / view-nav / A5-1 Triple Pane (Step+Bode+Nyquist)** | Done | `verify_p59_ctxbar_triple.mjs` |
+| **P59** | **F1-2 Context Bar / view-nav / A5-1 Plot Workspace (main + 2 companion charts)** | Done | `verify_p59_ctxbar_triple.mjs` |
 
 ## Verification Suite Status (2026-05-24)
 

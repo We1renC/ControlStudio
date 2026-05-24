@@ -206,6 +206,7 @@ git log --oneline -5
 - `CONTROL_SYSTEM_SKILLS_PLAN.md` 已新增 Phase 18+ skill candidates，且 `control-studio-robust-validator`、`control-studio-system-auditor`、`control-studio-benchmark-author` baseline 已建立；MPC / SysID / UI verifier 目前以全域 skill 或候選工作流存在，專案版 examples / references 可後續補。
 - `control-studio` 已補上 State Space（SISO）輸入、Step/Impulse/Ramp 切換、Nyquist Plot、project save/load 與 JSON/CSV 匯出。
 - `control-studio` UI 已改成 sidebar workspace tabs（Model / Sim / Advisor / Compare），並支援 comparison snapshots 疊圖比較。
+- `control-studio` plot workspace 已改為固定 `主圖全寬 + 下排兩張 companion charts`；各 plot tab 有明確 main / companion mapping，`Root Locus` 主圖時左下為 `Step @ K`，`Pole-Zero` 主圖時下排改顯示 `Step Response + Bode Plot`，避免重複圖表。
 - `control-studio/scripts/serve_studio.py` 已提供固定的本地前端啟動入口（預設 `http://127.0.0.1:8765`）。
 - `control-studio` 已補上 simulation config（duration/sample count/amplitude/disturbance/initial state）、autosave/restore session、waveform 擴充與 comparison 指標摘要。
 - `control-studio/scripts/control_api.py` 已提供統合的 FastAPI 服務，整合原本的 Advisor Bridge 與基礎分析；前端 AI advisor 已優先改打 `127.0.0.1:8770/api/control/advisor`。

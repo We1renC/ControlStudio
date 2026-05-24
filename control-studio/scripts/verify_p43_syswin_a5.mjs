@@ -77,14 +77,20 @@ assert(indexHtml.includes('.syswin-footer'), '.syswin-footer CSS defined');
 // ── A5-2: Sensitivity plot ────────────────────────────────────────────────────
 console.log('\n▶ A5-2 Sensitivity Function Plot');
 
-assert(appJs.includes('function renderSensitivityPlot()'), 'renderSensitivityPlot() function');
+assert(appJs.includes('function renderSensitivityPlot(targetId = \'chart-active\', options = {})'), 'renderSensitivityPlot() function');
 assert(appJs.includes("'sensitivity'"), "sensitivity activePlot key");
 assert(appJs.includes('sensitivityBode'), 'sensitivityBode called');
 assert(appJs.includes('robustPeaks'), 'robustPeaks called for Ms marker');
+assert(appJs.includes('if (!state.controller && state.plant)'), 'sensitivity lazy-inits controller');
+assert(appJs.includes('const controllerTf = state.controller?.toTransferFunction?.();'), 'sensitivity extracts controller transfer function');
+assert(appJs.includes('bodeData(state.openLoop || state.plant, range.wMin, range.wMax, 200).w'), 'sensitivity builds omega grid from autoFreqRange');
+assert(appJs.includes('sensitivityBode(state.openLoop || state.plant, omegas, controllerTf)'), 'sensitivityBode call order is loop, omegas, controllerTf');
+assert(appJs.includes('robustPeaks(state.openLoop || state.plant, omegas, controllerTf)'), 'robustPeaks call order is loop, omegas, controllerTf');
+assert(appJs.includes('S.map((value) => fmtDB(value?.magnitude ?? 0))'), 'sensitivity formats S magnitude in dB');
+assert(appJs.includes('const msPeak = peaks?.Ms?.peak ?? 1;'), 'sensitivity uses Ms peak magnitude');
 assert(appJs.includes("name: 'S (Sensitivity)'"), 'S trace labeled');
 assert(appJs.includes("name: 'T (Complementary)'"), 'T trace labeled');
 assert(appJs.includes("name: 'KS (Input Sensitivity)'"), 'KS trace labeled');
-assert(appJs.includes('plot-tab-sensitivity'), 'sensitivity tab id referenced');
 assert(indexHtml.includes('plot-tab-sensitivity'), '#plot-tab-sensitivity tab in HTML');
 assert(indexHtml.includes('Sensitivity'), 'Sensitivity tab label in HTML');
 
@@ -113,7 +119,7 @@ assert(indexHtml.includes('.rb-status.fail'), '.rb-status.fail CSS');
 console.log('\n▶ P43 DOMContentLoaded init');
 
 assert(appJs.includes('initSystemInputWizard()'), 'initSystemInputWizard called in init');
-assert(appJs.includes('plot-tab-sensitivity'), 'sensitivity tab wired in init');
+assert(appJs.includes("document.querySelectorAll('.plot-tab').forEach((tab) => {"), 'plot tabs wired in init');
 
 // ── Summary ───────────────────────────────────────────────────────────────────
 console.log('');

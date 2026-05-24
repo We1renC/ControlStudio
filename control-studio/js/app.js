@@ -1352,40 +1352,89 @@ function switchSidebarPanel(panelName) {
   console.warn('[CS] switchSidebarPanel: unknown panel', panelName);
 }
 
-// ── Mini Root Locus: adaptive context panel ──────────────────────────────────
-// When main = Root Locus: repurpose the mini slot to show Step Response @ K.
-//   → "選根軌跡增益 K → 右上即時看時域後果" workflow, zero redundancy.
-// When main ≠ Root Locus: restore Open-Loop Root Locus mini.
+// ── Plot Workspace: adaptive companion charts ───────────────────────────────
+// Every plot mode owns one main chart and two companion charts:
+// Row 1: main chart spans full width.
+// Row 2: two secondary charts provide the most relevant supporting views.
 
-let _miniRlocusMode = 'rlocus'; // 'rlocus' | 'stepAtK'
+const PLOT_WORKSPACE_SPECS = Object.freeze({
+  s: {
+    step: {
+      left:  { kind: 'rlocus',    title: 'Root Locus',         subtitle: 'Open-Loop Gain Sweep' },
+      right: { kind: 'pzmap',     title: 'Pole-Zero Map',      subtitle: 'Closed-Loop Pole Locations' },
+    },
+    bode: {
+      left:  { kind: 'nyquist',   title: 'Nyquist Plot',       subtitle: 'Loop Encirclement View' },
+      right: { kind: 'pzmap',     title: 'Pole-Zero Map',      subtitle: 'Closed-Loop Pole Locations' },
+    },
+    nyquist: {
+      left:  { kind: 'bode',      title: 'Bode Plot',          subtitle: 'Magnitude / Phase Breakdown' },
+      right: { kind: 'pzmap',     title: 'Pole-Zero Map',      subtitle: 'Closed-Loop Pole Locations' },
+    },
+    nichols: {
+      left:  { kind: 'bode',      title: 'Bode Plot',          subtitle: 'Magnitude / Phase Breakdown' },
+      right: { kind: 'pzmap',     title: 'Pole-Zero Map',      subtitle: 'Closed-Loop Pole Locations' },
+    },
+    rlocus: {
+      left:  { kind: 'step-at-k', title: 'Step @ K',           subtitle: 'Closed-Loop Preview @ Selected Gain' },
+      right: { kind: 'pzmap',     title: 'Pole-Zero Map',      subtitle: 'Closed-Loop Pole Locations' },
+    },
+    pzmap: {
+      left:  { kind: 'step',      title: 'Step Response',      subtitle: 'Current Closed-Loop Time Response' },
+      right: { kind: 'bode',      title: 'Bode Plot',          subtitle: 'Loop Frequency Shape' },
+    },
+    sensitivity: {
+      left:  { kind: 'bode',      title: 'Bode Plot',          subtitle: 'Loop Frequency Shape' },
+      right: { kind: 'pzmap',     title: 'Pole-Zero Map',      subtitle: 'Closed-Loop Pole Locations' },
+    },
+    'stability-map': {
+      left:  { kind: 'step',      title: 'Step Response',      subtitle: 'Current Closed-Loop Time Response' },
+      right: { kind: 'rlocus',    title: 'Root Locus',         subtitle: 'Gain-Sweep Stability Geometry' },
+    },
+  },
+  z: {
+    step: {
+      left:  { kind: 'bode',      title: 'Bode (DTFT)',        subtitle: 'Discrete Frequency Response' },
+      right: { kind: 'pzmap',     title: 'Pole-Zero Map',      subtitle: 'Z-Plane Stability' },
+    },
+    bode: {
+      left:  { kind: 'step',      title: 'Step Response',      subtitle: 'Current Discrete Response' },
+      right: { kind: 'pzmap',     title: 'Pole-Zero Map',      subtitle: 'Z-Plane Stability' },
+    },
+    pzmap: {
+      left:  { kind: 'step',      title: 'Step Response',      subtitle: 'Current Discrete Response' },
+      right: { kind: 'bode',      title: 'Bode (DTFT)',        subtitle: 'Discrete Frequency Response' },
+    },
+  },
+});
 
-function updateMiniRlocusVisibility(plotName) {
-  const nameEl   = document.getElementById('mini-rlocus-name');
-  const ctxEl    = document.getElementById('mini-rlocus-ctx');
-  const interBtn = document.getElementById('btn-rl-interact');
-  const hintEl   = document.getElementById('rl-interact-hint');
-
-  if (plotName === 'rlocus') {
-    _miniRlocusMode = 'stepAtK';
-    if (nameEl) nameEl.textContent = 'Step @ K';
-    if (ctxEl)  ctxEl.textContent  = '時域預覽';
-    if (interBtn) interBtn.style.display = 'none';
-    if (hintEl)   hintEl.style.display   = 'none';
-    // Render step preview at current K (or Kp if no K selected yet)
-    _renderMiniStepAtK();
-  } else {
-    _miniRlocusMode = 'rlocus';
-    if (nameEl) nameEl.textContent = 'Root Locus';
-    if (ctxEl)  ctxEl.textContent  = 'Open-Loop';
-    if (interBtn) interBtn.style.display = '';
-    // Re-render the root locus mini
-    _refreshMiniRlocus();
-  }
+function getPlotWorkspaceSpec(plotName = state.activePlot) {
+  const domainKey = state.domain === 'z' ? 'z' : 's';
+  const specGroup = PLOT_WORKSPACE_SPECS[domainKey] || PLOT_WORKSPACE_SPECS.s;
+  return specGroup[plotName] || specGroup.step;
 }
 
-function _renderMiniStepAtK() {
-  if (_miniRlocusMode !== 'stepAtK') return;
-  const chartEl = document.getElementById('chart-rlocus');
+function updateSecondaryChartHeader(slot, spec) {
+  const titleEl = document.getElementById(slot === 'left' ? 'mini-rlocus-name' : 'secondary-right-name');
+  const subtitleEl = document.getElementById(slot === 'left' ? 'mini-rlocus-ctx' : 'secondary-right-ctx');
+  if (titleEl) titleEl.textContent = spec.title;
+  if (subtitleEl) subtitleEl.textContent = spec.subtitle;
+}
+
+function updateMiniRlocusVisibility(plotName) {
+  const interBtn = document.getElementById('btn-rl-interact');
+  const hintEl   = document.getElementById('rl-interact-hint');
+  const spec = getPlotWorkspaceSpec(plotName);
+  updateSecondaryChartHeader('left', spec.left);
+  updateSecondaryChartHeader('right', spec.right);
+
+  const interactiveRlocus = spec.left.kind === 'rlocus';
+  if (interBtn) interBtn.style.display = interactiveRlocus ? '' : 'none';
+  if (hintEl) hintEl.style.display = interactiveRlocus ? '' : 'none';
+}
+
+function _renderMiniStepAtK(targetId = 'chart-rlocus') {
+  const chartEl = document.getElementById(targetId);
   if (!chartEl) return;
 
   const sys = _rlocusInteractiveSys || state.plant;
@@ -1423,11 +1472,51 @@ function _renderMiniStepAtK() {
   } catch { /* ignore */ }
 }
 
-function _refreshMiniRlocus() {
-  if (_miniRlocusMode !== 'rlocus') return;
-  const sys = state.plant;
-  if (!sys) return;
-  try { renderRootLocusPlot(sys, 'chart-rlocus'); } catch { /* ignore */ }
+function renderPlotWorkspaceChart(kind, targetId, sys) {
+  const plotSys = sys || (state.showClosedLoop ? (state.closedLoop || state.plant) : state.plant);
+  const loopSys = state.openLoop || state.plant;
+  if (!state.plant) return;
+
+  switch (kind) {
+    case 'step':
+      if (state.domain === 'z') renderDiscreteStepChart(targetId);
+      else renderTimeResponse(plotSys, targetId);
+      return;
+    case 'bode':
+      renderBodePlot(state.domain === 'z' ? state.plant : loopSys, targetId);
+      return;
+    case 'nyquist':
+      if (state.domain === 'z') renderBodePlot(state.plant, targetId);
+      else renderNyquistPlot(loopSys, targetId);
+      return;
+    case 'nichols':
+      if (state.domain === 'z') renderBodePlot(state.plant, targetId);
+      else renderNicholsChart(loopSys, targetId);
+      return;
+    case 'rlocus':
+      if (state.domain === 'z') renderBodePlot(state.plant, targetId);
+      else renderRootLocus(state.plant, targetId);
+      return;
+    case 'pzmap':
+      renderPoleZeroMap(state.domain === 'z' ? state.plant : plotSys, targetId);
+      return;
+    case 'step-at-k':
+      _renderMiniStepAtK(targetId);
+      return;
+    case 'sensitivity':
+      renderSensitivityPlot(targetId, { updateHeader: false });
+      return;
+    default:
+      renderPoleZeroMap(state.domain === 'z' ? state.plant : plotSys, targetId);
+  }
+}
+
+function renderPlotWorkspaceCompanions(sys) {
+  if (!state.plant) return;
+  updateMiniRlocusVisibility(state.activePlot);
+  const spec = getPlotWorkspaceSpec();
+  renderPlotWorkspaceChart(spec.left.kind, 'chart-rlocus', sys);
+  renderPlotWorkspaceChart(spec.right.kind, 'chart-pzmap', sys);
 }
 
 function switchPlot(plotName) {
@@ -1446,6 +1535,8 @@ function switchPlot(plotName) {
   if (!state.plant) return;
   const sys = state.showClosedLoop ? (state.closedLoop || state.plant) : state.plant;
   renderActivePlot(sys);
+  renderPlotWorkspaceCompanions(sys);
+  document.dispatchEvent(new CustomEvent('cs:plot-changed', { detail: { plot: plotName } }));
   saveSessionToStorage();
   updateGlobalStatusBar(`${plotName} plot active`);
 }
@@ -3216,24 +3307,16 @@ function refreshAllCharts() {
   if (!state.plant) return;
 
   if (state.domain === 'z') {
-    if (state.activePlot === 'bode') {
-      renderBodePlot(state.plant, 'chart-active');
-      updateActivePlotHeader('Bode (DTFT)', `z-domain · Ts=${state.plant.sampleTime}s`);
-    } else if (state.activePlot === 'pzmap') {
-      renderPoleZeroMap(state.plant, 'chart-active');
-      updateActivePlotHeader('Pole-Zero Map', 'Z-Plane');
-    } else {
-      renderDiscreteStepChart();
-    }
-    renderPoleZeroMap(state.plant, 'chart-pzmap');
+    renderActivePlot(state.plant);
+    renderPlotWorkspaceCompanions(state.plant);
+    renderComparisonChart();
     scheduleSmokeDiagnostics();
     return;
   }
 
   const sys = state.showClosedLoop ? (state.closedLoop || state.plant) : state.plant;
   renderActivePlot(sys);
-  renderRootLocus(state.plant);
-  renderPoleZeroMap(sys);
+  renderPlotWorkspaceCompanions(sys);
   renderComparisonChart();
   scheduleSmokeDiagnostics();
   // F1-2: keep context bar in sync
@@ -4509,6 +4592,20 @@ function renderNicholsChart(sys, targetId = 'chart-active') {
 
 function renderActivePlot(sys) {
   const loopSys = state.openLoop || state.plant;
+  if (state.domain === 'z') {
+    if (state.activePlot === 'bode') {
+      renderBodePlot(state.plant, 'chart-active');
+      updateActivePlotHeader('Bode (DTFT)', `z-domain · Ts=${state.plant.sampleTime}s`);
+      return;
+    }
+    if (state.activePlot === 'pzmap') {
+      renderPoleZeroMap(state.plant, 'chart-active');
+      updateActivePlotHeader('Pole-Zero Map', 'Z-Plane');
+      return;
+    }
+    renderDiscreteStepChart();
+    return;
+  }
   const plotConfig = {
     step: () => {
       updateActivePlotHeader(
@@ -4545,6 +4642,14 @@ function renderActivePlot(sys) {
       const isZ = state.domain === 'z';
       updateActivePlotHeader('Pole-Zero Map', isZ ? 'Z-Plane' : 'S-Plane');
       renderPoleZeroMap(isZ ? state.plant : sys, 'chart-active');
+    },
+    sensitivity: () => {
+      updateActivePlotHeader('Sensitivity Functions', 'S · T · KS');
+      renderSensitivityPlot('chart-active', { updateHeader: false });
+    },
+    'stability-map': () => {
+      updateActivePlotHeader('Stability Map', 'Kp-Ki Feasible Region');
+      void renderStabilityMap('chart-active');
     },
   };
   (plotConfig[state.activePlot] || plotConfig.step)();
@@ -9445,34 +9550,52 @@ function initSystemInputWizard() {
 
 // ── P43 — A5-2 Sensitivity Function Plot ─────────────────────────────────────
 // Renders S, T, KS Bode plots when the 'sensitivity' plot tab is selected.
-function renderSensitivityPlot() {
-  const activeEl = document.getElementById('chart-active');
+function renderSensitivityPlot(targetId = 'chart-active', options = {}) {
+  const { updateHeader = targetId === 'chart-active' } = options;
+  const activeEl = document.getElementById(targetId);
   if (!activeEl) return;
-  if (!state.plant || !state.closedLoop) {
+  if (!state.controller && state.plant) {
+    try { updateController(); } catch { /* ignore lazy-init failure */ }
+  }
+  if (!state.plant || !state.controller) {
     showError('需要 Plant 與控制器才能繪製靈敏度函數');
     return;
   }
   try {
-    const omegas = autoFreqRange(state.plant, { n: 200 });
-    const { S, T, KS } = sensitivityBode(state.openLoop || state.plant, state.controller, omegas);
-    const peaks = robustPeaks(state.openLoop || state.plant, state.controller, omegas);
+    const controllerTf = state.controller?.toTransferFunction?.();
+    if (!controllerTf) throw new Error('controller transfer function unavailable');
+    const range = autoFreqRange(state.openLoop || state.plant);
+    const omegas = bodeData(state.openLoop || state.plant, range.wMin, range.wMax, 200).w;
+    if (!Array.isArray(omegas) || omegas.length === 0) {
+      throw new Error('frequency grid unavailable');
+    }
+    const { S, T, KS } = sensitivityBode(state.openLoop || state.plant, omegas, controllerTf);
+    const peaks = robustPeaks(state.openLoop || state.plant, omegas, controllerTf);
 
     const traces = [
-      { x: omegas, y: S.map(v => fmtDB(v)), name: 'S (Sensitivity)', line: { color: getCSS('--color-accent'), width: 2 }, type: 'scatter', mode: 'lines' },
-      { x: omegas, y: T.map(v => fmtDB(v)), name: 'T (Complementary)', line: { color: '#4d96ff', width: 2 }, type: 'scatter', mode: 'lines' },
-      { x: omegas, y: KS.map(v => fmtDB(v)), name: 'KS (Input Sensitivity)', line: { color: '#f59e0b', width: 2 }, type: 'scatter', mode: 'lines' },
+      { x: omegas, y: S.map((value) => fmtDB(value?.magnitude ?? 0)), name: 'S (Sensitivity)', line: { color: getCSS('--color-accent'), width: 2 }, type: 'scatter', mode: 'lines' },
+      { x: omegas, y: T.map((value) => fmtDB(value?.magnitude ?? 0)), name: 'T (Complementary)', line: { color: '#4d96ff', width: 2 }, type: 'scatter', mode: 'lines' },
+      { x: omegas, y: KS.map((value) => fmtDB(value?.magnitude ?? 0)), name: 'KS (Input Sensitivity)', line: { color: '#f59e0b', width: 2 }, type: 'scatter', mode: 'lines' },
     ];
 
     // Peak Ms annotation
-    const msDB = 20 * Math.log10(peaks?.Ms ?? 1);
-    traces.push({ x: [omegas[0], omegas[omegas.length - 1]], y: [msDB, msDB], name: `Ms = ${fmtNum(peaks?.Ms ?? 1, 3)}`, line: { color: getCSS('--color-accent'), width: 1, dash: 'dash' }, type: 'scatter', mode: 'lines' });
+    const msPeak = peaks?.Ms?.peak ?? 1;
+    const msDB = 20 * Math.log10(Math.max(msPeak, 1e-30));
+    traces.push({ x: [omegas[0], omegas[omegas.length - 1]], y: [msDB, msDB], name: `Ms = ${fmtNum(msPeak, 3)}`, line: { color: getCSS('--color-accent'), width: 1, dash: 'dash' }, type: 'scatter', mode: 'lines' });
 
-    const layout = { ...PLOTLY_LAYOUT_BASE(), xaxis: { ...PLOTLY_LAYOUT_BASE().xaxis, type: 'log', title: 'ω (rad/s)' }, yaxis: { ...PLOTLY_LAYOUT_BASE().yaxis, title: 'Magnitude (dB)' }, showlegend: true, legend: compactLegend() };
-    Plotly.react('chart-active', traces, layout, { responsive: true, displayModeBar: false });
+    const showLegend = targetId === 'chart-active';
+    const layout = {
+      ...PLOTLY_LAYOUT_BASE(),
+      xaxis: { ...PLOTLY_LAYOUT_BASE().xaxis, type: 'log', title: 'ω (rad/s)' },
+      yaxis: { ...PLOTLY_LAYOUT_BASE().yaxis, title: 'Magnitude (dB)' },
+      showlegend: showLegend,
+      legend: showLegend ? compactLegend() : undefined,
+    };
+    Plotly.react(targetId, traces, layout, { responsive: true, displayModeBar: false });
 
-    // Update status bar
-    document.getElementById('active-plot-title').textContent = 'Sensitivity Functions';
-    document.getElementById('active-plot-subtitle').textContent = 'S · T · KS';
+    if (updateHeader) {
+      updateActivePlotHeader('Sensitivity Functions', 'S · T · KS');
+    }
   } catch (err) {
     showError(`靈敏度繪製失敗：${err.message}`);
   }
@@ -9484,16 +9607,22 @@ function updateRobustnessBadges() {
   const bar = document.getElementById('robust-badge-bar');
   if (!bar) return;
 
-  if (!state.plant || !state.closedLoop) { bar.style.display = 'none'; return; }
+  if (!state.controller && state.plant) {
+    try { updateController(); } catch { /* ignore lazy-init failure */ }
+  }
+  if (!state.plant || !state.controller) { bar.style.display = 'none'; return; }
 
   try {
+    const controllerTf = state.controller?.toTransferFunction?.();
+    if (!controllerTf) { bar.style.display = 'none'; return; }
     const margins = stabilityMargins(state.openLoop || state.plant);
-    const omegas = autoFreqRange(state.plant, { n: 200 });
-    const peaks = robustPeaks(state.openLoop || state.plant, state.controller, omegas);
+    const range = autoFreqRange(state.openLoop || state.plant);
+    const omegas = bodeData(state.openLoop || state.plant, range.wMin, range.wMax, 200).w;
+    const peaks = robustPeaks(state.openLoop || state.plant, omegas, controllerTf);
 
     const pm = margins?.phaseMargin;
     const gm = margins?.gainMarginDB;
-    const ms = peaks?.Ms;
+    const ms = peaks?.Ms?.peak;
     const dm = margins?.diskMargin;
 
     function setRB(id, sid, val, unit, thresh, goodHigh) {
@@ -9521,15 +9650,6 @@ window.updateRobustnessBadges = updateRobustnessBadges;
 // ── P43 init ──────────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
   initSystemInputWizard();
-
-  // Wire sensitivity plot tab
-  document.getElementById('plot-tab-sensitivity')?.addEventListener('click', () => {
-    // Mark tab active (reuse existing tab logic)
-    document.querySelectorAll('.plot-tab').forEach(t => t.classList.remove('active'));
-    document.getElementById('plot-tab-sensitivity')?.classList.add('active');
-    state.activePlot = 'sensitivity';
-    renderSensitivityPlot();
-  });
 }, { once: true });
 
 // ── P44 — F2-1 Split Pane ────────────────────────────────────────────────────

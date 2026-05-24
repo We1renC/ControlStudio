@@ -1,7 +1,7 @@
 /**
  * verify_p59_ctxbar_triple.mjs
  *
- * Verifies P59 — F1-2 Context Bar / view-nav / A5-1 Triple Pane
+ * Verifies P59 — F1-2 Context Bar / view-nav / A5-1 Plot Workspace
  */
 
 import { readFileSync } from 'fs';
@@ -53,8 +53,8 @@ assert(indexHtml.includes('.ctx-chip {'),               '.ctx-chip CSS defined')
 assert(indexHtml.includes('.ctx-spec.pass'),            '.ctx-spec.pass CSS defined');
 assert(indexHtml.includes('.ctx-spec.fail'),            '.ctx-spec.fail CSS defined');
 
-// ── A5-1: Triple Pane — intentionally removed ────────────────────────────────
-console.log('\n▶ A5-1 Triple Pane (removed — single chart-active layout)');
+// ── A5-1: Plot Workspace layout + legacy triple-pane removal ─────────────────
+console.log('\n▶ A5-1 Plot Workspace (1 main + 2 companion charts)');
 
 assert(!indexHtml.includes('id="btn-triple-pane"'),      '#btn-triple-pane removed from HTML');
 assert(!indexHtml.includes('id="triple-pane-view"'),     '#triple-pane-view removed from HTML');
@@ -64,6 +64,16 @@ assert(!indexHtml.includes('id="chart-triple-nyquist"'), '#chart-triple-nyquist 
 assert(!indexHtml.includes('.triple-pane-grid {'),       '.triple-pane-grid CSS removed');
 assert(!indexHtml.includes('.triple-pane-cell {'),       '.triple-pane-cell CSS removed');
 assert(!appJs.includes('window.refreshTriplePane'),      'refreshTriplePane removed from JS');
+assert(indexHtml.includes('.plot-stage { display:grid; grid-template-columns: repeat(2, minmax(0, 1fr));'), 'plot-stage uses 2-column grid');
+assert(indexHtml.includes('.plot-main { min-width: 0; min-height: clamp(340px, 58vh, 560px); grid-column: 1 / -1; }'), 'main chart spans full width');
+assert(indexHtml.includes('.plot-side { display:grid; grid-column: 1 / -1; grid-template-columns: repeat(2, minmax(0, 1fr));'), 'secondary row uses 2-column grid');
+assert(indexHtml.includes('id="secondary-right-name"'), 'secondary-right title node present');
+assert(appJs.includes('const PLOT_WORKSPACE_SPECS = Object.freeze({'), 'plot workspace spec table defined');
+assert(appJs.includes("function getPlotWorkspaceSpec(plotName = state.activePlot)"), 'getPlotWorkspaceSpec helper defined');
+assert(appJs.includes("function renderPlotWorkspaceCompanions(sys)"), 'renderPlotWorkspaceCompanions helper defined');
+assert(appJs.includes("document.dispatchEvent(new CustomEvent('cs:plot-changed'"), 'plot-changed event dispatched on plot switch');
+assert(appJs.includes("left:  { kind: 'step-at-k', title: 'Step @ K'"), 'root-locus companion spec uses Step @ K preview');
+assert(appJs.includes("right: { kind: 'bode',      title: 'Bode Plot',          subtitle: 'Loop Frequency Shape' }"), 'pole-zero mode companion spec includes Bode');
 
 // ── P59 init ──────────────────────────────────────────────────────────────────
 console.log('\n▶ P59 DOMContentLoaded init');
@@ -78,4 +88,4 @@ if (fail > 0) {
   console.error('Failed:', errors.join(', '));
   process.exit(1);
 }
-console.log('✓ P59 F1-2 Context Bar / view-nav / A5-1 Triple Pane — all checks passed');
+console.log('✓ P59 F1-2 Context Bar / view-nav / A5-1 Plot Workspace — all checks passed');
