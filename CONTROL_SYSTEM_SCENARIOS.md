@@ -697,8 +697,19 @@ Date: 2026-05-24
 
 | # | 嚴重度 | 問題 | 影響 |
 | - | - | - | - |
-| PW-1 | Medium | 首次載入會先後出現 onboarding overlay 與 Quick Start modal，兩者都會阻塞 plot tab 點擊 | 對熟悉工具的開發者來說，首次進站無法直接進入分析流程；browser 驗證也需先手動關閉兩層 blocking UI |
+| PW-1 | Done | 首次載入曾先後出現 onboarding overlay 與 Quick Start modal，兩者都會阻塞 plot tab 點擊 | 已改為首次進站只保留 onboarding；Quick Start 改為手動開啟，結束導覽後以非阻塞 toast 提示入口 |
 
 ### Improvement Note
 
-建議把 onboarding / Quick Start 改為非阻塞入口，或至少只在首次進站顯示其中一個，避免連續 modal 打斷主工作流。
+首次進站 blocking UI 已修正為單一入口；後續若要再優化，可把 onboarding 也改成更輕量的 docked coach-mark。
+
+### Follow-up UI Audit Resolution（2026-05-24）
+
+同日追加以 in-app browser 實際操作 workflow / mode / plot tabs，針對「偏題、關鍵資訊被隱藏、局部圖形過小」三類問題做閉環修正。
+
+| # | 狀態 | 修復方式 | Browser result |
+| - | - | - | - |
+| PW-2 | Done | workflow tab 改為穩定的 delegated click routing；`識別 / 設計 / 分析 / 實作 / 學習` 各自只顯示對題面板 | 逐 tab 操作後，visible section titles 與 workflow 意圖一致 |
+| PW-3 | Done | plot workspace 下排 companion charts 放大；實測 `chart-rlocus=404×276`、`chart-pzmap=404×250` | `Time Response / Bode / Nyquist / Nichols / Root Locus / Pole-Zero / Sensitivity / 穩定地圖` 皆無局部圖形過小 |
+| PW-4 | Done | `Stability Map` 新增穩定邊界、當前設計點、顏色註記與 legend，避免主圖只剩無說明的小點 | Browser walkthrough：legend 顯示 `穩定邊界 / 當前設計點`，annotation 顯示 `綠色 = 穩定裕度較高，紅色 = 不穩定` |
+| PW-5 | Done | `NVIDIA Control Advisor` 重新限制為 MIMO-only；SISO 隱藏 panel 與回覆容器，MIMO 才顯示 panel | Browser walkthrough：SISO=`advisor hidden`，MIMO=`advisor visible` |

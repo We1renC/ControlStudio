@@ -138,8 +138,8 @@
     .plot-main { min-width: 0; min-height: clamp(340px, 58vh, 560px); grid-column: 1 / -1; }
     .plot-main .chart-body { min-height: clamp(280px, 48vh, 480px); }
     .plot-side { display:grid; grid-column: 1 / -1; grid-template-columns: repeat(2, minmax(0, 1fr)); gap:var(--space-4); min-width: 0; }
-    .mini-chart { min-height: clamp(220px, 26vh, 300px); }
-    .mini-chart .chart-body { min-height: clamp(180px, 22vh, 240px); }
+    .mini-chart { min-height: clamp(300px, 34vh, 380px); }
+    .mini-chart .chart-body { min-height: clamp(250px, 30vh, 320px); }
     /* ── P60 Workflow Tab Bar ─────────────────────────────────── */
     .wf-tab-bar { display: grid; grid-template-columns: repeat(5,1fr); background: var(--bg-tertiary); border-bottom: 1px solid var(--border-primary); flex-shrink: 0; }
     .wf-tab { border: 0; background: transparent; color: var(--text-muted); padding: 8px 2px 5px; font-size: 9px; font-weight: 700; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 2px; position: relative; transition: color 0.15s, background 0.15s; border-bottom: 3px solid transparent; text-transform: none; line-height: 1.2; }
@@ -3408,7 +3408,7 @@
           </div>
         </section>
 
-        <section class="section-panel" id="ai-advisor-panel">
+        <section class="section-panel" id="ai-advisor-panel" data-advisor-mode="mimo" style="display:none;">
           <div class="section-title">NVIDIA Control Advisor</div>
           <p style="font-size:12px; color:var(--text-muted); line-height:1.6; margin-bottom:var(--space-4);">
             根據目前模型、PID 參數與穩定性指標產生調參建議。請先啟動 Unified API（127.0.0.1:8770）。

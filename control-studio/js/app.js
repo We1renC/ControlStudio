@@ -1127,12 +1127,25 @@ function initWorkflowTabs() {
     if (el) el.dataset.wf = tab;
   });
 
-  // Bind click handlers
+  const tabBar = document.getElementById('wf-tab-bar');
+  if (tabBar && tabBar.dataset.bound !== '1') {
+    tabBar.addEventListener('click', (e) => {
+      const btn = e.target.closest('.wf-tab');
+      if (!btn) return;
+      switchWorkflowTab(btn.dataset.wf);
+    });
+    tabBar.dataset.bound = '1';
+  }
+
+  // Bind keyboard handlers
   document.querySelectorAll('.wf-tab').forEach(btn => {
-    btn.addEventListener('click', () => switchWorkflowTab(btn.dataset.wf));
     btn.addEventListener('keydown', (e) => {
       const tabs = [...document.querySelectorAll('.wf-tab')];
       const idx = tabs.indexOf(btn);
+      if (e.key === 'Enter' || e.key === ' ') {
+        switchWorkflowTab(btn.dataset.wf);
+        e.preventDefault();
+      }
       if (e.key === 'ArrowRight') { tabs[(idx + 1) % tabs.length]?.focus(); e.preventDefault(); }
       if (e.key === 'ArrowLeft')  { tabs[(idx - 1 + tabs.length) % tabs.length]?.focus(); e.preventDefault(); }
     });
@@ -1183,6 +1196,7 @@ function switchWorkflowTab(tabId) {
   saveSessionToStorage();
   updateGlobalStatusBar(`${tabId} tab active`);
 }
+window.switchWorkflowTab = switchWorkflowTab;
 
 // ── H1-3: Tab Badge System ────────────────────────────────────────────────────
 function updateTabBadges() {
@@ -1766,6 +1780,10 @@ function syncAdvisorModeVisibility() {
   document.querySelectorAll('[data-advisor-mode]').forEach((el) => {
     el.style.display = el.dataset.advisorMode === mode ? '' : 'none';
   });
+  if (mode !== 'mimo') {
+    const aiResponse = document.getElementById('ai-response-container');
+    if (aiResponse) aiResponse.style.display = 'none';
+  }
 
   const note = document.getElementById('phase-portrait-note');
   const button = document.getElementById('btn-phase-portrait');
@@ -7341,12 +7359,8 @@ const csUI = (() => {
         });
       });
     });
-    // Auto-open on first visit
-    try {
-      if (!localStorage.getItem('controlStudio.seenQuickStart')) {
-        setTimeout(() => { showModal('quickstart-modal'); localStorage.setItem('controlStudio.seenQuickStart', '1'); }, 600);
-      }
-    } catch { /* noop */ }
+    // Quick Start stays manual. First-visit guidance is handled by onboarding
+    // so we do not stack multiple blocking surfaces on startup.
   }
 
   // -------- Keyboard shortcuts --------
@@ -12696,6 +12710,7 @@ function showTourStep(n) {
 }
 
 function finishTour() {
+  const firstVisit = !localStorage.getItem('cs-visited');
   _clearTourSpotlight();
   const overlay = document.getElementById('tour-overlay');
   if (overlay) {
@@ -12704,6 +12719,11 @@ function finishTour() {
     overlay.removeAttribute('aria-modal');
   }
   localStorage.setItem('cs-visited', '1');
+  if (firstVisit) {
+    try {
+      notify('可用「▶ 範例」或 Ctrl+/ 開啟 Quick Start。', 'info', { title: 'Onboarding' });
+    } catch { /* noop */ }
+  }
 }
 
 function startTour() {
@@ -13815,28 +13835,84 @@ async function renderStabilityMap(targetId) {
       state.plant,
       { kpMin, kpMax }, { kiMin, kiMax }, N
     );
+    const finiteMargins = zData.flat().filter((value) => Number.isFinite(value));
+    const displayScale = Math.max(...finiteMargins.map((value) => Math.abs(value)), 1e-6);
+    const zDisplay = zData.map((row) => row.map((value) => {
+      if (!Number.isFinite(value)) return NaN;
+      const normalized = value / displayScale;
+      return Math.max(-1, Math.min(1, normalized));
+    }));
     const trace = {
       type: 'heatmap',
-      x: kpVals, y: kiVals, z: zData,
+      x: kpVals, y: kiVals, z: zDisplay, customdata: zData,
       colorscale: [
         [0, '#ef4444'], [0.45, '#f97316'], [0.5, '#ffffff'],
         [0.55, '#22c55e'], [1, '#166534'],
       ],
-      zmid: 0, colorbar: { title: { text: '穩定裕度' }, thickness: 12, len: 0.7 },
-      hovertemplate: 'Kp=%{x:.3f}<br>Ki=%{y:.3f}<br>裕度=%{z:.3f}<extra></extra>',
+      zmin: -1,
+      zmax: 1,
+      zmid: 0,
+      colorbar: {
+        title: { text: '穩定性' },
+        thickness: 12,
+        len: 0.74,
+        tickvals: [-1, 0, 1],
+        ticktext: ['不穩定', '邊界', '穩定'],
+      },
+      hovertemplate: 'Kp=%{x:.3f}<br>Ki=%{y:.3f}<br>raw margin=%{customdata:.4f}<extra></extra>',
+    };
+    const boundaryTrace = {
+      type: 'contour',
+      x: kpVals,
+      y: kiVals,
+      z: zData,
+      contours: {
+        start: 0,
+        end: 0,
+        size: 1,
+        coloring: 'none',
+        showlabels: true,
+        labelfont: { size: 10, color: getCSS('--text-secondary') },
+      },
+      line: { color: '#0f172a', width: 2 },
+      name: '穩定邊界',
+      hoverinfo: 'skip',
+      showscale: false,
     };
     const currentPoint = {
       x: [kpCur], y: [kiCur],
-      type: 'scatter', mode: 'markers',
+      type: 'scatter', mode: 'markers+text',
       marker: { size: 12, color: '#fff', line: { color: '#6366f1', width: 2 } },
-      name: '當前設計點', hoverinfo: 'skip',
+      text: [`目前 Kp=${fmtNum(kpCur, 3)}, Ki=${fmtNum(kiCur, 3)}`],
+      textposition: 'top right',
+      textfont: { size: 10, color: getCSS('--text-secondary') },
+      name: '當前設計點',
+      hovertemplate: '目前設計點<br>Kp=%{x:.3f}<br>Ki=%{y:.3f}<extra></extra>',
     };
     const layout = PLOTLY_LAYOUT_BASE();
     layout.xaxis = { ...layout.xaxis, type: 'log', title: { text: 'Kp' } };
     layout.yaxis = { ...layout.yaxis, type: 'log', title: { text: 'Ki' } };
-    layout.showlegend = false;
+    layout.showlegend = targetId === 'chart-active';
+    layout.legend = compactLegend();
     layout.title = { text: 'Kp-Ki 穩定地圖', font: { size: 12 } };
-    Plotly.react(targetId, [trace, currentPoint], layout, { responsive: true, displayModeBar: false });
+    layout.annotations = [
+      {
+        x: 0.02,
+        y: 0.98,
+        xref: 'paper',
+        yref: 'paper',
+        xanchor: 'left',
+        yanchor: 'top',
+        showarrow: false,
+        text: '綠色 = 穩定裕度較高，紅色 = 不穩定',
+        font: { size: 10, color: getCSS('--text-muted') },
+        bgcolor: 'rgba(15,17,23,0.72)',
+        bordercolor: getCSS('--border-primary'),
+        borderwidth: 1,
+        borderpad: 4,
+      },
+    ];
+    Plotly.react(targetId, [trace, boundaryTrace, currentPoint], layout, { responsive: true, displayModeBar: false });
   } catch (err) { console.warn('[CS P64] stability map error', err); }
 }
 

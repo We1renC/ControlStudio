@@ -278,6 +278,8 @@ git log --oneline -5
 - `workflows/cuopt_demo_workflow.py` 已新增 `--local-validate`，`./nv-agent doctor` 改用本地 cuOpt payload validator，不再因外部 cuOpt API timeout 讓本地健康檢查失敗。
 - 本輪完成 math-core audit hardening，新增 regression 覆蓋 extreme complex division、separated quadratic roots、tiny-scale inverse / solve / rank / positive-definite checks；`npm run verify:all`、`node test_control.js`、`node control-studio/scripts/control_regression_dashboard.mjs`、`./nv-agent doctor` 均已通過。
 - 2026-05-23 browser UI check 發現 `buildCodegenPayload()` 重複宣告造成 browser module 初始化中止，已移除 P36/P37 區塊的重複宣告並讓 Code Preview 共用 P15 payload；`verify_p36_uiux_p1_remaining.mjs` 已新增 single-declaration regression guard。瀏覽器 walkthrough 覆蓋 SISO step / Bode legend / MIMO switch / P50 E1~E4 / mobile overflow，結果無 console/page error。
+- 2026-05-24 browser UI audit 補做 workflow / mode / plot tabs 全面操作檢查：workflow tab routing 已穩定，plot workspace companion charts 已加大到約 `404×276` / `404×250`，`Stability Map` 現在會顯示 `穩定邊界 + 當前設計點 + 顏色註記`，且 `NVIDIA Control Advisor` 已恢復為 MIMO-only（SISO 隱藏 panel 與 response container）。`bash control-studio/scripts/run_all_verify.sh` 維持 `79/79 passed`。
+- 2026-05-24 首次進站 UX 已再修正：移除 Quick Start 自動跳出，現在第一次進站只顯示 onboarding；結束導覽後以 toast 提示 `▶ 範例 / Ctrl+/` 入口，避免 onboarding + quickstart 連續雙重 blocking。
 
 ## 後續可做
 1. 決定 `package.json` / `package-lock.json` 的 dependency policy；若 TypeScript workflow 正式化才提交 lockfile，`node_modules/` 永不提交。
