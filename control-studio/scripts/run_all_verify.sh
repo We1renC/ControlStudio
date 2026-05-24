@@ -129,6 +129,7 @@ run_script "P61 J1-1/J1-2/J1-4/J1-5 in-chart engineering annotations" "node scri
 run_script "P62 K1-1/K1-2/K1-4 design flow state machine"           "node scripts/verify_p62_flow_state.mjs"
 run_script "P63 L1-1/L1-2/L1-3 chart measurement tools"             "node scripts/verify_p63_measure_tools.mjs"
 run_script "P64 P1-1/P1-2/P1-3 parameter sweep visualization"       "node scripts/verify_p64_param_sweep.mjs"
+run_script "P65 Q1-1/Q1-2/Q1-3/Q1-4 share & export enhancement"    "node scripts/verify_p65_share_export.mjs"
 echo ""
 
 # ── General Math & PID ───────────────────────────────────────────────────────
