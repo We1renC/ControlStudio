@@ -1506,6 +1506,21 @@
     .chart-pin-input { position:absolute; z-index:30; background:var(--bg-secondary); border:1px solid var(--color-accent); border-radius:4px; font-size:11px; padding:4px 6px; resize:none; width:120px; height:56px; color:var(--text-primary); outline:none; }
     .chart-pin-bubble { position:absolute; z-index:25; background:var(--bg-secondary); border:1px solid var(--border-primary); border-radius:var(--radius-sm); padding:6px 8px; font-size:11px; max-width:200px; word-wrap:break-word; box-shadow:0 2px 8px rgba(0,0,0,0.3); pointer-events:auto; }
     .chart-pin-bubble .cpb-close { background:none; border:none; color:var(--text-muted); cursor:pointer; float:right; font-size:13px; padding:0; margin-left:6px; line-height:1; }
+
+    /* ── P64: Parameter Sweep Visualization ──────────────────────────── */
+    #sweep-drawer { display:none; background:var(--bg-tertiary); border:1px solid var(--border-primary); border-radius:var(--radius-md); padding:12px; margin-top:8px; animation:slideDown 200ms ease; }
+    @keyframes slideDown { from { opacity:0; transform:translateY(-8px); } to { opacity:1; transform:translateY(0); } }
+    #sweep-progress-bar { height:4px; background:var(--bg-secondary); border-radius:2px; margin:8px 0; overflow:hidden; }
+    #sweep-progress-fill { height:100%; background:var(--color-accent); width:0%; transition:width 0.2s; }
+    #sweep-exit-btn { display:none; }
+    .sweep-gradient-legend { position:absolute; right:8px; top:50%; transform:translateY(-50%); height:100px; width:14px; border-radius:7px; background:linear-gradient(to bottom, #ff3c00, #0078ff); }
+    /* P64 P1-3: Bode Animation */
+    #bode-anim-panel { display:none; position:absolute; top:8px; left:50%; transform:translateX(-50%); z-index:15; background:var(--bg-secondary); border:1px solid var(--border-primary); border-radius:var(--radius-md); padding:8px 12px; font-size:11px; box-shadow:0 4px 12px rgba(0,0,0,0.3); display:none; white-space:nowrap; }
+    #bode-anim-panel { display:none; }
+    #btn-bode-animate { display:none; }
+    #chart-active.bode-mode #btn-bode-animate { display:inline-flex; }
+    /* P64 P1-2: Stability Map */
+    #chart-stability-map { width:100%; height:100%; min-height:320px; }
   </style>
 </head>
 <body>
@@ -1898,6 +1913,34 @@
           <div id="c2d-analysis" style="display:none; margin-top:var(--space-3); padding:8px 10px; background:var(--bg-tertiary); border-radius:var(--radius-sm); font-size:11px; line-height:1.7; color:var(--text-secondary);"></div>
         </section>
 
+        <!-- P64 P1-1: Parameter Sweep Drawer -->
+        <div id="sweep-drawer" aria-label="參數掃描設定">
+          <div style="font-size:11px;font-weight:700;color:var(--text-secondary);margin-bottom:8px;">📊 掃描 <span id="sweep-param-label">Kp</span></div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px;">
+            <div>
+              <label style="font-size:10px;color:var(--text-muted);">最小值</label>
+              <input type="number" id="sweep-min" value="0.1" step="0.01" style="width:100%;font-size:11px;background:var(--bg-secondary);color:var(--text-primary);border:1px solid var(--border-primary);border-radius:var(--radius-sm);padding:4px 6px;box-sizing:border-box;">
+            </div>
+            <div>
+              <label style="font-size:10px;color:var(--text-muted);">最大值</label>
+              <input type="number" id="sweep-max" value="10" step="0.1" style="width:100%;font-size:11px;background:var(--bg-secondary);color:var(--text-primary);border:1px solid var(--border-primary);border-radius:var(--radius-sm);padding:4px 6px;box-sizing:border-box;">
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap;">
+            <span style="font-size:10px;color:var(--text-muted);">曲線數：</span>
+            <select id="sweep-count" style="font-size:11px;background:var(--bg-secondary);color:var(--text-primary);border:1px solid var(--border-primary);border-radius:var(--radius-sm);padding:3px 6px;">
+              <option value="5">5</option><option value="8" selected>8</option><option value="12">12</option><option value="16">16</option>
+            </select>
+            <span style="font-size:10px;color:var(--text-muted);">比例：</span>
+            <label style="font-size:10px;cursor:pointer;"><input type="radio" name="sweep-scale" value="log" checked style="margin-right:3px;">對數</label>
+            <label style="font-size:10px;cursor:pointer;"><input type="radio" name="sweep-scale" value="linear" style="margin-right:3px;">線性</label>
+          </div>
+          <div id="sweep-progress-bar"><div id="sweep-progress-fill"></div></div>
+          <div style="display:flex;gap:6px;margin-top:4px;">
+            <button class="btn btn-sm btn-primary" id="sweep-run-btn">開始掃描</button>
+            <button class="btn btn-sm" id="sweep-cancel-btn">取消</button>
+          </div>
+        </div>
         <!-- P62 K1-4: Kp Quick Recommendation Card -->
         <div id="kp-recommend-card" role="status" aria-live="polite">
           <div class="kp-rec-title">💡 推薦起始增益</div>
@@ -1918,21 +1961,21 @@
           </div>
           <p class="section-copy">調整 Kp / Ki / Kd 後，`C(s)`、`L(s)` 與 `T(s)` 會即時重算。</p>
           <div class="slider-group">
-            <div class="slider-header"><span>Proportional (Kp)</span><span id="pid-Kp-val">1.00</span></div>
+            <div class="slider-header"><span>Proportional (Kp)</span><span id="pid-Kp-val">1.00</span><button class="btn btn-sm" data-sweep-param="Kp" title="掃描 Kp 參數（P1-1）" style="font-size:9px;padding:1px 5px;margin-left:4px;">掃描 ⊞</button></div>
             <div class="pid-control-row">
               <input type="range" id="pid-Kp" min="0" max="50" step="0.1" value="1">
               <input type="number" id="pid-Kp-num" min="0" max="50" step="0.1" value="1">
             </div>
           </div>
           <div class="slider-group">
-            <div class="slider-header"><span>Integral (Ki)</span><span id="pid-Ki-val">0.50</span></div>
+            <div class="slider-header"><span>Integral (Ki)</span><span id="pid-Ki-val">0.50</span><button class="btn btn-sm" data-sweep-param="Ki" title="掃描 Ki 參數（P1-1）" style="font-size:9px;padding:1px 5px;margin-left:4px;">掃描 ⊞</button></div>
             <div class="pid-control-row">
               <input type="range" id="pid-Ki" min="0" max="10" step="0.01" value="0.5">
               <input type="number" id="pid-Ki-num" min="0" max="10" step="0.01" value="0.5">
             </div>
           </div>
           <div class="slider-group">
-            <div class="slider-header"><span>Derivative (Kd)</span><span id="pid-Kd-val">0.10</span></div>
+            <div class="slider-header"><span>Derivative (Kd)</span><span id="pid-Kd-val">0.10</span><button class="btn btn-sm" data-sweep-param="Kd" title="掃描 Kd 參數（P1-1）" style="font-size:9px;padding:1px 5px;margin-left:4px;">掃描 ⊞</button></div>
             <div class="pid-control-row">
               <input type="range" id="pid-Kd" min="0" max="5" step="0.01" value="0.1">
               <input type="number" id="pid-Kd-num" min="0" max="5" step="0.01" value="0.1">
@@ -3542,6 +3585,10 @@
           <button class="plot-tab s-domain-only" data-plot="rlocus">Root Locus</button>
           <button class="plot-tab" data-plot="pzmap">Pole-Zero</button>
           <button class="plot-tab s-domain-only" data-plot="sensitivity" id="plot-tab-sensitivity">Sensitivity</button>
+          <!-- P64 P1-2: Stability Map tab -->
+          <button class="plot-tab s-domain-only" data-plot="stability-map" id="plot-tab-stability-map">穩定地圖</button>
+          <!-- P64 P1-1: Sweep exit button -->
+          <button class="btn btn-sm" id="sweep-exit-btn" title="退出參數掃描模式" style="color:#ef4444;">× 退出掃描</button>
           <!-- A5-1: Triple pane toggle -->
           <button class="btn btn-sm" id="btn-triple-pane" title="三窗格並排：Step / Bode / Nyquist（A5-1）" aria-pressed="false" style="margin-left:auto;font-size:11px;flex-shrink:0;">⊟ 三窗格</button>
         </div>
@@ -3586,9 +3633,29 @@
                 <button class="btn btn-sm" id="btn-delta-cursor" title="Delta 量測游標（L1-1）按 M 鍵亦可" style="padding:2px 6px;font-size:9px;" aria-pressed="false">Δ</button>
                 <!-- P63 L1-2: Linked crosshair -->
                 <button class="btn btn-sm" id="btn-linked-crosshair" title="跨圖連動游標（L1-2）" style="padding:2px 6px;font-size:9px;" aria-pressed="false">⊕</button>
+                <!-- P64 P1-3: Bode animation -->
+                <button class="btn btn-sm" id="btn-bode-animate" title="Bode 動畫掃描（P1-3）" style="padding:2px 6px;font-size:9px;display:none;" aria-pressed="false">▶ 動畫</button>
               </div>
             </div>
             <div class="bode-drag-hint" id="bode-comp-hint">補償器模式：點擊 Bode 圖設定折點頻率</div>
+            <!-- P64 P1-3: Bode animation control panel -->
+            <div id="bode-anim-panel" role="dialog" aria-label="Bode 動畫控制">
+              <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                <button class="btn btn-sm" id="bode-anim-play">▶ 播放</button>
+                <button class="btn btn-sm" id="bode-anim-pause">‖ 暫停</button>
+                <button class="btn btn-sm" id="bode-anim-reset">◀ 重置</button>
+                <span style="color:var(--text-muted);font-size:10px;">速度：</span>
+                <select id="bode-anim-speed" style="font-size:10px;background:var(--bg-tertiary);color:var(--text-primary);border:1px solid var(--border-primary);border-radius:3px;padding:2px 4px;">
+                  <option value="0.5">0.5×</option><option value="1" selected>1×</option><option value="2">2×</option>
+                </select>
+                <span style="color:var(--text-muted);font-size:10px;">Kp：</span>
+                <input type="number" id="bode-anim-from" value="0.1" min="0.01" step="0.1" style="width:56px;font-size:10px;background:var(--bg-tertiary);color:var(--text-primary);border:1px solid var(--border-primary);border-radius:3px;padding:2px 4px;">
+                <span style="color:var(--text-muted);font-size:10px;">→</span>
+                <input type="number" id="bode-anim-to" value="10" min="0.1" step="1" style="width:56px;font-size:10px;background:var(--bg-tertiary);color:var(--text-primary);border:1px solid var(--border-primary);border-radius:3px;padding:2px 4px;">
+                <input type="range" id="bode-anim-scrub" min="0" max="1" step="0.01" value="0" style="width:80px;">
+                <button class="btn btn-sm" id="bode-anim-close" style="color:var(--text-muted);">×</button>
+              </div>
+            </div>
             <!-- P63 L1-1: Delta measurement floating panel -->
             <div id="delta-panel" role="status" aria-live="polite">
               <div class="dp-title"><span>△ 量測結果</span><button class="dp-close" id="delta-panel-close" title="關閉量測">×</button></div>

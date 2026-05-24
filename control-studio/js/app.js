@@ -13282,6 +13282,283 @@ document.addEventListener('DOMContentLoaded', () => {
   initHealthBadge();
 }, { once: true });
 
+// ── P64: Parameter Sweep Visualization ───────────────────────────────────────
+
+// P1-1: Single Parameter Sweep
+let _sweepParam = 'Kp';
+let _sweepRunning = false;
+let _sweepAbort = false;
+
+function _sweepColor(t) {
+  // Blue (0,120,255) → Red (255,60,0) gradient
+  const r = Math.round(t * 255);
+  const g = Math.round(60 * (1 - t) + 60 * t);
+  const b = Math.round((1 - t) * 255);
+  return `rgb(${r},${g},${b})`;
+}
+
+async function runParameterSweep(param, minVal, maxVal, n, scale) {
+  if (!state.plant) return;
+  const values = scale === 'log'
+    ? Array.from({ length: n }, (_, i) =>
+        Math.pow(10, Math.log10(minVal) + (i / (n - 1)) * Math.log10(maxVal / minVal)))
+    : Array.from({ length: n }, (_, i) => minVal + (i / (n - 1)) * (maxVal - minVal));
+
+  const fillEl = document.getElementById('sweep-progress-fill');
+  const currentKp = state.pidParams?.[param] ?? 1;
+  const traces = [];
+
+  for (let i = 0; i < n; i++) {
+    if (_sweepAbort) break;
+    if (fillEl) fillEl.style.width = `${Math.round((i / n) * 100)}%`;
+    const k = values[i];
+    try {
+      const ctrl = { ...(state.pidParams || { Kp: 1, Ki: 0, Kd: 0, N: 100 }), [param]: k };
+      const pid = new PIDController(ctrl.Kp, ctrl.Ki, ctrl.Kd, ctrl.N ?? 100);
+      const loop = pid.toTransferFunction().series(state.plant);
+      const cl = loop.feedback();
+      const resp = stepResponse(cl, { duration: state.simulationConfig?.duration ?? 20, sampleCount: 200 });
+      const metrics = stepInfo(resp.t, resp.y);
+      const t = i / Math.max(n - 1, 1);
+      traces.push({
+        x: resp.t, y: resp.y,
+        type: 'scatter', mode: 'lines',
+        line: { color: _sweepColor(t), width: Math.abs(k - currentKp) < (maxVal - minVal) / n ? 3 : 1.5 },
+        name: `${param}=${fmtNum(k, 2)}`,
+        hovertemplate: `${param}=${fmtNum(k, 2)}<br>OS=${(metrics.overshoot ?? 0).toFixed(1)}%<br>Ts=${fmtTime(metrics.settlingTime ?? 0)}<extra></extra>`,
+      });
+    } catch {}
+    await new Promise(r => setTimeout(r, 0)); // yield to UI
+  }
+  if (fillEl) fillEl.style.width = '100%';
+  return traces;
+}
+
+function initParameterSweep() {
+  // Open drawer on sweep buttons
+  document.querySelectorAll('[data-sweep-param]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      _sweepParam = btn.dataset.sweepParam;
+      document.getElementById('sweep-param-label').textContent = _sweepParam;
+      const drawer = document.getElementById('sweep-drawer');
+      drawer.style.display = drawer.style.display === 'block' ? 'none' : 'block';
+    });
+  });
+
+  const cancelBtn = document.getElementById('sweep-cancel-btn');
+  cancelBtn?.addEventListener('click', () => {
+    _sweepAbort = true;
+    document.getElementById('sweep-drawer').style.display = 'none';
+  });
+
+  const exitBtn = document.getElementById('sweep-exit-btn');
+  exitBtn?.addEventListener('click', () => {
+    exitBtn.style.display = 'none';
+    state._sweepMode = false;
+    refreshAllCharts();
+  });
+
+  document.getElementById('sweep-run-btn')?.addEventListener('click', async () => {
+    if (!state.plant) { try { updateGlobalStatusBar('請先定義 Plant'); } catch {} return; }
+    _sweepAbort = false;
+    _sweepRunning = true;
+    const minVal = parseFloat(document.getElementById('sweep-min').value) || 0.1;
+    const maxVal = parseFloat(document.getElementById('sweep-max').value) || 10;
+    const n = parseInt(document.getElementById('sweep-count').value) || 8;
+    const scale = document.querySelector('input[name="sweep-scale"]:checked')?.value || 'log';
+    document.getElementById('sweep-progress-fill').style.width = '0%';
+    try {
+      const traces = await runParameterSweep(_sweepParam, minVal, maxVal, n, scale);
+      if (traces?.length && !_sweepAbort) {
+        state._sweepMode = true;
+        state._sweepTraces = traces;
+        // Show in chart-active (switch to step plot)
+        const plotTabStep = document.querySelector('.plot-tab[data-plot="step"]');
+        plotTabStep?.click();
+        const layout = PLOTLY_LAYOUT_BASE();
+        layout.showlegend = true;
+        layout.legend = compactLegend();
+        layout.xaxis.title = { text: 'Time (s)' };
+        layout.yaxis.title = { text: 'Amplitude' };
+        Plotly.react('chart-active', traces, layout, { responsive: true, displayModeBar: false });
+        document.getElementById('sweep-exit-btn').style.display = '';
+        try { updateActivePlotHeader(`掃描 ${_sweepParam}`, `${n} 條曲線`); } catch {}
+      }
+    } catch (err) { console.warn('[CS P64] sweep error', err); }
+    _sweepRunning = false;
+    document.getElementById('sweep-drawer').style.display = 'none';
+  });
+}
+
+// P1-2: 2D Stability Map
+async function computeStabilityMap(sys, kpRange, kiRange, N) {
+  const { kpMin, kpMax } = kpRange;
+  const { kiMin, kiMax } = kiRange;
+  const zData = [], kpVals = [], kiVals = [];
+  for (let i = 0; i < N; i++) {
+    kpVals.push(Math.pow(10, Math.log10(kpMin) + (i / (N - 1)) * Math.log10(kpMax / kpMin)));
+  }
+  for (let j = 0; j < N; j++) {
+    kiVals.push(Math.pow(10, Math.log10(kiMin) + (j / (N - 1)) * Math.log10(kiMax / kiMin)));
+  }
+  for (let j = 0; j < N; j++) {
+    const row = [];
+    for (let i = 0; i < N; i++) {
+      try {
+        const kp = kpVals[i], ki = kiVals[j];
+        const pid = new PIDController(kp, ki, 0, 0);
+        const cl = pid.toTransferFunction().series(sys).feedback();
+        const poles = cl.poles ? cl.poles() : [];
+        const maxRe = poles.length ? Math.max(...poles.map(p => p.re ?? p)) : 0;
+        row.push(-maxRe); // positive = stable margin
+      } catch { row.push(NaN); }
+    }
+    zData.push(row);
+    await new Promise(r => setTimeout(r, 0));
+  }
+  return { zData, kpVals, kiVals };
+}
+
+async function renderStabilityMap(targetId) {
+  const el = document.getElementById(targetId);
+  if (!el || !state.plant) return;
+  const N = 20;
+  const kpCur = state.pidParams?.Kp ?? 1;
+  const kiCur = state.pidParams?.Ki ?? 0.1;
+  const kpMin = Math.max(kpCur / 100, 0.001), kpMax = kpCur * 50 + 1;
+  const kiMin = Math.max(kiCur / 100, 0.001), kiMax = kiCur * 50 + 1;
+  try {
+    const { zData, kpVals, kiVals } = await computeStabilityMap(
+      state.plant,
+      { kpMin, kpMax }, { kiMin, kiMax }, N
+    );
+    const trace = {
+      type: 'heatmap',
+      x: kpVals, y: kiVals, z: zData,
+      colorscale: [
+        [0, '#ef4444'], [0.45, '#f97316'], [0.5, '#ffffff'],
+        [0.55, '#22c55e'], [1, '#166534'],
+      ],
+      zmid: 0, colorbar: { title: { text: '穩定裕度' }, thickness: 12, len: 0.7 },
+      hovertemplate: 'Kp=%{x:.3f}<br>Ki=%{y:.3f}<br>裕度=%{z:.3f}<extra></extra>',
+    };
+    const currentPoint = {
+      x: [kpCur], y: [kiCur],
+      type: 'scatter', mode: 'markers',
+      marker: { size: 12, color: '#fff', line: { color: '#6366f1', width: 2 } },
+      name: '當前設計點', hoverinfo: 'skip',
+    };
+    const layout = PLOTLY_LAYOUT_BASE();
+    layout.xaxis = { ...layout.xaxis, type: 'log', title: { text: 'Kp' } };
+    layout.yaxis = { ...layout.yaxis, type: 'log', title: { text: 'Ki' } };
+    layout.showlegend = false;
+    layout.title = { text: 'Kp-Ki 穩定地圖', font: { size: 12 } };
+    Plotly.react(targetId, [trace, currentPoint], layout, { responsive: true, displayModeBar: false });
+  } catch (err) { console.warn('[CS P64] stability map error', err); }
+}
+
+// P1-3: Bode Animation
+let _bodeAnimFrame = null;
+let _bodeAnimRunning = false;
+
+function initBodeAnimation() {
+  const playBtn = document.getElementById('bode-anim-play');
+  const pauseBtn = document.getElementById('bode-anim-pause');
+  const resetBtn = document.getElementById('bode-anim-reset');
+  const closeBtn = document.getElementById('bode-anim-close');
+  const animBtn = document.getElementById('btn-bode-animate');
+  const panel = document.getElementById('bode-anim-panel');
+  const scrub = document.getElementById('bode-anim-scrub');
+  if (!animBtn || !panel) return;
+
+  animBtn.addEventListener('click', () => {
+    const active = animBtn.getAttribute('aria-pressed') === 'true';
+    animBtn.setAttribute('aria-pressed', active ? 'false' : 'true');
+    panel.style.display = active ? 'none' : 'flex';
+    if (active) _stopBodeAnim();
+  });
+  closeBtn?.addEventListener('click', () => {
+    panel.style.display = 'none';
+    animBtn.setAttribute('aria-pressed', 'false');
+    _stopBodeAnim();
+  });
+
+  const _getKpFromScrub = (t) => {
+    const fromV = parseFloat(document.getElementById('bode-anim-from').value) || 0.1;
+    const toV = parseFloat(document.getElementById('bode-anim-to').value) || 10;
+    return Math.pow(10, Math.log10(fromV) + t * Math.log10(toV / fromV));
+  };
+
+  const _applyAnimFrame = (t) => {
+    if (!state.plant) return;
+    if (scrub) scrub.value = t;
+    const kp = _getKpFromScrub(t);
+    try { updateGlobalStatusBar(`動畫 Kp = ${fmtNum(kp, 3)}`); } catch {}
+    try {
+      const ctrl = { ...(state.pidParams || { Kp: 1, Ki: 0, Kd: 0 }), Kp: kp };
+      const pid = new PIDController(ctrl.Kp, ctrl.Ki, ctrl.Kd, ctrl.N ?? 100);
+      const loop = pid.toTransferFunction().series(state.plant);
+      renderBodePlot(loop, 'chart-active');
+    } catch {}
+  };
+
+  scrub?.addEventListener('input', () => { _stopBodeAnim(); _applyAnimFrame(parseFloat(scrub.value)); });
+
+  playBtn?.addEventListener('click', () => {
+    if (!state.plant || state.activePlot !== 'bode') return;
+    _bodeAnimRunning = true;
+    const speed = parseFloat(document.getElementById('bode-anim-speed')?.value || '1');
+    const totalMs = (2000 / speed);
+    const startT = parseFloat(scrub?.value || '0');
+    const startTime = performance.now() - startT * totalMs;
+    const tick = (now) => {
+      if (!_bodeAnimRunning) return;
+      const t = Math.min(((now - startTime) / totalMs), 1);
+      _applyAnimFrame(t);
+      if (t < 1) { _bodeAnimFrame = requestAnimationFrame(tick); }
+      else { _bodeAnimRunning = false; }
+    };
+    _bodeAnimFrame = requestAnimationFrame(tick);
+  });
+
+  pauseBtn?.addEventListener('click', _stopBodeAnim);
+  resetBtn?.addEventListener('click', () => {
+    _stopBodeAnim();
+    if (scrub) scrub.value = '0';
+    _applyAnimFrame(0);
+    // Restore original Kp
+    const origKp = state.pidParams?.Kp ?? 1;
+    try {
+      const ctrl = { ...(state.pidParams || {}), Kp: origKp };
+      const pid = new PIDController(ctrl.Kp, ctrl.Ki, ctrl.Kd, ctrl.N ?? 100);
+      const loop = pid.toTransferFunction().series(state.plant);
+      renderBodePlot(loop, 'chart-active');
+    } catch {}
+  });
+
+  // Show animate button when Bode plot is active
+  document.addEventListener('cs:plot-changed', e => {
+    if (!animBtn) return;
+    animBtn.style.display = e.detail?.plot === 'bode' ? 'inline-flex' : 'none';
+  });
+}
+
+function _stopBodeAnim() {
+  _bodeAnimRunning = false;
+  if (_bodeAnimFrame) { cancelAnimationFrame(_bodeAnimFrame); _bodeAnimFrame = null; }
+}
+
+function initSweepVisualization() {
+  initParameterSweep();
+  initBodeAnimation();
+  // Hook stability-map render when tab is clicked
+  document.addEventListener('cs:plot-changed', async e => {
+    if (e.detail?.plot === 'stability-map') {
+      await renderStabilityMap('chart-active');
+    }
+  });
+}
+
 // ── P63: Chart Measurement Tools ─────────────────────────────────────────────
 
 // ── L1-1: Delta Measurement Cursor ───────────────────────────────────────────
@@ -13864,6 +14141,11 @@ document.addEventListener('DOMContentLoaded', () => {
 // ── P63 init ──────────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
   initMeasurementTools();
+}, { once: true });
+
+// ── P64 init ──────────────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  initSweepVisualization();
 }, { once: true });
 
 // ── P55 — B2-4: Gramian / SVD Detail ──────────────────────────────────────────
