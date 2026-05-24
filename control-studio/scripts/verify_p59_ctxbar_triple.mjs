@@ -53,34 +53,22 @@ assert(indexHtml.includes('.ctx-chip {'),               '.ctx-chip CSS defined')
 assert(indexHtml.includes('.ctx-spec.pass'),            '.ctx-spec.pass CSS defined');
 assert(indexHtml.includes('.ctx-spec.fail'),            '.ctx-spec.fail CSS defined');
 
-// ── A5-1: Triple Pane ─────────────────────────────────────────────────────────
-console.log('\n▶ A5-1 Triple Pane (Step + Bode + Nyquist)');
+// ── A5-1: Triple Pane — intentionally removed ────────────────────────────────
+console.log('\n▶ A5-1 Triple Pane (removed — single chart-active layout)');
 
-assert(appJs.includes('function initTriplePane()'),     'initTriplePane() function defined');
-assert(appJs.includes("'btn-triple-pane'"),             'btn-triple-pane referenced');
-assert(appJs.includes("'triple-pane-view'"),            'triple-pane-view referenced');
-assert(appJs.includes('renderTripleStep'),              'renderTripleStep() defined');
-assert(appJs.includes('renderTripleBode'),              'renderTripleBode() defined');
-assert(appJs.includes('renderTripleNyquist'),           'renderTripleNyquist() defined');
-assert(appJs.includes('enterTriple'),                   'enterTriple() defined');
-assert(appJs.includes('exitTriple'),                    'exitTriple() defined');
-assert(appJs.includes('window.refreshTriplePane'),      'refreshTriplePane exposed globally');
-assert(appJs.includes("'chart-triple-step'"),           'chart-triple-step div referenced');
-assert(appJs.includes("'chart-triple-bode'"),           'chart-triple-bode div referenced');
-assert(appJs.includes("'chart-triple-nyquist'"),        'chart-triple-nyquist div referenced');
-
-assert(indexHtml.includes('id="btn-triple-pane"'),      '#btn-triple-pane in HTML');
-assert(indexHtml.includes('id="triple-pane-view"'),     '#triple-pane-view in HTML');
-assert(indexHtml.includes('id="chart-triple-step"'),    '#chart-triple-step in HTML');
-assert(indexHtml.includes('id="chart-triple-bode"'),    '#chart-triple-bode in HTML');
-assert(indexHtml.includes('id="chart-triple-nyquist"'), '#chart-triple-nyquist in HTML');
-assert(indexHtml.includes('.triple-pane-grid {'),       '.triple-pane-grid CSS defined');
-assert(indexHtml.includes('.triple-pane-cell {'),       '.triple-pane-cell CSS defined');
+assert(!indexHtml.includes('id="btn-triple-pane"'),      '#btn-triple-pane removed from HTML');
+assert(!indexHtml.includes('id="triple-pane-view"'),     '#triple-pane-view removed from HTML');
+assert(!indexHtml.includes('id="chart-triple-step"'),    '#chart-triple-step removed from HTML');
+assert(!indexHtml.includes('id="chart-triple-bode"'),    '#chart-triple-bode removed from HTML');
+assert(!indexHtml.includes('id="chart-triple-nyquist"'), '#chart-triple-nyquist removed from HTML');
+assert(!indexHtml.includes('.triple-pane-grid {'),       '.triple-pane-grid CSS removed');
+assert(!indexHtml.includes('.triple-pane-cell {'),       '.triple-pane-cell CSS removed');
+assert(!appJs.includes('window.refreshTriplePane'),      'refreshTriplePane removed from JS');
 
 // ── P59 init ──────────────────────────────────────────────────────────────────
 console.log('\n▶ P59 DOMContentLoaded init');
 
-assert(appJs.includes('initTriplePane()'),   'initTriplePane called in init');
+assert(!appJs.includes('initTriplePane()'),  'initTriplePane not called in init (removed)');
 assert(appJs.includes('updateContextBar()'), 'updateContextBar called in init');
 
 // ── Summary ───────────────────────────────────────────────────────────────────

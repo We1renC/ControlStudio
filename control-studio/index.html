@@ -54,13 +54,6 @@
     .ctx-spec.pass { color:#22c55e; }
     .ctx-spec.fail { color:#ef4444; }
     /* A5-1: Triple pane layout */
-    /* Triple-pane: row1 = 1 diagram full-width, row2 = 2 diagrams side-by-side */
-    .triple-pane-grid { display:grid; grid-template-columns:1fr; grid-template-rows:auto auto; gap:var(--space-3); }
-    .triple-pane-row2 { display:grid; grid-template-columns:1fr 1fr; gap:var(--space-3); }
-    .triple-pane-cell { background:var(--bg-secondary); border:1px solid var(--border-primary); border-radius:var(--radius-lg); padding:var(--space-3); display:flex; flex-direction:column; min-width:0; }
-    .triple-pane-cell .chart-body { min-height:220px; flex:1; }
-    .triple-pane-grid > .triple-pane-cell .chart-body { min-height:260px; }
-    @media (max-width:760px) { .triple-pane-row2 { grid-template-columns:1fr; } }
     .logo { font-family: 'Outfit', sans-serif; font-size: 20px; font-weight: 700; color: var(--color-accent); display: flex; align-items: center; gap: var(--space-2); }
     .header-actions { display: flex; align-items: center; gap: var(--space-4); }
     .btn { padding: 8px 14px; border-radius: var(--radius-sm); border: 1px solid var(--border-primary); background: var(--bg-tertiary); color: var(--text-primary); font-size: 13px; font-weight: 500; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: all 0.2s; }
@@ -3595,29 +3588,6 @@
           <button class="plot-tab s-domain-only" data-plot="stability-map" id="plot-tab-stability-map">穩定地圖</button>
           <!-- P64 P1-1: Sweep exit button -->
           <button class="btn btn-sm" id="sweep-exit-btn" title="退出參數掃描模式" style="color:#ef4444;">× 退出掃描</button>
-          <!-- A5-1: Triple pane toggle -->
-          <button class="btn btn-sm" id="btn-triple-pane" title="三窗格並排：Step / Bode / Nyquist（A5-1）" aria-pressed="false" style="margin-left:auto;font-size:11px;flex-shrink:0;">⊟ 三窗格</button>
-        </div>
-        <!-- A5-1: Triple pane view (Step Response + Bode + Nyquist side-by-side) -->
-        <div id="triple-pane-view" style="display:none;padding:4px 0;" aria-label="三窗格並排顯示">
-          <div class="triple-pane-grid">
-            <!-- Row 1: Step Response (full width) -->
-            <div class="triple-pane-cell">
-              <div class="chart-header"><div class="chart-header-info"><span>Step Response</span><span>時域</span></div></div>
-              <div class="chart-body" id="chart-triple-step"></div>
-            </div>
-            <!-- Row 2: Bode + Nyquist (side by side) -->
-            <div class="triple-pane-row2">
-              <div class="triple-pane-cell">
-                <div class="chart-header"><div class="chart-header-info"><span>Bode Plot</span><span>頻域</span></div></div>
-                <div class="chart-body" id="chart-triple-bode"></div>
-              </div>
-              <div class="triple-pane-cell">
-                <div class="chart-header"><div class="chart-header-info"><span>Nyquist</span><span>穩定度</span></div></div>
-                <div class="chart-body" id="chart-triple-nyquist"></div>
-              </div>
-            </div>
-          </div>
         </div>
 
         <div id="mimo-channel-bar" style="display:none;background:var(--bg-secondary);border:1px solid var(--border-primary);border-radius:var(--radius-lg);padding:10px 14px;">

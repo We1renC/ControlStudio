@@ -3236,9 +3236,8 @@ function refreshAllCharts() {
   renderPoleZeroMap(sys);
   renderComparisonChart();
   scheduleSmokeDiagnostics();
-  // F1-2: keep context bar + triple pane in sync
+  // F1-2: keep context bar in sync
   updateContextBar?.();
-  window.refreshTriplePane?.();
 
   // P60: update workflow tab badges & smart warning banner
   try { updateTabBadges(); } catch (_) {}
@@ -14027,38 +14026,40 @@ function initLinkedCrosshair() {
 }
 
 function _updateLinkedCrosshair(hoverData) {
-  // Only meaningful in triple-pane mode when Bode is active
+  // Linked crosshair: Bode hover → Nyquist main chart moving dot
   const pts = hoverData.points;
   if (!pts?.length) return;
   const x = pts[0].x;
   if (!Number.isFinite(x) || x <= 0) return;
-  // Update nyquist crosshair if nyquist is visible in triple pane
-  const nyquistEl = document.getElementById('chart-triple-nyquist');
-  if (nyquistEl?._fullLayout && state.plant) {
-    try {
-      const sys = state.showClosedLoop ? (state.closedLoop || state.plant) : state.plant;
-      const bd = bodeData(sys, x * 0.999, x * 1.001);
-      if (bd.re?.length && Number.isFinite(bd.re[0]) && Number.isFinite(bd.im?.[0])) {
-        const re = bd.re[0], im = bd.im[0];
-        Plotly.relayout(nyquistEl, {
-          shapes: [...(nyquistEl._fullLayout.shapes || []).filter(s => !s._crosshair),
-            { _crosshair: true, type: 'circle', x0: re - 0.05, x1: re + 0.05,
-              y0: im - 0.05, y1: im + 0.05,
-              line: { color: 'rgba(255,255,255,0.8)', width: 2 },
-              fillcolor: 'rgba(99,102,241,0.5)' },
-          ],
-        });
-      }
-    } catch {}
+  // Only active if Nyquist is the current plot
+  if (state.activePlot === 'nyquist') {
+    const nyquistEl = document.getElementById('chart-active');
+    if (nyquistEl?._fullLayout && state.plant) {
+      try {
+        const sys = state.showClosedLoop ? (state.closedLoop || state.plant) : state.plant;
+        const bd = bodeData(sys, x * 0.999, x * 1.001);
+        if (bd.re?.length && Number.isFinite(bd.re[0]) && Number.isFinite(bd.im?.[0])) {
+          const re = bd.re[0], im = bd.im[0];
+          Plotly.relayout(nyquistEl, {
+            shapes: [...(nyquistEl._fullLayout.shapes || []).filter(s => !s._crosshair),
+              { _crosshair: true, type: 'circle', x0: re - 0.05, x1: re + 0.05,
+                y0: im - 0.05, y1: im + 0.05,
+                line: { color: 'rgba(255,255,255,0.8)', width: 2 },
+                fillcolor: 'rgba(99,102,241,0.5)' },
+            ],
+          });
+        }
+      } catch {}
+    }
   }
 }
 
 function _clearLinkedCrosshair() {
-  const nyquistEl = document.getElementById('chart-triple-nyquist');
-  if (nyquistEl?._fullLayout) {
+  const el = document.getElementById('chart-active');
+  if (el?._fullLayout) {
     try {
-      Plotly.relayout(nyquistEl, {
-        shapes: (nyquistEl._fullLayout.shapes || []).filter(s => !s._crosshair),
+      Plotly.relayout(el, {
+        shapes: (el._fullLayout.shapes || []).filter(s => !s._crosshair),
       });
     } catch {}
   }
@@ -15477,124 +15478,10 @@ function updateContextBar() {
 }
 window.updateContextBar = updateContextBar;
 
-// ── A5-1: Triple Pane (Step Response + Bode + Nyquist side-by-side) ──────────
-function initTriplePane() {
-  const btn        = document.getElementById('btn-triple-pane');
-  const tripleView = document.getElementById('triple-pane-view');
-  const plotStage  = document.querySelector('.plot-stage');
-  const mimeBar    = document.getElementById('mimo-channel-bar');
-  let   tripleActive = false;
-
-  function renderTripleStep() {
-    if (!state.plant) return;
-    const sys  = state.showClosedLoop ? (state.closedLoop || state.plant) : state.plant;
-    const cfg  = state.simulationConfig;
-    try {
-      const resp = stepResponse(sys, cfg);
-      const layout = {
-        ...PLOTLY_LAYOUT_BASE(),
-        margin: { l: 44, r: 8, t: 8, b: 36 },
-        xaxis: { ...PLOTLY_LAYOUT_BASE().xaxis, title: 'Time (s)' },
-        yaxis: { ...PLOTLY_LAYOUT_BASE().yaxis, title: 'Amplitude' },
-      };
-      Plotly.react('chart-triple-step', [{
-        x: resp.t, y: resp.y, type: 'scatter', mode: 'lines',
-        line: { color: getCSS('--color-stable'), width: 2 }, name: 'Step',
-      }], layout, { responsive: true, displayModeBar: false });
-    } catch(e) { /* system not renderable */ }
-  }
-
-  function renderTripleBode() {
-    if (!state.plant) return;
-    const sys = state.showClosedLoop ? (state.closedLoop || state.plant) : state.plant;
-    try {
-      const range = autoFreqRange(sys);
-      const bd    = bodeData(sys, range.wMin, range.wMax);
-      if (!bd) return;
-      const base = PLOTLY_LAYOUT_BASE();
-      const layout = {
-        ...base,
-        margin: { l: 44, r: 44, t: 8, b: 36 },
-        xaxis:  { ...base.xaxis, type: 'log', title: 'ω (rad/s)' },
-        yaxis:  { ...base.yaxis, title: 'Magnitude (dB)' },
-        yaxis2: { overlaying: 'y', side: 'right', title: 'Phase (deg)', color: '#f97316', showgrid: false },
-        showlegend: false,
-      };
-      Plotly.react('chart-triple-bode', [
-        { x: bd.omega, y: bd.mag_db,    type: 'scatter', mode: 'lines', line: { color: getCSS('--color-accent'), width: 2 }, name: 'Mag (dB)' },
-        { x: bd.omega, y: bd.phase_deg, type: 'scatter', mode: 'lines', line: { color: '#f97316', width: 2 }, name: 'Phase', yaxis: 'y2' },
-      ], layout, { responsive: true, displayModeBar: false });
-    } catch(e) { /* not renderable */ }
-  }
-
-  function renderTripleNyquist() {
-    if (!state.plant) return;
-    const sys = state.showClosedLoop ? (state.closedLoop || state.plant) : state.plant;
-    try {
-      const range = autoFreqRange(sys);
-      const nq    = nyquistData(sys, range.wMin, range.wMax);
-      if (!nq) return;
-      const base = PLOTLY_LAYOUT_BASE();
-      const layout = {
-        ...base,
-        margin: { l: 44, r: 8, t: 8, b: 36 },
-        xaxis: { ...base.xaxis, title: 'Re', zeroline: true, zerolinecolor: 'rgba(255,255,255,0.15)' },
-        yaxis: { ...base.yaxis, title: 'Im', zeroline: true, zerolinecolor: 'rgba(255,255,255,0.15)' },
-        showlegend: false,
-      };
-      Plotly.react('chart-triple-nyquist', [
-        { x: nq.re, y: nq.im, type: 'scatter', mode: 'lines', line: { color: getCSS('--color-accent'), width: 2 }, name: 'Nyquist' },
-        { x: [-1],  y: [0],   type: 'scatter', mode: 'markers', marker: { color: '#ef4444', size: 9, symbol: 'x-open-dot' }, name: '−1' },
-      ], layout, { responsive: true, displayModeBar: false });
-    } catch(e) { /* not renderable */ }
-  }
-
-  function renderAllTriple() {
-    renderTripleStep();
-    renderTripleBode();
-    renderTripleNyquist();
-  }
-
-  function enterTriple() {
-    tripleActive = true;
-    if (tripleView) tripleView.style.display = 'block';
-    if (plotStage)  plotStage.style.display  = 'none';
-    if (mimeBar)    mimeBar.style.display     = 'none';
-    btn?.setAttribute('aria-pressed', 'true');
-    btn?.classList.add('active');
-    if (btn) btn.textContent = '⊞ 單圖';
-    renderAllTriple();
-    updateGlobalStatusBar('三窗格並排模式');
-  }
-
-  function exitTriple() {
-    tripleActive = false;
-    if (tripleView) tripleView.style.display = 'none';
-    if (plotStage)  plotStage.style.display  = 'grid';
-    btn?.setAttribute('aria-pressed', 'false');
-    btn?.classList.remove('active');
-    if (btn) btn.textContent = '⊟ 三窗格';
-    refreshAllCharts();
-  }
-
-  btn?.addEventListener('click', () => tripleActive ? exitTriple() : enterTriple());
-
-  // Exit triple mode on plot tab click (single-chart is cleaner)
-  document.querySelectorAll('.plot-tab[data-plot]').forEach(tab => {
-    tab.addEventListener('click', () => { if (tripleActive) exitTriple(); });
-  });
-
-  // Keyboard: Escape exits triple mode
-  document.addEventListener('keydown', e => {
-    if (e.key === 'Escape' && tripleActive) exitTriple();
-  });
-
-  window.refreshTriplePane = () => { if (tripleActive) renderAllTriple(); };
-}
+// A5-1 triple pane removed
 
 // ── P59 init ──────────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
-  initTriplePane();
   updateContextBar();
   // Sync mini rlocus overlay to current activePlot on load
   updateMiniRlocusVisibility(state.activePlot);
