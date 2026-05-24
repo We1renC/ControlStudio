@@ -1091,22 +1091,82 @@ function switchSidebarPanel(panelName) {
   updateGlobalStatusBar(`${panelName} panel active`);
 }
 
-// ── Mini Root Locus redundancy guard ────────────────────────────────────────
-// When the main chart shows Root Locus, overlay the mini-rlocus with a hint.
+// ── Mini Root Locus: adaptive context panel ──────────────────────────────────
+// When main = Root Locus: repurpose the mini slot to show Step Response @ K.
+//   → "選根軌跡增益 K → 右上即時看時域後果" workflow, zero redundancy.
+// When main ≠ Root Locus: restore Open-Loop Root Locus mini.
+
+let _miniRlocusMode = 'rlocus'; // 'rlocus' | 'stepAtK'
+
 function updateMiniRlocusVisibility(plotName) {
-  const cell   = document.getElementById('mini-rlocus-cell');
-  const same   = document.getElementById('mini-rlocus-same');
-  const body   = document.getElementById('chart-rlocus');
-  const hint   = document.getElementById('rl-interact-hint');
-  if (!cell || !same) return;
+  const nameEl   = document.getElementById('mini-rlocus-name');
+  const ctxEl    = document.getElementById('mini-rlocus-ctx');
+  const interBtn = document.getElementById('btn-rl-interact');
+  const hintEl   = document.getElementById('rl-interact-hint');
+
   if (plotName === 'rlocus') {
-    same.style.display = 'flex';
-    if (body) body.style.visibility = 'hidden';
-    if (hint) hint.style.display = 'none';
+    _miniRlocusMode = 'stepAtK';
+    if (nameEl) nameEl.textContent = 'Step @ K';
+    if (ctxEl)  ctxEl.textContent  = '時域預覽';
+    if (interBtn) interBtn.style.display = 'none';
+    if (hintEl)   hintEl.style.display   = 'none';
+    // Render step preview at current K (or Kp if no K selected yet)
+    _renderMiniStepAtK();
   } else {
-    same.style.display = 'none';
-    if (body) body.style.visibility = '';
+    _miniRlocusMode = 'rlocus';
+    if (nameEl) nameEl.textContent = 'Root Locus';
+    if (ctxEl)  ctxEl.textContent  = 'Open-Loop';
+    if (interBtn) interBtn.style.display = '';
+    // Re-render the root locus mini
+    _refreshMiniRlocus();
   }
+}
+
+function _renderMiniStepAtK() {
+  if (_miniRlocusMode !== 'stepAtK') return;
+  const chartEl = document.getElementById('chart-rlocus');
+  if (!chartEl) return;
+
+  const sys = _rlocusInteractiveSys || state.plant;
+  if (!sys) {
+    Plotly.purge(chartEl);
+    chartEl.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;font-size:11px;color:var(--text-muted);">請先建立 Plant</div>';
+    return;
+  }
+
+  try {
+    const K = _currentRlocusK ?? state.pidParams.Kp ?? 1;
+    const clDen = polyadd(sys.den, polyscale(sys.num, K));
+    const clPoles = polyroots(clDen);
+    const stable = clPoles.every(p => p.re < -1e-10);
+    const clSys = new TransferFunction(polyscale(sys.num, K), clDen);
+    const resp = stepResponse(clSys, { duration: 15, sampleCount: 200 });
+    const yVals = resp.y.filter(Number.isFinite);
+    const valid = yVals.length > 0 && Math.max(...yVals.map(Math.abs)) < 1e5;
+
+    const Kdisp = typeof K === 'number' ? fmtNum(K) : '—';
+    const layout = {
+      margin: { l: 28, r: 6, t: 20, b: 24 },
+      paper_bgcolor: 'transparent', plot_bgcolor: 'transparent',
+      title: { text: `K = ${Kdisp}`, font: { size: 10, color: '#94a3b8' }, x: 0.5 },
+      xaxis: { color: '#64748b', tickfont: { size: 9 }, gridcolor: 'rgba(148,163,184,.08)',
+               title: { text: 't (s)', font: { size: 9, color: '#64748b' } } },
+      yaxis: { color: '#64748b', tickfont: { size: 9 }, gridcolor: 'rgba(148,163,184,.08)' },
+      showlegend: false,
+    };
+    Plotly.react(chartEl,
+      [{ x: resp.t, y: valid ? resp.y : resp.t.map(() => 0),
+         type: 'scatter', mode: 'lines',
+         line: { width: 1.8, color: stable ? '#10b981' : '#ef4444' } }],
+      layout, { responsive: true, displayModeBar: false });
+  } catch { /* ignore */ }
+}
+
+function _refreshMiniRlocus() {
+  if (_miniRlocusMode !== 'rlocus') return;
+  const sys = state.plant;
+  if (!sys) return;
+  try { renderRootLocusPlot(sys, 'chart-rlocus'); } catch { /* ignore */ }
 }
 
 function switchPlot(plotName) {
@@ -4230,6 +4290,8 @@ function updateRlocusGain(K) {
   }
 
   renderRlocusStepPreview(K, sys, clDen, stable);
+  // Keep mini step-at-K in sync when mini is in stepAtK mode
+  _renderMiniStepAtK?.();
 }
 
 function renderRlocusStepPreview(K, sys, clDen, stable) {

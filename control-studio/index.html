@@ -3552,8 +3552,8 @@
             <div class="chart-cell mini-chart" id="mini-rlocus-cell">
               <div class="chart-header">
                 <div class="chart-header-info">
-                  <span>Root Locus</span>
-                  <span class="mini-context" title="Open-loop root locus — shows where closed-loop poles move as K increases">Open-Loop</span>
+                  <span id="mini-rlocus-name">Root Locus</span>
+                  <span id="mini-rlocus-ctx" class="mini-context" title="Open-loop root locus — shows where closed-loop poles move as K increases">Open-Loop</span>
                 </div>
                 <div class="chart-header-actions">
                   <button class="btn btn-sm" id="btn-rl-interact" title="根軌跡互動模式" style="padding:2px 6px;font-size:9px;">互動</button>
@@ -3561,12 +3561,6 @@
               </div>
               <div class="bode-drag-hint" id="rl-interact-hint">互動模式：點擊根軌跡設定增益 K</div>
               <div class="chart-body" id="chart-rlocus"></div>
-              <!-- shown when main chart is already Root Locus -->
-              <div id="mini-rlocus-same" style="display:none;position:absolute;inset:0;background:var(--bg-secondary);border-radius:inherit;display:none;align-items:center;justify-content:center;flex-direction:column;gap:4px;font-size:11px;color:var(--text-muted);">
-                <span style="font-size:22px;opacity:0.4;">⤢</span>
-                <span>主圖已顯示根軌跡</span>
-                <button class="btn btn-sm" style="font-size:10px;padding:2px 8px;margin-top:4px;" onclick="document.querySelector('[data-plot=\'step\']')?.click()">切回 Step</button>
-              </div>
             </div>
             <div class="chart-cell mini-chart">
               <div class="chart-header"><div class="chart-header-info"><span>Pole-Zero Map</span><span class="mini-context" title="Closed-loop pole-zero map — current controller applied">Closed-Loop</span></div></div>
