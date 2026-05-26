@@ -163,6 +163,7 @@ echo ""
 echo -e "${BOLD}▶ Roadmap Tier A-G — Sprint 2${RESET}"
 run_script "E1 Newton-CARE refinement"                              "node scripts/verify_e1_newton_care.mjs"
 run_script "E4 Pseudo-spectrum"                                     "node scripts/verify_e4_pseudospectrum.mjs"
+run_script "E3/E6/F2/F3/F5/G1/G3/G4/G5 remaining roadmap"           "node scripts/verify_efg_remaining.mjs"
 echo ""
 
 # ── Roadmap Tier A-G — Sprint 5 (Safety & Verification) ──────────────────────

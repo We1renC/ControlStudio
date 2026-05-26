@@ -304,6 +304,24 @@ del{color:var(--muted)}
 </thead><tbody>
 <tr><td><strong>D6</strong></td><td>Mixed-Integer MPC</td><td>Done</td><td><code>verify_d2_d6_optimization.mjs</code></td><td>Enumerative switched-system MIMPC baseline with infeasibility-safe status</td></tr>
 </thead><tbody>
+<tr><td><strong>E3</strong></td><td>Generalized Schur / Descriptor Systems</td><td>Done</td><td><code>verify_efg_remaining.mjs</code></td><td>Small regular/singular descriptor pencil eigenvalue baseline, including infinite eigenvalues</td></tr>
+</thead><tbody>
+<tr><td><strong>E6</strong></td><td>Krylov GMRES / Arnoldi</td><td>Done</td><td><code>verify_efg_remaining.mjs</code></td><td>Arnoldi orthonormal basis and restarted GMRES residual verification</td></tr>
+</thead><tbody>
+<tr><td><strong>F2</strong></td><td>Control Barrier Function</td><td>Done</td><td><code>verify_efg_remaining.mjs</code></td><td>Double-integrator circular obstacle CBF filter and SOS feasibility placeholder</td></tr>
+</thead><tbody>
+<tr><td><strong>F3</strong></td><td>LTL / CTL Formal Specification</td><td>Done</td><td><code>verify_efg_remaining.mjs</code></td><td>Finite-trace response / safety formulas and CTL unsafe counterexample</td></tr>
+</thead><tbody>
+<tr><td><strong>F5</strong></td><td>Importance Sampling Monte Carlo</td><td>Done</td><td><code>verify_efg_remaining.mjs</code></td><td>Rare-event normal-tail estimator with variance-reduction check</td></tr>
+</thead><tbody>
+<tr><td><strong>G1</strong></td><td>Stochastic MPC Chance Constraints</td><td>Done</td><td><code>verify_efg_remaining.mjs</code></td><td>Gaussian chance-constraint tightening and Monte Carlo violation-rate check</td></tr>
+</thead><tbody>
+<tr><td><strong>G3</strong></td><td>Distributed MPC</td><td>Done</td><td><code>verify_efg_remaining.mjs</code></td><td>Scalar consensus ADMM / dual decomposition baseline</td></tr>
+</thead><tbody>
+<tr><td><strong>G4</strong></td><td>Hybrid MPC</td><td>Done</td><td><code>verify_efg_remaining.mjs</code></td><td>Big-M helper and switched-system MIMPC wrapper</td></tr>
+</thead><tbody>
+<tr><td><strong>G5</strong></td><td>NMPC Warm-Start Strategy</td><td>Done</td><td><code>verify_efg_remaining.mjs</code></td><td>Shift-and-extend sequence, simulation warm start, iteration reduction summary</td></tr>
+</thead><tbody>
 <tr><td><strong>D1</strong></td><td>Active-set QP + warm-start</td><td>Done</td><td><code>verify_d1_qp_activeset.mjs</code></td><td>KKT residual, feasibility, warm-start, MPC-like QP, infeasible / non-PSD guards</td></tr>
 </thead><tbody>
 <tr><td><strong>E1</strong></td><td>Newton-CARE refinement</td><td>Done</td><td><code>verify_e1_newton_care.mjs</code></td><td>Newton residual refinement against Hamiltonian Schur CARE baseline</td></tr>
@@ -325,7 +343,7 @@ del{color:var(--muted)}
 
 <h2 id="verification-suite-status-2026-05-27">Verification Suite Status (2026-05-27)</h2>
 
-<p><strong>102/102 scripts pass</strong> — run via <code>bash scripts/run_all_verify.sh</code></p>
+<p><strong>103/103 scripts pass</strong> — run via <code>bash scripts/run_all_verify.sh</code></p>
 
 <table><thead>
 <tr><th>Group</th><th>Scripts</th><th>Pass</th></tr>
@@ -336,7 +354,7 @@ del{color:var(--muted)}
 </thead><tbody>
 <tr><td>Math audit fixes</td><td>1</td><td>1</td></tr>
 </thead><tbody>
-<tr><td>Roadmap Tier A-G</td><td>20</td><td>20</td></tr>
+<tr><td>Roadmap Tier A-G</td><td>21</td><td>21</td></tr>
 </thead><tbody>
 <tr><td>General math &amp; PID</td><td>4</td><td>4</td></tr>
 </tbody></table>

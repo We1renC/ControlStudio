@@ -125,6 +125,15 @@ Per `docs/src/control-studio/functional-roadmap.html`. User scope: skip Tier H/I
 | **D4** | MILP Branch-and-Bound Utilities | Done | `verify_d2_d6_optimization.mjs` | Binary MILP enumeration, knapsack optimum, infeasible detection, Held-Karp TSP |
 | **D5** | L-BFGS / Trust Region | Done | `verify_d2_d6_optimization.mjs` | L-BFGS with compact history and trust-region gradient baseline |
 | **D6** | Mixed-Integer MPC | Done | `verify_d2_d6_optimization.mjs` | Enumerative switched-system MIMPC baseline with infeasibility-safe status |
+| **E3** | Generalized Schur / Descriptor Systems | Done | `verify_efg_remaining.mjs` | Small regular/singular descriptor pencil eigenvalue baseline, including infinite eigenvalues |
+| **E6** | Krylov GMRES / Arnoldi | Done | `verify_efg_remaining.mjs` | Arnoldi orthonormal basis and restarted GMRES residual verification |
+| **F2** | Control Barrier Function | Done | `verify_efg_remaining.mjs` | Double-integrator circular obstacle CBF filter and SOS feasibility placeholder |
+| **F3** | LTL / CTL Formal Specification | Done | `verify_efg_remaining.mjs` | Finite-trace response / safety formulas and CTL unsafe counterexample |
+| **F5** | Importance Sampling Monte Carlo | Done | `verify_efg_remaining.mjs` | Rare-event normal-tail estimator with variance-reduction check |
+| **G1** | Stochastic MPC Chance Constraints | Done | `verify_efg_remaining.mjs` | Gaussian chance-constraint tightening and Monte Carlo violation-rate check |
+| **G3** | Distributed MPC | Done | `verify_efg_remaining.mjs` | Scalar consensus ADMM / dual decomposition baseline |
+| **G4** | Hybrid MPC | Done | `verify_efg_remaining.mjs` | Big-M helper and switched-system MIMPC wrapper |
+| **G5** | NMPC Warm-Start Strategy | Done | `verify_efg_remaining.mjs` | Shift-and-extend sequence, simulation warm start, iteration reduction summary |
 | **D1** | Active-set QP + warm-start | Done | `verify_d1_qp_activeset.mjs` | KKT residual, feasibility, warm-start, MPC-like QP, infeasible / non-PSD guards |
 | **E1** | Newton-CARE refinement | Done | `verify_e1_newton_care.mjs` | Newton residual refinement against Hamiltonian Schur CARE baseline |
 | **E2** | Sylvester / Lyapunov / Stein | Done | `verify_e2_sylvester.mjs` | vec-trick (Kronecker); robust for n <= 30 |
@@ -137,14 +146,14 @@ Per `docs/src/control-studio/functional-roadmap.html`. User scope: skip Tier H/I
 
 ## Verification Suite Status (2026-05-27)
 
-**102/102 scripts pass** — run via `bash scripts/run_all_verify.sh`
+**103/103 scripts pass** — run via `bash scripts/run_all_verify.sh`
 
 | Group | Scripts | Pass |
 | --- | --- | --- |
 | Phase 9/10/11 foundations | 11 | 11 |
 | Phase 14–65 advanced control / UI | 66 | 66 |
 | Math audit fixes | 1 | 1 |
-| Roadmap Tier A-G | 20 | 20 |
+| Roadmap Tier A-G | 21 | 21 |
 | General math & PID | 4 | 4 |
 
 ## P1/P2 UI/UX Completion Summary

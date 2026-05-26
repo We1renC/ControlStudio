@@ -51,6 +51,15 @@
   - `control-studio/js/optimization/milp.js`
   - `control-studio/js/optimization/lbfgs_trust.js`
   - `control-studio/js/optimization/mixed_integer_mpc.js`
+  - `control-studio/js/math/qz_descriptor.js`
+  - `control-studio/js/math/krylov.js`
+  - `control-studio/js/verification/cbf.js`
+  - `control-studio/js/verification/formal.js`
+  - `control-studio/js/verification/importance_sampling.js`
+  - `control-studio/js/control/stochastic_mpc.js`
+  - `control-studio/js/control/distributed_mpc.js`
+  - `control-studio/js/control/hybrid_mpc.js`
+  - `control-studio/js/control/nmpc_warmstart.js`
   - `control-studio/js/math/lie_derivative.js`
 - 分析模組：
   - `control-studio/js/analysis/time-response.js`
@@ -103,6 +112,10 @@
 - MILP baseline：binary MILP enumeration、knapsack、Held-Karp TSP、infeasible detection
 - L-BFGS / Trust Region baseline：compact-memory L-BFGS、trust-region gradient step
 - Mixed-Integer MPC baseline：small switched-system enumeration、mode sequence and terminal tracking validation
+- Descriptor / QZ baseline：regular/singular descriptor pencil generalized eigenvalues，含 infinite eigenvalue handling
+- Krylov baseline：Arnoldi orthonormal basis、restarted GMRES residual verification
+- CBF / formal / rare-event verification baseline：double-integrator circular obstacle CBF、finite-trace LTL/CTL、importance sampling Monte Carlo
+- Advanced MPC Tier G baseline：chance-constraint tightening、distributed consensus MPC、hybrid MPC wrapper、NMPC warm-start shift-and-extend
 - Step Response
 - Impulse / Ramp / Sine / Square / Pulse response
 - Discrete step / impulse response
