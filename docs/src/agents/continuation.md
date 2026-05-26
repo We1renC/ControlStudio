@@ -23,6 +23,7 @@
   - 2026-05-26 確認 Functional Roadmap Tier A-G 已開始落地：A1 ADRC、A2 ILC、B1 SINDy、D1 active-set QP、E1 Newton CARE、E2 Sylvester/Lyapunov/Stein、E4 pseudospectrum、E5 interval arithmetic、E7 condition-number gating、F1 reachability、G2 MPC move blocking 均有核心模組與 verify script；`run_all_verify.sh` 已納入 Tier A-G，最新基線為 **93/93 scripts pass**。本輪也修正 `verify_f1_reachability.mjs` 對 zonotope generator-list representation 的錯誤檢查，避免 F1 standalone 驗證被 full suite 漏掉。
   - 2026-05-26 接續 Functional Roadmap Sprint 5：完成 F4 Falsification core，新增 `js/verification/falsification.js`，支援 `defineSTL("alw_[0,T] x < c")` / `ev_[0,T]` robustness 與 deterministic `falsify({ system, spec, inputSpace })` counterexample search；新增 `verify_f4_falsification.mjs` 並納入 `run_all_verify.sh`，最新基線升至 **94/94 scripts pass**。
   - 2026-05-26 按 functional roadmap 順序補 A3：新增 `js/control/smc.js`，支援 classical SMC、boundary-layer SMC、super-twisting SMC、reaching-time guard 與 `analyzeChattering()`；新增 `verify_a3_smc.mjs` 並納入 `run_all_verify.sh`，最新基線升至 **95/95 scripts pass**。
+  - 2026-05-26 按 functional roadmap 順序補 A4：新增 `js/control/backstepping.js`，支援三階 strict-feedback chain / terminal triangular drift backstepping、Lyapunov 負定 proof metadata、二階 matched-parameter adaptive baseline；新增 `verify_a4_backstepping.mjs` 並納入 `run_all_verify.sh`，最新基線升至 **96/96 scripts pass**。
 - 已完成 NVIDIA Build Models 資料集中管理。
 - 已新增 agent 入口文件：
   - `AGENTS.md`：專案規則、標準流程、擴充規則與品質判準。
