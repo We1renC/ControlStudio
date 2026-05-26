@@ -21,7 +21,10 @@
  * API:
  *   computeMuUpperBound(M, opts)        → scalar μ upper bound for matrix M
  *   computeMuBoundFreq(Mfr, omegas, opts) → μ bound at each frequency
+ *   fitDynamicDScaling(omegas, dProfile, opts) → log-frequency D(jω) fit
+ *   computeDynamicMuBoundFreq(Mfr, omegas, opts) → μ profile + dynamic D fit
  *   dkIteration(plantSS, weights, opts) → robust controller via D-K
+ *   dkIterationDynamic(plantSS, opts)   → D-K wrapper retaining D(jω) model
  */
 
 import { symmetricEig } from '../math/optimization.js';
@@ -53,6 +56,16 @@ function applyDScale(d, M) {
   return Array.from({ length: n }, (_, i) =>
     Array.from({ length: n }, (__, j) => (M[i][j] * d[i]) / d[j]),
   );
+}
+
+function clampPositive(x, floor = 1e-9) {
+  return Math.max(floor, Number.isFinite(x) ? Math.abs(x) : 1);
+}
+
+function logInterp(x, x0, x1, y0, y1) {
+  if (Math.abs(x1 - x0) < 1e-15) return y0;
+  const t = Math.max(0, Math.min(1, (x - x0) / (x1 - x0)));
+  return y0 + t * (y1 - y0);
 }
 
 /**
@@ -194,6 +207,130 @@ export function computeMuBoundFreq(Mfr, omegas, opts = {}) {
   return { muProfile, peakMu, peakOmega, dProfile };
 }
 
+// ── Dynamic D-scaling fit ───────────────────────────────────────────────────
+
+/**
+ * Fit a reusable frequency-dependent diagonal D-scaling model from per-bin
+ * D-step results. The model is intentionally deterministic and lightweight:
+ * each diagonal channel is represented as a log-log piecewise-linear curve.
+ *
+ * This is a deployable baseline for dynamic D-scaling workflows: it preserves
+ * the frequency trend found by the D-step and exposes a compact model that can
+ * be reviewed, serialized, and reused by later K-fitting backends.
+ *
+ * @param {number[]} omegas
+ * @param {number[][]} dProfile  Array of D diagonals, one per omega.
+ * @param {object} opts
+ * @param {number} [opts.nodes=5] Number of knot frequencies to retain.
+ * @returns {{type:string, nodes:object[], channels:number, fitErrorRms:number, method:string}}
+ */
+export function fitDynamicDScaling(omegas, dProfile, opts = {}) {
+  const { nodes = 5 } = opts;
+  if (!Array.isArray(omegas) || !Array.isArray(dProfile) || omegas.length !== dProfile.length || omegas.length === 0) {
+    throw new Error('fitDynamicDScaling requires matching non-empty omegas and dProfile arrays.');
+  }
+  const channels = dProfile[0]?.length ?? 0;
+  if (channels === 0 || dProfile.some((row) => row.length !== channels)) {
+    throw new Error('fitDynamicDScaling requires rectangular positive D profile data.');
+  }
+
+  const nKnots = Math.max(2, Math.min(nodes, omegas.length));
+  const knotIdx = [];
+  for (let i = 0; i < nKnots; i++) {
+    const idx = Math.round((i * (omegas.length - 1)) / (nKnots - 1));
+    if (!knotIdx.includes(idx)) knotIdx.push(idx);
+  }
+
+  const logOmegas = omegas.map((w) => Math.log(clampPositive(w)));
+  const profileLogD = dProfile.map((row) => row.map((d) => Math.log(clampPositive(d))));
+  const knotLogW = knotIdx.map((idx) => logOmegas[idx]);
+
+  const nodesOut = knotIdx.map((idx) => ({
+    omega: omegas[idx],
+    d: dProfile[idx].map(clampPositive),
+  }));
+
+  let err2 = 0;
+  let count = 0;
+  for (let i = 0; i < omegas.length; i++) {
+    const fitted = evaluateDynamicDScaling({ nodes: nodesOut, channels }, omegas[i]);
+    for (let c = 0; c < channels; c++) {
+      const e = Math.log(clampPositive(fitted[c])) - profileLogD[i][c];
+      err2 += e * e;
+      count++;
+    }
+  }
+
+  return {
+    type: 'log-linear-d-scaling',
+    nodes: nodesOut,
+    channels,
+    fitErrorRms: Math.sqrt(err2 / Math.max(1, count)),
+    knotLogW,
+    method: 'dynamic-d-log-linear-fit',
+  };
+}
+
+/**
+ * Evaluate a fitted dynamic diagonal D-scaling model at ω.
+ */
+export function evaluateDynamicDScaling(model, omega) {
+  if (!model?.nodes?.length) throw new Error('evaluateDynamicDScaling requires a fitted model.');
+  const nodes = [...model.nodes].sort((a, b) => a.omega - b.omega);
+  const channels = model.channels ?? nodes[0].d.length;
+  const lw = Math.log(clampPositive(omega));
+
+  if (lw <= Math.log(clampPositive(nodes[0].omega))) return nodes[0].d.map(clampPositive);
+  if (lw >= Math.log(clampPositive(nodes[nodes.length - 1].omega))) return nodes[nodes.length - 1].d.map(clampPositive);
+
+  for (let i = 0; i < nodes.length - 1; i++) {
+    const l0 = Math.log(clampPositive(nodes[i].omega));
+    const l1 = Math.log(clampPositive(nodes[i + 1].omega));
+    if (lw >= l0 && lw <= l1) {
+      return Array.from({ length: channels }, (_, c) => {
+        const y0 = Math.log(clampPositive(nodes[i].d[c]));
+        const y1 = Math.log(clampPositive(nodes[i + 1].d[c]));
+        return Math.exp(logInterp(lw, l0, l1, y0, y1));
+      });
+    }
+  }
+
+  return nodes[nodes.length - 1].d.map(clampPositive);
+}
+
+/**
+ * Compute a μ upper-bound profile while warm-starting adjacent frequency bins,
+ * then fit a dynamic D(jω) model to the resulting D profile.
+ */
+export function computeDynamicMuBoundFreq(Mfr, omegas, opts = {}) {
+  const muProfile = [];
+  const dProfile = [];
+  let d0 = opts.d0;
+
+  for (const omega of omegas) {
+    const r = computeMuUpperBound(Mfr(omega), { ...opts, d0 });
+    muProfile.push(r.muBound);
+    dProfile.push(r.d);
+    d0 = r.d;
+  }
+
+  let peakMu = -Infinity, peakOmega = omegas[0];
+  muProfile.forEach((mu, i) => { if (mu > peakMu) { peakMu = mu; peakOmega = omegas[i]; } });
+
+  const dynamicD = fitDynamicDScaling(omegas, dProfile, { nodes: opts.nodes ?? 5 });
+  const fittedDProfile = omegas.map((omega) => evaluateDynamicDScaling(dynamicD, omega));
+
+  return {
+    muProfile,
+    peakMu,
+    peakOmega,
+    dProfile,
+    dynamicD,
+    fittedDProfile,
+    method: 'dynamic-d-mu-profile',
+  };
+}
+
 // ── dkIteration ──────────────────────────────────────────────────────────────
 
 /**
@@ -282,6 +419,72 @@ export function dkIteration(plantSS, opts = {}) {
     converged,
     iterations: iter + 1,
     method: 'dk-iteration',
+  };
+}
+
+/**
+ * Dynamic D-K iteration wrapper.
+ *
+ * The K-step remains the existing deterministic H∞ static-gain baseline, but
+ * the D-step now retains a reusable fitted D(jω) model instead of reducing the
+ * profile to one peak-frequency constant D. This closes the workflow gap for
+ * dynamic D-scaling analysis while keeping the backend deterministic.
+ */
+export function dkIterationDynamic(plantSS, opts = {}) {
+  const {
+    omegas = logspace(-2, 2, 40),
+    maxIter = 5,
+    tol = 1e-3,
+    hinfOpts = {},
+    nodes = 5,
+  } = opts;
+
+  let dynamicD = null;
+  let K = null;
+  let prevMu = Infinity;
+  let converged = false;
+  const gammaHistory = [];
+  const muHistory = [];
+  const fitErrorHistory = [];
+
+  let iter = 0;
+  for (iter = 0; iter < maxIter; iter++) {
+    const nominalD = dynamicD ? evaluateDynamicDScaling(dynamicD, omegas[Math.floor(omegas.length / 2)]) : [1];
+    const scaledSS = applyConstantDScaleToSS(plantSS, nominalD);
+    const hinfResult = synthesizeHinfSSLocal(scaledSS, hinfOpts);
+    if (!hinfResult.converged) break;
+
+    K = hinfResult.K;
+    gammaHistory.push(hinfResult.gamma);
+
+    const muResult = computeDynamicMuBoundFreq(
+      (omega) => closedLoopGainMatrix(plantSS, K, omega),
+      omegas,
+      { maxIter: 120, tol: 1e-4, nodes },
+    );
+
+    dynamicD = muResult.dynamicD;
+    muHistory.push(muResult.peakMu);
+    fitErrorHistory.push(dynamicD.fitErrorRms);
+
+    if (Math.abs(prevMu - muResult.peakMu) < tol) {
+      converged = true;
+      break;
+    }
+    prevMu = muResult.peakMu;
+  }
+
+  return {
+    K,
+    dynamicD,
+    muBound: muHistory[muHistory.length - 1] ?? Infinity,
+    gamma: gammaHistory[gammaHistory.length - 1] ?? Infinity,
+    gammaHistory,
+    muHistory,
+    fitErrorHistory,
+    converged,
+    iterations: iter + 1,
+    method: 'dynamic-dk-iteration',
   };
 }
 

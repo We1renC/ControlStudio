@@ -77,6 +77,7 @@ run_script "Phase 17 ARMAX + NSGA-II"     "node scripts/verify_p17_armax_nsga.mj
 run_script "Phase 17 EKF/UKF"             "node scripts/verify_p17_ekf_ukf.mjs"
 run_script "Phase 18 robust validation"    "node scripts/verify_p18_robust_validation.mjs"
 run_script "Phase 19 H∞ Riccati"          "node scripts/verify_p19_hinf_riccati.mjs"
+run_script "Phase 19 dynamic D-K"          "node scripts/verify_p19_dynamic_dk.mjs"
 run_script "Phase 20 MPC engineering"      "node scripts/verify_p20_mpc_engineering.mjs"
 run_script "Phase 21 SysID advanced"       "node scripts/verify_p21_sysid_advanced.mjs"
 run_script "P23 freq sysid (FRF)"         "node scripts/verify_p23_freq_sysid.mjs"

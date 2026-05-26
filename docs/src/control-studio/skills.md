@@ -22,11 +22,11 @@
 | Phase | Priority | Status | Theme | Goal | Primary Verification |
 | --- | --- | --- | --- | --- | --- |
 | Phase 18 | P1 | Done | Uncertainty + Monte Carlo robust validation | 將 robust analysis 從 nominal 指標推進到不確定性族群驗證 | deterministic uncertainty fixtures、worst-case replay、`verify:p18` |
-| Phase 19 | P2 | Done baseline / P27 gap remains | Full H-infinity / mu backend | 已提交 H∞ Riccati synthesis baseline；full D-K iteration 仍列為 P27 gap | `verify_p19_hinf_riccati.mjs`、P27 roadmap |
+| Phase 19 | P2 | Done | Full H-infinity / mu backend | 已提交 H∞ Riccati synthesis baseline；dynamic D-scaling fit 與 dynamic D-K wrapper 已補齊目前 P27 gap | `verify_p19_hinf_riccati.mjs`、`verify_p19_dynamic_dk.mjs` |
 | Phase 20 | P1 | Done | MIMO MPC engineering workflow | 完成 offset-free tracking、move suppression、constraints、feasibility diagnostics | `verify_p20_mpc_engineering.mjs` |
 | Phase 21 | P2 | Done | Research-grade system identification | 已擴展 ARMAX/OE/BJ/subspace ID、experiment signals 與 uncertainty export | `verify_p21_sysid_advanced.mjs` |
 | Phase 22 | P1 | Done | Benchmark + cross-tool validation | 已建立 CI、cross-tool comparison、full verification runner 與 benchmark script | `run_all_verify.sh`、`compare_python_control.py`、CI |
-| Phase 23 | P1 | Mostly Done | Agentic design review / SysID gap closure | structured review skills 與 FRF/MISO/model-order 已提交；continuous-time CONTSID/SRIVC 未提交 | `verify_p23_*.mjs`、`control-studio/ROADMAP.md` |
+| Phase 23 | P1 | Done | Agentic design review / SysID gap closure | structured review skills、FRF/MISO/model-order、SRIVC baseline 與 project-local UI verifier skill 已提交 | `verify_p23_*.mjs`、`verify_b3_srivc.mjs`、`control-studio/ROADMAP.md` |
 
 ## Phase Details
 
@@ -63,7 +63,7 @@ Exit criteria：
 核心功能：
 - Glover-Doyle style H-infinity synthesis backend。
 - Riccati 或 LMI solver path，回傳 residual、gamma、closed-loop poles。
-- Full DK-iteration：dynamic D scaling / K fitting，而不是目前的 static surrogate。
+- Full DK-iteration：dynamic D scaling / K fitting；目前已有 deterministic dynamic D-scaling fit 與 wrapper，後續可替換 K-step 為 full-order controller fitting backend。
 - Structured uncertainty block 定義：real scalar、complex scalar、full block。
 
 驗證基線：
@@ -144,12 +144,12 @@ Exit criteria：
 | `control-studio-system-auditor` | P1 | 盤點 plant / controller 是否具備基本可設計性 | TF/SS/ZPK、controller、mode | controllability / observability / poles / margins / risks | `CONTROL_SYSTEM_PLAN.md`, `test_control.js` |
 | `control-studio-robust-validator` | P1 | 建立 uncertainty 與 Monte Carlo robust validation 計畫 | nominal model、uncertainty ranges、specs | robust pass/fail、worst-case sample、fixtures | Phase 18 |
 | `control-studio-mimo-designer` | P1 | 協助 MIMO pairing、decoupling、loop-shaping 與 diagnostics | MIMO SS、channels、target bandwidth | RGA/SV/characteristic loci diagnosis、design sequence | Phase 9 / 17 |
-| `control-studio-mpc-designer` | P1 | 將 state-space plant 轉成 MPC tracking / constraints 設計流程 | A/B/C/D、Ts、horizon、Q/R、constraints | MPC config、feasibility notes、verification plan | Phase 10 / 11 / 20 |
+| `control-studio-mpc-designer` | P1 | 將 state-space plant 轉成 MPC tracking / constraints 設計流程 | A/B/C/D、Ts、horizon、Q/R、constraints | MPC config、feasibility notes、verification plan | Phase 10 / 11 / 20；project-local package done |
 | `control-studio-stability-prover` | P1 | 產生 Lyapunov / Riccati / margin 證明摘要 | A/B/C/D、Q/R、closed-loop A | proof object、residual、applicability warnings | Phase 7 / 10 / 11 |
-| `control-studio-sysid-planner` | P2 | 設計識別實驗與模型選型流程 | experiment goal、sample time、data columns | experiment signal、candidate models、validation plan | Phase 15 / 21 |
+| `control-studio-sysid-planner` | P2 | 設計識別實驗與模型選型流程 | experiment goal、sample time、data columns | experiment signal、candidate models、validation plan | Phase 15 / 21；project-local package done |
 | `control-studio-benchmark-author` | P1 | 為新控制案例建立數學推導與 regression fixture | scenario description、plant、controller target | markdown derivation、fixture skeleton、tolerances | `CONTROL_SYSTEM_VERIFICATION_CASES.md` |
 | `control-studio-codegen-reviewer` | P2 | 審查 MATLAB / Python / embedded codegen 是否與模型一致 | generated code、model config | mismatch report、runtime caveats | Phase 15 |
-| `control-studio-ui-verifier` | P2 | 用 browser 閉環檢查 SISO/MIMO/Robust/MPC UI 流程 | local URL、workflow checklist | UI issue list、screenshots、regression notes | `control_regression_dashboard.mjs` |
+| `control-studio-ui-verifier` | P2 | 用 browser 閉環檢查 SISO/MIMO/Robust/MPC UI 流程 | local URL、workflow checklist | UI issue list、screenshots、regression notes | `control_regression_dashboard.mjs`；project-local package done |
 
 ## Skill Implementation Contract
 
@@ -187,5 +187,5 @@ Skill 必須遵守：
 
 1. 後續 phase 進度先查 `control-studio/ROADMAP.md`；本文件只決定是否要建立或調整 skill。
 2. `control-studio-robust-validator`、`control-studio-system-auditor`、`control-studio-benchmark-author` baseline 已建立，應持續用於 robust validation、設計審查與 benchmark 建立。
-3. Phase 20 / 21 已有核心能力與全域 skill entry；下一步是依實際使用案例補 `control-studio-mpc-designer` 與 `control-studio-sysid-planner` 的 examples / references，而不是把所有 MPC/SysID 邏輯塞進 UI。
+3. Phase 20 / 21 已有核心能力，且 `control-studio-mpc-designer`、`control-studio-sysid-planner` 已補 project-local examples / references；後續只在實際使用案例出現新缺口時擴充。
 4. Phase 24 advanced MPC 已正式化 EMPC、Tube MPC、Explicit MPC；後續若把此流程產品化，應擴充 `control-studio-mpc-designer` 的 examples / references，涵蓋 economic objective、tube tightening 與 scalar explicit policy lookup。

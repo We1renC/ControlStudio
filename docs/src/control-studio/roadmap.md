@@ -1,7 +1,7 @@
 # ControlStudio Development Roadmap
 
 > Last updated: 2026-05-27
-> Current committed baseline: `feat(control): complete Tier H-J deployment baseline`
+> Current committed baseline: `feat(control): add dynamic DK and local skills`
 > Scope: this is the canonical execution roadmap for ControlStudio implementation status.
 > Do not use this file for product vision, proof derivations, or handoff notes; see the document workflow below.
 
@@ -51,11 +51,11 @@
 | P20 | MPC engineering: offset-free, move suppression, feasibility | Done | `verify_p20_mpc_engineering.mjs` |
 | P21 | Advanced SysID: OE / BJ / subspace / experiment signals | Done | `verify_p21_sysid_advanced.mjs` |
 | P22 | Verification infrastructure / cross-tool regression / CI | Done | `run_all_verify.sh`, `compare_python_control.py`, `.github/workflows/ci.yml` |
-| P23 | SysID gap closure: FRF, model order, MISO ARX | Mostly Done | `verify_p23_*.mjs` |
+| P23 | SysID gap closure: FRF, model order, MISO ARX, SRIVC | Done | `verify_p23_*.mjs`, `verify_b3_srivc.mjs` |
 | P24 | Advanced MPC: NMPC, EMPC, Tube MPC, Explicit MPC | Done | `verify_p24_nmpc.mjs`, `verify_p24_empc.mjs`, `verify_p24_tube_explicit_mpc.mjs` |
 | P25 | Model order reduction: minreal SS + balanced truncation + Hankel norm | Done | `verify_p25_model_reduction.mjs`, `verify_p25_hankel.mjs` |
 | P26 | Nonlinear control: gain scheduling + SMC + LPV | Done | `verify_p26_nonlinear.mjs`, `verify_p29_lpv.mjs` |
-| P27 | H∞ extensions: MIMO H∞ verify + loop shaping + D-K | Done | `verify_p27_mimo_hinf.mjs`, `verify_p27_loop_shaping.mjs`, `verify_p29_dk.mjs` |
+| P27 | H∞ extensions: MIMO H∞ verify + loop shaping + D-K | Done | `verify_p27_mimo_hinf.mjs`, `verify_p27_loop_shaping.mjs`, `verify_p29_dk.mjs`, `verify_p19_dynamic_dk.mjs` |
 | P28 | Infrastructure quality: TS definitions + JSDoc API docs + benchmark | Done | `control-studio/types/control-studio.d.ts`, `docs/api/index.html`, `benchmark.mjs` |
 | **P29** | **Numerical optimization core: QP / LP / SDP-LMI** | Done | `verify_p29_{qp,lp,sdp,lpv,dk}.mjs` — 43 scripts total |
 | **P30** | **Adaptive & learning control: RLS / MRAC / STR / ILC** | Done | `verify_p30_adaptive.mjs` |
@@ -163,12 +163,12 @@ Per `docs/src/control-studio/functional-roadmap.html`. Tier A-J deterministic ba
 
 ## Verification Suite Status (2026-05-27)
 
-**104/104 scripts pass** — run via `bash scripts/run_all_verify.sh`
+**105/105 scripts pass** — run via `bash scripts/run_all_verify.sh`
 
 | Group | Scripts | Pass |
 | --- | --- | --- |
 | Phase 9/10/11 foundations | 11 | 11 |
-| Phase 14–65 advanced control / UI | 66 | 66 |
+| Phase 14–65 advanced control / UI | 67 | 67 |
 | Math audit fixes | 1 | 1 |
 | Functional Roadmap A-J | 22 | 22 |
 | General math & PID | 4 | 4 |
@@ -325,7 +325,7 @@ Remaining P3-oriented UI/UX work should continue from the unchecked portions of 
 
 | Item | Status | Evidence |
 | --- | --- | --- |
-| P27-01 Full D-K iteration | Done | `dk_iteration.js` — `computeMuUpperBound/dkIteration`, `verify_p29_dk.mjs` |
+| P27-01 Full D-K iteration | Done | `dk_iteration.js` — `computeMuUpperBound/dkIteration`, dynamic `D(jω)` fit via `dkIterationDynamic`, `verify_p29_dk.mjs`, `verify_p19_dynamic_dk.mjs` |
 | P27-02 Loop-shaping H∞ | Done | `loopShapingHinf`, `verify_p27_loop_shaping.mjs` |
 | P27-03 MIMO H∞ verification | Done | `verify_p27_mimo_hinf.mjs` |
 
@@ -359,7 +359,7 @@ Remaining P3-oriented UI/UX work should continue from the unchecked portions of 
 | **P29-03 SDP / LMI solver** ✅ | ADMM splitting + PSD-cone projection (Jacobi eig) | `solveSDP(F0, Flist, c, opts)`, `solveLMIFeasibility`, `symmetricEig` (`verify_p29_sdp.mjs`, 12 tests) | 4d | P29-01 |
 | **P29-04 Retrofit MPC** ✅ | Replace inlined Hildreth QP in `mpc.js` with `solveQP`; adds general A·u≤b support | (internal `mpc.js`) | 1d | P29-01 |
 | **P29-05 Close LPV (P26-02)** ✅ | LMI-based LPV synthesis on parameter grid | `synthesizeLPV/analyzeLPV` in `js/control/lpv.js` (`verify_p29_lpv.mjs`, 14 tests) | 3d | P29-03 |
-| **P29-06 Close D-K (P27-01)** ✅ | μ upper bound via D-scaling + D-K iteration | `computeMuUpperBound/dkIteration` in `js/control/dk_iteration.js` (`verify_p29_dk.mjs`, 14 tests) | 4d | P29-03 |
+| **P29-06 Close D-K (P27-01)** ✅ | μ upper bound via D-scaling + dynamic D-K iteration | `computeMuUpperBound/dkIteration/dkIterationDynamic` in `js/control/dk_iteration.js` (`verify_p29_dk.mjs`, `verify_p19_dynamic_dk.mjs`) | 4d | P29-03 |
 
 ### P30 — Adaptive & Learning Control
 
@@ -436,7 +436,7 @@ shipping with a deterministic `verify_pNN_*.mjs` script wired into `run_all_veri
 | 2 | P29-02 LP solver | 2d | Completes the convex-program trio |
 | 3 | P29-03 SDP/LMI solver | 4d | Unblocks LPV + D-K |
 | 4 | P29-04 Retrofit MPC with `solveQP` | 1d | Hardens existing constrained MPC |
-| 5 | P29-05 / P29-06 Close LPV + D-K | 7d | Clears the two oldest "Planned" gaps |
+| 5 | P29-05 / P29-06 Close LPV + D-K | Done | Clears the two oldest "Planned" gaps |
 | 6 | P30 Adaptive & learning (RLS→MRAC→STR→ILC, +SRIVC) | 13d | New paradigm on top of SysID |
 | 7 | P31 Estimation & monitoring (MHE/PF/FDD/FTC) | 11d | New domain on top of EKF/UKF |
 | 8 | P32 Advanced nonlinear (FBL/backstepping/CBF) | 9d | Extends P26 |

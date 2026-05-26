@@ -78,6 +78,9 @@
   - `control-studio/js/integration/mqtt.js`
   - `control-studio/js/integration/timeseries.js`
   - `control-studio/js/math/lie_derivative.js`
+  - `skills/control-studio-mpc-designer/`
+  - `skills/control-studio-sysid-planner/`
+  - `skills/control-studio-ui-verifier/`
 - 分析模組：
   - `control-studio/js/analysis/time-response.js`
   - `control-studio/js/analysis/frequency-response.js`
@@ -136,6 +139,8 @@
 - Embedded deployment Tier H baseline：C/C++、Rust、Structured Text、AUTOSAR、FreeRTOS、CRC/watchdog safety wrapper templates
 - Runtime architecture Tier I baseline：WASM adapter、async compute worker facade、LRU memoization、streaming computation、cross-method check table
 - Hardware / HIL integration Tier J baseline：WebSocket HIL protocol、Serial codecs、OPC UA / Modbus / MQTT facades、InfluxDB / Prometheus query normalization
+- Dynamic D-K baseline：frequency-dependent D profile、log-linear `D(jω)` fit、dynamic D-K wrapper、mu-bound non-worsening fixture
+- Project-local agent skills：MPC designer、SysID planner、UI verifier workflow packages
 - Step Response
 - Impulse / Ramp / Sine / Square / Pulse response
 - Discrete step / impulse response
@@ -221,12 +226,9 @@
 - Verification：最新節點已通過 TF / SS / ZPK / C2D 與 PID regression（commit message 記錄 `36/36` 與 `21/21`）。
 
 ### 尚未完成能力
-- Phase 23 / Functional Roadmap Tier B：continuous-time identification 已補 SRIVC `identifyCT()` baseline；B4 GP regression、B5 Hammerstein/Wiener、B6 MIMO FRF identification 已完成 deterministic baseline；CONTSID 仍可作後續研究擴充。
-- Phase 24：advanced MPC 已完成；NMPC、EMPC、Tube MPC、Explicit MPC 均有 deterministic verification。
-- Phase 25：Hankel norm approximation 尚未提交。
-- Phase 26：LPV synthesis 尚未提交。
-- Phase 27：full D-K iteration / structured robust design 尚未提交；目前有 MIMO H∞ verification 與 loop-shaping H∞。
-- Phase 28：JSDoc API docs 尚未提交。
+- Functional Roadmap Tier A-J 已完成 deterministic baseline。
+- Phase 23 ~ Phase 28 舊缺口已同步收斂：continuous-time ID / Hankel norm / LPV synthesis / dynamic D-K / JSDoc API docs 均已有驗證基線。
+- CONTSID、full-order dynamic K fitting、industrial-grade μ synthesis backend 仍可作後續研究擴充，但不再列為目前阻塞項。
 - 自動產生報告 / 報告模板、Electron packaging、教學模式與 Block Diagram expansion 仍依使用者要求擱置。
 - 前端分析流程預設全面切到統一 API 尚未完成。
 
@@ -505,12 +507,12 @@
 - Done：Phase 20 MIMO MPC engineering workflow — offset-free tracking、move suppression、feasibility diagnostics、constraint handling，詳見 `verify_p20_mpc_engineering.mjs`。
 - Done：Phase 21 research-grade system identification — ARMAX / OE / BJ / subspace ID、experiment design、residual validation、uncertainty export，詳見 `verify_p21_sysid_advanced.mjs`。
 - Done：Phase 22 benchmark + cross-tool validation — full verification runner、cross-tool comparison、CI workflow、benchmark script。
-- Mostly Done：Phase 23 agentic / SysID gap closure — structured review skills、FRF estimation、model order selection、MISO ARX、SRIVC `identifyCT()` baseline，以及 Functional Roadmap B4 GP regression、B5 Hammerstein/Wiener、B6 MIMO FRF identification baseline；CONTSID 仍可作後續研究擴充。
+- Done：Phase 23 agentic / SysID gap closure — structured review skills、FRF estimation、model order selection、MISO ARX、SRIVC `identifyCT()` baseline，以及 Functional Roadmap B4 GP regression、B5 Hammerstein/Wiener、B6 MIMO FRF identification baseline；CONTSID 仍可作後續研究擴充。
 - Done：Phase 24 advanced MPC — NMPC、EMPC、Tube MPC、Explicit MPC，含 `verify_p24_nmpc.mjs`、`verify_p24_empc.mjs`、`verify_p24_tube_explicit_mpc.mjs`。
-- Mostly Done：Phase 25 model order reduction — balanced truncation 與 SS minreal 已提交；Hankel norm approximation 尚未提交。
-- Mostly Done：Phase 26 nonlinear control — gain-scheduled PID 與 sliding mode control 已提交；LPV synthesis 尚未提交。
-- Mostly Done：Phase 27 H∞ design extensions — MIMO H∞ verification 與 loop-shaping H∞ 已提交；full D-K iteration 尚未提交。
-- Mostly Done：Phase 28 infrastructure quality — TypeScript definitions 與 benchmark script 已提交；JSDoc API docs 尚未提交。
+- Done：Phase 25 model order reduction — balanced truncation、SS minreal、Hankel norm approximation 已提交。
+- Done：Phase 26 nonlinear control — gain-scheduled PID、sliding mode control、LPV synthesis 已提交。
+- Done：Phase 27 H∞ design extensions — MIMO H∞ verification、loop-shaping H∞、static/dynamic D-K baseline 已提交。
+- Done：Phase 28 infrastructure quality — TypeScript definitions、benchmark script、JSDoc API docs 已提交。
 - Done：Math-core audit round 2 — 三項修正：(A1) `stabilityMargins()` 改為收集所有增益/相位交越點，回傳最壞情況 PM/GM，修正非最小相位系統只回傳第一個交越的問題；(A2) `matDet()` 加入 `_matDetLU()` fallback，n>6 改用 O(n³) LU 消去而非 O(n!) 餘因子遞迴，並補 n=3 Sarrus 閉合公式；(A3) `sortRootLocusBranches()` 改用 Jonker-Volgenant O(n³) Hungarian 最優分配，取代 greedy nearest-neighbor，消除根軌跡分支在實軸附近交越時的視覺錯位。verify baseline 升至 82/82。
 - Execution roadmap：詳細執行看板與文件工作流以 `control-studio/ROADMAP.md` 為準；本文件保留產品/架構層級摘要。
 

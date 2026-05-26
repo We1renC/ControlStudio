@@ -1,0 +1,3 @@
+display_name: ControlStudio SysID Planner
+short_description: Plan and validate system-identification workflows.
+default_prompt: Build a ControlStudio system-identification plan with experiment signal, model families, validation checks, and uncertainty handoff.

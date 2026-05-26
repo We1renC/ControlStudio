@@ -1,0 +1,3 @@
+display_name: ControlStudio UI Verifier
+short_description: Verify ControlStudio browser UI workflows.
+default_prompt: Test a ControlStudio browser workflow, capture UI issues with evidence, and map findings to deterministic verification steps.

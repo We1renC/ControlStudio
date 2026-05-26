@@ -1,0 +1,3 @@
+display_name: ControlStudio MPC Designer
+short_description: Design and validate MPC workflows.
+default_prompt: Design a ControlStudio MPC configuration with model validation, constraints, feasibility diagnostics, and deterministic verification steps.

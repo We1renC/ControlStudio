@@ -121,6 +121,7 @@ del{color:var(--muted)}
 <li>2026-05-27 接續 Functional Roadmap D2-D6：新增 <code>js/optimization/admm_qp.js</code>、<code>sqp.js</code>、<code>milp.js</code>、<code>lbfgs_trust.js</code>、<code>mixed_integer_mpc.js</code>，提供 ADMM box-QP、SQP/multiple shooting、binary MILP/knapsack/TSP、L-BFGS/trust-region、switched-system MIMPC baseline；新增 <code>verify_d2_d6_optimization.mjs</code> 並納入 <code>run_all_verify.sh</code>，最新基線升至 <strong>102/102 scripts pass</strong>。</li>
 <li>2026-05-27 接續完成 Functional Roadmap Tier A-G 剩餘 baseline：新增 <code>js/math/qz_descriptor.js</code>、<code>krylov.js</code>、<code>js/verification/{cbf,formal,importance_sampling}.js</code>、<code>js/control/{stochastic_mpc,distributed_mpc,hybrid_mpc,nmpc_warmstart}.js</code>；涵蓋 E3/E6、F2/F3/F5、G1/G3/G4/G5，新增 <code>verify_efg_remaining.mjs</code> 並納入 <code>run_all_verify.sh</code>，最新基線升至 <strong>103/103 scripts pass</strong>。</li>
 <li>2026-05-27 接續完成 Functional Roadmap Tier H-I-J deployment/runtime/integration baseline：新增 <code>js/codegen/<em></code>、<code>js/wasm/loader.js</code>、<code>js/workers/compute_worker.js</code>、<code>js/runtime/</em></code>、<code>js/integration/*</code>，涵蓋 C/Rust/ST/AUTOSAR/FreeRTOS codegen、safety wrapper、WASM adapter、worker/memo/stream/cross-check、HIL/Serial/OPC UA/Modbus/MQTT/TSDB facades；新增 <code>verify_hij_deployment_runtime_integration.mjs</code> 並納入 <code>run_all_verify.sh</code>，最新基線升至 <strong>104/104 scripts pass</strong>。</li>
+<li>2026-05-27 接續完成 Phase 19 dynamic D-K 與 project-local skill gaps：<code>dk_iteration.js</code> 新增 <code>fitDynamicDScaling</code>、<code>evaluateDynamicDScaling</code>、<code>computeDynamicMuBoundFreq</code>、<code>dkIterationDynamic</code>，新增 <code>verify_p19_dynamic_dk.mjs</code>；同時補 <code>control-studio-mpc-designer</code>、<code>control-studio-sysid-planner</code>、<code>control-studio-ui-verifier</code> 三個專案 skills，最新基線升至 <strong>105/105 scripts pass</strong>。</li>
 </ul>
 <li>已完成 NVIDIA Build Models 資料集中管理。</li>
 <li>已新增 agent 入口文件：</li>
@@ -251,16 +252,16 @@ del{color:var(--muted)}
 <li>Done：<code>skills/control-studio-robust-validator/</code> skill baseline。</li>
 <li>Done：<code>skills/control-studio-system-auditor/</code> 與 <code>skills/control-studio-benchmark-author/</code> skill baseline。</li>
 <li>Done：Robust Validation UI panel，接上 Phase 18 core；Playwright/Chrome walkthrough 已確認 button/output/chart。</li>
-<li>Done：Phase 19 H∞ Riccati synthesis baseline；full D-K iteration 仍列為 P27 gap。</li>
+<li>Done：Phase 19 H∞ Riccati synthesis baseline；dynamic D-scaling fit 與 dynamic D-K wrapper 已補齊目前 P27 gap。</li>
 <li>Done：Phase 20 MIMO MPC engineering workflow，含 offset-free tracking、move suppression、constraints、feasibility diagnostics。</li>
 <li>Done：Phase 21 research-grade system identification，含 ARMAX / OE / BJ / subspace ID、experiment design、residual validation、uncertainty export。</li>
 <li>Done：Phase 22 benchmark + cross-tool validation，含 CI、cross-tool comparison、full verification runner、benchmark script。</li>
-<li>Mostly Done：Phase 23 agentic / SysID gap closure；FRF、model order、MISO ARX 已提交，CONTSID / SRIVC 尚未提交。</li>
+<li>Done：Phase 23 agentic / SysID gap closure；FRF、model order、MISO ARX、SRIVC baseline 與 project-local UI verifier skill 已提交，CONTSID 可作後續研究擴充。</li>
 <li>Done：Phase 24 advanced MPC；NMPC、EMPC、Tube MPC、Explicit MPC 已提交，含 deterministic regression runners。</li>
-<li>Mostly Done：Phase 25 model order reduction；balanced truncation / SS minreal 已提交，Hankel norm approximation 尚未提交。</li>
-<li>Mostly Done：Phase 26 nonlinear control；gain-scheduled PID / SMC 已提交，LPV synthesis 尚未提交。</li>
-<li>Mostly Done：Phase 27 H∞ design extensions；MIMO H∞ verification / loop-shaping H∞ 已提交，full D-K iteration 尚未提交。</li>
-<li>Mostly Done：Phase 28 infrastructure quality；TypeScript definitions / benchmark 已提交，JSDoc API docs 尚未提交。</li>
+<li>Done：Phase 25 model order reduction；balanced truncation / SS minreal / Hankel norm approximation 已提交。</li>
+<li>Done：Phase 26 nonlinear control；gain-scheduled PID / SMC / LPV synthesis 已提交。</li>
+<li>Done：Phase 27 H∞ design extensions；MIMO H∞ verification / loop-shaping H∞ / static and dynamic D-K baseline 已提交。</li>
+<li>Done：Phase 28 infrastructure quality；TypeScript definitions / benchmark / JSDoc API docs 已提交。</li>
 <li>主執行看板：<code>control-studio/ROADMAP.md</code>。若 phase status、下一步順序或 dirty worktree 分類改變，先更新 roadmap，再同步 backlog / plan / skills / scenarios / verification cases / continuation。</li>
 <li>Skill plan：<code>CONTROL_SYSTEM_SKILLS_PLAN.md</code> 已規劃 <code>control-studio-robust-validator</code>、<code>control-studio-system-auditor</code>、<code>control-studio-benchmark-author</code>、<code>control-studio-mpc-designer</code>、<code>control-studio-sysid-planner</code> 等候選 skill。</li>
 </ul>
@@ -348,8 +349,8 @@ git log --oneline -5
 <li><code>CONTROL_SYSTEM_PLAN.md</code> 已整理控制系統盤點、MVP 範圍與後續 roadmap。</li>
 <li><code>CONTROL_SYSTEM_VERIFICATION_CASES.md</code> 已定義五個具數學推導的控制系統驗證案例，涵蓋一階、二階欠阻尼、初始不穩定/pole-zero/低 PM、RHP zero、State-Space 等價。</li>
 <li><code>control-studio/ROADMAP.md</code> 已整併為 ControlStudio 主執行看板，記錄 P23~P28 進度、dirty worktree 分類、文件工作流與下一步順序；P24 advanced MPC 已完成。</li>
-<li><code>CONTROL_SYSTEM_BACKLOG.md</code> 已改為 detailed task ledger；目前 Phase 0~24 已完成，P25/P26/P27/P28 mostly done。</li>
-<li><code>CONTROL_SYSTEM_SKILLS_PLAN.md</code> 已新增 Phase 18+ skill candidates，且 <code>control-studio-robust-validator</code>、<code>control-studio-system-auditor</code>、<code>control-studio-benchmark-author</code> baseline 已建立；MPC / SysID / UI verifier 目前以全域 skill 或候選工作流存在，專案版 examples / references 可後續補。</li>
+<li><code>CONTROL_SYSTEM_BACKLOG.md</code> 已改為 detailed task ledger；目前 Phase 0~28 與 Functional Roadmap Tier A-J 均已完成 deterministic baseline。</li>
+<li><code>CONTROL_SYSTEM_SKILLS_PLAN.md</code> 已新增 Phase 18+ skill candidates，且 <code>control-studio-robust-validator</code>、<code>control-studio-system-auditor</code>、<code>control-studio-benchmark-author</code>、<code>control-studio-mpc-designer</code>、<code>control-studio-sysid-planner</code>、<code>control-studio-ui-verifier</code> baseline 已建立。</li>
 <li><code>control-studio</code> 已補上 State Space（SISO）輸入、Step/Impulse/Ramp 切換、Nyquist Plot、project save/load 與 JSON/CSV 匯出。</li>
 <li><code>control-studio</code> UI 已改成 sidebar workspace tabs（Model / Sim / Advisor / Compare），並支援 comparison snapshots 疊圖比較。</li>
 <li><code>control-studio</code> plot workspace 已改為固定 <code>主圖全寬 + 下排兩張 companion charts</code>；各 plot tab 有明確 main / companion mapping，<code>Root Locus</code> 主圖時左下為 <code>Step @ K</code>，<code>Pole-Zero</code> 主圖時下排改顯示 <code>Step Response + Bode Plot</code>，避免重複圖表。</li>

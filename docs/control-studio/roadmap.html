@@ -87,7 +87,7 @@ del{color:var(--muted)}
 
 <blockquote>
 <p>Last updated: 2026-05-27</p>
-<p>Current committed baseline: <code>feat(control): complete Tier H-J deployment baseline</code></p>
+<p>Current committed baseline: <code>feat(control): add dynamic DK and local skills</code></p>
 <p>Scope: this is the canonical execution roadmap for ControlStudio implementation status.</p>
 <p>Do not use this file for product vision, proof derivations, or handoff notes; see the document workflow below.</p>
 </blockquote>
@@ -162,7 +162,7 @@ del{color:var(--muted)}
 </thead><tbody>
 <tr><td>P22</td><td>Verification infrastructure / cross-tool regression / CI</td><td>Done</td><td><code>run_all_verify.sh</code>, <code>compare_python_control.py</code>, <code>.github/workflows/ci.yml</code></td></tr>
 </thead><tbody>
-<tr><td>P23</td><td>SysID gap closure: FRF, model order, MISO ARX</td><td>Mostly Done</td><td><code>verify_p23_*.mjs</code></td></tr>
+<tr><td>P23</td><td>SysID gap closure: FRF, model order, MISO ARX, SRIVC</td><td>Done</td><td><code>verify_p23_*.mjs</code>, <code>verify_b3_srivc.mjs</code></td></tr>
 </thead><tbody>
 <tr><td>P24</td><td>Advanced MPC: NMPC, EMPC, Tube MPC, Explicit MPC</td><td>Done</td><td><code>verify_p24_nmpc.mjs</code>, <code>verify_p24_empc.mjs</code>, <code>verify_p24_tube_explicit_mpc.mjs</code></td></tr>
 </thead><tbody>
@@ -170,7 +170,7 @@ del{color:var(--muted)}
 </thead><tbody>
 <tr><td>P26</td><td>Nonlinear control: gain scheduling + SMC + LPV</td><td>Done</td><td><code>verify_p26_nonlinear.mjs</code>, <code>verify_p29_lpv.mjs</code></td></tr>
 </thead><tbody>
-<tr><td>P27</td><td>H∞ extensions: MIMO H∞ verify + loop shaping + D-K</td><td>Done</td><td><code>verify_p27_mimo_hinf.mjs</code>, <code>verify_p27_loop_shaping.mjs</code>, <code>verify_p29_dk.mjs</code></td></tr>
+<tr><td>P27</td><td>H∞ extensions: MIMO H∞ verify + loop shaping + D-K</td><td>Done</td><td><code>verify_p27_mimo_hinf.mjs</code>, <code>verify_p27_loop_shaping.mjs</code>, <code>verify_p29_dk.mjs</code>, <code>verify_p19_dynamic_dk.mjs</code></td></tr>
 </thead><tbody>
 <tr><td>P28</td><td>Infrastructure quality: TS definitions + JSDoc API docs + benchmark</td><td>Done</td><td><code>control-studio/types/control-studio.d.ts</code>, <code>docs/api/index.html</code>, <code>benchmark.mjs</code></td></tr>
 </thead><tbody>
@@ -377,14 +377,14 @@ del{color:var(--muted)}
 
 <h2 id="verification-suite-status-2026-05-27">Verification Suite Status (2026-05-27)</h2>
 
-<p><strong>104/104 scripts pass</strong> — run via <code>bash scripts/run_all_verify.sh</code></p>
+<p><strong>105/105 scripts pass</strong> — run via <code>bash scripts/run_all_verify.sh</code></p>
 
 <table><thead>
 <tr><th>Group</th><th>Scripts</th><th>Pass</th></tr>
 </thead><tbody>
 <tr><td>Phase 9/10/11 foundations</td><td>11</td><td>11</td></tr>
 </thead><tbody>
-<tr><td>Phase 14–65 advanced control / UI</td><td>66</td><td>66</td></tr>
+<tr><td>Phase 14–65 advanced control / UI</td><td>67</td><td>67</td></tr>
 </thead><tbody>
 <tr><td>Math audit fixes</td><td>1</td><td>1</td></tr>
 </thead><tbody>
@@ -624,7 +624,7 @@ del{color:var(--muted)}
 <table><thead>
 <tr><th>Item</th><th>Status</th><th>Evidence</th></tr>
 </thead><tbody>
-<tr><td>P27-01 Full D-K iteration</td><td>Done</td><td><code>dk_iteration.js</code> — <code>computeMuUpperBound/dkIteration</code>, <code>verify_p29_dk.mjs</code></td></tr>
+<tr><td>P27-01 Full D-K iteration</td><td>Done</td><td><code>dk_iteration.js</code> — <code>computeMuUpperBound/dkIteration</code>, dynamic <code>D(jω)</code> fit via <code>dkIterationDynamic</code>, <code>verify_p29_dk.mjs</code>, <code>verify_p19_dynamic_dk.mjs</code></td></tr>
 </thead><tbody>
 <tr><td>P27-02 Loop-shaping H∞</td><td>Done</td><td><code>loopShapingHinf</code>, <code>verify_p27_loop_shaping.mjs</code></td></tr>
 </thead><tbody>
@@ -675,7 +675,7 @@ del{color:var(--muted)}
 </thead><tbody>
 <tr><td><strong>P29-05 Close LPV (P26-02)</strong> ✅</td><td>LMI-based LPV synthesis on parameter grid</td><td><code>synthesizeLPV/analyzeLPV</code> in <code>js/control/lpv.js</code> (<code>verify_p29_lpv.mjs</code>, 14 tests)</td><td>3d</td><td>P29-03</td></tr>
 </thead><tbody>
-<tr><td><strong>P29-06 Close D-K (P27-01)</strong> ✅</td><td>μ upper bound via D-scaling + D-K iteration</td><td><code>computeMuUpperBound/dkIteration</code> in <code>js/control/dk_iteration.js</code> (<code>verify_p29_dk.mjs</code>, 14 tests)</td><td>4d</td><td>P29-03</td></tr>
+<tr><td><strong>P29-06 Close D-K (P27-01)</strong> ✅</td><td>μ upper bound via D-scaling + dynamic D-K iteration</td><td><code>computeMuUpperBound/dkIteration/dkIterationDynamic</code> in <code>js/control/dk_iteration.js</code> (<code>verify_p29_dk.mjs</code>, <code>verify_p19_dynamic_dk.mjs</code>)</td><td>4d</td><td>P29-03</td></tr>
 </tbody></table>
 
 <h3 id="p30-adaptive-learning-control">P30 — Adaptive &amp; Learning Control</h3>
@@ -795,7 +795,7 @@ del{color:var(--muted)}
 </thead><tbody>
 <tr><td>4</td><td>P29-04 Retrofit MPC with <code>solveQP</code></td><td>1d</td><td>Hardens existing constrained MPC</td></tr>
 </thead><tbody>
-<tr><td>5</td><td>P29-05 / P29-06 Close LPV + D-K</td><td>7d</td><td>Clears the two oldest "Planned" gaps</td></tr>
+<tr><td>5</td><td>P29-05 / P29-06 Close LPV + D-K</td><td>Done</td><td>Clears the two oldest "Planned" gaps</td></tr>
 </thead><tbody>
 <tr><td>6</td><td>P30 Adaptive &amp; learning (RLS→MRAC→STR→ILC, +SRIVC)</td><td>13d</td><td>New paradigm on top of SysID</td></tr>
 </thead><tbody>

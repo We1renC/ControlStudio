@@ -101,7 +101,7 @@ del{color:var(--muted)}
 <ul>
 <li>Block Diagram 暫時擱置，不在近期主線投入新功能。</li>
 <li>Phase 0-22 已完成主線：SISO 全鏈、State Feedback / Lyapunov / LQR、Observer / Kalman / LQG、MIMO 基礎與設計、MPC / Robust baseline、P12~P17 product maturity、P18 robust validation、P19 H∞ Riccati baseline、P20 MPC engineering、P21 advanced SysID、P22 verification infrastructure。</li>
-<li>Phase 23-28 目前狀態以 <code>control-studio/ROADMAP.md</code> 為準：P23/P25/P26/P27/P28 mostly done；P24 advanced MPC in progress。</li>
+<li>Phase 23-28 目前狀態以 <code>control-studio/ROADMAP.md</code> 為準：P23/P24/P25/P26/P27/P28 均已完成目前 deterministic baseline。</li>
 <li><code>CONTROL_SYSTEM_PHASE10_PLAN.md</code> 已屬歷史設計基線；目前主線已超過該文件。</li>
 <li>使用者已要求擱置：教學模式、Electron packaging、報告模板 / 報告自動化。</li>
 <li>每個功能必須有數學推導或 fixture 驗證，不只看 UI 是否可操作。</li>
@@ -131,7 +131,7 @@ del{color:var(--muted)}
 <ul>
 <li>Branch: <code>main</code></li>
 <li>Latest synced commit: <code>1259565 feat(p27-p28): loop shaping H∞ + TypeScript type definitions</code></li>
-<li>Current checkpoint: <strong>CS-P0 ~ CS-P24 done; P25/P26/P27/P28 mostly done.</strong> 詳細執行看板見 <code>control-studio/ROADMAP.md</code>。目前主要未完成項目是 P27 full D-K iteration、P28 JSDoc API docs、P23 continuous-time identification、P25 Hankel norm approximation 與 P26 LPV synthesis。</li>
+<li>Current checkpoint: <strong>CS-P0 ~ CS-P28 done; Functional Roadmap Tier A-J done; Phase 19/20/21/23 project-local skill gaps closed.</strong> 詳細執行看板見 <code>control-studio/ROADMAP.md</code>。目前僅暫停項目維持不做：教學模式、Electron packaging、報告模板 / 報告自動化、Block Diagram expansion。</li>
 <li>Functional Roadmap Tier A-J checkpoint：Tier A control algorithms、Tier B identification、Tier C estimation、Tier D optimization、Tier E numerical repair、Tier F verification/safety、Tier G advanced MPC、Tier H embedded deployment、Tier I runtime architecture、Tier J HIL/integration 均已有 deterministic verification baseline；最新 full suite 基線見 <code>control-studio/ROADMAP.md</code>。</li>
 <li>Scenario 5 browser walkthrough result: Phase 10 math + UI both operational.</li>
 <li>Scenario 6 browser walkthrough result: SISO / MIMO core workflows are UI-operable.</li>
@@ -602,7 +602,7 @@ del{color:var(--muted)}
 </thead><tbody>
 <tr><td>CS-P19-02</td><td>P2</td><td>Done</td><td>Glover-Doyle H∞ synthesis</td><td>取代 browser-side heuristic optimizer 的 full-order path</td><td>CS-P19-01</td><td>residual + gamma golden cases</td></tr>
 </thead><tbody>
-<tr><td>CS-P19-03</td><td>P2</td><td>Planned</td><td>Full DK-iteration</td><td>dynamic D scaling / K fitting，取代 static surrogate；目前仍由 P27 gap 追蹤</td><td>CS-P19-02</td><td>mu upper-bound non-worsening fixtures</td></tr>
+<tr><td>CS-P19-03</td><td>P2</td><td>Done</td><td>Full DK-iteration</td><td>dynamic D-scaling fit keeps reusable <code>D(jω)</code> model and dynamic D-K wrapper，取代只保留 peak-frequency constant D 的缺口</td><td>CS-P19-02</td><td><code>verify_p19_dynamic_dk.mjs</code></td></tr>
 </tbody></table>
 
 <h3 id="phase-20-mimo-mpc-engineering-workflow-cs-p20">Phase 20: MIMO MPC Engineering Workflow (CS-P20)</h3>
@@ -616,7 +616,7 @@ del{color:var(--muted)}
 </thead><tbody>
 <tr><td>CS-P20-03</td><td>P2</td><td>Done</td><td>Feasibility diagnostics</td><td>不可行時指出 constraint conflict</td><td>QP solver</td><td>infeasible setpoint fixture</td></tr>
 </thead><tbody>
-<tr><td>CS-P20-04</td><td>P1</td><td>Planned</td><td>Project-local <code>control-studio-mpc-designer</code> skill package</td><td>將 MPC 建模、權重、constraint 設計流程標準化；目前已有全域 skill，可視需要回寫專案版 examples / references</td><td><code>CONTROL_SYSTEM_SKILLS_PLAN.md</code></td><td>sample MPC design checklist</td></tr>
+<tr><td>CS-P20-04</td><td>P1</td><td>Done</td><td>Project-local <code>control-studio-mpc-designer</code> skill package</td><td>將 MPC 建模、權重、constraint 設計流程標準化；已補專案版 references / examples / agent metadata</td><td><code>CONTROL_SYSTEM_SKILLS_PLAN.md</code></td><td><code>skills/control-studio-mpc-designer/</code></td></tr>
 </tbody></table>
 
 <h3 id="phase-21-research-grade-system-identification-cs-p21">Phase 21: Research-Grade System Identification (CS-P21)</h3>
@@ -632,7 +632,7 @@ del{color:var(--muted)}
 </thead><tbody>
 <tr><td>CS-P21-04</td><td>P1</td><td>Done</td><td>Residual validation + uncertainty export</td><td>讓 sysid 結果可接 Phase 18 robust validation</td><td>CS-P18</td><td>whiteness + uncertainty fixtures</td></tr>
 </thead><tbody>
-<tr><td>CS-P21-05</td><td>P2</td><td>Planned</td><td>Project-local <code>control-studio-sysid-planner</code> skill package</td><td>將實驗設計與模型選型流程抽成 agent skill；目前已有全域 skill，可視需要回寫專案版 examples / references</td><td><code>CONTROL_SYSTEM_SKILLS_PLAN.md</code></td><td>sample sysid plan</td></tr>
+<tr><td>CS-P21-05</td><td>P2</td><td>Done</td><td>Project-local <code>control-studio-sysid-planner</code> skill package</td><td>將實驗設計、模型族選型、殘差驗證與 uncertainty handoff 抽成 agent skill</td><td><code>CONTROL_SYSTEM_SKILLS_PLAN.md</code></td><td><code>skills/control-studio-sysid-planner/</code></td></tr>
 </tbody></table>
 
 <h3 id="phase-22-benchmark-cross-tool-validation-cs-p22">Phase 22: Benchmark + Cross-Tool Validation (CS-P22)</h3>
@@ -656,7 +656,7 @@ del{color:var(--muted)}
 </thead><tbody>
 <tr><td>CS-P23-02</td><td>P1</td><td>Done</td><td><code>control-studio-system-auditor</code> skill</td><td>讓 agent 能先做 plant/controller 審查再開發</td><td><code>CONTROL_SYSTEM_SKILLS_PLAN.md</code></td><td>audit checklist examples</td></tr>
 </thead><tbody>
-<tr><td>CS-P23-03</td><td>P2</td><td>Planned</td><td>Project-local <code>control-studio-ui-verifier</code> skill package</td><td>將 browser UI walkthrough 標準化；目前已有全域 skill，可視需要回寫專案版 examples / references</td><td>browser smoke</td><td>UI issue report example</td></tr>
+<tr><td>CS-P23-03</td><td>P2</td><td>Done</td><td>Project-local <code>control-studio-ui-verifier</code> skill package</td><td>將 browser UI walkthrough、SISO/MIMO mode switching、plot/legend 與 issue report 標準化</td><td>browser smoke</td><td><code>skills/control-studio-ui-verifier/</code></td></tr>
 </tbody></table>
 
 <h3 id="phase-24-advanced-mpc-cs-p24">Phase 24: Advanced MPC (CS-P24)</h3>
@@ -680,7 +680,7 @@ del{color:var(--muted)}
 </thead><tbody>
 <tr><td>CS-P25-01</td><td>P1</td><td>Done</td><td>Balanced truncation</td><td>對高階 plant 產生低階控制設計模型</td><td>matrix / state-space core</td><td><code>verify_p25_model_reduction.mjs</code></td></tr>
 </thead><tbody>
-<tr><td>CS-P25-02</td><td>P2</td><td>Planned</td><td>Hankel norm approximation</td><td>補更研究級的 model reduction 誤差界工具</td><td>CS-P25-01</td><td>Hankel singular value fixture</td></tr>
+<tr><td>CS-P25-02</td><td>P2</td><td>Done</td><td>Hankel norm approximation</td><td>補更研究級的 model reduction 誤差界工具</td><td>CS-P25-01</td><td><code>verify_p25_hankel.mjs</code></td></tr>
 </thead><tbody>
 <tr><td>CS-P25-03</td><td>P1</td><td>Done</td><td>SS minreal / Kalman decomposition</td><td>移除不可控/不可觀 mode，降低 controller design 風險</td><td>state-space core</td><td><code>verify_p25_model_reduction.mjs</code></td></tr>
 </tbody></table>
@@ -692,7 +692,7 @@ del{color:var(--muted)}
 </thead><tbody>
 <tr><td>CS-P26-01</td><td>P1</td><td>Done</td><td>Gain-scheduled PID</td><td>支援 operating-region dependent PID baseline</td><td>PID + nonlinear core</td><td><code>verify_p26_nonlinear.mjs</code></td></tr>
 </thead><tbody>
-<tr><td>CS-P26-02</td><td>P2</td><td>Planned</td><td>LPV synthesis</td><td>將 gain scheduling 推進到更正式的 LPV design path</td><td>CS-P26-01</td><td>LPV scheduling fixture</td></tr>
+<tr><td>CS-P26-02</td><td>P2</td><td>Done</td><td>LPV synthesis</td><td>將 gain scheduling 推進到更正式的 LPV design path</td><td>CS-P26-01</td><td><code>verify_p29_lpv.mjs</code></td></tr>
 </thead><tbody>
 <tr><td>CS-P26-03</td><td>P1</td><td>Done</td><td>Sliding mode control</td><td>提供 robust nonlinear control baseline</td><td>nonlinear core</td><td><code>verify_p26_nonlinear.mjs</code></td></tr>
 </tbody></table>
@@ -702,7 +702,7 @@ del{color:var(--muted)}
 <table><thead>
 <tr><th>ID</th><th>Priority</th><th>Status</th><th>Item</th><th>Rationale</th><th>Dependencies</th><th>Verification</th></tr>
 </thead><tbody>
-<tr><td>CS-P27-01</td><td>P1</td><td>Planned</td><td>Full D-K iteration</td><td>目前 structured μ 仍是 surrogate / baseline；full-order dynamic D/K fitting 尚未完成</td><td>Phase 19</td><td>mu non-worsening fixture</td></tr>
+<tr><td>CS-P27-01</td><td>P1</td><td>Done</td><td>Full D-K iteration</td><td>dynamic D-scaling fit and dynamic D-K wrapper are implemented; future backend may replace static K-step with full-order controller fitting</td><td>Phase 19</td><td><code>verify_p19_dynamic_dk.mjs</code>, <code>verify_p29_dk.mjs</code></td></tr>
 </thead><tbody>
 <tr><td>CS-P27-02</td><td>P1</td><td>Done</td><td>Loop-shaping H∞</td><td>補 weighted loop-shaping design workflow</td><td>Phase 19</td><td><code>verify_p27_loop_shaping.mjs</code></td></tr>
 </thead><tbody>
@@ -716,7 +716,7 @@ del{color:var(--muted)}
 </thead><tbody>
 <tr><td>CS-P28-01</td><td>P1</td><td>Done</td><td>TypeScript definitions</td><td>讓外部工具與 agent 可引用穩定 API surface</td><td>current JS modules</td><td><code>control-studio/types/control-studio.d.ts</code></td></tr>
 </thead><tbody>
-<tr><td>CS-P28-02</td><td>P2</td><td>Planned</td><td>JSDoc API docs</td><td>將核心模組文件化，降低後續 agent 誤用數學 API 的風險</td><td>CS-P28-01</td><td>generated docs smoke</td></tr>
+<tr><td>CS-P28-02</td><td>P2</td><td>Done</td><td>JSDoc API docs</td><td>將核心模組文件化，降低後續 agent 誤用數學 API 的風險</td><td>CS-P28-01</td><td><code>control-studio/docs/api/index.html</code></td></tr>
 </thead><tbody>
 <tr><td>CS-P28-03</td><td>P1</td><td>Done</td><td>Performance benchmark</td><td>追蹤數學核心與控制演算法速度退化</td><td>verification runners</td><td><code>control-studio/scripts/benchmark.mjs</code></td></tr>
 </tbody></table>
