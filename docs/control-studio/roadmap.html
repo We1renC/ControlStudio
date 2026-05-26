@@ -86,8 +86,8 @@ del{color:var(--muted)}
 <h1 id="controlstudio-development-roadmap">ControlStudio Development Roadmap</h1>
 
 <blockquote>
-<p>Last updated: 2026-05-24</p>
-<p>Current committed baseline: <code>feat(control): add roadmap tier A-G sprint baseline</code></p>
+<p>Last updated: 2026-05-26</p>
+<p>Current committed baseline: <code>feat(control): add A3 super-twisting SMC baseline</code></p>
 <p>Scope: this is the canonical execution roadmap for ControlStudio implementation status.</p>
 <p>Do not use this file for product vision, proof derivations, or handoff notes; see the document workflow below.</p>
 </blockquote>
@@ -264,6 +264,8 @@ del{color:var(--muted)}
 </thead><tbody>
 <tr><td><strong>A2</strong></td><td>ILC (Iterative Learning Control)</td><td>Done</td><td><code>verify_a2_ilc.mjs</code></td><td>P-type / PD-type / NOILC; lifted Toeplitz formulation</td></tr>
 </thead><tbody>
+<tr><td><strong>A3</strong></td><td>SMC + Super-twisting</td><td>Done</td><td><code>verify_a3_smc.mjs</code></td><td>Classical / boundary-layer / super-twisting SMC; chattering index and reaching-time guard</td></tr>
+</thead><tbody>
 <tr><td><strong>B1</strong></td><td>SINDy</td><td>Done</td><td><code>verify_b1_sindy.mjs</code></td><td>Sparse polynomial library + STLSQ recovery on synthetic nonlinear dynamics</td></tr>
 </thead><tbody>
 <tr><td><strong>D1</strong></td><td>Active-set QP + warm-start</td><td>Done</td><td><code>verify_d1_qp_activeset.mjs</code></td><td>KKT residual, feasibility, warm-start, MPC-like QP, infeasible / non-PSD guards</td></tr>
@@ -285,9 +287,9 @@ del{color:var(--muted)}
 <tr><td><strong>G2</strong></td><td>MPC Move Blocking</td><td>Done</td><td><code>verify_g2_move_blocking.mjs</code></td><td>block expansion matrix + condensed QP; singleton-equivalence verified</td></tr>
 </tbody></table>
 
-<h2 id="verification-suite-status-2026-05-24">Verification Suite Status (2026-05-24)</h2>
+<h2 id="verification-suite-status-2026-05-26">Verification Suite Status (2026-05-26)</h2>
 
-<p><strong>94/94 scripts pass</strong> — run via <code>bash scripts/run_all_verify.sh</code></p>
+<p><strong>95/95 scripts pass</strong> — run via <code>bash scripts/run_all_verify.sh</code></p>
 
 <table><thead>
 <tr><th>Group</th><th>Scripts</th><th>Pass</th></tr>
@@ -298,7 +300,7 @@ del{color:var(--muted)}
 </thead><tbody>
 <tr><td>Math audit fixes</td><td>1</td><td>1</td></tr>
 </thead><tbody>
-<tr><td>Roadmap Tier A-G</td><td>12</td><td>12</td></tr>
+<tr><td>Roadmap Tier A-G</td><td>13</td><td>13</td></tr>
 </thead><tbody>
 <tr><td>General math &amp; PID</td><td>4</td><td>4</td></tr>
 </tbody></table>
