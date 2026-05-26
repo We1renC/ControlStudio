@@ -1,7 +1,7 @@
 # ControlStudio Development Roadmap
 
 > Last updated: 2026-05-26
-> Current committed baseline: `feat(control): add B2 closed-loop identification`
+> Current committed baseline: `feat(control): add B3 SRIVC identification API`
 > Scope: this is the canonical execution roadmap for ControlStudio implementation status.
 > Do not use this file for product vision, proof derivations, or handoff notes; see the document workflow below.
 
@@ -112,6 +112,7 @@ Per `docs/src/control-studio/functional-roadmap.html`. User scope: skip Tier H/I
 | **A7** | Reference Governor | Done | `verify_a5_a7_tier_a.mjs` | Scalar MOAS, online kappa governor, deterministic Monte Carlo constraint satisfaction |
 | **B1** | SINDy | Done | `verify_b1_sindy.mjs` | Sparse polynomial library + STLSQ recovery on synthetic nonlinear dynamics |
 | **B2** | Closed-loop Identification | Done | `verify_b2_closedloop_id.mjs` | Direct ARX, indirect closed-loop recovery, joint I/O IV baseline, bias-risk diagnostic |
+| **B3** | SRIVC Continuous-time Identification | Done | `verify_b3_srivc.mjs` | `identifyCT` wrapper, Poisson filter, clean CT first-order fixture <1% coefficient error |
 | **D1** | Active-set QP + warm-start | Done | `verify_d1_qp_activeset.mjs` | KKT residual, feasibility, warm-start, MPC-like QP, infeasible / non-PSD guards |
 | **E1** | Newton-CARE refinement | Done | `verify_e1_newton_care.mjs` | Newton residual refinement against Hamiltonian Schur CARE baseline |
 | **E2** | Sylvester / Lyapunov / Stein | Done | `verify_e2_sylvester.mjs` | vec-trick (Kronecker); robust for n <= 30 |
@@ -124,14 +125,14 @@ Per `docs/src/control-studio/functional-roadmap.html`. User scope: skip Tier H/I
 
 ## Verification Suite Status (2026-05-26)
 
-**98/98 scripts pass** — run via `bash scripts/run_all_verify.sh`
+**99/99 scripts pass** — run via `bash scripts/run_all_verify.sh`
 
 | Group | Scripts | Pass |
 | --- | --- | --- |
 | Phase 9/10/11 foundations | 11 | 11 |
 | Phase 14–65 advanced control / UI | 66 | 66 |
 | Math audit fixes | 1 | 1 |
-| Roadmap Tier A-G | 16 | 16 |
+| Roadmap Tier A-G | 17 | 17 |
 | General math & PID | 4 | 4 |
 
 ## P1/P2 UI/UX Completion Summary
@@ -255,7 +256,7 @@ Remaining P3-oriented UI/UX work should continue from the unchecked portions of 
 | P23-01 Frequency-domain identification | Done | `sysid_freq.js`, `verify_p23_freq_sysid.mjs` |
 | P23-02 MISO ARX | Done | `identifyMISOARX`, `verify_p23_miso.mjs` |
 | P23-03 Model order selection | Done | `autoModelOrder`, `verify_p23_model_order.mjs` |
-| P23-04 Continuous-time identification | Planned | No committed CONTSID / SRIVC runner yet |
+| P23-04 Continuous-time identification | Done | `identifyCT`, `poissonFilter`, `verify_b3_srivc.mjs` |
 
 ### P24 — Advanced MPC
 

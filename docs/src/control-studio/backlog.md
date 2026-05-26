@@ -38,7 +38,7 @@
 - Branch: `main`
 - Latest synced commit: `1259565 feat(p27-p28): loop shaping H∞ + TypeScript type definitions`
 - Current checkpoint: **CS-P0 ~ CS-P24 done; P25/P26/P27/P28 mostly done.** 詳細執行看板見 `control-studio/ROADMAP.md`。目前主要未完成項目是 P27 full D-K iteration、P28 JSDoc API docs、P23 continuous-time identification、P25 Hankel norm approximation 與 P26 LPV synthesis。
-- Functional Roadmap Tier A-G checkpoint：Tier A A1~A7 algorithm baseline 已完成；B1 SINDy、B2 closed-loop identification、D1 active-set QP、E1/E2/E4/E5/E7 numerical core、F1 reachability、F4 falsification、G2 move blocking 已有 deterministic verification；最新 full suite 基線見 `control-studio/ROADMAP.md`。
+- Functional Roadmap Tier A-G checkpoint：Tier A A1~A7 algorithm baseline 已完成；B1 SINDy、B2 closed-loop identification、B3 SRIVC continuous-time identification、D1 active-set QP、E1/E2/E4/E5/E7 numerical core、F1 reachability、F4 falsification、G2 move blocking 已有 deterministic verification；最新 full suite 基線見 `control-studio/ROADMAP.md`。
 - Scenario 5 browser walkthrough result: Phase 10 math + UI both operational.
 - Scenario 6 browser walkthrough result: SISO / MIMO core workflows are UI-operable.
 - Latest full-theory audit:

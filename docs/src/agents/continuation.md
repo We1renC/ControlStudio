@@ -26,6 +26,7 @@
   - 2026-05-26 按 functional roadmap 順序補 A4：新增 `js/control/backstepping.js`，支援三階 strict-feedback chain / terminal triangular drift backstepping、Lyapunov 負定 proof metadata、二階 matched-parameter adaptive baseline；新增 `verify_a4_backstepping.mjs` 並納入 `run_all_verify.sh`，最新基線升至 **96/96 scripts pass**。
   - 2026-05-26 接續完成 Tier A 剩餘演算法核心：新增 `js/math/lie_derivative.js`、`js/control/feedback_linearization.js`、`js/control/reset_control.js`、`js/control/reference_governor.js`；A5/A6/A7 共用 `verify_a5_a7_tier_a.mjs`，涵蓋 relative degree、zero dynamics warning、Clegg/FORE reset、H-beta feasibility、MOAS/reference governor Monte Carlo constraint satisfaction；最新基線升至 **97/97 scripts pass**。
   - 2026-05-26 接續 Functional Roadmap B2：新增 `js/control/closedloop_id.js`，支援 direct ARX、indirect closed-loop recovery、joint I/O IV baseline 與 `analyzeBiasRisk()`；新增 `verify_b2_closedloop_id.mjs` 並納入 `run_all_verify.sh`，最新基線升至 **98/98 scripts pass**。
+  - 2026-05-26 接續 Functional Roadmap B3：新增 `js/identification/srivc.js`，提供 `identifyCT()` 與 `poissonFilter()` API，重用 P30 `identifySRIVC` 數學核心；新增 `verify_b3_srivc.mjs`，clean CT fixture 係數誤差 <1%，並納入 `run_all_verify.sh`，最新基線升至 **99/99 scripts pass**。
 - 已完成 NVIDIA Build Models 資料集中管理。
 - 已新增 agent 入口文件：
   - `AGENTS.md`：專案規則、標準流程、擴充規則與品質判準。

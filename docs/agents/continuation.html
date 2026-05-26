@@ -115,6 +115,7 @@ del{color:var(--muted)}
 <li>2026-05-26 按 functional roadmap 順序補 A4：新增 <code>js/control/backstepping.js</code>，支援三階 strict-feedback chain / terminal triangular drift backstepping、Lyapunov 負定 proof metadata、二階 matched-parameter adaptive baseline；新增 <code>verify_a4_backstepping.mjs</code> 並納入 <code>run_all_verify.sh</code>，最新基線升至 <strong>96/96 scripts pass</strong>。</li>
 <li>2026-05-26 接續完成 Tier A 剩餘演算法核心：新增 <code>js/math/lie_derivative.js</code>、<code>js/control/feedback_linearization.js</code>、<code>js/control/reset_control.js</code>、<code>js/control/reference_governor.js</code>；A5/A6/A7 共用 <code>verify_a5_a7_tier_a.mjs</code>，涵蓋 relative degree、zero dynamics warning、Clegg/FORE reset、H-beta feasibility、MOAS/reference governor Monte Carlo constraint satisfaction；最新基線升至 <strong>97/97 scripts pass</strong>。</li>
 <li>2026-05-26 接續 Functional Roadmap B2：新增 <code>js/control/closedloop_id.js</code>，支援 direct ARX、indirect closed-loop recovery、joint I/O IV baseline 與 <code>analyzeBiasRisk()</code>；新增 <code>verify_b2_closedloop_id.mjs</code> 並納入 <code>run_all_verify.sh</code>，最新基線升至 <strong>98/98 scripts pass</strong>。</li>
+<li>2026-05-26 接續 Functional Roadmap B3：新增 <code>js/identification/srivc.js</code>，提供 <code>identifyCT()</code> 與 <code>poissonFilter()</code> API，重用 P30 <code>identifySRIVC</code> 數學核心；新增 <code>verify_b3_srivc.mjs</code>，clean CT fixture 係數誤差 &lt;1%，並納入 <code>run_all_verify.sh</code>，最新基線升至 <strong>99/99 scripts pass</strong>。</li>
 </ul>
 <li>已完成 NVIDIA Build Models 資料集中管理。</li>
 <li>已新增 agent 入口文件：</li>

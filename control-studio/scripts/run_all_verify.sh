@@ -151,6 +151,7 @@ run_script "E2 Sylvester (vec-trick)"                               "node script
 run_script "G2 MPC Move Blocking"                                   "node scripts/verify_g2_move_blocking.mjs"
 run_script "B1 SINDy"                                               "node scripts/verify_b1_sindy.mjs"
 run_script "B2 Closed-loop identification"                          "node scripts/verify_b2_closedloop_id.mjs"
+run_script "B3 SRIVC continuous-time ID"                            "node scripts/verify_b3_srivc.mjs"
 run_script "D1 Active-set QP"                                       "node scripts/verify_d1_qp_activeset.mjs"
 run_script "F1 Reachability"                                        "node scripts/verify_f1_reachability.mjs"
 echo ""

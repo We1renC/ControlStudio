@@ -87,7 +87,7 @@ del{color:var(--muted)}
 
 <blockquote>
 <p>Last updated: 2026-05-26</p>
-<p>Current committed baseline: <code>feat(control): add B2 closed-loop identification</code></p>
+<p>Current committed baseline: <code>feat(control): add B3 SRIVC identification API</code></p>
 <p>Scope: this is the canonical execution roadmap for ControlStudio implementation status.</p>
 <p>Do not use this file for product vision, proof derivations, or handoff notes; see the document workflow below.</p>
 </blockquote>
@@ -278,6 +278,8 @@ del{color:var(--muted)}
 </thead><tbody>
 <tr><td><strong>B2</strong></td><td>Closed-loop Identification</td><td>Done</td><td><code>verify_b2_closedloop_id.mjs</code></td><td>Direct ARX, indirect closed-loop recovery, joint I/O IV baseline, bias-risk diagnostic</td></tr>
 </thead><tbody>
+<tr><td><strong>B3</strong></td><td>SRIVC Continuous-time Identification</td><td>Done</td><td><code>verify_b3_srivc.mjs</code></td><td><code>identifyCT</code> wrapper, Poisson filter, clean CT first-order fixture &lt;1% coefficient error</td></tr>
+</thead><tbody>
 <tr><td><strong>D1</strong></td><td>Active-set QP + warm-start</td><td>Done</td><td><code>verify_d1_qp_activeset.mjs</code></td><td>KKT residual, feasibility, warm-start, MPC-like QP, infeasible / non-PSD guards</td></tr>
 </thead><tbody>
 <tr><td><strong>E1</strong></td><td>Newton-CARE refinement</td><td>Done</td><td><code>verify_e1_newton_care.mjs</code></td><td>Newton residual refinement against Hamiltonian Schur CARE baseline</td></tr>
@@ -299,7 +301,7 @@ del{color:var(--muted)}
 
 <h2 id="verification-suite-status-2026-05-26">Verification Suite Status (2026-05-26)</h2>
 
-<p><strong>98/98 scripts pass</strong> — run via <code>bash scripts/run_all_verify.sh</code></p>
+<p><strong>99/99 scripts pass</strong> — run via <code>bash scripts/run_all_verify.sh</code></p>
 
 <table><thead>
 <tr><th>Group</th><th>Scripts</th><th>Pass</th></tr>
@@ -310,7 +312,7 @@ del{color:var(--muted)}
 </thead><tbody>
 <tr><td>Math audit fixes</td><td>1</td><td>1</td></tr>
 </thead><tbody>
-<tr><td>Roadmap Tier A-G</td><td>16</td><td>16</td></tr>
+<tr><td>Roadmap Tier A-G</td><td>17</td><td>17</td></tr>
 </thead><tbody>
 <tr><td>General math &amp; PID</td><td>4</td><td>4</td></tr>
 </tbody></table>
@@ -500,7 +502,7 @@ del{color:var(--muted)}
 </thead><tbody>
 <tr><td>P23-03 Model order selection</td><td>Done</td><td><code>autoModelOrder</code>, <code>verify_p23_model_order.mjs</code></td></tr>
 </thead><tbody>
-<tr><td>P23-04 Continuous-time identification</td><td>Planned</td><td>No committed CONTSID / SRIVC runner yet</td></tr>
+<tr><td>P23-04 Continuous-time identification</td><td>Done</td><td><code>identifyCT</code>, <code>poissonFilter</code>, <code>verify_b3_srivc.mjs</code></td></tr>
 </tbody></table>
 
 <h3 id="p24-advanced-mpc">P24 — Advanced MPC</h3>
