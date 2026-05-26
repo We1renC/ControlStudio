@@ -21,6 +21,7 @@
   - 2026-05-24 已完成 P34-01 模組拆分：app.js（15,871→14,524 行）拆出 `js/ui/{annotations,share,sweep,measurement,flow}.js` 五個子模組；完成 J1-3 Root Locus 幾何標注（阻尼線、ωn 弧線、臨界增益）與 H1-4 側欄快速收藏 Pin；`run_all_verify.sh` 最新基線為 **81/81 scripts pass**。
   - 2026-05-24 數學核心審查 Round 2 修正三項：(A1) `stability.js stabilityMargins()` 改為收集所有增益/相位交越點回傳最壞情況 PM/GM；(A2) `matrix.js matDet()` 加入 LU O(n³) fallback（n>6）與 n=3 Sarrus 公式；(A3) `root-locus.js sortRootLocusBranches()` 改用 Jonker-Volgenant Hungarian 最優分配。新增 `verify_math_audit_fixes.mjs`；基線升至 **82/82 scripts pass**。
   - 2026-05-26 確認 Functional Roadmap Tier A-G 已開始落地：A1 ADRC、A2 ILC、B1 SINDy、D1 active-set QP、E1 Newton CARE、E2 Sylvester/Lyapunov/Stein、E4 pseudospectrum、E5 interval arithmetic、E7 condition-number gating、F1 reachability、G2 MPC move blocking 均有核心模組與 verify script；`run_all_verify.sh` 已納入 Tier A-G，最新基線為 **93/93 scripts pass**。本輪也修正 `verify_f1_reachability.mjs` 對 zonotope generator-list representation 的錯誤檢查，避免 F1 standalone 驗證被 full suite 漏掉。
+  - 2026-05-26 接續 Functional Roadmap Sprint 5：完成 F4 Falsification core，新增 `js/verification/falsification.js`，支援 `defineSTL("alw_[0,T] x < c")` / `ev_[0,T]` robustness 與 deterministic `falsify({ system, spec, inputSpace })` counterexample search；新增 `verify_f4_falsification.mjs` 並納入 `run_all_verify.sh`，最新基線升至 **94/94 scripts pass**。
 - 已完成 NVIDIA Build Models 資料集中管理。
 - 已新增 agent 入口文件：
   - `AGENTS.md`：專案規則、標準流程、擴充規則與品質判準。

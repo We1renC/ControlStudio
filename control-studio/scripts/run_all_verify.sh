@@ -160,6 +160,7 @@ echo ""
 # ── Roadmap Tier A-G — Sprint 5 (Safety & Verification) ──────────────────────
 echo -e "${BOLD}▶ Roadmap Tier A-G — Sprint 5${RESET}"
 run_script "E5 Interval Arithmetic"                                 "node scripts/verify_e5_interval.mjs"
+run_script "F4 Falsification"                                       "node scripts/verify_f4_falsification.mjs"
 echo ""
 
 # ── General Math & PID ───────────────────────────────────────────────────────

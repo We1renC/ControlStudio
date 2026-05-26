@@ -113,18 +113,19 @@ Per `docs/src/control-studio/functional-roadmap.html`. User scope: skip Tier H/I
 | **E5** | Interval arithmetic | Done | `verify_e5_interval.mjs` | interval ops, interval matrix multiplication, Kharitonov 2nd-order robust stability |
 | **E7** | Condition number gating | Done | `verify_e7_conditioning.mjs` | `estimateCondition`, `withConditionCheck`, `scaleAndSolve` |
 | **F1** | Reachability via zonotopes | Done | `verify_f1_reachability.mjs` | zonotope operations, finite-horizon reach sets, Monte Carlo containment sanity checks |
+| **F4** | Falsification (S-TaLiRo-style) | Done | `verify_f4_falsification.mjs` | bounded STL robustness + deterministic random / anneal counterexample search |
 | **G2** | MPC Move Blocking | Done | `verify_g2_move_blocking.mjs` | block expansion matrix + condensed QP; singleton-equivalence verified |
 
 ## Verification Suite Status (2026-05-24)
 
-**93/93 scripts pass** — run via `bash scripts/run_all_verify.sh`
+**94/94 scripts pass** — run via `bash scripts/run_all_verify.sh`
 
 | Group | Scripts | Pass |
 | --- | --- | --- |
 | Phase 9/10/11 foundations | 11 | 11 |
 | Phase 14–65 advanced control / UI | 66 | 66 |
 | Math audit fixes | 1 | 1 |
-| Roadmap Tier A-G | 11 | 11 |
+| Roadmap Tier A-G | 12 | 12 |
 | General math & PID | 4 | 4 |
 
 ## P1/P2 UI/UX Completion Summary

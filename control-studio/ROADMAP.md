@@ -129,19 +129,20 @@ Per `docs/src/control-studio/functional-roadmap.html`. User scope: skip Tier H/I
 | **B1** | SINDy | Done | `verify_b1_sindy.mjs` | Sparse polynomial library + STLSQ recovery on synthetic nonlinear dynamics |
 | **D1** | Active-set QP + warm-start | Done | `verify_d1_qp_activeset.mjs` | KKT residual, feasibility, warm-start, MPC-like QP, infeasible / non-PSD guards |
 | **F1** | Reachability via zonotopes | Done | `verify_f1_reachability.mjs` | Zonotope operations, finite-horizon reach sets, Monte Carlo containment sanity checks |
+| **F4** | Falsification (S-TaLiRo-style) | Done | `verify_f4_falsification.mjs` | Bounded STL robustness + deterministic random / anneal counterexample search |
 
 **Known issue surfaced during Sprint 1:** `js/math/realschur.js` produces ~1e-1 reconstruction error for 3x3 stable real-spectrum matrices (the reorder pass mis-tracks Q for certain Givens swaps). Sylvester E2 deliberately avoids realSchur via vec-trick. Future task: fix the reorderSchurStable Q update.
 
 ## Verification Suite Status (2026-05-24)
 
-**93/93 scripts pass** — run via `bash scripts/run_all_verify.sh` (was 82/82 before Tier A-G additions)
+**94/94 scripts pass** — run via `bash scripts/run_all_verify.sh` (was 82/82 before Tier A-G additions)
 
 | Group | Scripts | Pass |
 | --- | --- | --- |
 | Phase 9/10/11 foundations | 11 | 11 |
 | Phase 14–65 advanced control / UI | 66 | 66 |
 | Math audit fixes | 1 | 1 |
-| Roadmap Tier A-G | 11 | 11 |
+| Roadmap Tier A-G | 12 | 12 |
 | General math & PID | 4 | 4 |
 
 ## P1/P2 UI/UX Completion Summary
