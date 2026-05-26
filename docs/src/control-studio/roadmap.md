@@ -1,7 +1,7 @@
 # ControlStudio Development Roadmap
 
 > Last updated: 2026-05-27
-> Current committed baseline: `feat(control): complete Tier B identification baseline`
+> Current committed baseline: `feat(control): complete Tier H-J deployment baseline`
 > Scope: this is the canonical execution roadmap for ControlStudio implementation status.
 > Do not use this file for product vision, proof derivations, or handoff notes; see the document workflow below.
 
@@ -99,7 +99,7 @@
 
 ## Roadmap Tier Implementation — Sprint 1 (2026-05-24)
 
-Per `docs/src/control-studio/functional-roadmap.html`. User scope: skip Tier H/I/J.
+Per `docs/src/control-studio/functional-roadmap.html`. Tier A-J deterministic baseline is now complete.
 
 | ID | Theme | Status | Verification | Notes |
 | --- | --- | --- | --- | --- |
@@ -134,6 +134,23 @@ Per `docs/src/control-studio/functional-roadmap.html`. User scope: skip Tier H/I
 | **G3** | Distributed MPC | Done | `verify_efg_remaining.mjs` | Scalar consensus ADMM / dual decomposition baseline |
 | **G4** | Hybrid MPC | Done | `verify_efg_remaining.mjs` | Big-M helper and switched-system MIMPC wrapper |
 | **G5** | NMPC Warm-Start Strategy | Done | `verify_efg_remaining.mjs` | Shift-and-extend sequence, simulation warm start, iteration reduction summary |
+| **H1** | C/C++ Codegen | Done | `verify_hij_deployment_runtime_integration.mjs` | PID C header/source generator, fixed-point flags, CMake template, CMSIS hook |
+| **H2** | Rust Codegen | Done | `verify_hij_deployment_runtime_integration.mjs` | no_std Rust controller and Cargo template |
+| **H3** | IEC 61131-3 Structured Text | Done | `verify_hij_deployment_runtime_integration.mjs` | FUNCTION_BLOCK PID template for PLC workflows |
+| **H4** | AUTOSAR Adaptive Template | Done | `verify_hij_deployment_runtime_integration.mjs` | ARXML + C/H skeleton generation |
+| **H5** | FreeRTOS Task Template | Done | `verify_hij_deployment_runtime_integration.mjs` | xTaskCreate / vTaskDelayUntil task wrapper |
+| **H6** | CRC + Watchdog Safety Wrapper | Done | `verify_hij_deployment_runtime_integration.mjs` | CRC32 marker, watchdog hook, redundancy metadata |
+| **I1** | WebAssembly Adapter | Done | `verify_hij_deployment_runtime_integration.mjs` | WASM/fallback adapter and Float64Array flattener |
+| **I2** | Web Worker Compute Facade | Done | `verify_hij_deployment_runtime_integration.mjs` | Abortable async compute worker facade |
+| **I3** | Memoization Layer | Done | `verify_hij_deployment_runtime_integration.mjs` | Stable hash and LRU memoize wrapper |
+| **I4** | Streaming Computation | Done | `verify_hij_deployment_runtime_integration.mjs` | Chunk streaming and progressive map helpers |
+| **I5** | Cross-method Check Framework | Done | `verify_hij_deployment_runtime_integration.mjs` | Method comparison table with tolerance pass/fail |
+| **J1** | WebSocket HIL Bridge | Done | `verify_hij_deployment_runtime_integration.mjs` | JSON state/control frame helpers and mock bridge |
+| **J2** | Web Serial API Protocols | Done | `verify_hij_deployment_runtime_integration.mjs` | CSV, binary, and Modbus-RTU codecs |
+| **J3** | OPC UA Gateway Client | Done | `verify_hij_deployment_runtime_integration.mjs` | Read/write request facade for bridge servers |
+| **J4** | Modbus TCP/RTU Client | Done | `verify_hij_deployment_runtime_integration.mjs` | Holding-register and coil request helpers |
+| **J5** | MQTT Subscriber / Publisher | Done | `verify_hij_deployment_runtime_integration.mjs` | Topic route facade for IoT telemetry/control |
+| **J6** | InfluxDB / Prometheus Import | Done | `verify_hij_deployment_runtime_integration.mjs` | Query builders and time-series normalization |
 | **D1** | Active-set QP + warm-start | Done | `verify_d1_qp_activeset.mjs` | KKT residual, feasibility, warm-start, MPC-like QP, infeasible / non-PSD guards |
 | **E1** | Newton-CARE refinement | Done | `verify_e1_newton_care.mjs` | Newton residual refinement against Hamiltonian Schur CARE baseline |
 | **E2** | Sylvester / Lyapunov / Stein | Done | `verify_e2_sylvester.mjs` | vec-trick (Kronecker); robust for n <= 30 |
@@ -146,14 +163,14 @@ Per `docs/src/control-studio/functional-roadmap.html`. User scope: skip Tier H/I
 
 ## Verification Suite Status (2026-05-27)
 
-**103/103 scripts pass** — run via `bash scripts/run_all_verify.sh`
+**104/104 scripts pass** — run via `bash scripts/run_all_verify.sh`
 
 | Group | Scripts | Pass |
 | --- | --- | --- |
 | Phase 9/10/11 foundations | 11 | 11 |
 | Phase 14–65 advanced control / UI | 66 | 66 |
 | Math audit fixes | 1 | 1 |
-| Roadmap Tier A-G | 21 | 21 |
+| Functional Roadmap A-J | 22 | 22 |
 | General math & PID | 4 | 4 |
 
 ## P1/P2 UI/UX Completion Summary

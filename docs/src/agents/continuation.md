@@ -31,6 +31,7 @@
   - 2026-05-27 接續 Functional Roadmap C1-C4：新增 `js/estimation/mhe.js`、`particle_filter.js`、`dual_ekf.js`、`smoother.js`，提供 roadmap 指定 API wrapper，涵蓋 constrained MHE、nonlinear scalar MHE、bootstrap/SIR PF、joint state-parameter EKF 與 RTS smoother；新增 `verify_c1_c4_estimation.mjs` 並納入 `run_all_verify.sh`，最新基線升至 **101/101 scripts pass**。
   - 2026-05-27 接續 Functional Roadmap D2-D6：新增 `js/optimization/admm_qp.js`、`sqp.js`、`milp.js`、`lbfgs_trust.js`、`mixed_integer_mpc.js`，提供 ADMM box-QP、SQP/multiple shooting、binary MILP/knapsack/TSP、L-BFGS/trust-region、switched-system MIMPC baseline；新增 `verify_d2_d6_optimization.mjs` 並納入 `run_all_verify.sh`，最新基線升至 **102/102 scripts pass**。
   - 2026-05-27 接續完成 Functional Roadmap Tier A-G 剩餘 baseline：新增 `js/math/qz_descriptor.js`、`krylov.js`、`js/verification/{cbf,formal,importance_sampling}.js`、`js/control/{stochastic_mpc,distributed_mpc,hybrid_mpc,nmpc_warmstart}.js`；涵蓋 E3/E6、F2/F3/F5、G1/G3/G4/G5，新增 `verify_efg_remaining.mjs` 並納入 `run_all_verify.sh`，最新基線升至 **103/103 scripts pass**。
+  - 2026-05-27 接續完成 Functional Roadmap Tier H-I-J deployment/runtime/integration baseline：新增 `js/codegen/*`、`js/wasm/loader.js`、`js/workers/compute_worker.js`、`js/runtime/*`、`js/integration/*`，涵蓋 C/Rust/ST/AUTOSAR/FreeRTOS codegen、safety wrapper、WASM adapter、worker/memo/stream/cross-check、HIL/Serial/OPC UA/Modbus/MQTT/TSDB facades；新增 `verify_hij_deployment_runtime_integration.mjs` 並納入 `run_all_verify.sh`，最新基線升至 **104/104 scripts pass**。
 - 已完成 NVIDIA Build Models 資料集中管理。
 - 已新增 agent 入口文件：
   - `AGENTS.md`：專案規則、標準流程、擴充規則與品質判準。

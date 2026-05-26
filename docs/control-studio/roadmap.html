@@ -87,7 +87,7 @@ del{color:var(--muted)}
 
 <blockquote>
 <p>Last updated: 2026-05-27</p>
-<p>Current committed baseline: <code>feat(control): complete Tier B identification baseline</code></p>
+<p>Current committed baseline: <code>feat(control): complete Tier H-J deployment baseline</code></p>
 <p>Scope: this is the canonical execution roadmap for ControlStudio implementation status.</p>
 <p>Do not use this file for product vision, proof derivations, or handoff notes; see the document workflow below.</p>
 </blockquote>
@@ -255,7 +255,7 @@ del{color:var(--muted)}
 
 <h2 id="roadmap-tier-implementation-sprint-1-2026-05-24">Roadmap Tier Implementation — Sprint 1 (2026-05-24)</h2>
 
-<p>Per <code>docs/src/control-studio/functional-roadmap.html</code>. User scope: skip Tier H/I/J.</p>
+<p>Per <code>docs/src/control-studio/functional-roadmap.html</code>. Tier A-J deterministic baseline is now complete.</p>
 
 <table><thead>
 <tr><th>ID</th><th>Theme</th><th>Status</th><th>Verification</th><th>Notes</th></tr>
@@ -322,6 +322,40 @@ del{color:var(--muted)}
 </thead><tbody>
 <tr><td><strong>G5</strong></td><td>NMPC Warm-Start Strategy</td><td>Done</td><td><code>verify_efg_remaining.mjs</code></td><td>Shift-and-extend sequence, simulation warm start, iteration reduction summary</td></tr>
 </thead><tbody>
+<tr><td><strong>H1</strong></td><td>C/C++ Codegen</td><td>Done</td><td><code>verify_hij_deployment_runtime_integration.mjs</code></td><td>PID C header/source generator, fixed-point flags, CMake template, CMSIS hook</td></tr>
+</thead><tbody>
+<tr><td><strong>H2</strong></td><td>Rust Codegen</td><td>Done</td><td><code>verify_hij_deployment_runtime_integration.mjs</code></td><td>no_std Rust controller and Cargo template</td></tr>
+</thead><tbody>
+<tr><td><strong>H3</strong></td><td>IEC 61131-3 Structured Text</td><td>Done</td><td><code>verify_hij_deployment_runtime_integration.mjs</code></td><td>FUNCTION_BLOCK PID template for PLC workflows</td></tr>
+</thead><tbody>
+<tr><td><strong>H4</strong></td><td>AUTOSAR Adaptive Template</td><td>Done</td><td><code>verify_hij_deployment_runtime_integration.mjs</code></td><td>ARXML + C/H skeleton generation</td></tr>
+</thead><tbody>
+<tr><td><strong>H5</strong></td><td>FreeRTOS Task Template</td><td>Done</td><td><code>verify_hij_deployment_runtime_integration.mjs</code></td><td>xTaskCreate / vTaskDelayUntil task wrapper</td></tr>
+</thead><tbody>
+<tr><td><strong>H6</strong></td><td>CRC + Watchdog Safety Wrapper</td><td>Done</td><td><code>verify_hij_deployment_runtime_integration.mjs</code></td><td>CRC32 marker, watchdog hook, redundancy metadata</td></tr>
+</thead><tbody>
+<tr><td><strong>I1</strong></td><td>WebAssembly Adapter</td><td>Done</td><td><code>verify_hij_deployment_runtime_integration.mjs</code></td><td>WASM/fallback adapter and Float64Array flattener</td></tr>
+</thead><tbody>
+<tr><td><strong>I2</strong></td><td>Web Worker Compute Facade</td><td>Done</td><td><code>verify_hij_deployment_runtime_integration.mjs</code></td><td>Abortable async compute worker facade</td></tr>
+</thead><tbody>
+<tr><td><strong>I3</strong></td><td>Memoization Layer</td><td>Done</td><td><code>verify_hij_deployment_runtime_integration.mjs</code></td><td>Stable hash and LRU memoize wrapper</td></tr>
+</thead><tbody>
+<tr><td><strong>I4</strong></td><td>Streaming Computation</td><td>Done</td><td><code>verify_hij_deployment_runtime_integration.mjs</code></td><td>Chunk streaming and progressive map helpers</td></tr>
+</thead><tbody>
+<tr><td><strong>I5</strong></td><td>Cross-method Check Framework</td><td>Done</td><td><code>verify_hij_deployment_runtime_integration.mjs</code></td><td>Method comparison table with tolerance pass/fail</td></tr>
+</thead><tbody>
+<tr><td><strong>J1</strong></td><td>WebSocket HIL Bridge</td><td>Done</td><td><code>verify_hij_deployment_runtime_integration.mjs</code></td><td>JSON state/control frame helpers and mock bridge</td></tr>
+</thead><tbody>
+<tr><td><strong>J2</strong></td><td>Web Serial API Protocols</td><td>Done</td><td><code>verify_hij_deployment_runtime_integration.mjs</code></td><td>CSV, binary, and Modbus-RTU codecs</td></tr>
+</thead><tbody>
+<tr><td><strong>J3</strong></td><td>OPC UA Gateway Client</td><td>Done</td><td><code>verify_hij_deployment_runtime_integration.mjs</code></td><td>Read/write request facade for bridge servers</td></tr>
+</thead><tbody>
+<tr><td><strong>J4</strong></td><td>Modbus TCP/RTU Client</td><td>Done</td><td><code>verify_hij_deployment_runtime_integration.mjs</code></td><td>Holding-register and coil request helpers</td></tr>
+</thead><tbody>
+<tr><td><strong>J5</strong></td><td>MQTT Subscriber / Publisher</td><td>Done</td><td><code>verify_hij_deployment_runtime_integration.mjs</code></td><td>Topic route facade for IoT telemetry/control</td></tr>
+</thead><tbody>
+<tr><td><strong>J6</strong></td><td>InfluxDB / Prometheus Import</td><td>Done</td><td><code>verify_hij_deployment_runtime_integration.mjs</code></td><td>Query builders and time-series normalization</td></tr>
+</thead><tbody>
 <tr><td><strong>D1</strong></td><td>Active-set QP + warm-start</td><td>Done</td><td><code>verify_d1_qp_activeset.mjs</code></td><td>KKT residual, feasibility, warm-start, MPC-like QP, infeasible / non-PSD guards</td></tr>
 </thead><tbody>
 <tr><td><strong>E1</strong></td><td>Newton-CARE refinement</td><td>Done</td><td><code>verify_e1_newton_care.mjs</code></td><td>Newton residual refinement against Hamiltonian Schur CARE baseline</td></tr>
@@ -343,7 +377,7 @@ del{color:var(--muted)}
 
 <h2 id="verification-suite-status-2026-05-27">Verification Suite Status (2026-05-27)</h2>
 
-<p><strong>103/103 scripts pass</strong> — run via <code>bash scripts/run_all_verify.sh</code></p>
+<p><strong>104/104 scripts pass</strong> — run via <code>bash scripts/run_all_verify.sh</code></p>
 
 <table><thead>
 <tr><th>Group</th><th>Scripts</th><th>Pass</th></tr>
@@ -354,7 +388,7 @@ del{color:var(--muted)}
 </thead><tbody>
 <tr><td>Math audit fixes</td><td>1</td><td>1</td></tr>
 </thead><tbody>
-<tr><td>Roadmap Tier A-G</td><td>21</td><td>21</td></tr>
+<tr><td>Functional Roadmap A-J</td><td>22</td><td>22</td></tr>
 </thead><tbody>
 <tr><td>General math &amp; PID</td><td>4</td><td>4</td></tr>
 </tbody></table>

@@ -139,8 +139,8 @@ echo -e "${BOLD}▶ Math Audit Fixes${RESET}"
 run_script "Math audit fixes A1/A2/A3"                             "node scripts/verify_math_audit_fixes.mjs"
 echo ""
 
-# ── Roadmap Tier A-G — Sprint 1 ──────────────────────────────────────────────
-echo -e "${BOLD}▶ Roadmap Tier A-G — Sprint 1${RESET}"
+# ── Functional Roadmap — Sprint 1 ────────────────────────────────────────────
+echo -e "${BOLD}▶ Functional Roadmap — Sprint 1${RESET}"
 run_script "A1 ADRC"                                                "node scripts/verify_a1_adrc.mjs"
 run_script "A2 ILC"                                                 "node scripts/verify_a2_ilc.mjs"
 run_script "A3 SMC + Super-twisting"                                "node scripts/verify_a3_smc.mjs"
@@ -159,17 +159,18 @@ run_script "D2-D6 ADMM/SQP/MILP/L-BFGS/MIMPC"                       "node script
 run_script "F1 Reachability"                                        "node scripts/verify_f1_reachability.mjs"
 echo ""
 
-# ── Roadmap Tier A-G — Sprint 2 ──────────────────────────────────────────────
-echo -e "${BOLD}▶ Roadmap Tier A-G — Sprint 2${RESET}"
+# ── Functional Roadmap — Sprint 2 ────────────────────────────────────────────
+echo -e "${BOLD}▶ Functional Roadmap — Sprint 2${RESET}"
 run_script "E1 Newton-CARE refinement"                              "node scripts/verify_e1_newton_care.mjs"
 run_script "E4 Pseudo-spectrum"                                     "node scripts/verify_e4_pseudospectrum.mjs"
 run_script "E3/E6/F2/F3/F5/G1/G3/G4/G5 remaining roadmap"           "node scripts/verify_efg_remaining.mjs"
 echo ""
 
-# ── Roadmap Tier A-G — Sprint 5 (Safety & Verification) ──────────────────────
-echo -e "${BOLD}▶ Roadmap Tier A-G — Sprint 5${RESET}"
+# ── Functional Roadmap — Sprint 5 (Safety / Deployment / Integration) ─────────
+echo -e "${BOLD}▶ Functional Roadmap — Sprint 5${RESET}"
 run_script "E5 Interval Arithmetic"                                 "node scripts/verify_e5_interval.mjs"
 run_script "F4 Falsification"                                       "node scripts/verify_f4_falsification.mjs"
+run_script "H/I/J deployment/runtime/integration roadmap"            "node scripts/verify_hij_deployment_runtime_integration.mjs"
 echo ""
 
 # ── General Math & PID ───────────────────────────────────────────────────────

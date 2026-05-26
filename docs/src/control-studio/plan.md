@@ -60,6 +60,23 @@
   - `control-studio/js/control/distributed_mpc.js`
   - `control-studio/js/control/hybrid_mpc.js`
   - `control-studio/js/control/nmpc_warmstart.js`
+  - `control-studio/js/codegen/c_generator.js`
+  - `control-studio/js/codegen/rust_generator.js`
+  - `control-studio/js/codegen/plc_generator.js`
+  - `control-studio/js/codegen/autosar_generator.js`
+  - `control-studio/js/codegen/freertos_generator.js`
+  - `control-studio/js/codegen/safety_wrapper.js`
+  - `control-studio/js/wasm/loader.js`
+  - `control-studio/js/workers/compute_worker.js`
+  - `control-studio/js/runtime/memoization.js`
+  - `control-studio/js/runtime/streaming.js`
+  - `control-studio/js/runtime/cross_method.js`
+  - `control-studio/js/integration/hil_ws.js`
+  - `control-studio/js/integration/serial.js`
+  - `control-studio/js/integration/opcua.js`
+  - `control-studio/js/integration/modbus.js`
+  - `control-studio/js/integration/mqtt.js`
+  - `control-studio/js/integration/timeseries.js`
   - `control-studio/js/math/lie_derivative.js`
 - 分析模組：
   - `control-studio/js/analysis/time-response.js`
@@ -116,6 +133,9 @@
 - Krylov baseline：Arnoldi orthonormal basis、restarted GMRES residual verification
 - CBF / formal / rare-event verification baseline：double-integrator circular obstacle CBF、finite-trace LTL/CTL、importance sampling Monte Carlo
 - Advanced MPC Tier G baseline：chance-constraint tightening、distributed consensus MPC、hybrid MPC wrapper、NMPC warm-start shift-and-extend
+- Embedded deployment Tier H baseline：C/C++、Rust、Structured Text、AUTOSAR、FreeRTOS、CRC/watchdog safety wrapper templates
+- Runtime architecture Tier I baseline：WASM adapter、async compute worker facade、LRU memoization、streaming computation、cross-method check table
+- Hardware / HIL integration Tier J baseline：WebSocket HIL protocol、Serial codecs、OPC UA / Modbus / MQTT facades、InfluxDB / Prometheus query normalization
 - Step Response
 - Impulse / Ramp / Sine / Square / Pulse response
 - Discrete step / impulse response
