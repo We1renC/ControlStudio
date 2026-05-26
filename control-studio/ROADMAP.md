@@ -136,6 +136,11 @@ Per `docs/src/control-studio/functional-roadmap.html`. User scope: skip Tier H/I
 | **C2** | Particle Filter API | Done | `verify_c1_c4_estimation.mjs` | Bootstrap/SIR PF with systematic, multinomial, and stratified resampling |
 | **C3** | Joint State-Parameter EKF | Done | `verify_c1_c4_estimation.mjs` | Numerical augmented EKF for state and parameter estimation with rank-deficient warning |
 | **C4** | RTS Smoother | Done | `verify_c1_c4_estimation.mjs` | Rauch-Tung-Striebel backward smoothing, covariance non-increase, MSE improvement fixture |
+| **D2** | OSQP-style ADMM QP | Done | `verify_d2_d6_optimization.mjs` | Dense / diagonal box-QP ADMM baseline with large diagonal problem guard |
+| **D3** | SQP / Multiple Shooting | Done | `verify_d2_d6_optimization.mjs` | Merit-function SQP baseline and multiple-shooting continuity helper |
+| **D4** | MILP Branch-and-Bound Utilities | Done | `verify_d2_d6_optimization.mjs` | Binary MILP enumeration, knapsack optimum, infeasible detection, Held-Karp TSP |
+| **D5** | L-BFGS / Trust Region | Done | `verify_d2_d6_optimization.mjs` | L-BFGS with compact history and trust-region gradient baseline |
+| **D6** | Mixed-Integer MPC | Done | `verify_d2_d6_optimization.mjs` | Enumerative switched-system MIMPC baseline with infeasibility-safe status |
 | **E7** | Condition number gating | Done | `verify_e7_conditioning.mjs` (16 checks) | `js/math/conditioning.js`: estimateCondition, withConditionCheck, scaleAndSolve |
 | **E2** | Sylvester / Lyapunov / Stein | Done | `verify_e2_sylvester.mjs` (12 checks) | vec-trick (Kronecker) — robust for n ≤ 30. Bartels-Stewart deferred until realSchur reordering bug is fixed. |
 | **G2** | MPC Move Blocking | Done | `verify_g2_move_blocking.mjs` (17 checks) | Block expansion matrix + condensed QP; singleton-equivalence verified to 1e-15 |
@@ -149,14 +154,14 @@ Per `docs/src/control-studio/functional-roadmap.html`. User scope: skip Tier H/I
 
 ## Verification Suite Status (2026-05-27)
 
-**101/101 scripts pass** — run via `bash scripts/run_all_verify.sh` (was 82/82 before Tier A-G additions)
+**102/102 scripts pass** — run via `bash scripts/run_all_verify.sh` (was 82/82 before Tier A-G additions)
 
 | Group | Scripts | Pass |
 | --- | --- | --- |
 | Phase 9/10/11 foundations | 11 | 11 |
 | Phase 14–65 advanced control / UI | 66 | 66 |
 | Math audit fixes | 1 | 1 |
-| Roadmap Tier A-G | 19 | 19 |
+| Roadmap Tier A-G | 20 | 20 |
 | General math & PID | 4 | 4 |
 
 ## P1/P2 UI/UX Completion Summary

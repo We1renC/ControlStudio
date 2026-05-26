@@ -139,6 +139,11 @@ del{color:var(--muted)}
 <li><code>control-studio/js/estimation/particle_filter.js</code></li>
 <li><code>control-studio/js/estimation/dual_ekf.js</code></li>
 <li><code>control-studio/js/estimation/smoother.js</code></li>
+<li><code>control-studio/js/optimization/admm_qp.js</code></li>
+<li><code>control-studio/js/optimization/sqp.js</code></li>
+<li><code>control-studio/js/optimization/milp.js</code></li>
+<li><code>control-studio/js/optimization/lbfgs_trust.js</code></li>
+<li><code>control-studio/js/optimization/mixed_integer_mpc.js</code></li>
 <li><code>control-studio/js/math/lie_derivative.js</code></li>
 </ul>
 <li>分析模組：</li>
@@ -205,6 +210,11 @@ del{color:var(--muted)}
 <li>Particle Filter API baseline：bootstrap/SIR PF，支援 systematic / multinomial / stratified resampling</li>
 <li>Joint State-Parameter EKF baseline：augmented numerical EKF、state/parameter estimate、rank-deficient warning</li>
 <li>RTS Smoother baseline：Rauch-Tung-Striebel backward pass、covariance non-increase、MSE improvement fixture</li>
+<li>ADMM QP baseline：OSQP-style split、box projection、dense/diagonal solve path</li>
+<li>SQP / Multiple Shooting baseline：merit-function SQP、multiple-shooting continuity residual</li>
+<li>MILP baseline：binary MILP enumeration、knapsack、Held-Karp TSP、infeasible detection</li>
+<li>L-BFGS / Trust Region baseline：compact-memory L-BFGS、trust-region gradient step</li>
+<li>Mixed-Integer MPC baseline：small switched-system enumeration、mode sequence and terminal tracking validation</li>
 <li>Step Response</li>
 <li>Impulse / Ramp / Sine / Square / Pulse response</li>
 <li>Discrete step / impulse response</li>

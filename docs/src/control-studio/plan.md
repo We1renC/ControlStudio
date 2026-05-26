@@ -46,6 +46,11 @@
   - `control-studio/js/estimation/particle_filter.js`
   - `control-studio/js/estimation/dual_ekf.js`
   - `control-studio/js/estimation/smoother.js`
+  - `control-studio/js/optimization/admm_qp.js`
+  - `control-studio/js/optimization/sqp.js`
+  - `control-studio/js/optimization/milp.js`
+  - `control-studio/js/optimization/lbfgs_trust.js`
+  - `control-studio/js/optimization/mixed_integer_mpc.js`
   - `control-studio/js/math/lie_derivative.js`
 - 分析模組：
   - `control-studio/js/analysis/time-response.js`
@@ -93,6 +98,11 @@
 - Particle Filter API baseline：bootstrap/SIR PF，支援 systematic / multinomial / stratified resampling
 - Joint State-Parameter EKF baseline：augmented numerical EKF、state/parameter estimate、rank-deficient warning
 - RTS Smoother baseline：Rauch-Tung-Striebel backward pass、covariance non-increase、MSE improvement fixture
+- ADMM QP baseline：OSQP-style split、box projection、dense/diagonal solve path
+- SQP / Multiple Shooting baseline：merit-function SQP、multiple-shooting continuity residual
+- MILP baseline：binary MILP enumeration、knapsack、Held-Karp TSP、infeasible detection
+- L-BFGS / Trust Region baseline：compact-memory L-BFGS、trust-region gradient step
+- Mixed-Integer MPC baseline：small switched-system enumeration、mode sequence and terminal tracking validation
 - Step Response
 - Impulse / Ramp / Sine / Square / Pulse response
 - Discrete step / impulse response

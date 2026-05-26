@@ -294,6 +294,16 @@ del{color:var(--muted)}
 </thead><tbody>
 <tr><td><strong>C4</strong></td><td>RTS Smoother</td><td>Done</td><td><code>verify_c1_c4_estimation.mjs</code></td><td>Rauch-Tung-Striebel backward smoothing, covariance non-increase, MSE improvement fixture</td></tr>
 </thead><tbody>
+<tr><td><strong>D2</strong></td><td>OSQP-style ADMM QP</td><td>Done</td><td><code>verify_d2_d6_optimization.mjs</code></td><td>Dense / diagonal box-QP ADMM baseline with large diagonal problem guard</td></tr>
+</thead><tbody>
+<tr><td><strong>D3</strong></td><td>SQP / Multiple Shooting</td><td>Done</td><td><code>verify_d2_d6_optimization.mjs</code></td><td>Merit-function SQP baseline and multiple-shooting continuity helper</td></tr>
+</thead><tbody>
+<tr><td><strong>D4</strong></td><td>MILP Branch-and-Bound Utilities</td><td>Done</td><td><code>verify_d2_d6_optimization.mjs</code></td><td>Binary MILP enumeration, knapsack optimum, infeasible detection, Held-Karp TSP</td></tr>
+</thead><tbody>
+<tr><td><strong>D5</strong></td><td>L-BFGS / Trust Region</td><td>Done</td><td><code>verify_d2_d6_optimization.mjs</code></td><td>L-BFGS with compact history and trust-region gradient baseline</td></tr>
+</thead><tbody>
+<tr><td><strong>D6</strong></td><td>Mixed-Integer MPC</td><td>Done</td><td><code>verify_d2_d6_optimization.mjs</code></td><td>Enumerative switched-system MIMPC baseline with infeasibility-safe status</td></tr>
+</thead><tbody>
 <tr><td><strong>D1</strong></td><td>Active-set QP + warm-start</td><td>Done</td><td><code>verify_d1_qp_activeset.mjs</code></td><td>KKT residual, feasibility, warm-start, MPC-like QP, infeasible / non-PSD guards</td></tr>
 </thead><tbody>
 <tr><td><strong>E1</strong></td><td>Newton-CARE refinement</td><td>Done</td><td><code>verify_e1_newton_care.mjs</code></td><td>Newton residual refinement against Hamiltonian Schur CARE baseline</td></tr>
@@ -315,7 +325,7 @@ del{color:var(--muted)}
 
 <h2 id="verification-suite-status-2026-05-27">Verification Suite Status (2026-05-27)</h2>
 
-<p><strong>101/101 scripts pass</strong> — run via <code>bash scripts/run_all_verify.sh</code></p>
+<p><strong>102/102 scripts pass</strong> — run via <code>bash scripts/run_all_verify.sh</code></p>
 
 <table><thead>
 <tr><th>Group</th><th>Scripts</th><th>Pass</th></tr>
@@ -326,7 +336,7 @@ del{color:var(--muted)}
 </thead><tbody>
 <tr><td>Math audit fixes</td><td>1</td><td>1</td></tr>
 </thead><tbody>
-<tr><td>Roadmap Tier A-G</td><td>19</td><td>19</td></tr>
+<tr><td>Roadmap Tier A-G</td><td>20</td><td>20</td></tr>
 </thead><tbody>
 <tr><td>General math &amp; PID</td><td>4</td><td>4</td></tr>
 </tbody></table>
