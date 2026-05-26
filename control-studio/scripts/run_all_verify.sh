@@ -145,6 +145,7 @@ run_script "A1 ADRC"                                                "node script
 run_script "A2 ILC"                                                 "node scripts/verify_a2_ilc.mjs"
 run_script "A3 SMC + Super-twisting"                                "node scripts/verify_a3_smc.mjs"
 run_script "A4 Backstepping"                                        "node scripts/verify_a4_backstepping.mjs"
+run_script "A5/A6/A7 feedback linearization + reset + RG"           "node scripts/verify_a5_a7_tier_a.mjs"
 run_script "E7 Condition number gating"                             "node scripts/verify_e7_conditioning.mjs"
 run_script "E2 Sylvester (vec-trick)"                               "node scripts/verify_e2_sylvester.mjs"
 run_script "G2 MPC Move Blocking"                                   "node scripts/verify_g2_move_blocking.mjs"

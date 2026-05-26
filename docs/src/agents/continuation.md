@@ -24,6 +24,7 @@
   - 2026-05-26 接續 Functional Roadmap Sprint 5：完成 F4 Falsification core，新增 `js/verification/falsification.js`，支援 `defineSTL("alw_[0,T] x < c")` / `ev_[0,T]` robustness 與 deterministic `falsify({ system, spec, inputSpace })` counterexample search；新增 `verify_f4_falsification.mjs` 並納入 `run_all_verify.sh`，最新基線升至 **94/94 scripts pass**。
   - 2026-05-26 按 functional roadmap 順序補 A3：新增 `js/control/smc.js`，支援 classical SMC、boundary-layer SMC、super-twisting SMC、reaching-time guard 與 `analyzeChattering()`；新增 `verify_a3_smc.mjs` 並納入 `run_all_verify.sh`，最新基線升至 **95/95 scripts pass**。
   - 2026-05-26 按 functional roadmap 順序補 A4：新增 `js/control/backstepping.js`，支援三階 strict-feedback chain / terminal triangular drift backstepping、Lyapunov 負定 proof metadata、二階 matched-parameter adaptive baseline；新增 `verify_a4_backstepping.mjs` 並納入 `run_all_verify.sh`，最新基線升至 **96/96 scripts pass**。
+  - 2026-05-26 接續完成 Tier A 剩餘演算法核心：新增 `js/math/lie_derivative.js`、`js/control/feedback_linearization.js`、`js/control/reset_control.js`、`js/control/reference_governor.js`；A5/A6/A7 共用 `verify_a5_a7_tier_a.mjs`，涵蓋 relative degree、zero dynamics warning、Clegg/FORE reset、H-beta feasibility、MOAS/reference governor Monte Carlo constraint satisfaction；最新基線升至 **97/97 scripts pass**。
 - 已完成 NVIDIA Build Models 資料集中管理。
 - 已新增 agent 入口文件：
   - `AGENTS.md`：專案規則、標準流程、擴充規則與品質判準。

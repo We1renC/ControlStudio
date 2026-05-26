@@ -1,7 +1,7 @@
 # ControlStudio Development Roadmap
 
 > Last updated: 2026-05-26
-> Current committed baseline: `feat(control): add A4 backstepping baseline`
+> Current committed baseline: `feat(control): complete Tier A algorithm baseline`
 > Scope: this is the canonical execution roadmap for ControlStudio implementation status.
 > Do not use this file for product vision, proof derivations, or handoff notes; see the document workflow below.
 
@@ -107,6 +107,9 @@ Per `docs/src/control-studio/functional-roadmap.html`. User scope: skip Tier H/I
 | **A2** | ILC (Iterative Learning Control) | Done | `verify_a2_ilc.mjs` | P-type / PD-type / NOILC; lifted Toeplitz formulation |
 | **A3** | SMC + Super-twisting | Done | `verify_a3_smc.mjs` | Classical / boundary-layer / super-twisting SMC; chattering index and reaching-time guard |
 | **A4** | Backstepping | Done | `verify_a4_backstepping.mjs` | Third-order strict-feedback chain with terminal triangular drift; adaptive second-order matched-parameter baseline |
+| **A5** | Feedback Linearization | Done | `verify_a5_a7_tier_a.mjs` | Numerical Lie derivatives, relative degree, I/O and full-state linearization, zero-dynamics warning |
+| **A6** | Reset Control | Done | `verify_a5_a7_tier_a.mjs` | Clegg / FORE reset controllers, describing-function PM lift, H-beta feasibility baseline |
+| **A7** | Reference Governor | Done | `verify_a5_a7_tier_a.mjs` | Scalar MOAS, online kappa governor, deterministic Monte Carlo constraint satisfaction |
 | **B1** | SINDy | Done | `verify_b1_sindy.mjs` | Sparse polynomial library + STLSQ recovery on synthetic nonlinear dynamics |
 | **D1** | Active-set QP + warm-start | Done | `verify_d1_qp_activeset.mjs` | KKT residual, feasibility, warm-start, MPC-like QP, infeasible / non-PSD guards |
 | **E1** | Newton-CARE refinement | Done | `verify_e1_newton_care.mjs` | Newton residual refinement against Hamiltonian Schur CARE baseline |
@@ -120,14 +123,14 @@ Per `docs/src/control-studio/functional-roadmap.html`. User scope: skip Tier H/I
 
 ## Verification Suite Status (2026-05-26)
 
-**96/96 scripts pass** — run via `bash scripts/run_all_verify.sh`
+**97/97 scripts pass** — run via `bash scripts/run_all_verify.sh`
 
 | Group | Scripts | Pass |
 | --- | --- | --- |
 | Phase 9/10/11 foundations | 11 | 11 |
 | Phase 14–65 advanced control / UI | 66 | 66 |
 | Math audit fixes | 1 | 1 |
-| Roadmap Tier A-G | 14 | 14 |
+| Roadmap Tier A-G | 15 | 15 |
 | General math & PID | 4 | 4 |
 
 ## P1/P2 UI/UX Completion Summary

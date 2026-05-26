@@ -34,6 +34,10 @@
   - `control-studio/js/control/stability.js`
   - `control-studio/js/control/smc.js`
   - `control-studio/js/control/backstepping.js`
+  - `control-studio/js/control/feedback_linearization.js`
+  - `control-studio/js/control/reset_control.js`
+  - `control-studio/js/control/reference_governor.js`
+  - `control-studio/js/math/lie_derivative.js`
 - 分析模組：
   - `control-studio/js/analysis/time-response.js`
   - `control-studio/js/analysis/frequency-response.js`
@@ -68,6 +72,9 @@
 - Lead / Lag design helper
 - Sliding Mode Control baseline：classical、boundary-layer、super-twisting，含 reaching-time guard 與 chattering analysis
 - Backstepping baseline：三階 strict-feedback chain / terminal triangular drift、Lyapunov 負定驗證、二階 matched-parameter adaptive update
+- Feedback Linearization baseline：numerical Lie derivative、relative degree、I/O linearization、full-state companion form、zero-dynamics warning
+- Reset Control baseline：Clegg / FORE reset controller、describing-function phase-margin lift、H-beta feasibility approximation
+- Reference Governor baseline：scalar MOAS、online kappa limiting、constraint-preserving setpoint modification
 - Step Response
 - Impulse / Ramp / Sine / Square / Pulse response
 - Discrete step / impulse response
@@ -136,7 +143,7 @@
 - Phase 13：UI/UX usability overhaul、Quick Start、confirm modal、live validation、keyboard shortcuts、a11y / responsive cleanup
 - Phase 14：time delay / Padé / Smith predictor、IMC / SIMC tuning、KaTeX 公式渲染、industrial presets、disk margin、seed control
 - Phase 15：ARX system identification、controller A/B compare、MATLAB / Python codegen、root-locus animation
-- Phase 16：H∞ mixed-sensitivity PID synthesis helper、GA PID auto-tuner、phase portrait、describing functions；Functional Roadmap A3/A4 已補 `smc.js` super-twisting SMC 與 `backstepping.js` baseline
+- Phase 16：H∞ mixed-sensitivity PID synthesis helper、GA PID auto-tuner、phase portrait、describing functions；Functional Roadmap Tier A 已補 A1~A7 algorithm baseline
 - Phase 17：plant-order dynamic H∞ mixed-sensitivity synthesis、structured μ D-scaling upper-bound / DK-style static gain surrogate、MIMO characteristic loci / Gershgorin bands / inverse Nyquist array、MPC MIMO output-space setpoint tracking
 
 ### Math Core Hardening 已完成（Post Phase 17）
