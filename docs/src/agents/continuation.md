@@ -9,7 +9,7 @@
 - 已建立獨立 git repo，避免被 `/Users/w.rc` 外層 git 混入。
 - 控制系統目前同步基線：
   - Branch: `main`
-  - Latest active line: `feat(control): add roadmap tier A-G sprint baseline`
+  - Latest active line: `feat(control): complete Tier B identification baseline`
   - Full phase audit checkpoints:
     - `7a318b3 fix(control): harden phase 7-9 theory diagnostics`
     - `46e20da fix(control): harden phase 0-6 theory checks`
@@ -27,6 +27,7 @@
   - 2026-05-26 接續完成 Tier A 剩餘演算法核心：新增 `js/math/lie_derivative.js`、`js/control/feedback_linearization.js`、`js/control/reset_control.js`、`js/control/reference_governor.js`；A5/A6/A7 共用 `verify_a5_a7_tier_a.mjs`，涵蓋 relative degree、zero dynamics warning、Clegg/FORE reset、H-beta feasibility、MOAS/reference governor Monte Carlo constraint satisfaction；最新基線升至 **97/97 scripts pass**。
   - 2026-05-26 接續 Functional Roadmap B2：新增 `js/control/closedloop_id.js`，支援 direct ARX、indirect closed-loop recovery、joint I/O IV baseline 與 `analyzeBiasRisk()`；新增 `verify_b2_closedloop_id.mjs` 並納入 `run_all_verify.sh`，最新基線升至 **98/98 scripts pass**。
   - 2026-05-26 接續 Functional Roadmap B3：新增 `js/identification/srivc.js`，提供 `identifyCT()` 與 `poissonFilter()` API，重用 P30 `identifySRIVC` 數學核心；新增 `verify_b3_srivc.mjs`，clean CT fixture 係數誤差 <1%，並納入 `run_all_verify.sh`，最新基線升至 **99/99 scripts pass**。
+  - 2026-05-27 接續 Functional Roadmap B4-B6：新增 `js/identification/gp.js`、`hammerstein_wiener.js`、`freq_mimo.js`，支援 constant-mean GP regression / GP-NARX helpers、Hammerstein saturation / Wiener polynomial block-oriented ID、2x2 MIMO FRF LS identification 與 coherence；新增 `verify_b4_b6_identification.mjs` 並納入 `run_all_verify.sh`，最新基線升至 **100/100 scripts pass**。
 - 已完成 NVIDIA Build Models 資料集中管理。
 - 已新增 agent 入口文件：
   - `AGENTS.md`：專案規則、標準流程、擴充規則與品質判準。

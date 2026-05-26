@@ -38,6 +38,9 @@
   - `control-studio/js/control/reset_control.js`
   - `control-studio/js/control/reference_governor.js`
   - `control-studio/js/control/closedloop_id.js`
+  - `control-studio/js/identification/gp.js`
+  - `control-studio/js/identification/hammerstein_wiener.js`
+  - `control-studio/js/identification/freq_mimo.js`
   - `control-studio/js/identification/srivc.js`
   - `control-studio/js/math/lie_derivative.js`
 - 分析模組：
@@ -79,6 +82,9 @@
 - Reference Governor baseline：scalar MOAS、online kappa limiting、constraint-preserving setpoint modification
 - Closed-loop Identification baseline：direct ARX、indirect closed-loop recovery、joint I/O IV estimate、bias risk diagnostic
 - SRIVC Continuous-time Identification baseline：Poisson filter、`identifyCT()` API、clean continuous-time fixture <1% coefficient error
+- GP-NARX / Gaussian Process Regression baseline：constant-mean GP、RBF/Matern/periodic kernels、predictive variance 與 95% interval
+- Hammerstein / Wiener Identification baseline：飽和 Hammerstein level recovery、Wiener polynomial nonlinearity fit
+- MIMO FRF Identification baseline：2x2 frequency-domain LS recovery、coherence、magnitude / phase verification
 - Step Response
 - Impulse / Ramp / Sine / Square / Pulse response
 - Discrete step / impulse response
@@ -164,7 +170,7 @@
 - Verification：最新節點已通過 TF / SS / ZPK / C2D 與 PID regression（commit message 記錄 `36/36` 與 `21/21`）。
 
 ### 尚未完成能力
-- Phase 23：continuous-time identification 已補 SRIVC `identifyCT()` baseline；CONTSID 仍可作後續研究擴充。
+- Phase 23 / Functional Roadmap Tier B：continuous-time identification 已補 SRIVC `identifyCT()` baseline；B4 GP regression、B5 Hammerstein/Wiener、B6 MIMO FRF identification 已完成 deterministic baseline；CONTSID 仍可作後續研究擴充。
 - Phase 24：advanced MPC 已完成；NMPC、EMPC、Tube MPC、Explicit MPC 均有 deterministic verification。
 - Phase 25：Hankel norm approximation 尚未提交。
 - Phase 26：LPV synthesis 尚未提交。
@@ -448,7 +454,7 @@
 - Done：Phase 20 MIMO MPC engineering workflow — offset-free tracking、move suppression、feasibility diagnostics、constraint handling，詳見 `verify_p20_mpc_engineering.mjs`。
 - Done：Phase 21 research-grade system identification — ARMAX / OE / BJ / subspace ID、experiment design、residual validation、uncertainty export，詳見 `verify_p21_sysid_advanced.mjs`。
 - Done：Phase 22 benchmark + cross-tool validation — full verification runner、cross-tool comparison、CI workflow、benchmark script。
-- Mostly Done：Phase 23 agentic / SysID gap closure — structured review skills、FRF estimation、model order selection、MISO ARX、SRIVC `identifyCT()` baseline；CONTSID 仍可作後續研究擴充。
+- Mostly Done：Phase 23 agentic / SysID gap closure — structured review skills、FRF estimation、model order selection、MISO ARX、SRIVC `identifyCT()` baseline，以及 Functional Roadmap B4 GP regression、B5 Hammerstein/Wiener、B6 MIMO FRF identification baseline；CONTSID 仍可作後續研究擴充。
 - Done：Phase 24 advanced MPC — NMPC、EMPC、Tube MPC、Explicit MPC，含 `verify_p24_nmpc.mjs`、`verify_p24_empc.mjs`、`verify_p24_tube_explicit_mpc.mjs`。
 - Mostly Done：Phase 25 model order reduction — balanced truncation 與 SS minreal 已提交；Hankel norm approximation 尚未提交。
 - Mostly Done：Phase 26 nonlinear control — gain-scheduled PID 與 sliding mode control 已提交；LPV synthesis 尚未提交。

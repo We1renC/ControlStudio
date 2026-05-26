@@ -86,8 +86,8 @@ del{color:var(--muted)}
 <h1 id="controlstudio-development-roadmap">ControlStudio Development Roadmap</h1>
 
 <blockquote>
-<p>Last updated: 2026-05-26</p>
-<p>Current committed baseline: <code>feat(control): add B3 SRIVC identification API</code></p>
+<p>Last updated: 2026-05-27</p>
+<p>Current committed baseline: <code>feat(control): complete Tier B identification baseline</code></p>
 <p>Scope: this is the canonical execution roadmap for ControlStudio implementation status.</p>
 <p>Do not use this file for product vision, proof derivations, or handoff notes; see the document workflow below.</p>
 </blockquote>
@@ -280,6 +280,12 @@ del{color:var(--muted)}
 </thead><tbody>
 <tr><td><strong>B3</strong></td><td>SRIVC Continuous-time Identification</td><td>Done</td><td><code>verify_b3_srivc.mjs</code></td><td><code>identifyCT</code> wrapper, Poisson filter, clean CT first-order fixture &lt;1% coefficient error</td></tr>
 </thead><tbody>
+<tr><td><strong>B4</strong></td><td>GP-NARX / Gaussian Process Regression</td><td>Done</td><td><code>verify_b4_b6_identification.mjs</code></td><td>Constant-mean GP regression, RBF/Matern/periodic kernels, predictive variance and 95% interval output</td></tr>
+</thead><tbody>
+<tr><td><strong>B5</strong></td><td>Hammerstein / Wiener Identification</td><td>Done</td><td><code>verify_b4_b6_identification.mjs</code></td><td>Saturation Hammerstein level recovery and Wiener polynomial nonlinearity fit</td></tr>
+</thead><tbody>
+<tr><td><strong>B6</strong></td><td>MIMO Frequency-Response Identification</td><td>Done</td><td><code>verify_b4_b6_identification.mjs</code></td><td>2x2 LS FRF recovery with coherence, magnitude, and phase verification</td></tr>
+</thead><tbody>
 <tr><td><strong>D1</strong></td><td>Active-set QP + warm-start</td><td>Done</td><td><code>verify_d1_qp_activeset.mjs</code></td><td>KKT residual, feasibility, warm-start, MPC-like QP, infeasible / non-PSD guards</td></tr>
 </thead><tbody>
 <tr><td><strong>E1</strong></td><td>Newton-CARE refinement</td><td>Done</td><td><code>verify_e1_newton_care.mjs</code></td><td>Newton residual refinement against Hamiltonian Schur CARE baseline</td></tr>
@@ -299,9 +305,9 @@ del{color:var(--muted)}
 <tr><td><strong>G2</strong></td><td>MPC Move Blocking</td><td>Done</td><td><code>verify_g2_move_blocking.mjs</code></td><td>block expansion matrix + condensed QP; singleton-equivalence verified</td></tr>
 </tbody></table>
 
-<h2 id="verification-suite-status-2026-05-26">Verification Suite Status (2026-05-26)</h2>
+<h2 id="verification-suite-status-2026-05-27">Verification Suite Status (2026-05-27)</h2>
 
-<p><strong>99/99 scripts pass</strong> — run via <code>bash scripts/run_all_verify.sh</code></p>
+<p><strong>100/100 scripts pass</strong> — run via <code>bash scripts/run_all_verify.sh</code></p>
 
 <table><thead>
 <tr><th>Group</th><th>Scripts</th><th>Pass</th></tr>
@@ -312,7 +318,7 @@ del{color:var(--muted)}
 </thead><tbody>
 <tr><td>Math audit fixes</td><td>1</td><td>1</td></tr>
 </thead><tbody>
-<tr><td>Roadmap Tier A-G</td><td>17</td><td>17</td></tr>
+<tr><td>Roadmap Tier A-G</td><td>18</td><td>18</td></tr>
 </thead><tbody>
 <tr><td>General math &amp; PID</td><td>4</td><td>4</td></tr>
 </tbody></table>

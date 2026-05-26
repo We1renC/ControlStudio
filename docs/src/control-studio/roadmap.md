@@ -1,7 +1,7 @@
 # ControlStudio Development Roadmap
 
-> Last updated: 2026-05-26
-> Current committed baseline: `feat(control): add B3 SRIVC identification API`
+> Last updated: 2026-05-27
+> Current committed baseline: `feat(control): complete Tier B identification baseline`
 > Scope: this is the canonical execution roadmap for ControlStudio implementation status.
 > Do not use this file for product vision, proof derivations, or handoff notes; see the document workflow below.
 
@@ -113,6 +113,9 @@ Per `docs/src/control-studio/functional-roadmap.html`. User scope: skip Tier H/I
 | **B1** | SINDy | Done | `verify_b1_sindy.mjs` | Sparse polynomial library + STLSQ recovery on synthetic nonlinear dynamics |
 | **B2** | Closed-loop Identification | Done | `verify_b2_closedloop_id.mjs` | Direct ARX, indirect closed-loop recovery, joint I/O IV baseline, bias-risk diagnostic |
 | **B3** | SRIVC Continuous-time Identification | Done | `verify_b3_srivc.mjs` | `identifyCT` wrapper, Poisson filter, clean CT first-order fixture <1% coefficient error |
+| **B4** | GP-NARX / Gaussian Process Regression | Done | `verify_b4_b6_identification.mjs` | Constant-mean GP regression, RBF/Matern/periodic kernels, predictive variance and 95% interval output |
+| **B5** | Hammerstein / Wiener Identification | Done | `verify_b4_b6_identification.mjs` | Saturation Hammerstein level recovery and Wiener polynomial nonlinearity fit |
+| **B6** | MIMO Frequency-Response Identification | Done | `verify_b4_b6_identification.mjs` | 2x2 LS FRF recovery with coherence, magnitude, and phase verification |
 | **D1** | Active-set QP + warm-start | Done | `verify_d1_qp_activeset.mjs` | KKT residual, feasibility, warm-start, MPC-like QP, infeasible / non-PSD guards |
 | **E1** | Newton-CARE refinement | Done | `verify_e1_newton_care.mjs` | Newton residual refinement against Hamiltonian Schur CARE baseline |
 | **E2** | Sylvester / Lyapunov / Stein | Done | `verify_e2_sylvester.mjs` | vec-trick (Kronecker); robust for n <= 30 |
@@ -123,16 +126,16 @@ Per `docs/src/control-studio/functional-roadmap.html`. User scope: skip Tier H/I
 | **F4** | Falsification (S-TaLiRo-style) | Done | `verify_f4_falsification.mjs` | bounded STL robustness + deterministic random / anneal counterexample search |
 | **G2** | MPC Move Blocking | Done | `verify_g2_move_blocking.mjs` | block expansion matrix + condensed QP; singleton-equivalence verified |
 
-## Verification Suite Status (2026-05-26)
+## Verification Suite Status (2026-05-27)
 
-**99/99 scripts pass** — run via `bash scripts/run_all_verify.sh`
+**100/100 scripts pass** — run via `bash scripts/run_all_verify.sh`
 
 | Group | Scripts | Pass |
 | --- | --- | --- |
 | Phase 9/10/11 foundations | 11 | 11 |
 | Phase 14–65 advanced control / UI | 66 | 66 |
 | Math audit fixes | 1 | 1 |
-| Roadmap Tier A-G | 17 | 17 |
+| Roadmap Tier A-G | 18 | 18 |
 | General math & PID | 4 | 4 |
 
 ## P1/P2 UI/UX Completion Summary

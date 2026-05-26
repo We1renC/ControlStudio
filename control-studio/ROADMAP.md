@@ -1,7 +1,7 @@
 # ControlStudio Development Roadmap
 
-> Last updated: 2026-05-26
-> Current committed baseline: `feat(control): add B3 SRIVC identification API`
+> Last updated: 2026-05-27
+> Current committed baseline: `feat(control): complete Tier B identification baseline`
 > Scope: this is the canonical execution roadmap for ControlStudio implementation status.
 > Do not use this file for product vision, proof derivations, or handoff notes; see the document workflow below.
 
@@ -129,6 +129,9 @@ Per `docs/src/control-studio/functional-roadmap.html`. User scope: skip Tier H/I
 | **A7** | Reference Governor | Done | `verify_a5_a7_tier_a.mjs` | Scalar MOAS, online kappa governor, deterministic Monte Carlo constraint satisfaction |
 | **B2** | Closed-loop Identification | Done | `verify_b2_closedloop_id.mjs` (9 checks) | Direct ARX, indirect closed-loop recovery, joint I/O IV baseline, bias-risk diagnostic |
 | **B3** | SRIVC Continuous-time Identification | Done | `verify_b3_srivc.mjs` (8 checks) | `identifyCT` wrapper, Poisson filter, clean CT first-order fixture <1% coefficient error |
+| **B4** | GP-NARX / Gaussian Process Regression | Done | `verify_b4_b6_identification.mjs` | Constant-mean GP regression, RBF/Matern/periodic kernels, predictive variance and 95% interval output |
+| **B5** | Hammerstein / Wiener Identification | Done | `verify_b4_b6_identification.mjs` | Saturation Hammerstein level recovery and Wiener polynomial nonlinearity fit |
+| **B6** | MIMO Frequency-Response Identification | Done | `verify_b4_b6_identification.mjs` | 2x2 LS FRF recovery with coherence, magnitude, and phase verification |
 | **E7** | Condition number gating | Done | `verify_e7_conditioning.mjs` (16 checks) | `js/math/conditioning.js`: estimateCondition, withConditionCheck, scaleAndSolve |
 | **E2** | Sylvester / Lyapunov / Stein | Done | `verify_e2_sylvester.mjs` (12 checks) | vec-trick (Kronecker) — robust for n ≤ 30. Bartels-Stewart deferred until realSchur reordering bug is fixed. |
 | **G2** | MPC Move Blocking | Done | `verify_g2_move_blocking.mjs` (17 checks) | Block expansion matrix + condensed QP; singleton-equivalence verified to 1e-15 |
@@ -140,16 +143,16 @@ Per `docs/src/control-studio/functional-roadmap.html`. User scope: skip Tier H/I
 
 **Known issue surfaced during Sprint 1:** `js/math/realschur.js` produces ~1e-1 reconstruction error for 3x3 stable real-spectrum matrices (the reorder pass mis-tracks Q for certain Givens swaps). Sylvester E2 deliberately avoids realSchur via vec-trick. Future task: fix the reorderSchurStable Q update.
 
-## Verification Suite Status (2026-05-26)
+## Verification Suite Status (2026-05-27)
 
-**99/99 scripts pass** — run via `bash scripts/run_all_verify.sh` (was 82/82 before Tier A-G additions)
+**100/100 scripts pass** — run via `bash scripts/run_all_verify.sh` (was 82/82 before Tier A-G additions)
 
 | Group | Scripts | Pass |
 | --- | --- | --- |
 | Phase 9/10/11 foundations | 11 | 11 |
 | Phase 14–65 advanced control / UI | 66 | 66 |
 | Math audit fixes | 1 | 1 |
-| Roadmap Tier A-G | 17 | 17 |
+| Roadmap Tier A-G | 18 | 18 |
 | General math & PID | 4 | 4 |
 
 ## P1/P2 UI/UX Completion Summary
