@@ -139,6 +139,29 @@ echo -e "${BOLD}▶ Math Audit Fixes${RESET}"
 run_script "Math audit fixes A1/A2/A3"                             "node scripts/verify_math_audit_fixes.mjs"
 echo ""
 
+# ── Roadmap Tier A-G — Sprint 1 ──────────────────────────────────────────────
+echo -e "${BOLD}▶ Roadmap Tier A-G — Sprint 1${RESET}"
+run_script "A1 ADRC"                                                "node scripts/verify_a1_adrc.mjs"
+run_script "A2 ILC"                                                 "node scripts/verify_a2_ilc.mjs"
+run_script "E7 Condition number gating"                             "node scripts/verify_e7_conditioning.mjs"
+run_script "E2 Sylvester (vec-trick)"                               "node scripts/verify_e2_sylvester.mjs"
+run_script "G2 MPC Move Blocking"                                   "node scripts/verify_g2_move_blocking.mjs"
+run_script "B1 SINDy"                                               "node scripts/verify_b1_sindy.mjs"
+run_script "D1 Active-set QP"                                       "node scripts/verify_d1_qp_activeset.mjs"
+run_script "F1 Reachability"                                        "node scripts/verify_f1_reachability.mjs"
+echo ""
+
+# ── Roadmap Tier A-G — Sprint 2 ──────────────────────────────────────────────
+echo -e "${BOLD}▶ Roadmap Tier A-G — Sprint 2${RESET}"
+run_script "E1 Newton-CARE refinement"                              "node scripts/verify_e1_newton_care.mjs"
+run_script "E4 Pseudo-spectrum"                                     "node scripts/verify_e4_pseudospectrum.mjs"
+echo ""
+
+# ── Roadmap Tier A-G — Sprint 5 (Safety & Verification) ──────────────────────
+echo -e "${BOLD}▶ Roadmap Tier A-G — Sprint 5${RESET}"
+run_script "E5 Interval Arithmetic"                                 "node scripts/verify_e5_interval.mjs"
+echo ""
+
 # ── General Math & PID ───────────────────────────────────────────────────────
 echo -e "${BOLD}▶ General Math & PID${RESET}"
 run_script "Math core"                     "node scripts/verify_math_core.mjs"

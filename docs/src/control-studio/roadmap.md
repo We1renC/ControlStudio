@@ -1,7 +1,7 @@
 # ControlStudio Development Roadmap
 
 > Last updated: 2026-05-24
-> Current committed baseline: `7ea48fe chore(ui): remove triple-pane plot workspace and keep active-plot crosshair routing`
+> Current committed baseline: `feat(control): add roadmap tier A-G sprint baseline`
 > Scope: this is the canonical execution roadmap for ControlStudio implementation status.
 > Do not use this file for product vision, proof derivations, or handoff notes; see the document workflow below.
 
@@ -10,6 +10,7 @@
 | Document | Role | Update when |
 | --- | --- | --- |
 | `control-studio/ROADMAP.md` | Canonical execution board: phase status, next actions, verification commands | Any phase item changes status, or a new implementation phase starts |
+| `docs/src/control-studio/functional-roadmap.html` | **Canonical forward functional plan (Tier A–J, 57 items)** — algorithm specs, API design, acceptance criteria, dependencies, sprint plan, agent guidelines | A new capability is planned, an item changes priority, or scope is adjusted. Always update before starting a Tier A–J item. |
 | `CONTROL_SYSTEM_PLAN.md` | Product / architecture plan and high-level capability inventory | A user-visible capability, architecture direction, or major risk changes |
 | `CONTROL_SYSTEM_BACKLOG.md` | Detailed task ledger with IDs, dependencies, and verification evidence | A backlog item moves between Planned / In Progress / Done / Paused |
 | `CONTROL_SYSTEM_SKILLS_PLAN.md` | Agent skill decomposition and workflow boundaries | A skill is added, retired, or changes scope |
@@ -20,7 +21,7 @@
 ## Required Development Workflow
 
 1. Run `git status --short` and classify dirty files before editing.
-2. Read `control-studio/ROADMAP.md`, `CONTROL_SYSTEM_PLAN.md`, `CONTROL_SYSTEM_BACKLOG.md`, and `AGENT_CONTINUATION.md`.
+2. Read `control-studio/ROADMAP.md`, `docs/src/control-studio/functional-roadmap.html` (for any Tier A–J item), `CONTROL_SYSTEM_PLAN.md`, `CONTROL_SYSTEM_BACKLOG.md`, and `AGENT_CONTINUATION.md`.
 3. If a workflow can become reusable agent behavior, check `CONTROL_SYSTEM_SKILLS_PLAN.md` before coding.
 4. Implement the smallest phase slice that can be verified independently.
 5. Add or update a deterministic verification script for every math/control feature.
@@ -87,15 +88,43 @@
 | **P57** | **D4/D5 unit-test / diff / HIL / docs / wiring / warnings** | Done | `verify_p57_d4_d5.mjs` |
 | **P58** | **G11 app-loading skeleton screen** | Done | `verify_p58_g11.mjs` |
 | **P59** | **F1-2 Context Bar / view-nav / A5-1 Plot Workspace (main + 2 companion charts)** | Done | `verify_p59_ctxbar_triple.mjs` |
+| **P61** | **J1-1/J1-2/J1-4/J1-5 in-chart engineering annotations** | Done | `verify_p61_chart_annotations.mjs` |
+| **P62** | **K1-1/K1-2/K1-4 design flow state machine** | Done | `verify_p62_flow_state.mjs` |
+| **P63** | **L1-1/L1-2/L1-3 chart measurement tools** | Done | `verify_p63_measure_tools.mjs` |
+| **P64** | **P1-1/P1-2/P1-3 parameter sweep visualization** | Done | `verify_p64_param_sweep.mjs` |
+| **P65** | **Q1-1/Q1-2/Q1-3/Q1-4 share & export enhancement** | Done | `verify_p65_share_export.mjs` |
+| **P34-01** | **Module split: P62-P65 → js/ui/ sub-modules** | Done | Verify scripts updated to check module files |
+| **J1-3** | **Root Locus geometric annotations (damping lines, ωn arcs, Ku labels)** | Done | `verify_j13_rlocus_geo.mjs` |
+| **H1-4** | **Sidebar Quick Pin (non-emoji section pin, localStorage, max 3, float to top)** | Done | `verify_h14_sidebar_pin.mjs` |
+
+## Roadmap Tier Implementation — Sprint 1 (2026-05-24)
+
+Per `docs/src/control-studio/functional-roadmap.html`. User scope: skip Tier H/I/J.
+
+| ID | Theme | Status | Verification | Notes |
+| --- | --- | --- | --- | --- |
+| **A1** | ADRC (Active Disturbance Rejection Control) | Done | `verify_a1_adrc.mjs` | ESO bandwidth parameterisation; linear + nonlinear `fal` variants |
+| **A2** | ILC (Iterative Learning Control) | Done | `verify_a2_ilc.mjs` | P-type / PD-type / NOILC; lifted Toeplitz formulation |
+| **B1** | SINDy | Done | `verify_b1_sindy.mjs` | Sparse polynomial library + STLSQ recovery on synthetic nonlinear dynamics |
+| **D1** | Active-set QP + warm-start | Done | `verify_d1_qp_activeset.mjs` | KKT residual, feasibility, warm-start, MPC-like QP, infeasible / non-PSD guards |
+| **E1** | Newton-CARE refinement | Done | `verify_e1_newton_care.mjs` | Newton residual refinement against Hamiltonian Schur CARE baseline |
+| **E2** | Sylvester / Lyapunov / Stein | Done | `verify_e2_sylvester.mjs` | vec-trick (Kronecker); robust for n <= 30 |
+| **E4** | Pseudo-spectrum | Done | `verify_e4_pseudospectrum.mjs` | normal / non-normal matrix sigma-min grid checks |
+| **E5** | Interval arithmetic | Done | `verify_e5_interval.mjs` | interval ops, interval matrix multiplication, Kharitonov 2nd-order robust stability |
+| **E7** | Condition number gating | Done | `verify_e7_conditioning.mjs` | `estimateCondition`, `withConditionCheck`, `scaleAndSolve` |
+| **F1** | Reachability via zonotopes | Done | `verify_f1_reachability.mjs` | zonotope operations, finite-horizon reach sets, Monte Carlo containment sanity checks |
+| **G2** | MPC Move Blocking | Done | `verify_g2_move_blocking.mjs` | block expansion matrix + condensed QP; singleton-equivalence verified |
 
 ## Verification Suite Status (2026-05-24)
 
-**79/79 scripts pass** — run via `bash scripts/run_all_verify.sh`
+**93/93 scripts pass** — run via `bash scripts/run_all_verify.sh`
 
 | Group | Scripts | Pass |
 | --- | --- | --- |
 | Phase 9/10/11 foundations | 11 | 11 |
-| Phase 14–65 advanced control / UI | 64 | 64 |
+| Phase 14–65 advanced control / UI | 66 | 66 |
+| Math audit fixes | 1 | 1 |
+| Roadmap Tier A-G | 11 | 11 |
 | General math & PID | 4 | 4 |
 
 ## P1/P2 UI/UX Completion Summary

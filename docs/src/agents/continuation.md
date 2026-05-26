@@ -9,7 +9,7 @@
 - 已建立獨立 git repo，避免被 `/Users/w.rc` 外層 git 混入。
 - 控制系統目前同步基線：
   - Branch: `main`
-  - Latest active line: `956d8c3 feat(phase34+J13+H14): module split P62-P65 → js/ui/, J1-3 root locus geo annotations, H1-4 sidebar quick pin`
+  - Latest active line: `feat(control): add roadmap tier A-G sprint baseline`
   - Full phase audit checkpoints:
     - `7a318b3 fix(control): harden phase 7-9 theory diagnostics`
     - `46e20da fix(control): harden phase 0-6 theory checks`
@@ -20,6 +20,7 @@
   - 2026-05-24 UI/UX 計畫已推進到 P59 之後的整體整理階段：P35~P59 均已落地，包含 plot workspace、context bar、dashboard/scoring/report/decision-log，以及後續的 browser-driven layout cleanup；`run_all_verify.sh` 最新基線為 `79/79 scripts pass`。
   - 2026-05-24 已完成 P34-01 模組拆分：app.js（15,871→14,524 行）拆出 `js/ui/{annotations,share,sweep,measurement,flow}.js` 五個子模組；完成 J1-3 Root Locus 幾何標注（阻尼線、ωn 弧線、臨界增益）與 H1-4 側欄快速收藏 Pin；`run_all_verify.sh` 最新基線為 **81/81 scripts pass**。
   - 2026-05-24 數學核心審查 Round 2 修正三項：(A1) `stability.js stabilityMargins()` 改為收集所有增益/相位交越點回傳最壞情況 PM/GM；(A2) `matrix.js matDet()` 加入 LU O(n³) fallback（n>6）與 n=3 Sarrus 公式；(A3) `root-locus.js sortRootLocusBranches()` 改用 Jonker-Volgenant Hungarian 最優分配。新增 `verify_math_audit_fixes.mjs`；基線升至 **82/82 scripts pass**。
+  - 2026-05-26 確認 Functional Roadmap Tier A-G 已開始落地：A1 ADRC、A2 ILC、B1 SINDy、D1 active-set QP、E1 Newton CARE、E2 Sylvester/Lyapunov/Stein、E4 pseudospectrum、E5 interval arithmetic、E7 condition-number gating、F1 reachability、G2 MPC move blocking 均有核心模組與 verify script；`run_all_verify.sh` 已納入 Tier A-G，最新基線為 **93/93 scripts pass**。本輪也修正 `verify_f1_reachability.mjs` 對 zonotope generator-list representation 的錯誤檢查，避免 F1 standalone 驗證被 full suite 漏掉。
 - 已完成 NVIDIA Build Models 資料集中管理。
 - 已新增 agent 入口文件：
   - `AGENTS.md`：專案規則、標準流程、擴充規則與品質判準。

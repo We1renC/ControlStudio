@@ -1,0 +1,2031 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ControlStudio Functional Roadmap — Tier A–J (57 items)</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #0d1117; --bg-alt: #161b22; --bg-card: #1c2129;
+    --border: #30363d; --border-soft: #21262d;
+    --text: #e6edf3; --text-mute: #8b949e; --text-dim: #6e7681;
+    --accent: #58a6ff; --accent-hot: #f78166;
+    --green: #3fb950; --yellow: #d29922; --red: #f85149; --purple: #a371f7;
+    --code-bg: #161b22; --pill-bg: #21262d;
+  }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans TC', Arial, sans-serif;
+    background: var(--bg); color: var(--text);
+    display: grid; grid-template-columns: 260px 1fr;
+    min-height: 100vh; font-size: 14px; line-height: 1.55;
+  }
+  /* Sidebar */
+  nav.sidebar {
+    position: sticky; top: 0; height: 100vh; overflow-y: auto;
+    background: var(--bg-alt); border-right: 1px solid var(--border);
+    padding: 16px 12px;
+  }
+  nav h1.brand {
+    font-size: 14px; color: var(--accent); margin-bottom: 4px;
+    letter-spacing: .02em; font-weight: 700;
+  }
+  nav .subtitle { font-size: 10px; color: var(--text-dim); margin-bottom: 16px; text-transform: uppercase; letter-spacing: .05em; }
+  nav h2 { font-size: 10px; text-transform: uppercase; color: var(--text-mute);
+    letter-spacing: .08em; margin: 14px 8px 6px; font-weight: 700; }
+  nav ul { list-style: none; }
+  nav li a { display: block; padding: 4px 8px; border-radius: 4px;
+    color: var(--text-mute); text-decoration: none; font-size: 12px;
+    transition: background .15s, color .15s; border-left: 2px solid transparent; }
+  nav li a:hover, nav li a.active { background: var(--border-soft); color: var(--text); border-left-color: var(--accent); }
+  nav input.filter {
+    width: 100%; padding: 6px 10px; background: var(--bg);
+    border: 1px solid var(--border); border-radius: 4px;
+    color: var(--text); font-size: 12px; outline: none; margin-bottom: 10px;
+  }
+  nav input.filter:focus { border-color: var(--accent); }
+  /* Main */
+  main { padding: 32px 40px; overflow-x: hidden; max-width: 1100px; }
+  header.doc-header { margin-bottom: 28px; padding-bottom: 16px; border-bottom: 1px solid var(--border); }
+  header.doc-header h1 { font-size: 26px; color: var(--accent); font-weight: 700; margin-bottom: 6px; }
+  header.doc-header .meta { font-size: 12px; color: var(--text-mute); display: flex; gap: 18px; flex-wrap: wrap; }
+  header.doc-header .meta span b { color: var(--text); font-weight: 600; }
+  /* Sections */
+  section.tier { margin-bottom: 40px; scroll-margin-top: 16px; }
+  section.tier > h2 {
+    font-size: 20px; color: var(--text); margin-bottom: 4px;
+    padding-bottom: 6px; border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 10px;
+  }
+  section.tier > h2 .tag {
+    font-size: 11px; background: var(--accent); color: #fff;
+    padding: 2px 8px; border-radius: 10px; font-weight: 700;
+  }
+  section.tier > .desc { color: var(--text-mute); font-size: 13px; margin-bottom: 16px; }
+  /* Item card */
+  article.item {
+    background: var(--bg-card); border: 1px solid var(--border);
+    border-radius: 8px; padding: 16px 18px; margin-bottom: 14px;
+    scroll-margin-top: 16px;
+  }
+  article.item header.item-head {
+    display: flex; align-items: baseline; gap: 10px; margin-bottom: 8px;
+    flex-wrap: wrap; border: none; padding: 0;
+  }
+  article.item header.item-head h3 {
+    font-size: 16px; color: var(--text); font-weight: 700;
+  }
+  article.item header.item-head .id-pill {
+    background: var(--purple); color: #fff; padding: 2px 8px;
+    border-radius: 4px; font-size: 11px; font-weight: 700; letter-spacing: .03em;
+  }
+  article.item header.item-head .est {
+    margin-left: auto; font-size: 11px; color: var(--text-mute);
+    background: var(--pill-bg); padding: 2px 8px; border-radius: 10px;
+  }
+  article.item header.item-head .priority { font-size: 10px; padding: 2px 7px; border-radius: 10px; font-weight: 700; }
+  .p-high { background: rgba(248,81,73,0.15); color: var(--red); }
+  .p-med  { background: rgba(210,153,34,0.15); color: var(--yellow); }
+  .p-low  { background: rgba(63,185,80,0.15); color: var(--green); }
+  /* Sub-blocks */
+  article.item .blk { margin-top: 10px; }
+  article.item .blk-title {
+    font-size: 11px; text-transform: uppercase; color: var(--text-mute);
+    letter-spacing: .05em; font-weight: 700; margin-bottom: 4px;
+  }
+  article.item .blk p { color: var(--text); font-size: 13px; }
+  article.item pre {
+    background: var(--code-bg); border: 1px solid var(--border);
+    border-radius: 6px; padding: 10px 12px; overflow-x: auto;
+    font-family: 'SF Mono', Menlo, Consolas, monospace; font-size: 12px;
+    color: #c9d1d9; line-height: 1.5; white-space: pre;
+  }
+  article.item code {
+    background: var(--code-bg); padding: 1px 5px; border-radius: 3px;
+    font-family: 'SF Mono', Menlo, Consolas, monospace; font-size: 12px;
+    color: var(--accent-hot);
+  }
+  article.item ul.checks { margin: 4px 0 0 18px; }
+  article.item ul.checks li { font-size: 12.5px; color: var(--text); margin: 2px 0; }
+  article.item .files { display: flex; flex-wrap: wrap; gap: 6px; }
+  article.item .files .file {
+    background: var(--pill-bg); padding: 2px 7px; border-radius: 4px;
+    font-family: 'SF Mono', Menlo, monospace; font-size: 11px; color: var(--accent);
+  }
+  article.item .deps { color: var(--text-mute); font-size: 12px; }
+  article.item .deps b { color: var(--text); }
+  /* Tables */
+  table { width: 100%; border-collapse: collapse; margin: 8px 0; font-size: 12.5px; }
+  table th, table td { padding: 6px 10px; border-bottom: 1px solid var(--border); text-align: left; }
+  table th { color: var(--text-mute); font-weight: 600; background: var(--border-soft); font-size: 11px; text-transform: uppercase; letter-spacing: .03em; }
+  table td b { color: var(--accent); }
+  /* Sprint cards */
+  .sprint-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin: 16px 0; }
+  .sprint-card {
+    background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px;
+    padding: 14px; border-top: 3px solid var(--accent);
+  }
+  .sprint-card h4 { font-size: 13px; color: var(--text); margin-bottom: 4px; }
+  .sprint-card .duration { font-size: 11px; color: var(--text-mute); margin-bottom: 8px; }
+  .sprint-card ul { margin-left: 16px; font-size: 12px; }
+  .sprint-card li { margin: 2px 0; color: var(--text-mute); }
+  .sprint-card li b { color: var(--text); }
+  /* Dependency diagram */
+  .deps-diag {
+    background: var(--bg-card); border: 1px solid var(--border);
+    border-radius: 8px; padding: 16px; font-family: 'SF Mono', monospace;
+    font-size: 12px; color: var(--text-mute); white-space: pre; overflow-x: auto;
+  }
+  .deps-diag b { color: var(--accent); }
+  /* Filter highlight */
+  .hidden { display: none !important; }
+  /* Footer */
+  footer.doc-footer {
+    margin-top: 60px; padding-top: 20px; border-top: 1px solid var(--border);
+    color: var(--text-dim); font-size: 12px;
+  }
+  footer.doc-footer a { color: var(--accent); text-decoration: none; }
+  /* Anchor link */
+  .anchor { color: var(--text-dim); text-decoration: none; margin-left: 6px; font-weight: 400; }
+  .anchor:hover { color: var(--accent); }
+  /* Print mode */
+  @media print {
+    nav.sidebar { display: none; }
+    body { grid-template-columns: 1fr; background: #fff; color: #000; }
+    article.item { border-color: #ccc; background: #fff; page-break-inside: avoid; }
+    pre { background: #f5f5f5; color: #000; }
+  }
+</style>
+</head>
+<body>
+
+<nav class="sidebar">
+  <h1 class="brand">ControlStudio</h1>
+  <div class="subtitle">Functional Roadmap</div>
+  <input type="text" class="filter" id="filter-input" placeholder="搜尋項目… (e.g. ADRC, QP, codegen)">
+  <h2>Tiers</h2>
+  <ul>
+    <li><a href="#overview">總覽 Overview</a></li>
+    <li><a href="#tier-a">A. 新增控制演算法</a></li>
+    <li><a href="#tier-b">B. 系統識別擴充</a></li>
+    <li><a href="#tier-c">C. 狀態估測強化</a></li>
+    <li><a href="#tier-d">D. 最佳化核心</a></li>
+    <li><a href="#tier-e">E. 數值核心修補</a></li>
+    <li><a href="#tier-f">F. 驗證與安全</a></li>
+    <li><a href="#tier-g">G. 進階 MPC</a></li>
+    <li><a href="#tier-h">H. 嵌入式部署</a></li>
+    <li><a href="#tier-i">I. 效能與架構</a></li>
+    <li><a href="#tier-j">J. 硬體整合 / HIL</a></li>
+    <li><a href="#dependencies">依賴矩陣</a></li>
+    <li><a href="#sprints">Sprint 規劃</a></li>
+    <li><a href="#agent-guidelines">Agent 指引</a></li>
+  </ul>
+  <h2>Quick Links</h2>
+  <ul>
+    <li><a href="../../../control-studio/ROADMAP.md">ROADMAP.md</a></li>
+    <li><a href="./roadmap.md">roadmap.md (mirror)</a></li>
+    <li><a href="./plan.md">plan.md</a></li>
+  </ul>
+</nav>
+
+<main>
+<header class="doc-header">
+  <h1>ControlStudio Functional Roadmap</h1>
+  <p style="color:var(--text-mute); margin-bottom:10px; font-size:13px;">
+    後續開發（非 UI/UX）的核心方向、演算法規格、API 設計、驗收條件與依賴關係。
+    本文件為 <b style="color:var(--text)">canonical 工程規劃</b>，任何接手 agent 須先閱讀本文。
+  </p>
+  <div class="meta">
+    <span><b>Items</b>: 57</span>
+    <span><b>Tiers</b>: 10 (A–J)</span>
+    <span><b>Estimated Total</b>: ~270 工作天</span>
+    <span><b>MVP Path</b>: 3 個月</span>
+    <span><b>Last Updated</b>: 2026-05-24</span>
+    <span><b>Owner</b>: Functional Planning</span>
+  </div>
+</header>
+
+<section id="overview">
+  <h2 style="color:var(--accent);font-size:18px;margin-bottom:10px;">總覽 Overview</h2>
+  <p style="color:var(--text);margin-bottom:12px;">
+    本路線圖將 ControlStudio 從「教學/驗證工具」進階為「設計-部署-驗證-硬體閉環」的完整工程平台。
+    現況基礎 (P9–P65) 已涵蓋線性控制、MPC、sysid、robust、模型降階等。
+    本文件規劃 <b>57 項</b>新功能/強化，分為 10 個 Tier，每項皆有獨立規格與驗收。
+  </p>
+  <table>
+    <thead><tr><th>Tier</th><th>主題</th><th>項目數</th><th>估時</th><th>核心價值</th></tr></thead>
+    <tbody>
+      <tr><td><b>A</b></td><td>新增控制演算法</td><td>7</td><td>24 天</td><td>ADRC/ILC/SMC/BS/FL/Reset/RG 補齊現代控制矩陣</td></tr>
+      <tr><td><b>B</b></td><td>系統識別擴充</td><td>6</td><td>28 天</td><td>SINDy、Closed-loop、CT、GP、HW、MIMO FRF</td></tr>
+      <tr><td><b>C</b></td><td>狀態估測強化</td><td>4</td><td>15 天</td><td>MHE、Particle、Dual EKF、Smoother</td></tr>
+      <tr><td><b>D</b></td><td>最佳化核心</td><td>6</td><td>32 天</td><td>Active-set QP、OSQP、SQP、MILP、L-BFGS、MIMPC</td></tr>
+      <tr><td><b>E</b></td><td>數值核心修補</td><td>7</td><td>24 天</td><td>Newton-CARE、Sylvester、QZ、Pseudo-spec、Interval、Krylov、條件數</td></tr>
+      <tr><td><b>F</b></td><td>驗證與安全</td><td>5</td><td>34 天</td><td>Reachability、CBF、LTL/CTL、Falsification、IS-MC</td></tr>
+      <tr><td><b>G</b></td><td>進階 MPC</td><td>5</td><td>19 天</td><td>Stochastic、Move-block、Distributed、Hybrid、warm-start</td></tr>
+      <tr><td><b>H</b></td><td>嵌入式部署</td><td>6</td><td>36 天</td><td>C/C++、Rust、IEC61131、AUTOSAR、FreeRTOS、CRC/WD</td></tr>
+      <tr><td><b>I</b></td><td>效能與架構</td><td>5</td><td>31 天</td><td>WASM、Workers、Memo、Streaming、Cross-method</td></tr>
+      <tr><td><b>J</b></td><td>硬體整合 / HIL</td><td>6</td><td>27 天</td><td>WebSocket、Serial、OPC UA、Modbus、MQTT、TSDB</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════════════
+     TIER A — 新增控制演算法
+     ═══════════════════════════════════════════════════════════════════════ -->
+<section class="tier" id="tier-a">
+  <h2><span class="tag">Tier A</span>新增控制演算法 <a href="#tier-a" class="anchor">#</a></h2>
+  <p class="desc">補齊現代控制設計矩陣中尚未實作的關鍵演算法族。</p>
+
+  <article class="item" id="a1">
+    <header class="item-head">
+      <span class="id-pill">A1</span>
+      <h3>ADRC — Active Disturbance Rejection Control</h3>
+      <span class="priority p-high">HIGH</span>
+      <span class="est">3 天</span>
+    </header>
+    <div class="blk"><div class="blk-title">目的</div>
+      <p>不需精確模型即可控制不確定/時變系統，以 ESO（擴展狀態觀測器）估測總擾動並前饋補償。產業熱門（台達/西門子產線）。</p>
+    </div>
+    <div class="blk"><div class="blk-title">演算法核心</div>
+<pre>ESO（三階形式）：
+  ẑ₁̇ = ẑ₂ − β₁(ẑ₁ − y)
+  ẑ₂̇ = ẑ₃ − β₂·fal(ẑ₁−y, α₁, δ) + b₀·u
+  ẑ₃̇ = −β₃·fal(ẑ₁−y, α₂, δ)              ← 總擾動估測
+
+控制律：u = (u₀ − ẑ₃) / b₀
+        u₀ = k_p(r − ẑ₁) − k_d·ẑ₂
+
+頻寬參數化（高志強）：β₁=3ω₀, β₂=3ω₀², β₃=ω₀³</pre>
+    </div>
+    <div class="blk"><div class="blk-title">API 設計</div>
+<pre>// js/control/adrc.js
+designADRC({ order=2, ω₀, ω_c, b₀, plantOrder })
+   → { observer, controller, params: {β, k}, bandwidth }
+simulateADRC(plant, adrc, ref, dt, T)
+   → { t, y, u, ẑ }
+tuneADRCBandwidth(plant, specs) → { ω₀, ω_c, predictedPM }</pre>
+    </div>
+    <div class="blk"><div class="blk-title">檔案</div>
+      <div class="files">
+        <span class="file">js/control/adrc.js (新增 ~200 行)</span>
+        <span class="file">scripts/verify_a1_adrc.mjs (新增)</span>
+        <span class="file">index.html (UI 面板)</span>
+        <span class="file">js/app.js (路由)</span>
+      </div>
+    </div>
+    <div class="blk"><div class="blk-title">驗收條件</div>
+      <ul class="checks">
+        <li>✓ 一階模型 + 階躍擾動 → 穩態誤差 &lt; 1e-3</li>
+        <li>✓ 與 LQR+Kalman 對比：擾動抑制不遜色</li>
+        <li>✓ 參數變動 ±50% 仍穩定</li>
+        <li>✓ fal 函數連續可微（分段點 C¹）</li>
+      </ul>
+    </div>
+    <div class="blk"><div class="blk-title">依賴</div>
+      <p class="deps">既存 observer 模組</p>
+    </div>
+  </article>
+
+  <article class="item" id="a2">
+    <header class="item-head">
+      <span class="id-pill">A2</span>
+      <h3>ILC — Iterative Learning Control</h3>
+      <span class="priority p-high">HIGH</span>
+      <span class="est">2 天</span>
+    </header>
+    <div class="blk"><div class="blk-title">目的</div>
+      <p>重複任務之循環學習（半導體曝光機、機械臂、AGV）。目前 ControlStudio 完全缺。</p>
+    </div>
+    <div class="blk"><div class="blk-title">演算法核心</div>
+<pre>P-type：     u_{k+1}(t) = u_k(t) + Γ·e_k(t)
+PD-type：    u_{k+1}(t) = u_k(t) + Γ_p·e_k(t) + Γ_d·de_k/dt
+Norm-optimal ILC (NOILC)：
+  min ||e_{k+1}||²_Q + ||u_{k+1}−u_k||²_R
+  → u_{k+1} = u_k + (G'QG + R)⁻¹ G'Q·e_k     (G = lifted matrix)
+收斂條件：||I − GΓ||_∞ &lt; 1</pre>
+    </div>
+    <div class="blk"><div class="blk-title">API 設計</div>
+<pre>// js/control/ilc.js
+designILC({ plant, dt, horizon, type='Ptype'|'PDtype'|'NOILC',
+            Γ?, Q?, R?, ref })
+   → { learningOp, lifted: { G, H } }
+iterateILC(ilc, y_measured, iter)
+   → { u_next, e_norm, convergence }
+ilcConvergenceCheck(ilc) → { spectralRadius, monotone }</pre>
+    </div>
+    <div class="blk"><div class="blk-title">檔案</div>
+      <div class="files">
+        <span class="file">js/control/ilc.js</span>
+        <span class="file">scripts/verify_a2_ilc.mjs</span>
+      </div>
+    </div>
+    <div class="blk"><div class="blk-title">驗收條件</div>
+      <ul class="checks">
+        <li>✓ 每次迭代 ||e||² 嚴格遞減（單調收斂）</li>
+        <li>✓ 機械臂軌跡：10 次迭代後追蹤誤差降 90%</li>
+        <li>✓ Non-minimum phase 警告或自動頻段截尾</li>
+        <li>✓ 支援 batch 與 continuous 兩種模式</li>
+      </ul>
+    </div>
+  </article>
+
+  <article class="item" id="a3">
+    <header class="item-head">
+      <span class="id-pill">A3</span>
+      <h3>SMC + Super-twisting — Sliding Mode Control</h3>
+      <span class="priority p-med">MED</span>
+      <span class="est">4 天</span>
+    </header>
+    <div class="blk"><div class="blk-title">演算法核心</div>
+<pre>First-order SMC：u = u_eq − K·sign(s),  s = c'x
+Boundary layer：u_sw = −K·sat(s/Φ)
+Super-twisting (2nd-order)：
+  u = −k₁|s|^0.5·sign(s) + v
+  v̇ = −k₂·sign(s)            (有限時間收斂、消 chatter)
+增益設計：k₁ &gt; √(2L), k₂ &gt; L   (L = 擾動 Lipschitz 上界)</pre>
+    </div>
+    <div class="blk"><div class="blk-title">API 設計</div>
+<pre>// js/control/smc.js
+designSMC({ plant, slidingSurface, disturbanceBound,
+            variant='classical'|'boundaryLayer'|'superTwisting',
+            Φ?, k1?, k2? })
+   → { surface, controlLaw, gains, reachingTime }
+simulateSMC(plant, smc, ref, t) → { t, x, u, s, sliding: bool[] }
+analyzeChattering(u, dt) → { chatterIndex, ampBand }</pre>
+    </div>
+    <div class="blk"><div class="blk-title">驗收條件</div>
+      <ul class="checks">
+        <li>✓ 雙積分器 + 擾動 → 有限時間到達滑動面</li>
+        <li>✓ Super-twisting u 連續、|chatterIndex| &lt; 0.05</li>
+        <li>✓ Boundary layer 厚度 vs chatter trade-off 圖</li>
+        <li>✓ 自動判定滑動面可達性，給 reaching time 上界</li>
+      </ul>
+    </div>
+  </article>
+
+  <article class="item" id="a4">
+    <header class="item-head">
+      <span class="id-pill">A4</span>
+      <h3>Backstepping — Strict-feedback Recursive Design</h3>
+      <span class="priority p-med">MED</span>
+      <span class="est">5 天</span>
+    </header>
+    <div class="blk"><div class="blk-title">演算法核心</div>
+<pre>給定 strict-feedback：
+  ẋ₁ = x₂ + f₁(x₁)
+  ⋮
+  ẋₙ = u + fₙ(x)
+
+遞迴 Lyapunov 設計：
+  V_k = V_{k-1} + 0.5z_k²
+  α_k = −z_{k-1} − k_k·z_k − f_k + α̇_{k-1}
+  u   = α_n
+
+自適應 backstepping：未知參數 θ̂ → 加 update law</pre>
+    </div>
+    <div class="blk"><div class="blk-title">API 設計</div>
+<pre>// js/control/backstepping.js
+designBackstepping({ plantModel: {f, g}, gains: [k1,...,kn],
+                     adaptive=false, θInit? })
+   → { virtualLaws, controlLaw, lyapunov, paramUpdate? }
+verifyBackstepping(design)
+   → { V̇expression, isNegDef, regionOfAttraction }</pre>
+    </div>
+    <div class="blk"><div class="blk-title">驗收條件</div>
+      <ul class="checks">
+        <li>✓ 三階鏈式積分器 + 三角項：V̇ 負定</li>
+        <li>✓ 與 feedback linearization 對比追蹤性能</li>
+        <li>✓ 自適應版本：未知 θ 估測收斂</li>
+      </ul>
+    </div>
+  </article>
+
+  <article class="item" id="a5">
+    <header class="item-head">
+      <span class="id-pill">A5</span>
+      <h3>Feedback Linearization — Input-Output / Full-State</h3>
+      <span class="priority p-med">MED</span>
+      <span class="est">4 天</span>
+    </header>
+    <div class="blk"><div class="blk-title">演算法核心</div>
+<pre>Input-output：找 relative degree r
+  y^(r) = L_f^r·h + L_g·L_f^{r-1}·h·u
+  u = (v − L_f^r·h) / (L_g·L_f^{r-1}·h)
+  ⇒ y^(r) = v 為線性
+
+全狀態：diffeomorphism z = Φ(x) → ẋ = Az + Bv
+zero dynamics 穩定性檢查必須通過</pre>
+    </div>
+    <div class="blk"><div class="blk-title">API 設計</div>
+<pre>// js/control/feedback_linearization.js
+computeRelativeDegree({ f, g, h, n })
+   → { r, lieDerivatives: [Lh, LfLh, ...] }
+designIOLinearization(model, desiredPoles)
+   → { transform, controlLaw, zeroDynamics, isMinPhase }
+designFullStateLinearization(model)
+   → { diffeomorphism, AB, controllable }</pre>
+    </div>
+    <div class="blk"><div class="blk-title">檔案</div>
+      <div class="files">
+        <span class="file">js/control/feedback_linearization.js</span>
+        <span class="file">js/math/lie_derivative.js (新增；符號運算)</span>
+        <span class="file">scripts/verify_a5_feedback_lin.mjs</span>
+      </div>
+    </div>
+    <div class="blk"><div class="blk-title">驗收條件</div>
+      <ul class="checks">
+        <li>✓ 倒單擺 linearize 後極點可任意配置</li>
+        <li>✓ Van der Pol zero dynamics 不穩 → 警告</li>
+        <li>✓ Relative degree 計算對稱性測試</li>
+      </ul>
+    </div>
+    <div class="blk"><div class="blk-title">依賴</div>
+      <p class="deps">與 <b>A4</b> 共用 <code>lie_derivative.js</code></p>
+    </div>
+  </article>
+
+  <article class="item" id="a6">
+    <header class="item-head">
+      <span class="id-pill">A6</span>
+      <h3>Reset Control — Clegg / FORE</h3>
+      <span class="priority p-low">LOW</span>
+      <span class="est">3 天</span>
+    </header>
+    <div class="blk"><div class="blk-title">演算法核心</div>
+<pre>Clegg integrator：
+  ẋ = e,  if (x·e ≥ 0)
+  x⁺ = 0, if (x·e &lt; 0)        ← reset
+
+FORE：ẋ = −ax + be, with reset condition
+
+Hβ 條件 (穩定性)：實現特定 LMI 即穩
+頻率響應：describing function 算等效相位
+→ 可超越 Bode 積分限制</pre>
+    </div>
+    <div class="blk"><div class="blk-title">API 設計</div>
+<pre>// js/control/reset_control.js
+designClegg({ ki }) → resetController
+designFORE({ pole, gain }) → resetController
+simulateResetSys(plant, reset, ref, t)
+   → { t, y, u, resetEvents: number[] }
+analyzeHbeta(reset, plant) → { feasible, β, stabilityMargin }</pre>
+    </div>
+    <div class="blk"><div class="blk-title">驗收條件</div>
+      <ul class="checks">
+        <li>✓ PI 比較：reset 版本 PM 提升 ≥ 5°</li>
+        <li>✓ Hβ 條件對隨機系統判定一致</li>
+        <li>✓ Reset 事件頻率 vs 性能 trade-off 表</li>
+      </ul>
+    </div>
+  </article>
+
+  <article class="item" id="a7">
+    <header class="item-head">
+      <span class="id-pill">A7</span>
+      <h3>Reference Governor — MOAS 預計算</h3>
+      <span class="priority p-med">MED</span>
+      <span class="est">3 天</span>
+    </header>
+    <div class="blk"><div class="blk-title">演算法核心</div>
+<pre>計算 Maximal Output Admissible Set (MOAS)
+線上：v_k = v_{k-1} + κ·(r_k − v_{k-1})
+解 max{κ : x(t) ∈ X for all t ≥ k}
+constraint enforcement 而不依賴 full MPC</pre>
+    </div>
+    <div class="blk"><div class="blk-title">API 設計</div>
+<pre>// js/control/reference_governor.js
+computeMOAS(plant, K, constraints, horizon)
+   → { Hx, hx, isConvex }
+designReferenceGov({ plant, controller, constraints })
+   → governorObj
+stepRG(gov, x_current, r_target) → { v_modified, κ }</pre>
+    </div>
+    <div class="blk"><div class="blk-title">驗收條件</div>
+      <ul class="checks">
+        <li>✓ Monte Carlo 100% 約束滿足</li>
+        <li>✓ κ → 1 時 v → r</li>
+        <li>✓ MOAS 邊界 admissibility 不變</li>
+      </ul>
+    </div>
+  </article>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════════════
+     TIER B — 系統識別擴充
+     ═══════════════════════════════════════════════════════════════════════ -->
+<section class="tier" id="tier-b">
+  <h2><span class="tag">Tier B</span>系統識別擴充 <a href="#tier-b" class="anchor">#</a></h2>
+  <p class="desc">補齊非線性、閉環、頻域、貝氏等識別方法族。</p>
+
+  <article class="item" id="b1">
+    <header class="item-head">
+      <span class="id-pill">B1</span>
+      <h3>SINDy — Sparse Identification of Nonlinear Dynamics</h3>
+      <span class="priority p-high">HIGH</span>
+      <span class="est">3 天</span>
+    </header>
+    <div class="blk"><div class="blk-title">演算法核心</div>
+<pre>給定 Ẋ ≈ Θ(X)·Ξ，其中 Θ(X) 為候選函數字典
+  [1, x, y, z, xy, x², sin(x), ...]
+求稀疏 Ξ：
+  STLSQ：Ξ = lstsq(Θ, Ẋ); 反覆 zero out |Ξ_ij| &lt; λ
+  LASSO / SR3 替代
+
+微分計算：finite-diff 或 total-variation regularized differentiation</pre>
+    </div>
+    <div class="blk"><div class="blk-title">API 設計</div>
+<pre>// js/identification/sindy.js
+buildLibrary(X, { polyOrder, trig, custom })
+   → Θ matrix + featureNames
+sparseRegression(Θ, Ẋ, { method='STLSQ'|'LASSO', λ })
+   → Ξ + activeTerms
+identifyNonlinearODE(X, dt, options)
+   → { equations: string[], Ξ, library, score }</pre>
+    </div>
+    <div class="blk"><div class="blk-title">檔案</div>
+      <div class="files">
+        <span class="file">js/identification/sindy.js</span>
+        <span class="file">js/math/total_variation_diff.js</span>
+        <span class="file">scripts/verify_b1_sindy.mjs</span>
+      </div>
+    </div>
+    <div class="blk"><div class="blk-title">驗收條件</div>
+      <ul class="checks">
+        <li>✓ Lorenz 系統：自動回復 σ(y-x), ρx-y-xz, xy-βz 三式</li>
+        <li>✓ Van der Pol：辨識 μ(1-x²)y 項</li>
+        <li>✓ 加 noise (SNR=20dB) 仍能找到正確項</li>
+      </ul>
+    </div>
+  </article>
+
+  <article class="item" id="b2">
+    <header class="item-head">
+      <span class="id-pill">B2</span>
+      <h3>Closed-loop Identification — Direct / Indirect / Joint I/O</h3>
+      <span class="priority p-med">MED</span>
+      <span class="est">4 天</span>
+    </header>
+    <div class="blk"><div class="blk-title">演算法核心</div>
+<pre>Direct：直接 ARX，偏差來自 noise correlation
+Indirect：先識別 closed-loop T(s) → G = T/(K(1-T))
+Joint I/O：r ⊥ noise 時，[u; y] 共同識別
+推薦 Box-Jenkins (BJ) 結構（closed-loop 性質更佳）</pre>
+    </div>
+    <div class="blk"><div class="blk-title">API 設計</div>
+<pre>// js/identification/closedloop.js
+identifyClosedLoop({ r, u, y, dt, controllerK,
+                     method='direct'|'indirect'|'jointIO',
+                     structure='ARX'|'BJ' })
+   → { plant, noiseModel, bias: bool, conditionNumber }
+analyzeBiasRisk(data, K) → { biasIndex, recommendation }</pre>
+    </div>
+    <div class="blk"><div class="blk-title">驗收條件</div>
+      <ul class="checks">
+        <li>✓ 已知 G、K simulate 後識別 → 與真值對比</li>
+        <li>✓ Direct method low-SNR 時警告 bias 風險</li>
+      </ul>
+    </div>
+  </article>
+
+  <article class="item" id="b3">
+    <header class="item-head">
+      <span class="id-pill">B3</span>
+      <h3>SRIVC — Simplified Refined IV for Continuous-time</h3>
+      <span class="priority p-med">MED</span>
+      <span class="est">5 天</span>
+    </header>
+    <div class="blk"><div class="blk-title">演算法核心</div>
+<pre>1. filtered LS 估初值 b̂, â
+2. 迭代 IV：z = ŷ filtered through estimated A
+3. Newton-step until convergence
+
+時間導數計算：Poisson filter chain (避免 finite-diff)
+不需先 c2d 即可直接識別 CT 模型</pre>
+    </div>
+    <div class="blk"><div class="blk-title">API 設計</div>
+<pre>// js/identification/srivc.js
+identifyCT({ t, u, y, na, nb, λ_filter, maxIter })
+   → { num, den, residual, converged }
+poissonFilter(signal, λ, order) → filteredSignal</pre>
+    </div>
+    <div class="blk"><div class="blk-title">驗收條件</div>
+      <ul class="checks">
+        <li>✓ Known CT plant 模擬識別誤差 &lt; 1%</li>
+        <li>✓ SRIVC vs ARX+d2c bias 比較表</li>
+      </ul>
+    </div>
+  </article>
+
+  <article class="item" id="b4">
+    <header class="item-head">
+      <span class="id-pill">B4</span>
+      <h3>GP-NARX — Gaussian Process 識別</h3>
+      <span class="priority p-low">LOW</span>
+      <span class="est">7 天</span>
+    </header>
+    <div class="blk"><div class="blk-title">演算法核心</div>
+<pre>y(t) ~ GP(0, K(x_t, x_t'))
+  x_t = [y(t-1),...,y(t-na), u(t-1),...,u(t-nb)]
+hyperparameter ML：argmax log p(y | θ) by L-BFGS
+kernel：RBF, Matérn 3/2, Matérn 5/2, periodic
+predictive：μ*, σ*² 含 uncertainty band</pre>
+    </div>
+    <div class="blk"><div class="blk-title">API 設計</div>
+<pre>// js/identification/gp.js
+fitGP({ X, y, kernel='rbf'|'matern52', noiseVar })
+   → { hyper, K_inv·y, kernelObj }
+predictGP(gpModel, X_test) → { mean, var, 95CI }
+optimizeHyper(initial, X, y) → optimalHyper</pre>
+    </div>
+    <div class="blk"><div class="blk-title">驗收條件</div>
+      <ul class="checks">
+        <li>✓ Mauna Loa CO₂ 子集：predictive 涵蓋 95%</li>
+        <li>✓ 訓練點外 predictive variance 顯著增加</li>
+        <li>✓ Hyperparameter optim 收斂</li>
+      </ul>
+    </div>
+    <div class="blk"><div class="blk-title">依賴</div>
+      <p class="deps">D5 L-BFGS</p>
+    </div>
+  </article>
+
+  <article class="item" id="b5">
+    <header class="item-head">
+      <span class="id-pill">B5</span>
+      <h3>Hammerstein / Wiener — 非線性塊狀結構</h3>
+      <span class="priority p-low">LOW</span>
+      <span class="est">4 天</span>
+    </header>
+    <div class="blk"><div class="blk-title">演算法核心</div>
+<pre>Hammerstein：u → [靜態 NL f(·)] → v → [linear G(z)] → y
+  分離法：固定 NL → LS 解 G → 固定 G → 更新 f → 迭代
+
+Wiener：u → [linear G(z)] → x → [靜態 NL h(·)] → y
+  逆 NL 估算 + 線性識別
+
+正交化避免共線性問題</pre>
+    </div>
+    <div class="blk"><div class="blk-title">API 設計</div>
+<pre>// js/identification/hammerstein_wiener.js
+identifyHammerstein({ u, y, na, nb, nlOrder, dt })
+   → { f_coeffs, G: {num,den}, fitPercent }
+identifyWiener({ u, y, na, nb, nlOrder, dt }) → same</pre>
+    </div>
+    <div class="blk"><div class="blk-title">驗收條件</div>
+      <ul class="checks">
+        <li>✓ Saturation Hammerstein：辨識 saturation level ±5%</li>
+        <li>✓ CT Wiener with quadratic NL：辨識係數正確</li>
+      </ul>
+    </div>
+  </article>
+
+  <article class="item" id="b6">
+    <header class="item-head">
+      <span class="id-pill">B6</span>
+      <h3>MIMO FRF Identification — 頻域多輸入</h3>
+      <span class="priority p-med">MED</span>
+      <span class="est">5 天</span>
+    </header>
+    <div class="blk"><div class="blk-title">演算法核心</div>
+<pre>給定 multisine 輸入 U(jωk)、輸出 Y(jωk)
+Ĝ(jωk) = Y(jωk) · pinv(U(jωk))
+Local Polynomial Method (LPM)：減少 leakage
+參數化：fit common-denominator MIMO state-space via LM</pre>
+    </div>
+    <div class="blk"><div class="blk-title">API 設計</div>
+<pre>// js/identification/freq_mimo.js
+computeFRFMIMO({ U, Y, freq, method='LS'|'LPM' })
+   → { G_jw: ComplexMatrix[], coherence }
+fitMIMOFromFRF(frf, structure='ss', order) → { A,B,C,D }</pre>
+    </div>
+    <div class="blk"><div class="blk-title">驗收條件</div>
+      <ul class="checks">
+        <li>✓ 2×2 系統 4 個 channel 識別誤差 &lt; 5% (mag), &lt; 3° (phase)</li>
+        <li>✓ Coherence &gt; 0.9 視為有效資料點</li>
+      </ul>
+    </div>
+  </article>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════════════
+     TIER C — 狀態估測強化
+     ═══════════════════════════════════════════════════════════════════════ -->
+<section class="tier" id="tier-c">
+  <h2><span class="tag">Tier C</span>狀態估測強化 <a href="#tier-c" class="anchor">#</a></h2>
+  <p class="desc">補齊 MPC 對偶之 MHE、非高斯估測之 PF、聯合狀態-參數估測。</p>
+
+  <article class="item" id="c1">
+    <header class="item-head">
+      <span class="id-pill">C1</span>
+      <h3>MHE — Moving Horizon Estimation</h3>
+      <span class="priority p-high">HIGH</span>
+      <span class="est">4 天</span>
+    </header>
+    <div class="blk"><div class="blk-title">演算法核心</div>
+<pre>J = ||x_{k-N} − x̄||²_{P⁻¹} + Σ ||w_i||²_{Q⁻¹} + ||v_i||²_{R⁻¹}
+s.t. x_{i+1} = f(x_i, u_i) + w_i
+     y_i = h(x_i) + v_i
+     x_i ∈ X
+
+Arrival cost：x̄ = previous MHE estimate
+warm-start：上一步解 shift</pre>
+    </div>
+    <div class="blk"><div class="blk-title">API 設計</div>
+<pre>// js/estimation/mhe.js
+designMHE({ plant, horizon=N, Q, R, P0, constraints })
+   → mheObj
+stepMHE(mhe, y_window, u_window)
+   → { x_hat, w_seq, v_seq }</pre>
+    </div>
+    <div class="blk"><div class="blk-title">依賴</div>
+      <p class="deps">重用 <b>D1 QP active-set solver</b> 或既存 IP QP</p>
+    </div>
+    <div class="blk"><div class="blk-title">驗收條件</div>
+      <ul class="checks">
+        <li>✓ 線性 + Gaussian noise：MHE 收斂到 Kalman 解</li>
+        <li>✓ 加狀態約束：KF 違反、MHE 滿足</li>
+        <li>✓ 非線性 CSTR：vs EKF bias 較小</li>
+      </ul>
+    </div>
+  </article>
+
+  <article class="item" id="c2">
+    <header class="item-head">
+      <span class="id-pill">C2</span>
+      <h3>Particle Filter — Bootstrap / SIR / Auxiliary</h3>
+      <span class="priority p-med">MED</span>
+      <span class="est">5 天</span>
+    </header>
+    <div class="blk"><div class="blk-title">演算法核心</div>
+<pre>Bootstrap PF：
+  1. propagate: x_k^i = f(x_{k-1}^i, u_{k-1}) + w^i
+  2. weight: w_k^i ∝ p(y_k | x_k^i)
+  3. resample if N_eff &lt; N/2
+
+ESS = 1/Σw²
+Resampling：systematic / multinomial / stratified</pre>
+    </div>
+    <div class="blk"><div class="blk-title">API 設計</div>
+<pre>// js/estimation/particle_filter.js
+initPF({ f, h, x0Sampler, N=500, processNoise, measNoise })
+   → pfObj
+stepPF(pf, u, y) → { x_mean, x_cov, ESS, particles }
+resample(pf, method='systematic'|'multinomial'|'stratified')</pre>
+    </div>
+    <div class="blk"><div class="blk-title">驗收條件</div>
+      <ul class="checks">
+        <li>✓ 非線性 bearing-only tracking：PF &lt; EKF RMSE</li>
+        <li>✓ 低噪聲下 ESS &gt; N/3</li>
+        <li>✓ N=100/500/2000 收斂圖</li>
+      </ul>
+    </div>
+  </article>
+
+  <article class="item" id="c3">
+    <header class="item-head">
+      <span class="id-pill">C3</span>
+      <h3>Joint State-Parameter EKF (Dual EKF)</h3>
+      <span class="priority p-med">MED</span>
+      <span class="est">3 天</span>
+    </header>
+    <div class="blk"><div class="blk-title">演算法核心</div>
+<pre>擴增狀態：x̃ = [x; θ]
+動態：ẋ = f(x, u, θ); θ̇ = 0 + w_θ
+Jacobians：F̃ = [∂f/∂x, ∂f/∂θ; 0, I]
+標準 EKF 應用於 x̃
+注意：θ̇=0 + 小 w_θ 才能追蹤慢時變</pre>
+    </div>
+    <div class="blk"><div class="blk-title">API 設計</div>
+<pre>// js/estimation/dual_ekf.js
+designDualEKF({ f, h, x0, θ0, Q_x, Q_θ, R }) → dualObj
+stepDualEKF(d, u, y) → { x_hat, θ_hat, P }</pre>
+    </div>
+    <div class="blk"><div class="blk-title">驗收條件</div>
+      <ul class="checks">
+        <li>✓ 一階模型 G=K/(τs+1)：估出 K, τ</li>
+        <li>✓ 慢時變 K(t) 可追蹤</li>
+        <li>✓ Unobservable case 警告 (rank deficient)</li>
+      </ul>
+    </div>
+  </article>
+
+  <article class="item" id="c4">
+    <header class="item-head">
+      <span class="id-pill">C4</span>
+      <h3>Smoother — Rauch-Tung-Striebel / Particle</h3>
+      <span class="priority p-low">LOW</span>
+      <span class="est">3 天</span>
+    </header>
+    <div class="blk"><div class="blk-title">演算法核心</div>
+<pre>RTS：
+  Forward Kalman → (x̂_k|k, P_k|k)
+  Backward：
+    G_k = P_k|k · A' · P_{k+1|k}⁻¹
+    x̂_k|N = x̂_k|k + G_k(x̂_{k+1|N} − x̂_{k+1|k})
+
+Particle smoother：backward simulation</pre>
+    </div>
+    <div class="blk"><div class="blk-title">驗收條件</div>
+      <ul class="checks">
+        <li>✓ 線性高斯：smoothed cov ≤ filter cov</li>
+        <li>✓ RTS 平均 MSE 降 ≥ 30%</li>
+      </ul>
+    </div>
+  </article>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════════════
+     TIER D — 最佳化核心
+     ═══════════════════════════════════════════════════════════════════════ -->
+<section class="tier" id="tier-d">
+  <h2><span class="tag">Tier D</span>最佳化核心 <a href="#tier-d" class="anchor">#</a></h2>
+  <p class="desc">QP/MILP/SQP/L-BFGS — 為 MPC、NMPC、GP、MIMPC 等提供高效求解。</p>
+
+  <article class="item" id="d1">
+    <header class="item-head">
+      <span class="id-pill">D1</span>
+      <h3>Active-set QP with Warm-start</h3>
+      <span class="priority p-high">HIGH</span>
+      <span class="est">6 天</span>
+    </header>
+    <div class="blk"><div class="blk-title">演算法核心</div>
+<pre>min 0.5 x'Hx + g'x  s.t. Ax ≤ b, Cx = d
+working set W = active inequality 子集
+解 EQP (KKT 系統) → step α → update W
+warm-start：以上次 W 為起點
+特化：MPC 中 H, A 結構固定，可預分解 KKT
+防 cycling：Bland's rule</pre>
+    </div>
+    <div class="blk"><div class="blk-title">API 設計</div>
+<pre>// js/math/qp_activeset.js
+solveQPActiveSet({ H, g, A_ineq, b_ineq, A_eq?, b_eq?,
+                   initialW? = null, maxIter = 100 })
+   → { x, λ, μ, iter, workingSet }
+preFactorKKT(H, A_eq) → factorObj   // 給 MPC 重用</pre>
+    </div>
+    <div class="blk"><div class="blk-title">驗收條件</div>
+      <ul class="checks">
+        <li>✓ 與 IP QP 同解 (tol 1e-8)</li>
+        <li>✓ MPC 連續 100 步：warm-start 平均 iter &lt; 5</li>
+        <li>✓ Degenerate case Bland's rule 防 cycling</li>
+        <li>✓ 對 MPC 即時性提升 3-10×</li>
+      </ul>
+    </div>
+  </article>
+
+  <article class="item" id="d2">
+    <header class="item-head">
+      <span class="id-pill">D2</span>
+      <h3>OSQP-style ADMM</h3>
+      <span class="priority p-med">MED</span>
+      <span class="est">5 天</span>
+    </header>
+    <div class="blk"><div class="blk-title">演算法核心</div>
+<pre>QP → ADMM split：
+  x update: (P + σI + A'RA)x = −q + A'R(z − λ/R)
+  z update: project to box [l, u]
+  λ update: λ += R(Ax − z)
+indirect solver；rho 動態調整
+適合嵌入式 (無除法)</pre>
+    </div>
+    <div class="blk"><div class="blk-title">驗收條件</div>
+      <ul class="checks">
+        <li>✓ Standard QP benchmark vs IP 同解</li>
+        <li>✓ 大型問題 (n=1000) 比 active-set 高效</li>
+      </ul>
+    </div>
+  </article>
+
+  <article class="item" id="d3">
+    <header class="item-head">
+      <span class="id-pill">D3</span>
+      <h3>SQP for NMPC — Multiple Shooting</h3>
+      <span class="priority p-med">MED</span>
+      <span class="est">5 天</span>
+    </header>
+    <div class="blk"><div class="blk-title">演算法核心</div>
+<pre>NLP：min f(x) s.t. g(x)≤0, h(x)=0
+SQP 迭代：
+  解 QP：min 0.5 d'Bd + ∇f'd s.t. ∇g·d+g≤0, ∇h·d+h=0
+  line search：merit function L1 / augmented Lagrangian
+  Hessian：BFGS / SR1 / exact
+NMPC 結構：multiple shooting → 大稀疏 QP</pre>
+    </div>
+    <div class="blk"><div class="blk-title">驗收條件</div>
+      <ul class="checks">
+        <li>✓ 倒單擺 swing-up：SQP 比 fmincon 快 3×</li>
+        <li>✓ 100 隨機 IC convergence rate ≥ 95%</li>
+      </ul>
+    </div>
+  </article>
+
+  <article class="item" id="d4">
+    <header class="item-head">
+      <span class="id-pill">D4</span>
+      <h3>MILP — Branch &amp; Bound</h3>
+      <span class="priority p-low">LOW</span>
+      <span class="est">7 天</span>
+    </header>
+    <div class="blk"><div class="blk-title">演算法核心</div>
+<pre>Relaxed LP → 解 → 若整數變數 fractional
+  → 分支 x_i ≤ floor 或 x_i ≥ ceil
+node selection：best-first / DFS
+bounding：incumbent value cuts subtree
+cuts：Gomory, cover, knapsack</pre>
+    </div>
+    <div class="blk"><div class="blk-title">驗收條件</div>
+      <ul class="checks">
+        <li>✓ 經典背包問題找到最優解</li>
+        <li>✓ TSP 小規模 (n=10) 正確</li>
+        <li>✓ Infeasible 偵測</li>
+      </ul>
+    </div>
+  </article>
+
+  <article class="item" id="d5">
+    <header class="item-head">
+      <span class="id-pill">D5</span>
+      <h3>L-BFGS / Trust Region</h3>
+      <span class="priority p-med">MED</span>
+      <span class="est">4 天</span>
+    </header>
+    <div class="blk"><div class="blk-title">演算法核心</div>
+<pre>L-BFGS：only store m past (s, y) pairs
+  H_k·g ≈ recursive two-loop algorithm
+
+Trust region：min model_k(d) s.t. ||d|| ≤ Δ_k
+  ρ = (f(x)-f(x+d)) / (m(0)-m(d))
+  ρ &gt; 0.75: Δ *= 2;  ρ &lt; 0.25: Δ /= 4
+Dogleg / Steihaug-CG subproblem</pre>
+    </div>
+    <div class="blk"><div class="blk-title">驗收條件</div>
+      <ul class="checks">
+        <li>✓ Rosenbrock：收斂步數 ≤ 50</li>
+        <li>✓ Memory 使用 vs BFGS 顯著降低</li>
+      </ul>
+    </div>
+  </article>
+
+  <article class="item" id="d6">
+    <header class="item-head">
+      <span class="id-pill">D6</span>
+      <h3>Mixed-Integer MPC</h3>
+      <span class="priority p-low">LOW</span>
+      <span class="est">5 天</span>
+    </header>
+    <div class="blk"><div class="blk-title">演算法核心</div>
+<pre>min Σ (xQx + uRu)
+s.t. x_{k+1} = A_q x_k + B_q u_k   (q 是模式選擇)
+     q ∈ {1, 2, ..., M}
+每步解 MILP；warm-start：上一步整數解 shift</pre>
+    </div>
+    <div class="blk"><div class="blk-title">依賴</div>
+      <p class="deps">D4 MILP</p>
+    </div>
+    <div class="blk"><div class="blk-title">驗收條件</div>
+      <ul class="checks">
+        <li>✓ Switched plant tracking：找到正確切換序列</li>
+        <li>✓ Infeasibility handling 友善</li>
+      </ul>
+    </div>
+  </article>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════════════
+     TIER E — 數值核心修補
+     ═══════════════════════════════════════════════════════════════════════ -->
+<section class="tier" id="tier-e">
+  <h2><span class="tag">Tier E</span>數值核心修補 <a href="#tier-e" class="anchor">#</a></h2>
+  <p class="desc">提高 CARE/Lyapunov/Sylvester 精度與條件穩定性；補齊 descriptor 系統與大型稀疏解法。</p>
+
+  <article class="item" id="e1">
+    <header class="item-head">
+      <span class="id-pill">E1</span>
+      <h3>Newton-CARE / Newton-DARE</h3>
+      <span class="priority p-high">HIGH</span>
+      <span class="est">3 天</span>
+    </header>
+    <div class="blk"><div class="blk-title">演算法核心</div>
+<pre>CARE: A'P + PA - PBR⁻¹B'P + Q = 0
+Newton：給定 P_k
+  Riccati operator R(P) = A'P + PA - PBR⁻¹B'P + Q
+  Newton-step：解 Lyapunov:
+    (A - BR⁻¹B'P_k)' ΔP + ΔP(A - BR⁻¹B'P_k) = -R(P_k)
+  P_{k+1} = P_k + ΔP
+quadratic convergence near solution</pre>
+    </div>
+    <div class="blk"><div class="blk-title">API 設計</div>
+<pre>// js/math/care_newton.js
+careNewton(A, B, Q, R, { P0?, maxIter=20, tol=1e-12 })
+   → { P, iter, residualNorm }
+verifyCARE(P, A, B, Q, R) → residualNorm</pre>
+    </div>
+    <div class="blk"><div class="blk-title">驗收條件</div>
+      <ul class="checks">
+        <li>✓ 對 Schur-CARE 結果 Newton refine → 殘差降 10⁻⁴ → 10⁻¹⁵</li>
+        <li>✓ Ill-conditioned R 時 Newton 比 Schur 穩</li>
+      </ul>
+    </div>
+  </article>
+
+  <article class="item" id="e2">
+    <header class="item-head">
+      <span class="id-pill">E2</span>
+      <h3>Bartels-Stewart Sylvester Solver</h3>
+      <span class="priority p-high">HIGH</span>
+      <span class="est">2 天</span>
+    </header>
+    <div class="blk"><div class="blk-title">演算法核心</div>
+<pre>AX + XB = C
+Schur(A) = U_A T_A U_A'
+Schur(B) = U_B T_B U_B'
+C̃ = U_A' · C · U_B
+解 T_A·Y + Y·T_B = C̃ (三角形系統 column-by-column)
+X = U_A · Y · U_B'</pre>
+    </div>
+    <div class="blk"><div class="blk-title">API 設計</div>
+<pre>// js/math/sylvester.js
+solveSylvester(A, B, C) → X
+solveLyapunovCT(A, Q) → P   // AP + PA' = -Q
+solveLyapunovDT(A, Q) → P</pre>
+    </div>
+    <div class="blk"><div class="blk-title">驗收條件</div>
+      <ul class="checks">
+        <li>✓ 隨機穩定 A, B：AX + XB = C 殘差 &lt; 1e-12</li>
+        <li>✓ 與既存 Lyapunov 結果一致</li>
+      </ul>
+    </div>
+    <div class="blk"><div class="blk-title">依賴</div>
+      <p class="deps">既存 Schur 分解</p>
+    </div>
+  </article>
+
+  <article class="item" id="e3">
+    <header class="item-head">
+      <span class="id-pill">E3</span>
+      <h3>Generalized Schur (QZ) — Descriptor Systems</h3>
+      <span class="priority p-low">LOW</span>
+      <span class="est">5 天</span>
+    </header>
+    <div class="blk"><div class="blk-title">演算法核心</div>
+<pre>For pencil (E, A): Ex' = Ax + Bu
+QZ algorithm: Q'EZ = T (upper tri), Q'AZ = S
+generalized eigenvalues: λ_i = T_ii / S_ii (handles infinity)
+descriptor canonical form</pre>
+    </div>
+    <div class="blk"><div class="blk-title">驗收條件</div>
+      <ul class="checks">
+        <li>✓ Regular pencil 結果與 standard Schur 一致</li>
+        <li>✓ Singular E (descriptor case) 不出錯</li>
+      </ul>
+    </div>
+  </article>
+
+  <article class="item" id="e4">
+    <header class="item-head">
+      <span class="id-pill">E4</span>
+      <h3>Pseudo-spectrum Computation</h3>
+      <span class="priority p-low">LOW</span>
+      <span class="est">3 天</span>
+    </header>
+    <div class="blk"><div class="blk-title">演算法核心</div>
+<pre>σ_ε(A) = {z : ||(zI−A)⁻¹|| ≥ 1/ε}
+等價：z is eigenvalue of (A+E) for some ||E|| ≤ ε
+計算 grid：σ_min(zI − A) for each z</pre>
+    </div>
+    <div class="blk"><div class="blk-title">驗收條件</div>
+      <ul class="checks">
+        <li>✓ Normal A → pseudo-spectrum = disk around eigenvalues</li>
+        <li>✓ Toeplitz triangular 明顯擴張</li>
+      </ul>
+    </div>
+  </article>
+
+  <article class="item" id="e5">
+    <header class="item-head">
+      <span class="id-pill">E5</span>
+      <h3>Interval Arithmetic</h3>
+      <span class="priority p-low">LOW</span>
+      <span class="est">4 天</span>
+    </header>
+    <div class="blk"><div class="blk-title">演算法核心</div>
+<pre>Interval = [a, b]
++, −, ×, ÷ rules
+matrix interval：each entry interval
+robustness：worst-case bound 而非 Monte Carlo</pre>
+    </div>
+    <div class="blk"><div class="blk-title">API 設計</div>
+<pre>// js/math/interval.js
+class Interval { constructor(lo, hi); add, sub, mul, div, intersect }
+intervalMatMul(IA, IB) → IM
+intervalEigenvalues(IA) → { lowerBound, upperBound }
+robustStabilityInterval(intervalPolynomial) → bool</pre>
+    </div>
+    <div class="blk"><div class="blk-title">驗收條件</div>
+      <ul class="checks">
+        <li>✓ Kharitonov 定理對 interval poly 一致</li>
+        <li>✓ 結果包含 Monte Carlo 樣本 100%</li>
+      </ul>
+    </div>
+  </article>
+
+  <article class="item" id="e6">
+    <header class="item-head">
+      <span class="id-pill">E6</span>
+      <h3>Krylov Methods — GMRES / Arnoldi</h3>
+      <span class="priority p-low">LOW</span>
+      <span class="est">5 天</span>
+    </header>
+    <div class="blk"><div class="blk-title">演算法核心</div>
+<pre>Arnoldi：build orthonormal basis V_m of K_m(A, b)
+GMRES：min ||AV_m y − b||  over y
+restart GMRES(k) for memory
+preconditioning：M⁻¹A → 收斂加速</pre>
+    </div>
+    <div class="blk"><div class="blk-title">驗收條件</div>
+      <ul class="checks">
+        <li>✓ Sparse SPD 系統與 direct solve 同解</li>
+        <li>✓ 大規模 (n=10000) 效率測試</li>
+      </ul>
+    </div>
+  </article>
+
+  <article class="item" id="e7">
+    <header class="item-head">
+      <span class="id-pill">E7</span>
+      <h3>Condition Number Gating</h3>
+      <span class="priority p-high">HIGH</span>
+      <span class="est">2 天</span>
+    </header>
+    <div class="blk"><div class="blk-title">演算法核心</div>
+<pre>每次 linear solve 前：
+  κ(A) = ||A|| · ||A⁻¹||
+  estimate 用 LU + condest (Higham)
+warning thresholds:
+  κ &gt; 1e10 → severe
+  κ &gt; 1e6  → caution
+建議：scaling / regularization</pre>
+    </div>
+    <div class="blk"><div class="blk-title">API 設計</div>
+<pre>// js/math/conditioning.js
+estimateCondition(A) → κ_estimate (1-norm via LU)
+withConditionCheck(A, b, solveFn) → { x, κ, warning }
+scaleAndSolve(A, b, method='Sinkhorn') → { x, κ_after }</pre>
+    </div>
+    <div class="blk"><div class="blk-title">注入點</div>
+      <p style="font-size:13px;color:var(--text)">注入到 <code>matSolve</code>、<code>matInverse</code>、CARE、DARE、Lyapunov 等所有 linear solve 入口。</p>
+    </div>
+    <div class="blk"><div class="blk-title">驗收條件</div>
+      <ul class="checks">
+        <li>✓ Hilbert n=10 → 警告且 κ &gt; 1e10</li>
+        <li>✓ Scaled 後 κ 降一個數量級以上</li>
+      </ul>
+    </div>
+  </article>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════════════
+     TIER F — 驗證與安全
+     ═══════════════════════════════════════════════════════════════════════ -->
+<section class="tier" id="tier-f">
+  <h2><span class="tag">Tier F</span>驗證與安全 <a href="#tier-f" class="anchor">#</a></h2>
+  <p class="desc">為安全關鍵控制系統提供 reachability、barrier、formal verification、falsification 工具。</p>
+
+  <article class="item" id="f1">
+    <header class="item-head">
+      <span class="id-pill">F1</span>
+      <h3>Reachability Analysis — Zonotope / Polytope</h3>
+      <span class="priority p-med">MED</span>
+      <span class="est">8 天</span>
+    </header>
+    <div class="blk"><div class="blk-title">演算法核心</div>
+<pre>Zonotope: Z = {c + Σα_i g_i : |α_i|≤1}
+  linear map：A·Z 仍是 zonotope (轉 g_i)
+  Minkowski sum：Z1 ⊕ Z2 簡單合併 g_i
+recursive: R_k = A·R_{k-1} ⊕ B·U
+Polytope (H-rep, V-rep) 可選</pre>
+    </div>
+    <div class="blk"><div class="blk-title">API 設計</div>
+<pre>// js/analysis/reachability.js
+zonotopeFromBox(center, range) → Z
+linearMapZonotope(A, Z) → Z'
+reachZonotope(A, B, X0, U, horizon) → Z[]
+containsPoint(Z, x) → bool
+plotReachSet(Z, axes) → 2D points</pre>
+    </div>
+    <div class="blk"><div class="blk-title">驗收條件</div>
+      <ul class="checks">
+        <li>✓ Unit cube + identity → 同 cube</li>
+        <li>✓ 2D 隨機系統 reach set 包含 Monte Carlo 樣本</li>
+      </ul>
+    </div>
+  </article>
+
+  <article class="item" id="f2">
+    <header class="item-head">
+      <span class="id-pill">F2</span>
+      <h3>Control Barrier Function (CBF)</h3>
+      <span class="priority p-med">MED</span>
+      <span class="est">7 天</span>
+    </header>
+    <div class="blk"><div class="blk-title">演算法核心</div>
+<pre>unsafe set ∂C = {h(x) ≤ 0}
+要求 ḣ + α(h) ≥ 0 along trajectories
+ḣ = ∂h/∂x · (f + g·u)
+
+QP-CBF：
+  min ||u − u_des||²
+  s.t. L_f h + L_g h · u + α(h) ≥ 0
+
+SOS programming 找 polynomial h</pre>
+    </div>
+    <div class="blk"><div class="blk-title">依賴</div>
+      <p class="deps">D1 QP + SDP (既有)</p>
+    </div>
+    <div class="blk"><div class="blk-title">驗收條件</div>
+      <ul class="checks">
+        <li>✓ 雙積分器 + 圓形障礙：trajectory 不進入 unsafe</li>
+        <li>✓ SOS-CBF feasibility 對 polynomial system</li>
+      </ul>
+    </div>
+  </article>
+
+  <article class="item" id="f3">
+    <header class="item-head">
+      <span class="id-pill">F3</span>
+      <h3>LTL/CTL Formal Specification</h3>
+      <span class="priority p-low">LOW</span>
+      <span class="est">10 天</span>
+    </header>
+    <div class="blk"><div class="blk-title">演算法核心</div>
+<pre>LTL formula → Büchi automaton (Spot / Owl 演算法)
+spec + system → product automaton
+satisfaction check via emptiness
+typical specs: G(¬unsafe), F(goal), G(req → F(resp))</pre>
+    </div>
+    <div class="blk"><div class="blk-title">驗收條件</div>
+      <ul class="checks">
+        <li>✓ 經典範例 G(p→Fq) 模型檢驗</li>
+        <li>✓ Counterexample 重現</li>
+      </ul>
+    </div>
+  </article>
+
+  <article class="item" id="f4">
+    <header class="item-head">
+      <span class="id-pill">F4</span>
+      <h3>Falsification (S-TaLiRo 風格)</h3>
+      <span class="priority p-med">MED</span>
+      <span class="est">5 天</span>
+    </header>
+    <div class="blk"><div class="blk-title">演算法核心</div>
+<pre>robustness ρ(spec, trajectory) ∈ ℝ
+falsification：find input minimizing ρ
+  優化方法：CMA-ES, simulated annealing
+找到 ρ &lt; 0 → 違規範例</pre>
+    </div>
+    <div class="blk"><div class="blk-title">API 設計</div>
+<pre>// js/verification/falsification.js
+defineSTL("alw_[0,T] x &lt; 5") → spec
+falsify({ system, spec, inputSpace, budget=1000 })
+   → { ρ_min, worstInput, falsified: bool }</pre>
+    </div>
+    <div class="blk"><div class="blk-title">驗收條件</div>
+      <ul class="checks">
+        <li>✓ 已知 bug system：找到反例</li>
+        <li>✓ Spec-bound 對 monotone trajectory 正確</li>
+      </ul>
+    </div>
+  </article>
+
+  <article class="item" id="f5">
+    <header class="item-head">
+      <span class="id-pill">F5</span>
+      <h3>Importance Sampling Monte Carlo</h3>
+      <span class="priority p-low">LOW</span>
+      <span class="est">4 天</span>
+    </header>
+    <div class="blk"><div class="blk-title">演算法核心</div>
+<pre>estimate P(failure) where event rare
+proposal distribution shifted to failure region
+weighting: w = p_true / p_proposal
+unbiased estimator with much lower variance
+Cross-entropy method 自適應 proposal</pre>
+    </div>
+    <div class="blk"><div class="blk-title">驗收條件</div>
+      <ul class="checks">
+        <li>✓ P(X &gt; 5) for X~N(0,1) vs analytical</li>
+        <li>✓ Variance reduction ≥ 100× vs naive MC</li>
+      </ul>
+    </div>
+  </article>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════════════
+     TIER G — 進階 MPC
+     ═══════════════════════════════════════════════════════════════════════ -->
+<section class="tier" id="tier-g">
+  <h2><span class="tag">Tier G</span>進階 MPC <a href="#tier-g" class="anchor">#</a></h2>
+  <p class="desc">Stochastic / Distributed / Hybrid / Move-blocking — 把 MPC 推到產業級規模。</p>
+
+  <article class="item" id="g1">
+    <header class="item-head">
+      <span class="id-pill">G1</span>
+      <h3>Stochastic MPC — Chance Constraints</h3>
+      <span class="priority p-med">MED</span>
+      <span class="est">6 天</span>
+    </header>
+    <div class="blk"><div class="blk-title">演算法核心</div>
+<pre>chance constraint: P(Ax + b ≤ 0) ≥ 1 − ε
+Gaussian case → equivalent deterministic：
+  Ax + b + Φ⁻¹(1-ε)·||AΣ^(1/2)|| ≤ 0
+scenario approach：sample N scenarios, enforce all
+guarantee：P(violation) ≤ ε with conf 1-β if N ≥ ...</pre>
+    </div>
+    <div class="blk"><div class="blk-title">驗收條件</div>
+      <ul class="checks">
+        <li>✓ Tighten test：chance vs deterministic backoff</li>
+        <li>✓ Monte Carlo violation rate ≤ ε</li>
+      </ul>
+    </div>
+  </article>
+
+  <article class="item" id="g2">
+    <header class="item-head">
+      <span class="id-pill">G2</span>
+      <h3>Move Blocking — 計算量減半</h3>
+      <span class="priority p-high">HIGH</span>
+      <span class="est">2 天</span>
+    </header>
+    <div class="blk"><div class="blk-title">演算法核心</div>
+<pre>N decision variables → M blocks (M &lt; N)
+u_k = u_block[index(k)] for k = 0..N−1
+typical block lengths: [1, 2, 4, 8, 16, ...]
+QP size: N → M variables, 顯著減量</pre>
+    </div>
+    <div class="blk"><div class="blk-title">API 設計</div>
+<pre>// js/control/mpc_moveblock.js
+addMoveBlocking(mpcDesign, blockLengths) → mpcDesign'</pre>
+    </div>
+    <div class="blk"><div class="blk-title">驗收條件</div>
+      <ul class="checks">
+        <li>✓ block=[1,1,1,1] = standard MPC</li>
+        <li>✓ block=[1,2,4]：cost 略升、計算時間降 50%</li>
+      </ul>
+    </div>
+  </article>
+
+  <article class="item" id="g3">
+    <header class="item-head">
+      <span class="id-pill">G3</span>
+      <h3>Distributed MPC — Dual Decomposition / ADMM</h3>
+      <span class="priority p-low">LOW</span>
+      <span class="est">7 天</span>
+    </header>
+    <div class="blk"><div class="blk-title">演算法核心</div>
+<pre>dual decomposition：
+  ℒ = Σ_i J_i(x_i, u_i) + λ'·(consensus constraints)
+  各 agent 解 local NMPC，coordinator 更新 λ
+ADMM-based 收斂條件：strongly convex
+communication：only λ + boundary states</pre>
+    </div>
+    <div class="blk"><div class="blk-title">驗收條件</div>
+      <ul class="checks">
+        <li>✓ 2 子系統 coupled vs centralized MPC 同解</li>
+        <li>✓ 收斂步數 vs coupling strength 圖</li>
+      </ul>
+    </div>
+  </article>
+
+  <article class="item" id="g4">
+    <header class="item-head">
+      <span class="id-pill">G4</span>
+      <h3>Hybrid MPC — Switched / Logic</h3>
+      <span class="priority p-low">LOW</span>
+      <span class="est">5 天</span>
+    </header>
+    <div class="blk"><div class="blk-title">依賴</div>
+      <p class="deps">D6 MIMPC</p>
+    </div>
+    <div class="blk"><div class="blk-title">演算法核心</div>
+<pre>logical → MILP via Big-M / convex hull
+hybrid automaton + MPC over modes
+G1 + D6 自然整合</pre>
+    </div>
+  </article>
+
+  <article class="item" id="g5">
+    <header class="item-head">
+      <span class="id-pill">G5</span>
+      <h3>NMPC Warm-Start Strategy</h3>
+      <span class="priority p-med">MED</span>
+      <span class="est">3 天</span>
+    </header>
+    <div class="blk"><div class="blk-title">演算法核心</div>
+<pre>shift-and-extend：
+  u_new = [u_old[1:N-1], u_old[N-1]]
+  states_new = simulate(plant, u_new, x0)
+collocation extension：interpolate</pre>
+    </div>
+    <div class="blk"><div class="blk-title">驗收條件</div>
+      <ul class="checks">
+        <li>✓ cold vs warm 迭代步數對比表</li>
+      </ul>
+    </div>
+  </article>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════════════
+     TIER H — 嵌入式與部署
+     ═══════════════════════════════════════════════════════════════════════ -->
+<section class="tier" id="tier-h">
+  <h2><span class="tag">Tier H</span>嵌入式與部署 <a href="#tier-h" class="anchor">#</a></h2>
+  <p class="desc">把 ControlStudio 推向真實硬體：C/C++、Rust、PLC、AUTOSAR、FreeRTOS。</p>
+
+  <article class="item" id="h1">
+    <header class="item-head">
+      <span class="id-pill">H1</span>
+      <h3>C/C++ Codegen — 含 fixed-point / ISR-safe</h3>
+      <span class="priority p-high">HIGH</span>
+      <span class="est">10 天</span>
+    </header>
+    <div class="blk"><div class="blk-title">演算法核心</div>
+<pre>template engine：
+  inputs: { plant, controller, dt, options }
+  outputs: header (.h) + source (.c/.cpp)
+matrix ops via static arrays (no malloc)
+fixed-point option：Q-format conversion
+ISR-safe (no float exceptions)
+CMSIS-DSP 對接（ARM Cortex-M）</pre>
+    </div>
+    <div class="blk"><div class="blk-title">API 設計</div>
+<pre>// js/codegen/c_generator.js
+generateC({ controller, plant, dt,
+            options: { fixedPoint, isr, cmsis } })
+   → { files: { 'controller.h': str, 'controller.c': str } }
+generateCMake() → 'CMakeLists.txt'</pre>
+    </div>
+    <div class="blk"><div class="blk-title">檔案</div>
+      <div class="files">
+        <span class="file">js/codegen/c_generator.js</span>
+        <span class="file">js/codegen/templates/*.tmpl</span>
+        <span class="file">scripts/verify_h1_codegen.mjs</span>
+      </div>
+    </div>
+    <div class="blk"><div class="blk-title">驗收條件</div>
+      <ul class="checks">
+        <li>✓ PID code → compile gcc → 階躍響應 vs JS 結果</li>
+        <li>✓ MPC code → simulate → 與 JS MPC 同解 within 1e-6</li>
+        <li>✓ Fixed-point Q15/Q31 模式可工作</li>
+      </ul>
+    </div>
+  </article>
+
+  <article class="item" id="h2">
+    <header class="item-head">
+      <span class="id-pill">H2</span>
+      <h3>Rust Codegen — Memory-safe Embedded</h3>
+      <span class="priority p-med">MED</span>
+      <span class="est">7 天</span>
+    </header>
+    <div class="blk"><div class="blk-title">API 設計</div>
+<pre>generateRust({controller, ...})
+   → { 'main.rs', 'Cargo.toml', 'controller.rs' }</pre>
+    </div>
+    <div class="blk"><div class="blk-title">驗收條件</div>
+      <ul class="checks">
+        <li>✓ Generated code passes <code>cargo check</code></li>
+        <li>✓ no_std + embedded_hal 範本</li>
+      </ul>
+    </div>
+  </article>
+
+  <article class="item" id="h3">
+    <header class="item-head">
+      <span class="id-pill">H3</span>
+      <h3>IEC 61131-3 Structured Text (PLC)</h3>
+      <span class="priority p-med">MED</span>
+      <span class="est">6 天</span>
+    </header>
+    <div class="blk"><div class="blk-title">API 設計</div>
+<pre>generateST({controller}) → 'fb_controller.st'
+PID, observer, MPC → FUNCTION_BLOCK</pre>
+    </div>
+    <div class="blk"><div class="blk-title">驗收條件</div>
+      <ul class="checks">
+        <li>✓ Codesys 可載入並執行</li>
+        <li>✓ 與西門子 TIA Portal 相容</li>
+      </ul>
+    </div>
+  </article>
+
+  <article class="item" id="h4">
+    <header class="item-head">
+      <span class="id-pill">H4</span>
+      <h3>AUTOSAR Adaptive 模板</h3>
+      <span class="priority p-low">LOW</span>
+      <span class="est">8 天</span>
+    </header>
+    <div class="blk"><div class="blk-title">API 設計</div>
+<pre>generateAUTOSAR({controller, swc_name})
+   → { 'controller.arxml', '*.c', '*.h' }</pre>
+    </div>
+  </article>
+
+  <article class="item" id="h5">
+    <header class="item-head">
+      <span class="id-pill">H5</span>
+      <h3>FreeRTOS Task 範本</h3>
+      <span class="priority p-med">MED</span>
+      <span class="est">3 天</span>
+    </header>
+    <div class="blk"><div class="blk-title">API 設計</div>
+<pre>generateFreeRTOS({controller, period_ms, priority})
+   → 'task.c'   (含 xTaskCreate / vTaskDelay 模板)</pre>
+    </div>
+  </article>
+
+  <article class="item" id="h6">
+    <header class="item-head">
+      <span class="id-pill">H6</span>
+      <h3>CRC + Watchdog Safety Wrapper</h3>
+      <span class="priority p-med">MED</span>
+      <span class="est">2 天</span>
+    </header>
+    <div class="blk"><div class="blk-title">API 設計</div>
+<pre>wrapWithSafety(code, { crc=true, watchdog=true, redundancy=2 })
+   → augmented code</pre>
+    </div>
+  </article>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════════════
+     TIER I — 效能與架構
+     ═══════════════════════════════════════════════════════════════════════ -->
+<section class="tier" id="tier-i">
+  <h2><span class="tag">Tier I</span>效能與架構 <a href="#tier-i" class="anchor">#</a></h2>
+  <p class="desc">WebAssembly、Web Workers、Memoization、Streaming、Cross-method 驗證框架。</p>
+
+  <article class="item" id="i1">
+    <header class="item-head">
+      <span class="id-pill">I1</span>
+      <h3>WebAssembly 計算核心</h3>
+      <span class="priority p-high">HIGH</span>
+      <span class="est">14 天</span>
+    </header>
+    <div class="blk"><div class="blk-title">架構</div>
+<pre>1. C++ implementation of CARE, DARE, QP, eigenvalue
+2. Emscripten 編譯：emcc -O3 -s WASM=1
+3. JS bindings：Module.cwrap
+4. Float64Array transfer (zero-copy)
+
+target speedup: 5-20×</pre>
+    </div>
+    <div class="blk"><div class="blk-title">檔案</div>
+      <div class="files">
+        <span class="file">wasm/src/care.cpp</span>
+        <span class="file">wasm/src/qp.cpp</span>
+        <span class="file">wasm/build/*.wasm</span>
+        <span class="file">js/wasm/loader.js</span>
+        <span class="file">scripts/build_wasm.sh</span>
+      </div>
+    </div>
+    <div class="blk"><div class="blk-title">驗收條件</div>
+      <ul class="checks">
+        <li>✓ JS vs WASM 結果一致 (tol 1e-12)</li>
+        <li>✓ 100×100 CARE benchmark: JS 500ms → WASM &lt; 100ms</li>
+      </ul>
+    </div>
+  </article>
+
+  <article class="item" id="i2">
+    <header class="item-head">
+      <span class="id-pill">I2</span>
+      <h3>Web Workers — UI 不卡頓</h3>
+      <span class="priority p-high">HIGH</span>
+      <span class="est">5 天</span>
+    </header>
+    <div class="blk"><div class="blk-title">架構</div>
+<pre>heavy compute → postMessage to worker
+worker has: Module imports, computation
+result → back to main thread
+abort: worker.terminate()</pre>
+    </div>
+    <div class="blk"><div class="blk-title">API 設計</div>
+<pre>// js/workers/compute_worker.js
+const worker = createComputeWorker();
+const result = await worker.run('care', {A, B, Q, R});</pre>
+    </div>
+    <div class="blk"><div class="blk-title">目標模組</div>
+      <p style="font-size:13px">MPC large-scale、Monte Carlo、GA tuning、NSGA-II — 全移到 worker。</p>
+    </div>
+  </article>
+
+  <article class="item" id="i3">
+    <header class="item-head">
+      <span class="id-pill">I3</span>
+      <h3>Memoization Layer</h3>
+      <span class="priority p-high">HIGH</span>
+      <span class="est">3 天</span>
+    </header>
+    <div class="blk"><div class="blk-title">API 設計</div>
+<pre>const memoize = (fn, hashKey) =&gt; { /* LRU 100 entries */ };
+const c2dCached = memoize(c2d, (sys, dt) =&gt; hash(sys)+dt);</pre>
+    </div>
+    <div class="blk"><div class="blk-title">目標模組</div>
+      <p style="font-size:13px">c2d、balanced reduction、polePairs、characteristic polynomial。</p>
+    </div>
+  </article>
+
+  <article class="item" id="i4">
+    <header class="item-head">
+      <span class="id-pill">I4</span>
+      <h3>Streaming 計算</h3>
+      <span class="priority p-low">LOW</span>
+      <span class="est">4 天</span>
+    </header>
+    <div class="blk"><div class="blk-title">架構</div>
+      <p style="font-size:13px">分塊處理 → 漸進渲染 (partial Plotly update)。對大資料集 (&gt; 10 萬點) sysid、Bode 漸進顯示。</p>
+    </div>
+  </article>
+
+  <article class="item" id="i5">
+    <header class="item-head">
+      <span class="id-pill">I5</span>
+      <h3>Cross-method 互驗框架</h3>
+      <span class="priority p-med">MED</span>
+      <span class="est">3 天</span>
+    </header>
+    <div class="blk"><div class="blk-title">API 設計</div>
+<pre>// scripts/cross_method_check.mjs
+crossCheck('CARE', [careSchur, careNewton], testProblems)
+   → table of differences</pre>
+    </div>
+    <div class="blk"><div class="blk-title">驗收條件</div>
+      <ul class="checks">
+        <li>✓ 對每組同類解法生成自動互驗表</li>
+        <li>✓ Sliding tolerance 警告閾值</li>
+      </ul>
+    </div>
+  </article>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════════════
+     TIER J — 硬體整合 / HIL
+     ═══════════════════════════════════════════════════════════════════════ -->
+<section class="tier" id="tier-j">
+  <h2><span class="tag">Tier J</span>硬體整合 / HIL <a href="#tier-j" class="anchor">#</a></h2>
+  <p class="desc">與 Simulink、dSPACE、Arduino、PLC、IoT、TSDB 真實設備溝通。</p>
+
+  <article class="item" id="j1">
+    <header class="item-head">
+      <span class="id-pill">J1</span>
+      <h3>WebSocket HIL Bridge</h3>
+      <span class="priority p-med">MED</span>
+      <span class="est">7 天</span>
+    </header>
+    <div class="blk"><div class="blk-title">架構</div>
+<pre>ControlStudio (browser) ←→ WebSocket ←→ Bridge server (Node.js)
+                                          ↓ TCP/UDP
+                                       Simulink / dSPACE
+協議：JSON {state, input, time}
+sampling：server 同步外部時鐘</pre>
+    </div>
+    <div class="blk"><div class="blk-title">API 設計</div>
+<pre>// js/integration/hil_ws.js
+connectHIL({ url: 'ws://localhost:9001', protocol: 'simulink' })
+   → bridge
+bridge.onState(cb); bridge.sendControl(u);</pre>
+    </div>
+    <div class="blk"><div class="blk-title">驗收條件</div>
+      <ul class="checks">
+        <li>✓ Echo loop test：roundtrip &lt; 5ms</li>
+      </ul>
+    </div>
+  </article>
+
+  <article class="item" id="j2">
+    <header class="item-head">
+      <span class="id-pill">J2</span>
+      <h3>Web Serial API — 直連 MCU</h3>
+      <span class="priority p-high">HIGH</span>
+      <span class="est">4 天</span>
+    </header>
+    <div class="blk"><div class="blk-title">架構</div>
+<pre>const port = await navigator.serial.requestPort();
+await port.open({ baudRate: 115200 });
+const reader = port.readable.getReader();
+直接 USB serial 連 Arduino/STM32/RP2040，免 driver</pre>
+    </div>
+    <div class="blk"><div class="blk-title">API 設計</div>
+<pre>// js/integration/serial.js
+connectSerial({ baud, protocol: 'binary'|'csv'|'modbus-rtu' })
+   → portObj</pre>
+    </div>
+    <div class="blk"><div class="blk-title">驗收條件</div>
+      <ul class="checks">
+        <li>✓ 真實 Arduino loopback 測試</li>
+        <li>✓ Binary/CSV/Modbus-RTU 三協議</li>
+      </ul>
+    </div>
+  </article>
+
+  <article class="item" id="j3">
+    <header class="item-head">
+      <span class="id-pill">J3</span>
+      <h3>OPC UA Client — PLC 整合</h3>
+      <span class="priority p-low">LOW</span>
+      <span class="est">6 天</span>
+    </header>
+    <div class="blk"><div class="blk-title">架構</div>
+      <p style="font-size:13px">瀏覽器不直接支援 OPC UA → 需 bridge server 或 WebSocket gateway。 Alt: node-opcua 包成 service，前端 WebSocket 連。</p>
+    </div>
+    <div class="blk"><div class="blk-title">API 設計</div>
+<pre>connectOPCUA({ endpoint: 'opc.tcp://...', nodeIds }) → client
+client.readValue(nodeId); client.writeValue(nodeId, val);</pre>
+    </div>
+  </article>
+
+  <article class="item" id="j4">
+    <header class="item-head">
+      <span class="id-pill">J4</span>
+      <h3>Modbus TCP/RTU Client</h3>
+      <span class="priority p-low">LOW</span>
+      <span class="est">4 天</span>
+    </header>
+    <div class="blk"><div class="blk-title">API 設計</div>
+<pre>connectModbus({ type: 'tcp'|'rtu', host, port, slaveId })
+   → mb
+mb.readHoldingRegisters(addr, count); mb.writeCoil(addr, val);</pre>
+    </div>
+  </article>
+
+  <article class="item" id="j5">
+    <header class="item-head">
+      <span class="id-pill">J5</span>
+      <h3>MQTT Subscriber — IoT 攝取</h3>
+      <span class="priority p-low">LOW</span>
+      <span class="est">3 天</span>
+    </header>
+    <div class="blk"><div class="blk-title">API 設計</div>
+<pre>mqttConnect({ broker: 'wss://...', clientId })
+mqtt.subscribe('plant/sensor/+', cb)
+mqtt.publish('plant/control', payload)</pre>
+    </div>
+  </article>
+
+  <article class="item" id="j6">
+    <header class="item-head">
+      <span class="id-pill">J6</span>
+      <h3>InfluxDB / Prometheus 匯入</h3>
+      <span class="priority p-low">LOW</span>
+      <span class="est">3 天</span>
+    </header>
+    <div class="blk"><div class="blk-title">API 設計</div>
+<pre>queryInfluxDB({ url, query, time_range }) → { t, y }
+queryPrometheus({ url, metric, range }) → { t, values }
+→ 直接喂進 sysid panel</pre>
+    </div>
+  </article>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════════════
+     依賴矩陣
+     ═══════════════════════════════════════════════════════════════════════ -->
+<section id="dependencies" class="tier">
+  <h2 style="color:var(--accent);"><span class="tag">Cross-Tier</span>依賴矩陣 <a href="#dependencies" class="anchor">#</a></h2>
+  <div class="deps-diag">
+<b>B1 SINDy</b>     ── requires <b>D5 L-BFGS</b>      (sparse regression L-BFGS variant)
+<b>C1 MHE</b>       ── requires <b>D1 QP active-set</b> (warm-start)
+<b>D6 MIMPC</b>     ── requires <b>D4 MILP</b>        (mixed-integer solver)
+<b>F2 CBF</b>       ── requires <b>D1 QP</b> + <b>SDP</b>    (already exists)
+<b>G1 SMPC</b>      ── requires <b>D1 QP</b>          (scenario expansion)
+<b>G4 Hybrid MPC</b> ── requires <b>D6 MIMPC</b>      (transitive on D4)
+<b>H1 C-Codegen</b> ── enables   <b>H3, H4, H5, H6</b> (template foundation)
+<b>I1 WASM</b>      ── accelerates <b>D1, E1, F1</b>   (compute-bound routines)
+<b>J1..J6 HIL</b>   ── requires <b>I2 Web Workers</b>  (async event loop)
+<b>A4 Backstepping</b> ── shares <b>js/math/lie_derivative.js</b> with <b>A5 FL</b>
+<b>E2 Sylvester</b> ── uses existing <b>Schur decomposition</b>
+<b>E1 Newton-CARE</b> ── uses <b>E2 Sylvester</b>      (transitive via Lyapunov)
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════════════
+     Sprint 規劃
+     ═══════════════════════════════════════════════════════════════════════ -->
+<section id="sprints" class="tier">
+  <h2 style="color:var(--accent);"><span class="tag">Roadmap</span>Sprint 規劃 <a href="#sprints" class="anchor">#</a></h2>
+  <div class="sprint-grid">
+    <div class="sprint-card">
+      <h4>Sprint 1 — 高 ROI 演算法補強</h4>
+      <div class="duration">2-3 週</div>
+      <ul>
+        <li><b>A1</b> ADRC</li>
+        <li><b>A2</b> ILC</li>
+        <li><b>B1</b> SINDy</li>
+        <li><b>C1</b> MHE</li>
+        <li><b>D1</b> Active-set QP</li>
+        <li><b>G2</b> Move blocking</li>
+      </ul>
+      <div style="font-size:11px;color:var(--text-mute);margin-top:8px;">產業熱門演算法，可重用既有 QP/observer 基礎。</div>
+    </div>
+    <div class="sprint-card">
+      <h4>Sprint 2 — 數值核心強化</h4>
+      <div class="duration">2 週</div>
+      <ul>
+        <li><b>E1</b> Newton-CARE</li>
+        <li><b>E2</b> Sylvester</li>
+        <li><b>E4</b> Pseudo-spectrum</li>
+        <li><b>E7</b> 條件數警告</li>
+        <li><b>I3</b> Memoization</li>
+        <li><b>I5</b> Cross-method 互驗</li>
+      </ul>
+      <div style="font-size:11px;color:var(--text-mute);margin-top:8px;">修補數值地基、加強信任度。</div>
+    </div>
+    <div class="sprint-card">
+      <h4>Sprint 3 — 嵌入式部署</h4>
+      <div class="duration">3 週</div>
+      <ul>
+        <li><b>H1</b> C/C++ codegen</li>
+        <li><b>H5</b> FreeRTOS</li>
+        <li><b>H6</b> CRC/Watchdog</li>
+        <li><b>J2</b> Web Serial</li>
+      </ul>
+      <div style="font-size:11px;color:var(--text-mute);margin-top:8px;">開啟「設計-部署-驗證」閉環。</div>
+    </div>
+    <div class="sprint-card">
+      <h4>Sprint 4 — 效能</h4>
+      <div class="duration">2 週</div>
+      <ul>
+        <li><b>I2</b> Web Workers</li>
+        <li><b>I1</b> WASM 核心</li>
+      </ul>
+      <div style="font-size:11px;color:var(--text-mute);margin-top:8px;">為大規模 MPC、實時 HIL 鋪路。</div>
+    </div>
+    <div class="sprint-card">
+      <h4>Sprint 5 — 安全與驗證</h4>
+      <div class="duration">3 週</div>
+      <ul>
+        <li><b>F1</b> Reachability</li>
+        <li><b>F4</b> Falsification</li>
+        <li><b>E5</b> Interval Arithmetic</li>
+      </ul>
+      <div style="font-size:11px;color:var(--text-mute);margin-top:8px;">給安全關鍵應用一條路徑。</div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════════════
+     Agent 指引
+     ═══════════════════════════════════════════════════════════════════════ -->
+<section id="agent-guidelines" class="tier">
+  <h2 style="color:var(--accent);"><span class="tag">For Agents</span>後續開發 agent 指引 <a href="#agent-guidelines" class="anchor">#</a></h2>
+
+  <article class="item">
+    <header class="item-head">
+      <h3>接手前必讀</h3>
+    </header>
+    <ul class="checks">
+      <li>✓ 本檔案（<code>docs/src/control-studio/functional-roadmap.html</code>）— 規劃源頭</li>
+      <li>✓ <code>control-studio/ROADMAP.md</code> — 已完成 phase 對照</li>
+      <li>✓ <code>CONTROL_SYSTEM_BACKLOG.md</code> — 任務拆解</li>
+      <li>✓ <code>CONTROL_SYSTEM_VERIFICATION_CASES.md</code> — 數值驗收標準</li>
+      <li>✓ <code>AGENT_CONTINUATION.md</code> — 上一個 agent 的交接</li>
+    </ul>
+  </article>
+
+  <article class="item">
+    <header class="item-head">
+      <h3>實作流程（每項通用）</h3>
+    </header>
+    <ol style="margin-left:20px; font-size:13px; color:var(--text);">
+      <li style="margin:4px 0;">確認本文件對應條目的「API 設計」與「驗收條件」</li>
+      <li style="margin:4px 0;">檢查「依賴」一節：上游項目是否已完成</li>
+      <li style="margin:4px 0;">建立 <code>js/[module]/[name].js</code> 與 <code>scripts/verify_[id]_[name].mjs</code></li>
+      <li style="margin:4px 0;">先寫 verify 腳本（TDD）：包含所有驗收條件作為自動化測試</li>
+      <li style="margin:4px 0;">實作模組；本機 <code>node scripts/verify_*.mjs</code> 全通過</li>
+      <li style="margin:4px 0;">加入 <code>scripts/run_all_verify.sh</code></li>
+      <li style="margin:4px 0;">更新 <code>ROADMAP.md</code> 標記為 Done；commit 訊息含 ID（如 <code>feat(a1): ADRC controller</code>）</li>
+      <li style="margin:4px 0;">如需 UI 入口，於 <code>index.html</code> 對應 workflow tab 加入面板</li>
+    </ol>
+  </article>
+
+  <article class="item">
+    <header class="item-head">
+      <h3>命名與檔案規範</h3>
+    </header>
+    <table>
+      <thead><tr><th>類型</th><th>位置</th><th>命名</th></tr></thead>
+      <tbody>
+        <tr><td>控制器</td><td>js/control/</td><td>kebab-case；如 <code>adrc.js</code></td></tr>
+        <tr><td>識別</td><td>js/identification/</td><td>同上；新增此資料夾若不存在</td></tr>
+        <tr><td>估測</td><td>js/estimation/</td><td>同上</td></tr>
+        <tr><td>數學</td><td>js/math/</td><td>同上；如 <code>sylvester.js</code></td></tr>
+        <tr><td>驗證腳本</td><td>scripts/</td><td><code>verify_[id]_[name].mjs</code>；ID 用本文 Tier 編號</td></tr>
+        <tr><td>WASM</td><td>wasm/</td><td>C++ 源 + 編譯 script</td></tr>
+        <tr><td>Codegen</td><td>js/codegen/</td><td>每語言一檔；模板於 <code>templates/</code></td></tr>
+      </tbody>
+    </table>
+  </article>
+
+  <article class="item">
+    <header class="item-head">
+      <h3>數值容忍度（沿用 CONTROL_SYSTEM_VERIFICATION_CASES.md）</h3>
+    </header>
+    <table>
+      <thead><tr><th>量</th><th>容忍度</th></tr></thead>
+      <tbody>
+        <tr><td>Polynomial coefficient</td><td>1e-6</td></tr>
+        <tr><td>Pole / zero real part</td><td>1e-4</td></tr>
+        <tr><td>DC gain</td><td>1e-3</td></tr>
+        <tr><td>Phase margin (°)</td><td>0.1</td></tr>
+        <tr><td>Step final value</td><td>1e-3</td></tr>
+        <tr><td>Overshoot (%)</td><td>0.5</td></tr>
+        <tr><td>SysID fit (%)</td><td>1.0</td></tr>
+        <tr><td>CARE residual norm</td><td>1e-10</td></tr>
+        <tr><td>QP solution (vs benchmark)</td><td>1e-8</td></tr>
+      </tbody>
+    </table>
+  </article>
+
+  <article class="item">
+    <header class="item-head">
+      <h3>禁忌事項</h3>
+    </header>
+    <ul class="checks">
+      <li>✗ 不可破壞既有 verify_*.mjs 通過率（目前 82/82）</li>
+      <li>✗ 不可移除既存 API 函數（如需更名請保留 alias）</li>
+      <li>✗ 不可 commit <code>.env*</code>、<code>settings.json</code>、<code>*.key</code>、handoff 等敏感檔</li>
+      <li>✗ UI 修改不可破壞 plot-switcher / flow-bar 既已修復的精簡版（見 ROADMAP P66 紀錄）</li>
+      <li>✗ 不可在 commit 前未跑 <code>bash scripts/run_all_verify.sh</code></li>
+    </ul>
+  </article>
+
+  <article class="item">
+    <header class="item-head">
+      <h3>Skill 推薦對應</h3>
+    </header>
+    <table>
+      <thead><tr><th>Tier 項目</th><th>建議使用 Skill</th></tr></thead>
+      <tbody>
+        <tr><td>A1–A7 控制器</td><td><code>control-studio-mpc-designer</code>（部分）+ 一般實作</td></tr>
+        <tr><td>B1–B6 識別</td><td><code>control-studio-sysid-planner</code></td></tr>
+        <tr><td>C1–C4 估測</td><td>一般實作 + <code>control-studio-system-auditor</code> 驗收</td></tr>
+        <tr><td>F1–F5 驗證</td><td><code>control-studio-robust-validator</code></td></tr>
+        <tr><td>UI 巡檢</td><td><code>control-studio-ui-verifier</code></td></tr>
+        <tr><td>新 benchmark 設計</td><td><code>control-studio-benchmark-author</code></td></tr>
+      </tbody>
+    </table>
+  </article>
+</section>
+
+<footer class="doc-footer">
+  <p>
+    ControlStudio Functional Roadmap · Generated 2026-05-24 ·
+    Maintained by: Functional Planning ·
+    <a href="../../../control-studio/ROADMAP.md">ROADMAP.md</a> ·
+    <a href="./plan.md">plan.md</a>
+  </p>
+  <p style="margin-top:6px;">
+    This document is the <b style="color:var(--accent)">canonical functional roadmap</b>.
+    For status of in-progress implementation, see <code>ROADMAP.md</code>.
+  </p>
+</footer>
+</main>
+
+<script>
+// Sidebar filter
+const input = document.getElementById('filter-input');
+input.addEventListener('input', (e) => {
+  const q = e.target.value.toLowerCase().trim();
+  document.querySelectorAll('article.item').forEach(el => {
+    const text = el.textContent.toLowerCase();
+    el.classList.toggle('hidden', q && !text.includes(q));
+  });
+  // Hide tiers with no visible items
+  document.querySelectorAll('section.tier').forEach(sec => {
+    const visibleItems = sec.querySelectorAll('article.item:not(.hidden)');
+    if (sec.querySelectorAll('article.item').length > 0) {
+      sec.classList.toggle('hidden', visibleItems.length === 0);
+    }
+  });
+});
+
+// Active nav highlight on scroll
+const navLinks = document.querySelectorAll('nav.sidebar a[href^="#"]');
+const sections = [...document.querySelectorAll('section[id], article[id]')];
+function highlightNav() {
+  let current = '';
+  for (const sec of sections) {
+    const rect = sec.getBoundingClientRect();
+    if (rect.top <= 100) current = sec.id;
+  }
+  navLinks.forEach(a => {
+    a.classList.toggle('active', a.getAttribute('href') === '#' + current);
+  });
+}
+window.addEventListener('scroll', highlightNav, { passive: true });
+highlightNav();
+</script>
+</body>
+</html>

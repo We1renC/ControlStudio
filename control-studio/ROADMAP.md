@@ -1,7 +1,7 @@
 # ControlStudio Development Roadmap
 
 > Last updated: 2026-05-24
-> Current committed baseline: `math-audit-r2 fix(math): stabilityMargins all-crossings + matDet LU fallback + sortRootLocusBranches Hungarian assignment`
+> Current committed baseline: `feat(control): add roadmap tier A-G sprint baseline`
 > Scope: this is the canonical execution roadmap for ControlStudio implementation status.
 > Do not use this file for product vision, proof derivations, or handoff notes; see the document workflow below.
 
@@ -10,12 +10,30 @@
 | Document | Role | Update when |
 | --- | --- | --- |
 | `control-studio/ROADMAP.md` | Canonical execution board: phase status, next actions, verification commands | Any phase item changes status, or a new implementation phase starts |
+| `docs/src/control-studio/functional-roadmap.html` | **Canonical forward functional plan (Tier A–J, 57 items)** — algorithm specs, API design, acceptance criteria, dependencies, sprint plan, agent guidelines | A new capability is planned, an item changes priority, or scope is adjusted. Always update before starting a Tier A–J item. |
 | `CONTROL_SYSTEM_PLAN.md` | Product / architecture plan and high-level capability inventory | A user-visible capability, architecture direction, or major risk changes |
 | `CONTROL_SYSTEM_BACKLOG.md` | Detailed task ledger with IDs, dependencies, and verification evidence | A backlog item moves between Planned / In Progress / Done / Paused |
 | `CONTROL_SYSTEM_SKILLS_PLAN.md` | Agent skill decomposition and workflow boundaries | A skill is added, retired, or changes scope |
 | `CONTROL_SYSTEM_VERIFICATION_CASES.md` | Mathematical proof and golden verification cases | A benchmark or expected numeric result changes |
 | `CONTROL_SYSTEM_SCENARIOS.md` | Realistic engineering walkthroughs and UI findings | Browser workflow, scenario issue, or field-use note changes |
 | `AGENT_CONTINUATION.md` | Current handoff / operational snapshot | Before switching agents or after a meaningful checkpoint |
+
+### Forward Functional Roadmap (Tier A–J)
+
+A standalone HTML document at `docs/src/control-studio/functional-roadmap.html` is the
+**canonical specification** for all planned non-UI/UX work. It contains:
+
+- 57 items across 10 Tiers (A–J): control algorithms, sysid, estimation, optimisation,
+  numerics, verification/safety, advanced MPC, embedded codegen, performance, HIL.
+- Per-item: algorithm core, API design, files to create/modify, acceptance criteria,
+  dependencies.
+- Cross-tier dependency matrix and 5-sprint roadmap.
+- Agent guidelines covering required reading, implementation flow, naming conventions,
+  numerical tolerances, forbidden actions, and Skill-to-Tier mapping.
+
+Before starting any new functional work that is not already a finished P-phase, agents
+**must** open this file in the browser and locate the corresponding Tier-letter ID
+(e.g., A1 for ADRC). It supersedes ad-hoc planning discussions.
 
 ## Required Development Workflow
 
@@ -94,16 +112,36 @@
 | **P65** | **Q1-1/Q1-2/Q1-3/Q1-4 share & export enhancement** | Done | `verify_p65_share_export.mjs` |
 | **P34-01** | **Module split: P62-P65 → js/ui/ sub-modules** | Done | Verify scripts updated to check module files |
 | **J1-3** | **Root Locus geometric annotations (damping lines, ωn arcs, Ku labels)** | Done | `verify_j13_rlocus_geo.mjs` |
-| **H1-4** | **Sidebar Quick Pin (📌 per section, localStorage, max 3, float to top)** | Done | `verify_h14_sidebar_pin.mjs` |
+| **H1-4** | **Sidebar Quick Pin (non-emoji section pin, localStorage, max 3, float to top)** | Done | `verify_h14_sidebar_pin.mjs` |
+
+## Roadmap Tier Implementation — Sprint 1 (2026-05-24)
+
+Per `docs/src/control-studio/functional-roadmap.html`. User scope: skip Tier H/I/J.
+
+| ID | Theme | Status | Verification | Notes |
+| --- | --- | --- | --- | --- |
+| **A1** | ADRC (Active Disturbance Rejection Control) | Done | `verify_a1_adrc.mjs` (23 checks) | ESO bandwidth parameterisation; linear + nonlinear (fal) variants |
+| **A2** | ILC (Iterative Learning Control) | Done | `verify_a2_ilc.mjs` (21 checks) | P-type / PD-type / NOILC; lifted Toeplitz formulation |
+| **E7** | Condition number gating | Done | `verify_e7_conditioning.mjs` (16 checks) | `js/math/conditioning.js`: estimateCondition, withConditionCheck, scaleAndSolve |
+| **E2** | Sylvester / Lyapunov / Stein | Done | `verify_e2_sylvester.mjs` (12 checks) | vec-trick (Kronecker) — robust for n ≤ 30. Bartels-Stewart deferred until realSchur reordering bug is fixed. |
+| **G2** | MPC Move Blocking | Done | `verify_g2_move_blocking.mjs` (17 checks) | Block expansion matrix + condensed QP; singleton-equivalence verified to 1e-15 |
+| **C1** | MHE | Pre-existing (P31-01) | `verify_p31_estimation.mjs` | Already implemented as `movingHorizonEstimation` in `js/control/estimation.js`. Nonlinear MHE deferred. |
+| **B1** | SINDy | Done | `verify_b1_sindy.mjs` | Sparse polynomial library + STLSQ recovery on synthetic nonlinear dynamics |
+| **D1** | Active-set QP + warm-start | Done | `verify_d1_qp_activeset.mjs` | KKT residual, feasibility, warm-start, MPC-like QP, infeasible / non-PSD guards |
+| **F1** | Reachability via zonotopes | Done | `verify_f1_reachability.mjs` | Zonotope operations, finite-horizon reach sets, Monte Carlo containment sanity checks |
+
+**Known issue surfaced during Sprint 1:** `js/math/realschur.js` produces ~1e-1 reconstruction error for 3x3 stable real-spectrum matrices (the reorder pass mis-tracks Q for certain Givens swaps). Sylvester E2 deliberately avoids realSchur via vec-trick. Future task: fix the reorderSchurStable Q update.
 
 ## Verification Suite Status (2026-05-24)
 
-**81/81 scripts pass** — run via `bash scripts/run_all_verify.sh`
+**93/93 scripts pass** — run via `bash scripts/run_all_verify.sh` (was 82/82 before Tier A-G additions)
 
 | Group | Scripts | Pass |
 | --- | --- | --- |
 | Phase 9/10/11 foundations | 11 | 11 |
 | Phase 14–65 advanced control / UI | 66 | 66 |
+| Math audit fixes | 1 | 1 |
+| Roadmap Tier A-G | 11 | 11 |
 | General math & PID | 4 | 4 |
 
 ## P1/P2 UI/UX Completion Summary

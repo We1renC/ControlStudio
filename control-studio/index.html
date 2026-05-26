@@ -124,7 +124,7 @@
     .chart-header > button:not(:first-child) ~ .chart-export-wrap { margin-left: 0; }
     .chart-body { flex: 1; min-height: 200px; }
     .plot-workspace { display:flex; flex-direction:column; gap:var(--space-4); min-height: 0; min-width: 0; }
-    .plot-switcher { display:flex; flex-wrap:nowrap; overflow-x:auto; gap:8px; background: var(--bg-secondary); border:1px solid var(--border-primary); border-radius: var(--radius-lg); padding: 10px; scrollbar-width:none; }
+    .plot-switcher { display:flex; flex-wrap:nowrap; overflow-x:auto; align-items:center; flex-shrink:0; gap:8px; background: var(--bg-secondary); border:1px solid var(--border-primary); border-radius: var(--radius-lg); padding:6px 10px; scrollbar-width:none; }
     .plot-switcher::-webkit-scrollbar { display:none; }
     .plot-tab { border:1px solid var(--border-primary); background: var(--bg-tertiary); color: var(--text-secondary); border-radius: var(--radius-sm); padding: 8px 12px; font-size:12px; font-weight:600; cursor:pointer; white-space:nowrap; flex-shrink:0; }
     .plot-tab.active { background: var(--color-accent); border-color: var(--color-accent); color: white; }
@@ -1558,28 +1558,28 @@
     .rec-explain-row.rec-caution { color: var(--text-muted); }
 
     /* ── P62 K1-1: Design Flow Progress Bar ─────────────────────────── */
-    #flow-bar { display:flex; flex-direction:column; background:var(--bg-secondary); border:1px solid var(--border-primary); border-radius:var(--radius-md); margin-bottom:8px; overflow:hidden; }
+    /* ── Flow-bar: compact single-row layout ── */
+    #flow-bar { display:flex; flex-direction:row; align-items:center; background:var(--bg-secondary); border:1px solid var(--border-primary); border-radius:var(--radius-md); margin-bottom:8px; overflow:hidden; padding:0 4px 0 8px; min-height:34px; flex-shrink:0; }
     #flow-bar.fb-collapsed #flow-bar-steps { display:none; }
-    #flow-bar-header { display:flex; align-items:center; justify-content:space-between; padding:4px 10px; border-bottom:1px solid var(--border-primary); font-size:11px; font-weight:600; color:var(--text-muted); text-transform:uppercase; letter-spacing:.5px; }
-    #flow-bar-toggle { background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:12px; padding:0 4px; line-height:1; }
-    #flow-bar-steps { display:flex; align-items:stretch; overflow-x:auto; padding:0; scrollbar-width:none; }
+    #flow-bar-header { display:flex; align-items:center; gap:4px; padding:0 8px 0 0; border-right:1px solid var(--border-primary); font-size:10px; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:.5px; flex-shrink:0; margin-right:6px; white-space:nowrap; }
+    #flow-bar-toggle { background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:11px; padding:0 2px; line-height:1; margin-left:2px; }
+    #flow-bar-steps { display:flex; align-items:center; overflow-x:auto; padding:0; scrollbar-width:none; flex:1; gap:0; }
     #flow-bar-steps::-webkit-scrollbar { display:none; }
-    .fb-step { display:flex; flex-direction:column; align-items:center; flex:1; min-width:56px; padding:6px 4px 6px; cursor:pointer; border:none; background:transparent; color:inherit; position:relative; transition:background 0.15s; }
+    .fb-step { display:flex; flex-direction:row; align-items:center; gap:5px; flex:1; min-width:0; padding:4px 10px; cursor:pointer; border:none; background:transparent; color:inherit; position:relative; transition:background 0.15s; }
     .fb-step:hover { background:rgba(255,255,255,0.04); }
-    .fb-step:not(:last-child)::after { content:'→'; position:absolute; right:-8px; top:50%; transform:translateY(-50%); font-size:10px; color:var(--border-primary); z-index:1; }
-    .fb-icon { width:22px; height:22px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:11px; border:2px solid; margin-bottom:4px; transition:all 0.2s; }
+    .fb-icon { width:18px; height:18px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:10px; font-weight:700; border:2px solid; flex-shrink:0; transition:all 0.2s; }
     .fb-step.fb-done .fb-icon { background:rgba(34,197,94,0.15); border-color:#22c55e; color:#22c55e; }
     .fb-step.fb-active .fb-icon { background:rgba(99,102,241,0.2); border-color:var(--color-accent); color:var(--color-accent); animation:fb-pulse 1.8s ease-in-out infinite; }
     .fb-step.fb-warning .fb-icon { background:rgba(245,158,11,0.15); border-color:#f59e0b; color:#f59e0b; }
     .fb-step.fb-pending .fb-icon { background:transparent; border-color:var(--border-primary); color:var(--text-muted); }
     @keyframes fb-pulse { 0%,100% { box-shadow:0 0 0 0 rgba(99,102,241,0.4); } 50% { box-shadow:0 0 0 4px rgba(99,102,241,0); } }
-    .fb-label { font-size:10px; font-weight:600; color:var(--text-muted); white-space:nowrap; }
+    .fb-label { font-size:10px; font-weight:600; color:var(--text-muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
     .fb-step.fb-done .fb-label,
     .fb-step.fb-active .fb-label { color:var(--text-secondary); }
     .fb-step.fb-warning .fb-label { color:#f59e0b; }
-    .fb-hint { font-size:9px; color:var(--text-muted); margin-top:2px; max-width:70px; text-align:center; line-height:1.3; white-space:normal; opacity:0.75; }
-    /* connector lines */
-    .fb-step:not(:last-child)::after { content:''; position:absolute; right:0; top:50%; width:1px; height:50%; transform:translateY(-50%); background:var(--border-primary); }
+    .fb-hint { display:none; } /* shown via title tooltip only */
+    /* separator between steps */
+    .fb-step:not(:last-child)::after { content:'›'; position:static; transform:none; font-size:13px; color:var(--border-primary); margin-left:auto; padding-left:6px; background:none; width:auto; height:auto; }
     /* P62 K1-4: Kp Recommend Card */
     #kp-recommend-card { display:none; background:rgba(59,130,246,0.07); border:1px solid rgba(59,130,246,0.3); border-radius:var(--radius-sm); padding:8px 10px; margin-bottom:8px; font-size:11px; }
     #kp-recommend-card .kp-rec-title { font-size:11px; font-weight:600; color:var(--text-secondary); margin-bottom:4px; }
@@ -3675,7 +3675,7 @@
         </div>
       </div>
       <div class="plot-workspace">
-        <div class="plot-switcher" style="display:flex;align-items:center;flex-wrap:wrap;gap:4px;">
+        <div class="plot-switcher">
           <button class="plot-tab active" data-plot="step">Time Response</button>
           <button class="plot-tab" data-plot="bode">Bode</button>
           <button class="plot-tab s-domain-only" data-plot="nyquist">Nyquist</button>
