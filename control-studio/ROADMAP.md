@@ -132,6 +132,10 @@ Per `docs/src/control-studio/functional-roadmap.html`. User scope: skip Tier H/I
 | **B4** | GP-NARX / Gaussian Process Regression | Done | `verify_b4_b6_identification.mjs` | Constant-mean GP regression, RBF/Matern/periodic kernels, predictive variance and 95% interval output |
 | **B5** | Hammerstein / Wiener Identification | Done | `verify_b4_b6_identification.mjs` | Saturation Hammerstein level recovery and Wiener polynomial nonlinearity fit |
 | **B6** | MIMO Frequency-Response Identification | Done | `verify_b4_b6_identification.mjs` | 2x2 LS FRF recovery with coherence, magnitude, and phase verification |
+| **C1** | Moving Horizon Estimation API | Done | `verify_c1_c4_estimation.mjs` | Linear constrained MHE wrapper plus scalar nonlinear grid-search MHE baseline |
+| **C2** | Particle Filter API | Done | `verify_c1_c4_estimation.mjs` | Bootstrap/SIR PF with systematic, multinomial, and stratified resampling |
+| **C3** | Joint State-Parameter EKF | Done | `verify_c1_c4_estimation.mjs` | Numerical augmented EKF for state and parameter estimation with rank-deficient warning |
+| **C4** | RTS Smoother | Done | `verify_c1_c4_estimation.mjs` | Rauch-Tung-Striebel backward smoothing, covariance non-increase, MSE improvement fixture |
 | **E7** | Condition number gating | Done | `verify_e7_conditioning.mjs` (16 checks) | `js/math/conditioning.js`: estimateCondition, withConditionCheck, scaleAndSolve |
 | **E2** | Sylvester / Lyapunov / Stein | Done | `verify_e2_sylvester.mjs` (12 checks) | vec-trick (Kronecker) — robust for n ≤ 30. Bartels-Stewart deferred until realSchur reordering bug is fixed. |
 | **G2** | MPC Move Blocking | Done | `verify_g2_move_blocking.mjs` (17 checks) | Block expansion matrix + condensed QP; singleton-equivalence verified to 1e-15 |
@@ -145,14 +149,14 @@ Per `docs/src/control-studio/functional-roadmap.html`. User scope: skip Tier H/I
 
 ## Verification Suite Status (2026-05-27)
 
-**100/100 scripts pass** — run via `bash scripts/run_all_verify.sh` (was 82/82 before Tier A-G additions)
+**101/101 scripts pass** — run via `bash scripts/run_all_verify.sh` (was 82/82 before Tier A-G additions)
 
 | Group | Scripts | Pass |
 | --- | --- | --- |
 | Phase 9/10/11 foundations | 11 | 11 |
 | Phase 14–65 advanced control / UI | 66 | 66 |
 | Math audit fixes | 1 | 1 |
-| Roadmap Tier A-G | 18 | 18 |
+| Roadmap Tier A-G | 19 | 19 |
 | General math & PID | 4 | 4 |
 
 ## P1/P2 UI/UX Completion Summary

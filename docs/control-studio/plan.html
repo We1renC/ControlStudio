@@ -135,6 +135,10 @@ del{color:var(--muted)}
 <li><code>control-studio/js/identification/hammerstein_wiener.js</code></li>
 <li><code>control-studio/js/identification/freq_mimo.js</code></li>
 <li><code>control-studio/js/identification/srivc.js</code></li>
+<li><code>control-studio/js/estimation/mhe.js</code></li>
+<li><code>control-studio/js/estimation/particle_filter.js</code></li>
+<li><code>control-studio/js/estimation/dual_ekf.js</code></li>
+<li><code>control-studio/js/estimation/smoother.js</code></li>
 <li><code>control-studio/js/math/lie_derivative.js</code></li>
 </ul>
 <li>分析模組：</li>
@@ -197,6 +201,10 @@ del{color:var(--muted)}
 <li>GP-NARX / Gaussian Process Regression baseline：constant-mean GP、RBF/Matern/periodic kernels、predictive variance 與 95% interval</li>
 <li>Hammerstein / Wiener Identification baseline：飽和 Hammerstein level recovery、Wiener polynomial nonlinearity fit</li>
 <li>MIMO FRF Identification baseline：2x2 frequency-domain LS recovery、coherence、magnitude / phase verification</li>
+<li>Moving Horizon Estimation API baseline：linear constrained MHE wrapper 與 scalar nonlinear grid-search MHE</li>
+<li>Particle Filter API baseline：bootstrap/SIR PF，支援 systematic / multinomial / stratified resampling</li>
+<li>Joint State-Parameter EKF baseline：augmented numerical EKF、state/parameter estimate、rank-deficient warning</li>
+<li>RTS Smoother baseline：Rauch-Tung-Striebel backward pass、covariance non-increase、MSE improvement fixture</li>
 <li>Step Response</li>
 <li>Impulse / Ramp / Sine / Square / Pulse response</li>
 <li>Discrete step / impulse response</li>

@@ -153,6 +153,7 @@ run_script "B1 SINDy"                                               "node script
 run_script "B2 Closed-loop identification"                          "node scripts/verify_b2_closedloop_id.mjs"
 run_script "B3 SRIVC continuous-time ID"                            "node scripts/verify_b3_srivc.mjs"
 run_script "B4-B6 GP / block nonlinear / MIMO FRF identification"    "node scripts/verify_b4_b6_identification.mjs"
+run_script "C1-C4 MHE / PF / Dual EKF / RTS estimation"              "node scripts/verify_c1_c4_estimation.mjs"
 run_script "D1 Active-set QP"                                       "node scripts/verify_d1_qp_activeset.mjs"
 run_script "F1 Reachability"                                        "node scripts/verify_f1_reachability.mjs"
 echo ""

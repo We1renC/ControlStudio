@@ -286,6 +286,14 @@ del{color:var(--muted)}
 </thead><tbody>
 <tr><td><strong>B6</strong></td><td>MIMO Frequency-Response Identification</td><td>Done</td><td><code>verify_b4_b6_identification.mjs</code></td><td>2x2 LS FRF recovery with coherence, magnitude, and phase verification</td></tr>
 </thead><tbody>
+<tr><td><strong>C1</strong></td><td>Moving Horizon Estimation API</td><td>Done</td><td><code>verify_c1_c4_estimation.mjs</code></td><td>Linear constrained MHE wrapper plus scalar nonlinear grid-search MHE baseline</td></tr>
+</thead><tbody>
+<tr><td><strong>C2</strong></td><td>Particle Filter API</td><td>Done</td><td><code>verify_c1_c4_estimation.mjs</code></td><td>Bootstrap/SIR PF with systematic, multinomial, and stratified resampling</td></tr>
+</thead><tbody>
+<tr><td><strong>C3</strong></td><td>Joint State-Parameter EKF</td><td>Done</td><td><code>verify_c1_c4_estimation.mjs</code></td><td>Numerical augmented EKF for state and parameter estimation with rank-deficient warning</td></tr>
+</thead><tbody>
+<tr><td><strong>C4</strong></td><td>RTS Smoother</td><td>Done</td><td><code>verify_c1_c4_estimation.mjs</code></td><td>Rauch-Tung-Striebel backward smoothing, covariance non-increase, MSE improvement fixture</td></tr>
+</thead><tbody>
 <tr><td><strong>D1</strong></td><td>Active-set QP + warm-start</td><td>Done</td><td><code>verify_d1_qp_activeset.mjs</code></td><td>KKT residual, feasibility, warm-start, MPC-like QP, infeasible / non-PSD guards</td></tr>
 </thead><tbody>
 <tr><td><strong>E1</strong></td><td>Newton-CARE refinement</td><td>Done</td><td><code>verify_e1_newton_care.mjs</code></td><td>Newton residual refinement against Hamiltonian Schur CARE baseline</td></tr>
@@ -307,7 +315,7 @@ del{color:var(--muted)}
 
 <h2 id="verification-suite-status-2026-05-27">Verification Suite Status (2026-05-27)</h2>
 
-<p><strong>100/100 scripts pass</strong> — run via <code>bash scripts/run_all_verify.sh</code></p>
+<p><strong>101/101 scripts pass</strong> — run via <code>bash scripts/run_all_verify.sh</code></p>
 
 <table><thead>
 <tr><th>Group</th><th>Scripts</th><th>Pass</th></tr>
@@ -318,7 +326,7 @@ del{color:var(--muted)}
 </thead><tbody>
 <tr><td>Math audit fixes</td><td>1</td><td>1</td></tr>
 </thead><tbody>
-<tr><td>Roadmap Tier A-G</td><td>18</td><td>18</td></tr>
+<tr><td>Roadmap Tier A-G</td><td>19</td><td>19</td></tr>
 </thead><tbody>
 <tr><td>General math &amp; PID</td><td>4</td><td>4</td></tr>
 </tbody></table>

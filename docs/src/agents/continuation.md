@@ -28,6 +28,7 @@
   - 2026-05-26 接續 Functional Roadmap B2：新增 `js/control/closedloop_id.js`，支援 direct ARX、indirect closed-loop recovery、joint I/O IV baseline 與 `analyzeBiasRisk()`；新增 `verify_b2_closedloop_id.mjs` 並納入 `run_all_verify.sh`，最新基線升至 **98/98 scripts pass**。
   - 2026-05-26 接續 Functional Roadmap B3：新增 `js/identification/srivc.js`，提供 `identifyCT()` 與 `poissonFilter()` API，重用 P30 `identifySRIVC` 數學核心；新增 `verify_b3_srivc.mjs`，clean CT fixture 係數誤差 <1%，並納入 `run_all_verify.sh`，最新基線升至 **99/99 scripts pass**。
   - 2026-05-27 接續 Functional Roadmap B4-B6：新增 `js/identification/gp.js`、`hammerstein_wiener.js`、`freq_mimo.js`，支援 constant-mean GP regression / GP-NARX helpers、Hammerstein saturation / Wiener polynomial block-oriented ID、2x2 MIMO FRF LS identification 與 coherence；新增 `verify_b4_b6_identification.mjs` 並納入 `run_all_verify.sh`，最新基線升至 **100/100 scripts pass**。
+  - 2026-05-27 接續 Functional Roadmap C1-C4：新增 `js/estimation/mhe.js`、`particle_filter.js`、`dual_ekf.js`、`smoother.js`，提供 roadmap 指定 API wrapper，涵蓋 constrained MHE、nonlinear scalar MHE、bootstrap/SIR PF、joint state-parameter EKF 與 RTS smoother；新增 `verify_c1_c4_estimation.mjs` 並納入 `run_all_verify.sh`，最新基線升至 **101/101 scripts pass**。
 - 已完成 NVIDIA Build Models 資料集中管理。
 - 已新增 agent 入口文件：
   - `AGENTS.md`：專案規則、標準流程、擴充規則與品質判準。
