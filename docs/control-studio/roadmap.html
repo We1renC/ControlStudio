@@ -87,7 +87,7 @@ del{color:var(--muted)}
 
 <blockquote>
 <p>Last updated: 2026-05-26</p>
-<p>Current committed baseline: <code>feat(control): complete Tier A algorithm baseline</code></p>
+<p>Current committed baseline: <code>feat(control): add B2 closed-loop identification</code></p>
 <p>Scope: this is the canonical execution roadmap for ControlStudio implementation status.</p>
 <p>Do not use this file for product vision, proof derivations, or handoff notes; see the document workflow below.</p>
 </blockquote>
@@ -276,6 +276,8 @@ del{color:var(--muted)}
 </thead><tbody>
 <tr><td><strong>B1</strong></td><td>SINDy</td><td>Done</td><td><code>verify_b1_sindy.mjs</code></td><td>Sparse polynomial library + STLSQ recovery on synthetic nonlinear dynamics</td></tr>
 </thead><tbody>
+<tr><td><strong>B2</strong></td><td>Closed-loop Identification</td><td>Done</td><td><code>verify_b2_closedloop_id.mjs</code></td><td>Direct ARX, indirect closed-loop recovery, joint I/O IV baseline, bias-risk diagnostic</td></tr>
+</thead><tbody>
 <tr><td><strong>D1</strong></td><td>Active-set QP + warm-start</td><td>Done</td><td><code>verify_d1_qp_activeset.mjs</code></td><td>KKT residual, feasibility, warm-start, MPC-like QP, infeasible / non-PSD guards</td></tr>
 </thead><tbody>
 <tr><td><strong>E1</strong></td><td>Newton-CARE refinement</td><td>Done</td><td><code>verify_e1_newton_care.mjs</code></td><td>Newton residual refinement against Hamiltonian Schur CARE baseline</td></tr>
@@ -297,7 +299,7 @@ del{color:var(--muted)}
 
 <h2 id="verification-suite-status-2026-05-26">Verification Suite Status (2026-05-26)</h2>
 
-<p><strong>97/97 scripts pass</strong> — run via <code>bash scripts/run_all_verify.sh</code></p>
+<p><strong>98/98 scripts pass</strong> — run via <code>bash scripts/run_all_verify.sh</code></p>
 
 <table><thead>
 <tr><th>Group</th><th>Scripts</th><th>Pass</th></tr>
@@ -308,7 +310,7 @@ del{color:var(--muted)}
 </thead><tbody>
 <tr><td>Math audit fixes</td><td>1</td><td>1</td></tr>
 </thead><tbody>
-<tr><td>Roadmap Tier A-G</td><td>15</td><td>15</td></tr>
+<tr><td>Roadmap Tier A-G</td><td>16</td><td>16</td></tr>
 </thead><tbody>
 <tr><td>General math &amp; PID</td><td>4</td><td>4</td></tr>
 </tbody></table>

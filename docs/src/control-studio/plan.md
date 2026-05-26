@@ -37,6 +37,7 @@
   - `control-studio/js/control/feedback_linearization.js`
   - `control-studio/js/control/reset_control.js`
   - `control-studio/js/control/reference_governor.js`
+  - `control-studio/js/control/closedloop_id.js`
   - `control-studio/js/math/lie_derivative.js`
 - 分析模組：
   - `control-studio/js/analysis/time-response.js`
@@ -75,6 +76,7 @@
 - Feedback Linearization baseline：numerical Lie derivative、relative degree、I/O linearization、full-state companion form、zero-dynamics warning
 - Reset Control baseline：Clegg / FORE reset controller、describing-function phase-margin lift、H-beta feasibility approximation
 - Reference Governor baseline：scalar MOAS、online kappa limiting、constraint-preserving setpoint modification
+- Closed-loop Identification baseline：direct ARX、indirect closed-loop recovery、joint I/O IV estimate、bias risk diagnostic
 - Step Response
 - Impulse / Ramp / Sine / Square / Pulse response
 - Discrete step / impulse response

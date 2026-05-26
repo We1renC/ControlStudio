@@ -1,7 +1,7 @@
 # ControlStudio Development Roadmap
 
 > Last updated: 2026-05-26
-> Current committed baseline: `feat(control): complete Tier A algorithm baseline`
+> Current committed baseline: `feat(control): add B2 closed-loop identification`
 > Scope: this is the canonical execution roadmap for ControlStudio implementation status.
 > Do not use this file for product vision, proof derivations, or handoff notes; see the document workflow below.
 
@@ -127,6 +127,7 @@ Per `docs/src/control-studio/functional-roadmap.html`. User scope: skip Tier H/I
 | **A5** | Feedback Linearization | Done | `verify_a5_a7_tier_a.mjs` | Numerical Lie derivatives, relative degree, I/O and full-state linearization, zero-dynamics warning |
 | **A6** | Reset Control | Done | `verify_a5_a7_tier_a.mjs` | Clegg / FORE reset controllers, describing-function PM lift, H-beta feasibility baseline |
 | **A7** | Reference Governor | Done | `verify_a5_a7_tier_a.mjs` | Scalar MOAS, online kappa governor, deterministic Monte Carlo constraint satisfaction |
+| **B2** | Closed-loop Identification | Done | `verify_b2_closedloop_id.mjs` (9 checks) | Direct ARX, indirect closed-loop recovery, joint I/O IV baseline, bias-risk diagnostic |
 | **E7** | Condition number gating | Done | `verify_e7_conditioning.mjs` (16 checks) | `js/math/conditioning.js`: estimateCondition, withConditionCheck, scaleAndSolve |
 | **E2** | Sylvester / Lyapunov / Stein | Done | `verify_e2_sylvester.mjs` (12 checks) | vec-trick (Kronecker) — robust for n ≤ 30. Bartels-Stewart deferred until realSchur reordering bug is fixed. |
 | **G2** | MPC Move Blocking | Done | `verify_g2_move_blocking.mjs` (17 checks) | Block expansion matrix + condensed QP; singleton-equivalence verified to 1e-15 |
@@ -140,14 +141,14 @@ Per `docs/src/control-studio/functional-roadmap.html`. User scope: skip Tier H/I
 
 ## Verification Suite Status (2026-05-26)
 
-**97/97 scripts pass** — run via `bash scripts/run_all_verify.sh` (was 82/82 before Tier A-G additions)
+**98/98 scripts pass** — run via `bash scripts/run_all_verify.sh` (was 82/82 before Tier A-G additions)
 
 | Group | Scripts | Pass |
 | --- | --- | --- |
 | Phase 9/10/11 foundations | 11 | 11 |
 | Phase 14–65 advanced control / UI | 66 | 66 |
 | Math audit fixes | 1 | 1 |
-| Roadmap Tier A-G | 15 | 15 |
+| Roadmap Tier A-G | 16 | 16 |
 | General math & PID | 4 | 4 |
 
 ## P1/P2 UI/UX Completion Summary

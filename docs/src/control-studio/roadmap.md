@@ -1,7 +1,7 @@
 # ControlStudio Development Roadmap
 
 > Last updated: 2026-05-26
-> Current committed baseline: `feat(control): complete Tier A algorithm baseline`
+> Current committed baseline: `feat(control): add B2 closed-loop identification`
 > Scope: this is the canonical execution roadmap for ControlStudio implementation status.
 > Do not use this file for product vision, proof derivations, or handoff notes; see the document workflow below.
 
@@ -111,6 +111,7 @@ Per `docs/src/control-studio/functional-roadmap.html`. User scope: skip Tier H/I
 | **A6** | Reset Control | Done | `verify_a5_a7_tier_a.mjs` | Clegg / FORE reset controllers, describing-function PM lift, H-beta feasibility baseline |
 | **A7** | Reference Governor | Done | `verify_a5_a7_tier_a.mjs` | Scalar MOAS, online kappa governor, deterministic Monte Carlo constraint satisfaction |
 | **B1** | SINDy | Done | `verify_b1_sindy.mjs` | Sparse polynomial library + STLSQ recovery on synthetic nonlinear dynamics |
+| **B2** | Closed-loop Identification | Done | `verify_b2_closedloop_id.mjs` | Direct ARX, indirect closed-loop recovery, joint I/O IV baseline, bias-risk diagnostic |
 | **D1** | Active-set QP + warm-start | Done | `verify_d1_qp_activeset.mjs` | KKT residual, feasibility, warm-start, MPC-like QP, infeasible / non-PSD guards |
 | **E1** | Newton-CARE refinement | Done | `verify_e1_newton_care.mjs` | Newton residual refinement against Hamiltonian Schur CARE baseline |
 | **E2** | Sylvester / Lyapunov / Stein | Done | `verify_e2_sylvester.mjs` | vec-trick (Kronecker); robust for n <= 30 |
@@ -123,14 +124,14 @@ Per `docs/src/control-studio/functional-roadmap.html`. User scope: skip Tier H/I
 
 ## Verification Suite Status (2026-05-26)
 
-**97/97 scripts pass** — run via `bash scripts/run_all_verify.sh`
+**98/98 scripts pass** — run via `bash scripts/run_all_verify.sh`
 
 | Group | Scripts | Pass |
 | --- | --- | --- |
 | Phase 9/10/11 foundations | 11 | 11 |
 | Phase 14–65 advanced control / UI | 66 | 66 |
 | Math audit fixes | 1 | 1 |
-| Roadmap Tier A-G | 15 | 15 |
+| Roadmap Tier A-G | 16 | 16 |
 | General math & PID | 4 | 4 |
 
 ## P1/P2 UI/UX Completion Summary
