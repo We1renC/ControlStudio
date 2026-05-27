@@ -268,7 +268,7 @@ del{color:var(--muted)}
 <table><thead>
 <tr><th>Skill Candidate</th><th>Priority</th><th>Purpose</th><th>Inputs</th><th>Outputs</th><th>Backing Modules / Docs</th></tr>
 </thead><tbody>
-<tr><td><code>control-studio-system-auditor</code></td><td>P1</td><td>盤點 plant / controller 是否具備基本可設計性</td><td>TF/SS/ZPK、controller、mode</td><td>controllability / observability / poles / margins / risks</td><td><code>CONTROL_SYSTEM_PLAN.md</code>, <code>test_control.js</code></td></tr>
+<tr><td><code>control-studio-system-auditor</code></td><td>P1</td><td>盤點 plant / controller 是否具備基本可設計性</td><td>TF/SS/ZPK、controller、mode</td><td>controllability / observability / poles / margins / risks</td><td><code>docs/src/control-studio/plan.md</code>, <code>test_control.js</code></td></tr>
 </thead><tbody>
 <tr><td><code>control-studio-robust-validator</code></td><td>P1</td><td>建立 uncertainty 與 Monte Carlo robust validation 計畫</td><td>nominal model、uncertainty ranges、specs</td><td>robust pass/fail、worst-case sample、fixtures</td><td>Phase 18</td></tr>
 </thead><tbody>
@@ -280,7 +280,7 @@ del{color:var(--muted)}
 </thead><tbody>
 <tr><td><code>control-studio-sysid-planner</code></td><td>P2</td><td>設計識別實驗與模型選型流程</td><td>experiment goal、sample time、data columns</td><td>experiment signal、candidate models、validation plan</td><td>Phase 15 / 21；project-local package done</td></tr>
 </thead><tbody>
-<tr><td><code>control-studio-benchmark-author</code></td><td>P1</td><td>為新控制案例建立數學推導與 regression fixture</td><td>scenario description、plant、controller target</td><td>markdown derivation、fixture skeleton、tolerances</td><td><code>CONTROL_SYSTEM_VERIFICATION_CASES.md</code></td></tr>
+<tr><td><code>control-studio-benchmark-author</code></td><td>P1</td><td>為新控制案例建立數學推導與 regression fixture</td><td>scenario description、plant、controller target</td><td>markdown derivation、fixture skeleton、tolerances</td><td><code>docs/src/control-studio/verification.md</code></td></tr>
 </thead><tbody>
 <tr><td><code>control-studio-codegen-reviewer</code></td><td>P2</td><td>審查 MATLAB / Python / embedded codegen 是否與模型一致</td><td>generated code、model config</td><td>mismatch report、runtime caveats</td><td>Phase 15</td></tr>
 </thead><tbody>
@@ -308,7 +308,7 @@ del{color:var(--muted)}
 <li>Skill 輸出應是 structured checklist / JSON / markdown summary，方便 agent 後續接 UI、API 或測試。</li>
 <li>Skill 不直接修改 <code>control-studio/</code>，除非使用者明確要求實作；預設先產出設計、驗證與審查結果。</li>
 <li>Skill 涉及模型選型或外部模型時，必須使用既有 <code>nv-agent</code> runtime router，不可硬寫 endpoint。</li>
-<li>Skill 若會導向功能開發，必須要求後續 agent 先更新 <code>control-studio/ROADMAP.md</code>，再同步 <code>CONTROL_SYSTEM_PLAN.md</code>、<code>CONTROL_SYSTEM_BACKLOG.md</code>、<code>CONTROL_SYSTEM_VERIFICATION_CASES.md</code>、<code>CONTROL_SYSTEM_SCENARIOS.md</code>、<code>AGENT_CONTINUATION.md</code> 中受影響的部分。</li>
+<li>Skill 若會導向功能開發，必須要求後續 agent 先更新 <code>control-studio/ROADMAP.md</code>，再同步 <code>docs/src/control-studio/plan.md</code>、<code>docs/src/control-studio/backlog.md</code>、<code>docs/src/control-studio/verification.md</code>、<code>docs/src/control-studio/scenarios.md</code>、<code>docs/src/agents/continuation.md</code> 中受影響的部分。</li>
 </ul>
 
 <h2 id="not-good-skill-targets">Not Good Skill Targets</h2>

@@ -49,6 +49,12 @@ echo ""
 
 TOTAL_START=$(ms)
 
+# ── Fixture & API Contracts ─────────────────────────────────────────────────
+echo -e "${BOLD}▶ Fixture & API Contracts${RESET}"
+run_script "Control verification fixtures" "node scripts/verify_control_cases.mjs"
+run_script "Control API contract fixtures" "node scripts/verify_control_api_contract.mjs"
+echo ""
+
 # ── Phase 9/10/11 — Math & Control Foundations ──────────────────────────────
 echo -e "${BOLD}▶ Phase 9/10/11 — Math & Control Foundations${RESET}"
 run_script "Phase 9  math core"             "node scripts/verify_phase9_math_core.mjs"

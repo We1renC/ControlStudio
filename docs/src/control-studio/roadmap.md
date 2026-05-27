@@ -1,7 +1,7 @@
 # ControlStudio Development Roadmap
 
 > Last updated: 2026-05-27
-> Current committed baseline: `feat(control): add dynamic DK and local skills`
+> Current committed baseline: `fix(control): close math and API fallback gaps`
 > Scope: this is the canonical execution roadmap for ControlStudio implementation status.
 > Do not use this file for product vision, proof derivations, or handoff notes; see the document workflow below.
 
@@ -11,18 +11,18 @@
 | --- | --- | --- |
 | `control-studio/ROADMAP.md` | Canonical execution board: phase status, next actions, verification commands | Any phase item changes status, or a new implementation phase starts |
 | `docs/src/control-studio/functional-roadmap.html` | **Canonical forward functional plan (Tier A–J, 57 items)** — algorithm specs, API design, acceptance criteria, dependencies, sprint plan, agent guidelines | A new capability is planned, an item changes priority, or scope is adjusted. Always update before starting a Tier A–J item. |
-| `CONTROL_SYSTEM_PLAN.md` | Product / architecture plan and high-level capability inventory | A user-visible capability, architecture direction, or major risk changes |
-| `CONTROL_SYSTEM_BACKLOG.md` | Detailed task ledger with IDs, dependencies, and verification evidence | A backlog item moves between Planned / In Progress / Done / Paused |
-| `CONTROL_SYSTEM_SKILLS_PLAN.md` | Agent skill decomposition and workflow boundaries | A skill is added, retired, or changes scope |
-| `CONTROL_SYSTEM_VERIFICATION_CASES.md` | Mathematical proof and golden verification cases | A benchmark or expected numeric result changes |
-| `CONTROL_SYSTEM_SCENARIOS.md` | Realistic engineering walkthroughs and UI findings | Browser workflow, scenario issue, or field-use note changes |
-| `AGENT_CONTINUATION.md` | Current handoff / operational snapshot | Before switching agents or after a meaningful checkpoint |
+| `docs/src/control-studio/plan.md` | Product / architecture plan and high-level capability inventory | A user-visible capability, architecture direction, or major risk changes |
+| `docs/src/control-studio/backlog.md` | Detailed task ledger with IDs, dependencies, and verification evidence | A backlog item moves between Planned / In Progress / Done / Paused |
+| `docs/src/control-studio/skills.md` | Agent skill decomposition and workflow boundaries | A skill is added, retired, or changes scope |
+| `docs/src/control-studio/verification.md` | Mathematical proof and golden verification cases | A benchmark or expected numeric result changes |
+| `docs/src/control-studio/scenarios.md` | Realistic engineering walkthroughs and UI findings | Browser workflow, scenario issue, or field-use note changes |
+| `docs/src/agents/continuation.md` | Current handoff / operational snapshot | Before switching agents or after a meaningful checkpoint |
 
 ## Required Development Workflow
 
 1. Run `git status --short` and classify dirty files before editing.
-2. Read `control-studio/ROADMAP.md`, `docs/src/control-studio/functional-roadmap.html` (for any Tier A–J item), `CONTROL_SYSTEM_PLAN.md`, `CONTROL_SYSTEM_BACKLOG.md`, and `AGENT_CONTINUATION.md`.
-3. If a workflow can become reusable agent behavior, check `CONTROL_SYSTEM_SKILLS_PLAN.md` before coding.
+2. Read `control-studio/ROADMAP.md`, `docs/src/control-studio/functional-roadmap.html` (for any Tier A-J item), `docs/src/control-studio/plan.md`, `docs/src/control-studio/backlog.md`, and `docs/src/agents/continuation.md`.
+3. If a workflow can become reusable agent behavior, check `docs/src/control-studio/skills.md` before coding.
 4. Implement the smallest phase slice that can be verified independently.
 5. Add or update a deterministic verification script for every math/control feature.
 6. For UI work, run a browser walkthrough against `http://127.0.0.1:8765`.
@@ -165,10 +165,11 @@ Per `docs/src/control-studio/functional-roadmap.html`. Tier A-J deterministic ba
 
 ## Verification Suite Status (2026-05-27)
 
-**107/107 scripts pass** — run via `bash scripts/run_all_verify.sh`
+**109/109 scripts pass** — run via `bash scripts/run_all_verify.sh` or `npm run verify:all`
 
 | Group | Scripts | Pass |
 | --- | --- | --- |
+| Fixture & API contracts | 2 | 2 |
 | Phase 9/10/11 foundations | 13 | 13 |
 | Phase 14–65 advanced control / UI | 67 | 67 |
 | Math audit fixes | 1 | 1 |
@@ -207,14 +208,14 @@ The following **P3** items from `UI_UX_PLAN.md` are now implemented through P50:
 - C3-1~4 interactive animation surfaces for pole sensitivity, phase portrait, and Nyquist-style workflows.
 - E1~E4 assessment dashboard, scoring matrix with radar chart, full HTML report output, and decision log/sign-off workflow.
 
-Remaining P3-oriented UI/UX work should continue from the unchecked portions of `UI_UX_PLAN.md`, with Teaching Mode / Electron / Report Template still paused unless explicitly resumed.
+P3+ UI/UX work is implemented through P65 plus J1-3 and H1-4. Remaining UI/product items are only the explicit paused set: Teaching Mode, Electron, Report Template / report automation, and Block Diagram expansion.
 
-## Remaining Dirty Worktree
+## Package / Dependency Policy
 
 | Path | Classification | Action |
 | --- | --- | --- |
-| `package.json` | Adds `typescript` devDependency (used for `.d.ts` validation) | Commit if TS type-checking becomes an official CI step |
-| `package-lock.json` | Generated lockfile | Commit alongside `package.json` decision |
+| `package.json` | Tracked root npm command manifest; sets `"type": "module"` and exposes `verify:*` scripts | Commit and keep synchronized with validation workflow |
+| `package-lock.json` | Generated lockfile | Do not create unless dependencies are intentionally added |
 | `node_modules/` | Generated dependency directory | Never commit (covered by `.gitignore`) |
 
 ### P35 — UI/UX Plan P1 Foundation

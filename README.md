@@ -20,7 +20,7 @@
 
 ### 🔑 常用入口
 - `AGENTS.md`：Agent 工作規則與品質判準（保留於根目錄）
-- `docs/agents/continuation.md`：切換 Agent 時的接手狀態
+- `docs/src/agents/continuation.md`：切換 Agent 時的接手狀態（源碼）
 - `control-studio/ROADMAP.md`：ControlStudio 主線狀態（source of truth）
 - `workflows/`：已實作的 runnable NVIDIA workflows
 - `nv-agent`：整合選型提問、workflow 列表、功能執行的 CLI
@@ -39,10 +39,11 @@
 ```bash
 cd /Users/w.rc/nvdiaOSsupport
 cat AGENTS.md
-cat AGENT_USAGE.md
-cat CONTROL_SYSTEM_PLAN.md
-cat CONTROL_SYSTEM_VERIFICATION_CASES.md
-cat CONTROL_SYSTEM_BACKLOG.md
+cat docs/src/agents/usage.md
+cat control-studio/ROADMAP.md
+cat docs/src/control-studio/plan.md
+cat docs/src/control-studio/verification.md
+cat docs/src/control-studio/backlog.md
 ./nv-agent doctor
 ```
 

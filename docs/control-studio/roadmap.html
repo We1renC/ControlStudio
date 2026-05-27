@@ -87,7 +87,7 @@ del{color:var(--muted)}
 
 <blockquote>
 <p>Last updated: 2026-05-27</p>
-<p>Current committed baseline: <code>feat(control): add dynamic DK and local skills</code></p>
+<p>Current committed baseline: <code>fix(control): close math and API fallback gaps</code></p>
 <p>Scope: this is the canonical execution roadmap for ControlStudio implementation status.</p>
 <p>Do not use this file for product vision, proof derivations, or handoff notes; see the document workflow below.</p>
 </blockquote>
@@ -101,25 +101,25 @@ del{color:var(--muted)}
 </thead><tbody>
 <tr><td><code>docs/src/control-studio/functional-roadmap.html</code></td><td><strong>Canonical forward functional plan (Tier A–J, 57 items)</strong> — algorithm specs, API design, acceptance criteria, dependencies, sprint plan, agent guidelines</td><td>A new capability is planned, an item changes priority, or scope is adjusted. Always update before starting a Tier A–J item.</td></tr>
 </thead><tbody>
-<tr><td><code>CONTROL_SYSTEM_PLAN.md</code></td><td>Product / architecture plan and high-level capability inventory</td><td>A user-visible capability, architecture direction, or major risk changes</td></tr>
+<tr><td><code>docs/src/control-studio/plan.md</code></td><td>Product / architecture plan and high-level capability inventory</td><td>A user-visible capability, architecture direction, or major risk changes</td></tr>
 </thead><tbody>
-<tr><td><code>CONTROL_SYSTEM_BACKLOG.md</code></td><td>Detailed task ledger with IDs, dependencies, and verification evidence</td><td>A backlog item moves between Planned / In Progress / Done / Paused</td></tr>
+<tr><td><code>docs/src/control-studio/backlog.md</code></td><td>Detailed task ledger with IDs, dependencies, and verification evidence</td><td>A backlog item moves between Planned / In Progress / Done / Paused</td></tr>
 </thead><tbody>
-<tr><td><code>CONTROL_SYSTEM_SKILLS_PLAN.md</code></td><td>Agent skill decomposition and workflow boundaries</td><td>A skill is added, retired, or changes scope</td></tr>
+<tr><td><code>docs/src/control-studio/skills.md</code></td><td>Agent skill decomposition and workflow boundaries</td><td>A skill is added, retired, or changes scope</td></tr>
 </thead><tbody>
-<tr><td><code>CONTROL_SYSTEM_VERIFICATION_CASES.md</code></td><td>Mathematical proof and golden verification cases</td><td>A benchmark or expected numeric result changes</td></tr>
+<tr><td><code>docs/src/control-studio/verification.md</code></td><td>Mathematical proof and golden verification cases</td><td>A benchmark or expected numeric result changes</td></tr>
 </thead><tbody>
-<tr><td><code>CONTROL_SYSTEM_SCENARIOS.md</code></td><td>Realistic engineering walkthroughs and UI findings</td><td>Browser workflow, scenario issue, or field-use note changes</td></tr>
+<tr><td><code>docs/src/control-studio/scenarios.md</code></td><td>Realistic engineering walkthroughs and UI findings</td><td>Browser workflow, scenario issue, or field-use note changes</td></tr>
 </thead><tbody>
-<tr><td><code>AGENT_CONTINUATION.md</code></td><td>Current handoff / operational snapshot</td><td>Before switching agents or after a meaningful checkpoint</td></tr>
+<tr><td><code>docs/src/agents/continuation.md</code></td><td>Current handoff / operational snapshot</td><td>Before switching agents or after a meaningful checkpoint</td></tr>
 </tbody></table>
 
 <h2 id="required-development-workflow">Required Development Workflow</h2>
 
 <ol>
 <li>Run <code>git status --short</code> and classify dirty files before editing.</li>
-<li>Read <code>control-studio/ROADMAP.md</code>, <code>docs/src/control-studio/functional-roadmap.html</code> (for any Tier A–J item), <code>CONTROL_SYSTEM_PLAN.md</code>, <code>CONTROL_SYSTEM_BACKLOG.md</code>, and <code>AGENT_CONTINUATION.md</code>.</li>
-<li>If a workflow can become reusable agent behavior, check <code>CONTROL_SYSTEM_SKILLS_PLAN.md</code> before coding.</li>
+<li>Read <code>control-studio/ROADMAP.md</code>, <code>docs/src/control-studio/functional-roadmap.html</code> (for any Tier A-J item), <code>docs/src/control-studio/plan.md</code>, <code>docs/src/control-studio/backlog.md</code>, and <code>docs/src/agents/continuation.md</code>.</li>
+<li>If a workflow can become reusable agent behavior, check <code>docs/src/control-studio/skills.md</code> before coding.</li>
 <li>Implement the smallest phase slice that can be verified independently.</li>
 <li>Add or update a deterministic verification script for every math/control feature.</li>
 <li>For UI work, run a browser walkthrough against <code>http://127.0.0.1:8765</code>.</li>
@@ -379,10 +379,12 @@ del{color:var(--muted)}
 
 <h2 id="verification-suite-status-2026-05-27">Verification Suite Status (2026-05-27)</h2>
 
-<p><strong>107/107 scripts pass</strong> — run via <code>bash scripts/run_all_verify.sh</code></p>
+<p><strong>109/109 scripts pass</strong> — run via <code>bash scripts/run_all_verify.sh</code> or <code>npm run verify:all</code></p>
 
 <table><thead>
 <tr><th>Group</th><th>Scripts</th><th>Pass</th></tr>
+</thead><tbody>
+<tr><td>Fixture &amp; API contracts</td><td>2</td><td>2</td></tr>
 </thead><tbody>
 <tr><td>Phase 9/10/11 foundations</td><td>13</td><td>13</td></tr>
 </thead><tbody>
@@ -433,16 +435,16 @@ del{color:var(--muted)}
 <li>E1~E4 assessment dashboard, scoring matrix with radar chart, full HTML report output, and decision log/sign-off workflow.</li>
 </ul>
 
-<p>Remaining P3-oriented UI/UX work should continue from the unchecked portions of <code>UI_UX_PLAN.md</code>, with Teaching Mode / Electron / Report Template still paused unless explicitly resumed.</p>
+<p>P3+ UI/UX work is implemented through P65 plus J1-3 and H1-4. Remaining UI/product items are only the explicit paused set: Teaching Mode, Electron, Report Template / report automation, and Block Diagram expansion.</p>
 
-<h2 id="remaining-dirty-worktree">Remaining Dirty Worktree</h2>
+<h2 id="package-dependency-policy">Package / Dependency Policy</h2>
 
 <table><thead>
 <tr><th>Path</th><th>Classification</th><th>Action</th></tr>
 </thead><tbody>
-<tr><td><code>package.json</code></td><td>Adds <code>typescript</code> devDependency (used for <code>.d.ts</code> validation)</td><td>Commit if TS type-checking becomes an official CI step</td></tr>
+<tr><td><code>package.json</code></td><td>Tracked root npm command manifest; sets <code>"type": "module"</code> and exposes <code>verify:*</code> scripts</td><td>Commit and keep synchronized with validation workflow</td></tr>
 </thead><tbody>
-<tr><td><code>package-lock.json</code></td><td>Generated lockfile</td><td>Commit alongside <code>package.json</code> decision</td></tr>
+<tr><td><code>package-lock.json</code></td><td>Generated lockfile</td><td>Do not create unless dependencies are intentionally added</td></tr>
 </thead><tbody>
 <tr><td><code>node_modules/</code></td><td>Generated dependency directory</td><td>Never commit (covered by <code>.gitignore</code>)</td></tr>
 </tbody></table>

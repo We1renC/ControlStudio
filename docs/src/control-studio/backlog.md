@@ -5,10 +5,10 @@
 後續 agent 若要開發控制系統功能，應先讀：
 
 1. `control-studio/ROADMAP.md`
-2. `CONTROL_SYSTEM_PLAN.md`
-3. `CONTROL_SYSTEM_VERIFICATION_CASES.md`
-4. `CONTROL_SYSTEM_BACKLOG.md`
-5. `CONTROL_SYSTEM_SKILLS_PLAN.md`
+2. `docs/src/control-studio/plan.md`
+3. `docs/src/control-studio/verification.md`
+4. `docs/src/control-studio/backlog.md`
+5. `docs/src/control-studio/skills.md`
 
 目前策略：
 - Block Diagram 暫時擱置，不在近期主線投入新功能。
@@ -36,8 +36,8 @@
 ## Current Baseline
 
 - Branch: `main`
-- Latest synced commit: `1259565 feat(p27-p28): loop shaping H∞ + TypeScript type definitions`
-- Current checkpoint: **CS-P0 ~ CS-P28 done; Functional Roadmap Tier A-J done; Phase 19/20/21/23 project-local skill gaps closed.** 詳細執行看板見 `control-studio/ROADMAP.md`。目前僅暫停項目維持不做：教學模式、Electron packaging、報告模板 / 報告自動化、Block Diagram expansion。
+- Latest synced commit: `3496a71 fix(control): close math and API fallback gaps`
+- Current checkpoint: **CS-P0 ~ CS-P65 done; Functional Roadmap Tier A-J done; Phase 19/20/21/23 project-local skill gaps closed; verification aggregation closed.** 詳細執行看板見 `control-studio/ROADMAP.md`。目前僅暫停項目維持不做：教學模式、Electron packaging、報告模板 / 報告自動化、Block Diagram expansion。
 - Functional Roadmap Tier A-J checkpoint：Tier A control algorithms、Tier B identification、Tier C estimation、Tier D optimization、Tier E numerical repair、Tier F verification/safety、Tier G advanced MPC、Tier H embedded deployment、Tier I runtime architecture、Tier J HIL/integration 均已有 deterministic verification baseline；最新 full suite 基線見 `control-studio/ROADMAP.md`。
 - Scenario 5 browser walkthrough result: Phase 10 math + UI both operational.
 - Scenario 6 browser walkthrough result: SISO / MIMO core workflows are UI-operable.
@@ -68,6 +68,7 @@
   - `node control-studio/scripts/verify_control_api_contract.mjs`
   - `node control-studio/scripts/control_regression_dashboard.mjs`
   - `./scripts/validate_nvidia_model_selector.sh`
+- Full suite baseline：`npm run verify:all` / `bash control-studio/scripts/run_all_verify.sh` 目前納入 109 個 deterministic verification scripts，包含 fixture 與 API contract。
 - Pre-push hook：`bash scripts/install-hooks.sh` 啟用後，每次 `git push` 會跑 `verify:math`；失敗阻擋 push（用 `git push --no-verify` 可跳過）。
 
 ## Development Sequence
@@ -78,7 +79,7 @@
 
 | ID | Priority | Status | Item | Rationale | Dependencies | Verification |
 | --- | --- | --- | --- | --- | --- | --- |
-| CS-P0-01 | P0 | Done | Fixture-based verification runner | 五個數學推導案例已轉成可重跑 fixture，避免手動驗證流失 | `CONTROL_SYSTEM_VERIFICATION_CASES.md` | `node control-studio/scripts/verify_control_cases.mjs` |
+| CS-P0-01 | P0 | Done | Fixture-based verification runner | 五個數學推導案例已轉成可重跑 fixture，避免手動驗證流失 | `docs/src/control-studio/verification.md` | `node control-studio/scripts/verify_control_cases.mjs` |
 | CS-P0-02 | P0 | Done | API contract tests | 防止 FastAPI 與 JS CLI schema / formula drift | `control_analysis_cli.mjs`, `control_api.py` | `node control-studio/scripts/verify_control_api_contract.mjs` |
 | CS-P0-03 | P0 | Done | Browser regression smoke | 固定核心 UI 流程：輸入 plant、調 controller、看 plot、匯出 | 前端服務 `8765`, API `8770` | `window.ControlStudioSmoke.run()` |
 | CS-P0-04 | P0 | Done | Input validation hardening | 統一 TF/SS/ZPK/Lead/Lag 錯誤提示與邊界條件 | 現有 field error helper | `test_control.js` 與 browser smoke |
@@ -242,7 +243,7 @@ Exit criteria: 已達成。
 | CS-P10-15 | P1 | Done | Schur CARE jω-boundary case | Hamiltonian 特徵值靠近虛軸 / 不 stabilizable 時 eigenvector path 會 fail；改為丟出含「stabilizability / boundary」友善訊息（非 NaN）。真正的 real Schur fallback 留待後續 | CS-P10-01 | `verify_phase10_care_robustness.mjs` 3 cases：jω uncontrollable、fully unstabilizable、near-boundary 仍可解 |
 | CS-P10-16 | P1 | Done | Schur vs Bass 對比測試（spacecraft sparse-B） | Spacecraft case 同時測 Schur 通過 (residual 1e-15) 與 Newton-Kleinman/Bass 失敗的友善訊息（已更新訊息明確推薦 Schur path） | CS-P10-01 / CS-P10-15 | `verify_phase10_care_robustness.mjs` 3 cases：Schur 通過 + Lyapunov 證、Kleinman 失敗含 Schur 提示、default path = Schur |
 | CS-P10-17 | P2 | Done | 高階 CARE 壓測 (n ≥ 4) + Matrix Sign Fallback | matrix sign function (Newton iteration)：n≥5 改用 sign(H) = Newton iteration → P=(I−Z)/2 stable projector → QR basis → P=YX⁻¹；n=4,5,6,8 全部 100% pass，residual ≤ 1e-13 | CS-P10-01 | `verify_phase10_high_order_care.mjs` 6×{n,m} 配置 + 4 assertions（n=8 從 0%→100%） |
-| CS-P10-18 | P2 | Done | CI / pre-push verification hook | `package.json` 加 `verify:math` (串接 7 個 runner) + `verify:all`；`scripts/git-hooks/pre-push` + `bash scripts/install-hooks.sh` 設 core.hooksPath；失敗 block push（可用 `--no-verify` 跳過） | CS-P10-12 / Phase 9-10 runners | `npm run verify:math` 跑 ~70+ cases；pre-push 失敗阻擋 push |
+| CS-P10-18 | P2 | Done | CI / pre-push verification hook | root `package.json` 加 `verify:math` / `verify:all` / phase-specific scripts；`scripts/git-hooks/pre-push` + `bash scripts/install-hooks.sh` 設 core.hooksPath；失敗 block push（可用 `--no-verify` 跳過） | CS-P10-12 / Phase 9-10 runners | `npm run verify:math` 跑核心 math + fixture suite；`npm run verify:all` 跑 109/109 full suite |
 | CS-P10-05 | P3 | Paused | Electron packaging | 使用者要求擱置 | 主功能凍結 | 暫不做 |
 | CS-P10-06 | P3 | Paused | 教學模式 | 使用者要求擱置 | UI 穩定 | 暫不做 |
 | CS-P10-07 | P3 | Paused | 報告模板 / 報告自動化 | 使用者要求擱置 | Scenario docs mature | 暫不做 |
@@ -335,7 +336,7 @@ Phase 10 + Phase 11 全部完成：
 | CS-P17-03 | P2 | Done | MIMO frequency-domain design diagnostics: characteristic loci, Gershgorin bands, inverse Nyquist array | `node control-studio/scripts/verify_p17_advanced_control.mjs` |
 | CS-P17-04 | P1 | Done | MPC MIMO output-space setpoint tracking (`y_ref = Cx + Du`) | `node control-studio/scripts/verify_p17_advanced_control.mjs` |
 
-**Validation aggregate status：`control-studio/scripts/run_all_verify.sh` 與 `npm run verify:all` 是目前主驗證入口；P22+ 新增的 P23 / P24 / P25 / P26 / P27 runner 以 roadmap 與 package scripts 為準。**
+**Validation aggregate status：`control-studio/scripts/run_all_verify.sh` 與 `npm run verify:all` 是目前主驗證入口；full suite 已納入 fixture/API contract，最新基線為 109/109。P22+ 新增的 P23 / P24 / P25 / P26 / P27 runner 以 roadmap 與 package scripts 為準。**
 
 ## Phase 18+ Research / Engineering Extension Ledger
 
@@ -355,7 +356,7 @@ Phase 18+ 已進入持續擴充狀態。下一步順序以 `control-studio/ROADM
 | CS-P18-03 | P1 | Done | Worst-case robust metrics | 擷取 worst PM/GM、peak \|S\|、settling、overshoot、control effort | frequency/time response core | `verify:p18` worst-case extraction |
 | CS-P18-04 | P1 | Done | Robust pass/fail specs | 以設計規格判斷 sample family 是否通過 | stability + metrics | `verify:p18` nominal-pass / uncertainty-fail case |
 | CS-P18-05 | P2 | Done | Robust validation UI | 顯示 uncertainty inputs、sample distribution、worst-case replay、pass/fail summary | CS-P18-01~04 | Playwright/Chrome walkthrough on `127.0.0.1:8765` |
-| CS-P18-06 | P1 | Done | `control-studio-robust-validator` skill baseline | 將 uncertainty validation workflow 抽成 agent 可重用流程 | `CONTROL_SYSTEM_SKILLS_PLAN.md` | skill checklist + sample output |
+| CS-P18-06 | P1 | Done | `control-studio-robust-validator` skill baseline | 將 uncertainty validation workflow 抽成 agent 可重用流程 | `docs/src/control-studio/skills.md` | skill checklist + sample output |
 
 ### Phase 19: Full H-infinity / Mu Backend (CS-P19)
 
@@ -372,7 +373,7 @@ Phase 18+ 已進入持續擴充狀態。下一步順序以 `control-studio/ROADM
 | CS-P20-01 | P1 | Done | Offset-free MIMO tracking | 擾動存在時仍能消除 steady-state error | Phase 17 MPC MIMO tracking | step disturbance fixture |
 | CS-P20-02 | P1 | Done | Output / delta-u constraints | 工程 MPC 需要輸出限制與 move suppression | Phase 11 state/input constraints | constrained MIMO tracking fixture |
 | CS-P20-03 | P2 | Done | Feasibility diagnostics | 不可行時指出 constraint conflict | QP solver | infeasible setpoint fixture |
-| CS-P20-04 | P1 | Done | Project-local `control-studio-mpc-designer` skill package | 將 MPC 建模、權重、constraint 設計流程標準化；已補專案版 references / examples / agent metadata | `CONTROL_SYSTEM_SKILLS_PLAN.md` | `skills/control-studio-mpc-designer/` |
+| CS-P20-04 | P1 | Done | Project-local `control-studio-mpc-designer` skill package | 將 MPC 建模、權重、constraint 設計流程標準化；已補專案版 references / examples / agent metadata | `docs/src/control-studio/skills.md` | `skills/control-studio-mpc-designer/` |
 
 ### Phase 21: Research-Grade System Identification (CS-P21)
 
@@ -382,7 +383,7 @@ Phase 18+ 已進入持續擴充狀態。下一步順序以 `control-studio/ROADM
 | CS-P21-02 | P2 | Done | ARMAX / OE / BJ candidates | 補 ARX 以外常用模型族 | sysid core | synthetic plant recovery |
 | CS-P21-03 | P2 | Done | Subspace state-space ID | 支援 MIMO 與狀態空間研究流程 | matrix core | low-order MIMO recovery |
 | CS-P21-04 | P1 | Done | Residual validation + uncertainty export | 讓 sysid 結果可接 Phase 18 robust validation | CS-P18 | whiteness + uncertainty fixtures |
-| CS-P21-05 | P2 | Done | Project-local `control-studio-sysid-planner` skill package | 將實驗設計、模型族選型、殘差驗證與 uncertainty handoff 抽成 agent skill | `CONTROL_SYSTEM_SKILLS_PLAN.md` | `skills/control-studio-sysid-planner/` |
+| CS-P21-05 | P2 | Done | Project-local `control-studio-sysid-planner` skill package | 將實驗設計、模型族選型、殘差驗證與 uncertainty handoff 抽成 agent skill | `docs/src/control-studio/skills.md` | `skills/control-studio-sysid-planner/` |
 
 ### Phase 22: Benchmark + Cross-Tool Validation (CS-P22)
 
@@ -390,14 +391,14 @@ Phase 18+ 已進入持續擴充狀態。下一步順序以 `control-studio/ROADM
 | --- | --- | --- | --- | --- | --- | --- |
 | CS-P22-01 | P1 | Done | Benchmark suite expansion | 將 SISO/MIMO/MPC/robust/sysid 案例統一成 benchmark library | verification cases | golden fixture manifest |
 | CS-P22-02 | P1 | Done | MATLAB / Python Control comparison | 建立 cross-tool tolerance 與 drift detection | codegen + external scripts | comparison artifacts |
-| CS-P22-03 | P1 | Done | `control-studio-benchmark-author` skill | 標準化新控制案例的推導與 fixture 產生 | `CONTROL_SYSTEM_SKILLS_PLAN.md` | generated benchmark skeleton |
+| CS-P22-03 | P1 | Done | `control-studio-benchmark-author` skill | 標準化新控制案例的推導與 fixture 產生 | `docs/src/control-studio/skills.md` | generated benchmark skeleton |
 
 ### Phase 23: Agentic Design Review (CS-P23)
 
 | ID | Priority | Status | Item | Rationale | Dependencies | Verification |
 | --- | --- | --- | --- | --- | --- | --- |
 | CS-P23-01 | P1 | Done | Structured design review schema | Advisor 建議需綁定數值證據與適用條件 | existing advisor | golden review cases |
-| CS-P23-02 | P1 | Done | `control-studio-system-auditor` skill | 讓 agent 能先做 plant/controller 審查再開發 | `CONTROL_SYSTEM_SKILLS_PLAN.md` | audit checklist examples |
+| CS-P23-02 | P1 | Done | `control-studio-system-auditor` skill | 讓 agent 能先做 plant/controller 審查再開發 | `docs/src/control-studio/skills.md` | audit checklist examples |
 | CS-P23-03 | P2 | Done | Project-local `control-studio-ui-verifier` skill package | 將 browser UI walkthrough、SISO/MIMO mode switching、plot/legend 與 issue report 標準化 | browser smoke | `skills/control-studio-ui-verifier/` |
 
 ### Phase 24: Advanced MPC (CS-P24)

@@ -153,7 +153,7 @@ dry-run 會顯示類似：
 - `.env` 只放本機 API key，不得提交或輸出內容。
 - `.env.example` 只能放 placeholder。
 - 不要把 `outputs/` 內的大型生成結果加入 git。
-- 不要使用 `.agent-handoff.md`；接手資訊只維護 `AGENT_CONTINUATION.md`。
+- 不要使用 `.agent-handoff.md`；接手資訊只維護 `docs/src/agents/continuation.md`，並在修改後執行 `node docs/build.mjs`。
 
 ## 建議下一步
 - 增強 evaluator：從 heuristic 升級為 judge model + golden dataset。

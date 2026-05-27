@@ -13,10 +13,18 @@ test -f "$SKILL_DIR/references/inventory.csv"
 test -x "$SCRIPT"
 test "$(readlink "$LINK")" = "$SKILL_DIR"
 test -f "$ROOT_DIR/.env.example"
+test -f "$ROOT_DIR/package.json"
 test -f "$ROOT_DIR/AGENTS.md"
-test -f "$ROOT_DIR/AGENT_USAGE.md"
-test -f "$ROOT_DIR/RUNNABLE_WORKFLOWS.md"
-test -f "$ROOT_DIR/CONTROL_SYSTEM_BACKLOG.md"
+test -f "$ROOT_DIR/README.md"
+test -f "$ROOT_DIR/docs/src/agents/usage.md"
+test -f "$ROOT_DIR/docs/src/agents/workflows.md"
+test -f "$ROOT_DIR/docs/src/agents/continuation.md"
+test -f "$ROOT_DIR/docs/src/control-studio/plan.md"
+test -f "$ROOT_DIR/docs/src/control-studio/backlog.md"
+test -f "$ROOT_DIR/docs/src/control-studio/verification.md"
+test -f "$ROOT_DIR/docs/src/control-studio/skills.md"
+test -f "$ROOT_DIR/docs/agents/usage.html"
+test -f "$ROOT_DIR/docs/control-studio/backlog.html"
 test -f "$ROOT_DIR/data/sample_kb.txt"
 test -f "$ROOT_DIR/data/cuopt_sample_problem.json"
 test -f "$ROOT_DIR/workflows/rag_workflow.py"
@@ -85,6 +93,7 @@ node "$ROOT_DIR/control-studio/scripts/verify_phase10_math_core.mjs" >/tmp/nvidi
 node "$ROOT_DIR/control-studio/scripts/verify_p18_robust_validation.mjs" >/tmp/nvidia-control-p18-robust-validation.txt
 node "$ROOT_DIR/control-studio/scripts/verify_control_cases.mjs" >/tmp/nvidia-control-verification-cases.txt
 node "$ROOT_DIR/control-studio/scripts/verify_control_api_contract.mjs" >/tmp/nvidia-control-api-contract.txt
+npm run --silent verify:math >/tmp/nvidia-control-npm-verify-math.txt
 node "$ROOT_DIR/control-studio/scripts/control_regression_dashboard.mjs" >/tmp/nvidia-control-regression-dashboard.txt
 node "$ROOT_DIR/control-studio/scripts/control_analysis_cli.mjs" '{"system":{"type":"transfer_function","num":[1],"den":[1,1]},"controller":{"type":"pid","Kp":1,"Ki":0.5,"Kd":0.1},"simulation":{"mode":"closed_loop","inputWaveform":"step","sampleCount":20}}' >/tmp/nvidia-control-api-cli.json
 
@@ -120,19 +129,20 @@ grep -q "Phase 10 math core verification passed: 16/16" /tmp/nvidia-control-phas
 grep -q "Phase 18 robust validation: all checks passed" /tmp/nvidia-control-p18-robust-validation.txt
 grep -q "Verification fixtures passed: 5/5" /tmp/nvidia-control-verification-cases.txt
 grep -q "API contract fixtures passed: 5/5" /tmp/nvidia-control-api-contract.txt
+grep -q "Verification fixtures passed: 5/5" /tmp/nvidia-control-npm-verify-math.txt
 grep -q "ControlStudio regression dashboard: PASS" /tmp/nvidia-control-regression-dashboard.txt
 grep -q "\"response\"" /tmp/nvidia-control-api-cli.json
-grep -q "AGENT_CONTINUATION.md" "$ROOT_DIR/AGENTS.md"
-grep -q "./nv-agent plan" "$ROOT_DIR/AGENT_USAGE.md"
-grep -q "./nv-agent run-plan" "$ROOT_DIR/AGENT_USAGE.md"
-grep -q "./nv-agent eval" "$ROOT_DIR/AGENT_USAGE.md"
-grep -q -- "--select-model" "$ROOT_DIR/AGENT_USAGE.md"
-grep -q "control-advisor" "$ROOT_DIR/AGENT_USAGE.md"
+grep -q "docs/src/agents/continuation.md" "$ROOT_DIR/AGENTS.md"
+grep -q "./nv-agent plan" "$ROOT_DIR/docs/src/agents/usage.md"
+grep -q "./nv-agent run-plan" "$ROOT_DIR/docs/src/agents/usage.md"
+grep -q "./nv-agent eval" "$ROOT_DIR/docs/src/agents/usage.md"
+grep -q -- "--select-model" "$ROOT_DIR/docs/src/agents/usage.md"
+grep -q "control-advisor" "$ROOT_DIR/docs/src/agents/usage.md"
 grep -q "control-studio" "$ROOT_DIR/README.md"
 grep -q "control_advisor_workflow.py" "$ROOT_DIR/README.md"
-grep -q "CONTROL_SYSTEM_BACKLOG.md" "$ROOT_DIR/README.md"
-grep -q "Fixture-based verification runner" "$ROOT_DIR/CONTROL_SYSTEM_BACKLOG.md"
-grep -q "Block Diagram expansion" "$ROOT_DIR/CONTROL_SYSTEM_BACKLOG.md"
+grep -q "docs/src/control-studio/backlog.md" "$ROOT_DIR/README.md"
+grep -q "Fixture-based verification runner" "$ROOT_DIR/docs/src/control-studio/backlog.md"
+grep -q "Block Diagram expansion" "$ROOT_DIR/docs/src/control-studio/backlog.md"
 grep -q "ControlStudioSmoke" "$ROOT_DIR/control-studio/js/app.js"
 grep -q "Lead compensator 需要 0 < alpha < 1" "$ROOT_DIR/control-studio/js/app.js"
 grep -q "comparison-table" "$ROOT_DIR/control-studio/index.html"
@@ -140,7 +150,7 @@ grep -q "btn-export-report" "$ROOT_DIR/control-studio/index.html"
 grep -q "analysis-source" "$ROOT_DIR/control-studio/index.html"
 grep -q "designLeadCompensator" "$ROOT_DIR/control-studio/js/control/compensator.js"
 grep -q "designLagCompensator" "$ROOT_DIR/control-studio/js/control/compensator.js"
-grep -q "control-advisor" "$ROOT_DIR/AGENT_CONTINUATION.md"
+grep -q "control-advisor" "$ROOT_DIR/docs/src/agents/continuation.md"
 grep -q "runtime model routing" "$ROOT_DIR/skills/nvidia-model-selector/SKILL.md"
 
 echo "nvidia-model-selector validation passed"

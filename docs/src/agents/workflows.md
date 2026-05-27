@@ -157,8 +157,8 @@ python3 control-studio/scripts/serve_studio.py
 ./.venv/bin/python control-studio/scripts/control_api.py
 ```
 
-ControlStudio 的進階控制目前優先支援 Lead/Lag 補償器；Block Diagram 入口暫時擱置，後續驗證先以 SISO transfer function、Bode/Nyquist/Nichols 與 stability metrics 為主。
-後續開發順序請依 `CONTROL_SYSTEM_BACKLOG.md`，先完成 fixture-based verification、API contract tests，再推 controller design presets。
+ControlStudio 的進階控制目前已完成 Functional Roadmap Tier A-J deterministic baseline；Block Diagram 入口暫時擱置，後續驗證先以 SISO/MIMO transfer function、frequency response、stability metrics、MPC/robust/sysid fixtures 為主。
+後續開發順序請依 `control-studio/ROADMAP.md` 與 `docs/src/control-studio/backlog.md`；fixture-based verification 與 API contract tests 已納入 `npm run verify:all`。
 
 ## 接手建議
 後續 agent 若要繼續做：

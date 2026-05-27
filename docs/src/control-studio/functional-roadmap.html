@@ -194,13 +194,15 @@
   <p style="color:var(--text-mute); margin-bottom:10px; font-size:13px;">
     後續開發（非 UI/UX）的核心方向、演算法規格、API 設計、驗收條件與依賴關係。
     本文件為 <b style="color:var(--text)">canonical 工程規劃</b>，任何接手 agent 須先閱讀本文。
+    目前 Tier A-J 已完成 deterministic baseline，full suite 基線為 109/109。
   </p>
   <div class="meta">
     <span><b>Items</b>: 57</span>
     <span><b>Tiers</b>: 10 (A–J)</span>
     <span><b>Estimated Total</b>: ~270 工作天</span>
     <span><b>MVP Path</b>: 3 個月</span>
-    <span><b>Last Updated</b>: 2026-05-24</span>
+    <span><b>Last Updated</b>: 2026-05-27</span>
+    <span><b>Status</b>: Implemented baseline</span>
     <span><b>Owner</b>: Functional Planning</span>
   </div>
 </header>
@@ -1888,9 +1890,9 @@ queryPrometheus({ url, metric, range }) → { t, values }
     <ul class="checks">
       <li>✓ 本檔案（<code>docs/src/control-studio/functional-roadmap.html</code>）— 規劃源頭</li>
       <li>✓ <code>control-studio/ROADMAP.md</code> — 已完成 phase 對照</li>
-      <li>✓ <code>CONTROL_SYSTEM_BACKLOG.md</code> — 任務拆解</li>
-      <li>✓ <code>CONTROL_SYSTEM_VERIFICATION_CASES.md</code> — 數值驗收標準</li>
-      <li>✓ <code>AGENT_CONTINUATION.md</code> — 上一個 agent 的交接</li>
+      <li>✓ <code>docs/src/control-studio/backlog.md</code> — 任務拆解</li>
+      <li>✓ <code>docs/src/control-studio/verification.md</code> — 數值驗收標準</li>
+      <li>✓ <code>docs/src/agents/continuation.md</code> — 上一個 agent 的交接</li>
     </ul>
   </article>
 
@@ -1930,7 +1932,7 @@ queryPrometheus({ url, metric, range }) → { t, values }
 
   <article class="item">
     <header class="item-head">
-      <h3>數值容忍度（沿用 CONTROL_SYSTEM_VERIFICATION_CASES.md）</h3>
+      <h3>數值容忍度（沿用 docs/src/control-studio/verification.md）</h3>
     </header>
     <table>
       <thead><tr><th>量</th><th>容忍度</th></tr></thead>

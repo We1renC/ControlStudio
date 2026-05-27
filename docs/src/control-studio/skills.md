@@ -141,13 +141,13 @@ Exit criteria：
 
 | Skill Candidate | Priority | Purpose | Inputs | Outputs | Backing Modules / Docs |
 | --- | --- | --- | --- | --- | --- |
-| `control-studio-system-auditor` | P1 | 盤點 plant / controller 是否具備基本可設計性 | TF/SS/ZPK、controller、mode | controllability / observability / poles / margins / risks | `CONTROL_SYSTEM_PLAN.md`, `test_control.js` |
+| `control-studio-system-auditor` | P1 | 盤點 plant / controller 是否具備基本可設計性 | TF/SS/ZPK、controller、mode | controllability / observability / poles / margins / risks | `docs/src/control-studio/plan.md`, `test_control.js` |
 | `control-studio-robust-validator` | P1 | 建立 uncertainty 與 Monte Carlo robust validation 計畫 | nominal model、uncertainty ranges、specs | robust pass/fail、worst-case sample、fixtures | Phase 18 |
 | `control-studio-mimo-designer` | P1 | 協助 MIMO pairing、decoupling、loop-shaping 與 diagnostics | MIMO SS、channels、target bandwidth | RGA/SV/characteristic loci diagnosis、design sequence | Phase 9 / 17 |
 | `control-studio-mpc-designer` | P1 | 將 state-space plant 轉成 MPC tracking / constraints 設計流程 | A/B/C/D、Ts、horizon、Q/R、constraints | MPC config、feasibility notes、verification plan | Phase 10 / 11 / 20；project-local package done |
 | `control-studio-stability-prover` | P1 | 產生 Lyapunov / Riccati / margin 證明摘要 | A/B/C/D、Q/R、closed-loop A | proof object、residual、applicability warnings | Phase 7 / 10 / 11 |
 | `control-studio-sysid-planner` | P2 | 設計識別實驗與模型選型流程 | experiment goal、sample time、data columns | experiment signal、candidate models、validation plan | Phase 15 / 21；project-local package done |
-| `control-studio-benchmark-author` | P1 | 為新控制案例建立數學推導與 regression fixture | scenario description、plant、controller target | markdown derivation、fixture skeleton、tolerances | `CONTROL_SYSTEM_VERIFICATION_CASES.md` |
+| `control-studio-benchmark-author` | P1 | 為新控制案例建立數學推導與 regression fixture | scenario description、plant、controller target | markdown derivation、fixture skeleton、tolerances | `docs/src/control-studio/verification.md` |
 | `control-studio-codegen-reviewer` | P2 | 審查 MATLAB / Python / embedded codegen 是否與模型一致 | generated code、model config | mismatch report、runtime caveats | Phase 15 |
 | `control-studio-ui-verifier` | P2 | 用 browser 閉環檢查 SISO/MIMO/Robust/MPC UI 流程 | local URL、workflow checklist | UI issue list、screenshots、regression notes | `control_regression_dashboard.mjs`；project-local package done |
 
@@ -173,7 +173,7 @@ Skill 必須遵守：
 - Skill 輸出應是 structured checklist / JSON / markdown summary，方便 agent 後續接 UI、API 或測試。
 - Skill 不直接修改 `control-studio/`，除非使用者明確要求實作；預設先產出設計、驗證與審查結果。
 - Skill 涉及模型選型或外部模型時，必須使用既有 `nv-agent` runtime router，不可硬寫 endpoint。
-- Skill 若會導向功能開發，必須要求後續 agent 先更新 `control-studio/ROADMAP.md`，再同步 `CONTROL_SYSTEM_PLAN.md`、`CONTROL_SYSTEM_BACKLOG.md`、`CONTROL_SYSTEM_VERIFICATION_CASES.md`、`CONTROL_SYSTEM_SCENARIOS.md`、`AGENT_CONTINUATION.md` 中受影響的部分。
+- Skill 若會導向功能開發，必須要求後續 agent 先更新 `control-studio/ROADMAP.md`，再同步 `docs/src/control-studio/plan.md`、`docs/src/control-studio/backlog.md`、`docs/src/control-studio/verification.md`、`docs/src/control-studio/scenarios.md`、`docs/src/agents/continuation.md` 中受影響的部分。
 
 ## Not Good Skill Targets
 

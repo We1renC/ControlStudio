@@ -91,10 +91,10 @@ del{color:var(--muted)}
 
 <ol>
 <li><code>control-studio/ROADMAP.md</code></li>
-<li><code>CONTROL_SYSTEM_PLAN.md</code></li>
-<li><code>CONTROL_SYSTEM_VERIFICATION_CASES.md</code></li>
-<li><code>CONTROL_SYSTEM_BACKLOG.md</code></li>
-<li><code>CONTROL_SYSTEM_SKILLS_PLAN.md</code></li>
+<li><code>docs/src/control-studio/plan.md</code></li>
+<li><code>docs/src/control-studio/verification.md</code></li>
+<li><code>docs/src/control-studio/backlog.md</code></li>
+<li><code>docs/src/control-studio/skills.md</code></li>
 </ol>
 
 <p>目前策略：</p>
@@ -130,8 +130,8 @@ del{color:var(--muted)}
 
 <ul>
 <li>Branch: <code>main</code></li>
-<li>Latest synced commit: <code>1259565 feat(p27-p28): loop shaping H∞ + TypeScript type definitions</code></li>
-<li>Current checkpoint: <strong>CS-P0 ~ CS-P28 done; Functional Roadmap Tier A-J done; Phase 19/20/21/23 project-local skill gaps closed.</strong> 詳細執行看板見 <code>control-studio/ROADMAP.md</code>。目前僅暫停項目維持不做：教學模式、Electron packaging、報告模板 / 報告自動化、Block Diagram expansion。</li>
+<li>Latest synced commit: <code>3496a71 fix(control): close math and API fallback gaps</code></li>
+<li>Current checkpoint: <strong>CS-P0 ~ CS-P65 done; Functional Roadmap Tier A-J done; Phase 19/20/21/23 project-local skill gaps closed; verification aggregation closed.</strong> 詳細執行看板見 <code>control-studio/ROADMAP.md</code>。目前僅暫停項目維持不做：教學模式、Electron packaging、報告模板 / 報告自動化、Block Diagram expansion。</li>
 <li>Functional Roadmap Tier A-J checkpoint：Tier A control algorithms、Tier B identification、Tier C estimation、Tier D optimization、Tier E numerical repair、Tier F verification/safety、Tier G advanced MPC、Tier H embedded deployment、Tier I runtime architecture、Tier J HIL/integration 均已有 deterministic verification baseline；最新 full suite 基線見 <code>control-studio/ROADMAP.md</code>。</li>
 <li>Scenario 5 browser walkthrough result: Phase 10 math + UI both operational.</li>
 <li>Scenario 6 browser walkthrough result: SISO / MIMO core workflows are UI-operable.</li>
@@ -166,6 +166,7 @@ del{color:var(--muted)}
 <li><code>node control-studio/scripts/control_regression_dashboard.mjs</code></li>
 <li><code>./scripts/validate_nvidia_model_selector.sh</code></li>
 </ul>
+<li>Full suite baseline：<code>npm run verify:all</code> / <code>bash control-studio/scripts/run_all_verify.sh</code> 目前納入 109 個 deterministic verification scripts，包含 fixture 與 API contract。</li>
 <li>Pre-push hook：<code>bash scripts/install-hooks.sh</code> 啟用後，每次 <code>git push</code> 會跑 <code>verify:math</code>；失敗阻擋 push（用 <code>git push --no-verify</code> 可跳過）。</li>
 </ul>
 
@@ -178,7 +179,7 @@ del{color:var(--muted)}
 <table><thead>
 <tr><th>ID</th><th>Priority</th><th>Status</th><th>Item</th><th>Rationale</th><th>Dependencies</th><th>Verification</th></tr>
 </thead><tbody>
-<tr><td>CS-P0-01</td><td>P0</td><td>Done</td><td>Fixture-based verification runner</td><td>五個數學推導案例已轉成可重跑 fixture，避免手動驗證流失</td><td><code>CONTROL_SYSTEM_VERIFICATION_CASES.md</code></td><td><code>node control-studio/scripts/verify_control_cases.mjs</code></td></tr>
+<tr><td>CS-P0-01</td><td>P0</td><td>Done</td><td>Fixture-based verification runner</td><td>五個數學推導案例已轉成可重跑 fixture，避免手動驗證流失</td><td><code>docs/src/control-studio/verification.md</code></td><td><code>node control-studio/scripts/verify_control_cases.mjs</code></td></tr>
 </thead><tbody>
 <tr><td>CS-P0-02</td><td>P0</td><td>Done</td><td>API contract tests</td><td>防止 FastAPI 與 JS CLI schema / formula drift</td><td><code>control_analysis_cli.mjs</code>, <code>control_api.py</code></td><td><code>node control-studio/scripts/verify_control_api_contract.mjs</code></td></tr>
 </thead><tbody>
@@ -427,7 +428,7 @@ del{color:var(--muted)}
 </thead><tbody>
 <tr><td>CS-P10-17</td><td>P2</td><td>Done</td><td>高階 CARE 壓測 (n ≥ 4) + Matrix Sign Fallback</td><td>matrix sign function (Newton iteration)：n≥5 改用 sign(H) = Newton iteration → P=(I−Z)/2 stable projector → QR basis → P=YX⁻¹；n=4,5,6,8 全部 100% pass，residual ≤ 1e-13</td><td>CS-P10-01</td><td><code>verify_phase10_high_order_care.mjs</code> 6×{n,m} 配置 + 4 assertions（n=8 從 0%→100%）</td></tr>
 </thead><tbody>
-<tr><td>CS-P10-18</td><td>P2</td><td>Done</td><td>CI / pre-push verification hook</td><td><code>package.json</code> 加 <code>verify:math</code> (串接 7 個 runner) + <code>verify:all</code>；<code>scripts/git-hooks/pre-push</code> + <code>bash scripts/install-hooks.sh</code> 設 core.hooksPath；失敗 block push（可用 <code>--no-verify</code> 跳過）</td><td>CS-P10-12 / Phase 9-10 runners</td><td><code>npm run verify:math</code> 跑 ~70+ cases；pre-push 失敗阻擋 push</td></tr>
+<tr><td>CS-P10-18</td><td>P2</td><td>Done</td><td>CI / pre-push verification hook</td><td>root <code>package.json</code> 加 <code>verify:math</code> / <code>verify:all</code> / phase-specific scripts；<code>scripts/git-hooks/pre-push</code> + <code>bash scripts/install-hooks.sh</code> 設 core.hooksPath；失敗 block push（可用 <code>--no-verify</code> 跳過）</td><td>CS-P10-12 / Phase 9-10 runners</td><td><code>npm run verify:math</code> 跑核心 math + fixture suite；<code>npm run verify:all</code> 跑 109/109 full suite</td></tr>
 </thead><tbody>
 <tr><td>CS-P10-05</td><td>P3</td><td>Paused</td><td>Electron packaging</td><td>使用者要求擱置</td><td>主功能凍結</td><td>暫不做</td></tr>
 </thead><tbody>
@@ -562,7 +563,7 @@ del{color:var(--muted)}
 <tr><td>CS-P17-04</td><td>P1</td><td>Done</td><td>MPC MIMO output-space setpoint tracking (<code>y_ref = Cx + Du</code>)</td><td><code>node control-studio/scripts/verify_p17_advanced_control.mjs</code></td></tr>
 </tbody></table>
 
-<p><strong>Validation aggregate status：<code>control-studio/scripts/run_all_verify.sh</code> 與 <code>npm run verify:all</code> 是目前主驗證入口；P22+ 新增的 P23 / P24 / P25 / P26 / P27 runner 以 roadmap 與 package scripts 為準。</strong></p>
+<p><strong>Validation aggregate status：<code>control-studio/scripts/run_all_verify.sh</code> 與 <code>npm run verify:all</code> 是目前主驗證入口；full suite 已納入 fixture/API contract，最新基線為 109/109。P22+ 新增的 P23 / P24 / P25 / P26 / P27 runner 以 roadmap 與 package scripts 為準。</strong></p>
 
 <h2 id="phase-18-research-engineering-extension-ledger">Phase 18+ Research / Engineering Extension Ledger</h2>
 
@@ -590,7 +591,7 @@ del{color:var(--muted)}
 </thead><tbody>
 <tr><td>CS-P18-05</td><td>P2</td><td>Done</td><td>Robust validation UI</td><td>顯示 uncertainty inputs、sample distribution、worst-case replay、pass/fail summary</td><td>CS-P18-01~04</td><td>Playwright/Chrome walkthrough on <code>127.0.0.1:8765</code></td></tr>
 </thead><tbody>
-<tr><td>CS-P18-06</td><td>P1</td><td>Done</td><td><code>control-studio-robust-validator</code> skill baseline</td><td>將 uncertainty validation workflow 抽成 agent 可重用流程</td><td><code>CONTROL_SYSTEM_SKILLS_PLAN.md</code></td><td>skill checklist + sample output</td></tr>
+<tr><td>CS-P18-06</td><td>P1</td><td>Done</td><td><code>control-studio-robust-validator</code> skill baseline</td><td>將 uncertainty validation workflow 抽成 agent 可重用流程</td><td><code>docs/src/control-studio/skills.md</code></td><td>skill checklist + sample output</td></tr>
 </tbody></table>
 
 <h3 id="phase-19-full-h-infinity-mu-backend-cs-p19">Phase 19: Full H-infinity / Mu Backend (CS-P19)</h3>
@@ -616,7 +617,7 @@ del{color:var(--muted)}
 </thead><tbody>
 <tr><td>CS-P20-03</td><td>P2</td><td>Done</td><td>Feasibility diagnostics</td><td>不可行時指出 constraint conflict</td><td>QP solver</td><td>infeasible setpoint fixture</td></tr>
 </thead><tbody>
-<tr><td>CS-P20-04</td><td>P1</td><td>Done</td><td>Project-local <code>control-studio-mpc-designer</code> skill package</td><td>將 MPC 建模、權重、constraint 設計流程標準化；已補專案版 references / examples / agent metadata</td><td><code>CONTROL_SYSTEM_SKILLS_PLAN.md</code></td><td><code>skills/control-studio-mpc-designer/</code></td></tr>
+<tr><td>CS-P20-04</td><td>P1</td><td>Done</td><td>Project-local <code>control-studio-mpc-designer</code> skill package</td><td>將 MPC 建模、權重、constraint 設計流程標準化；已補專案版 references / examples / agent metadata</td><td><code>docs/src/control-studio/skills.md</code></td><td><code>skills/control-studio-mpc-designer/</code></td></tr>
 </tbody></table>
 
 <h3 id="phase-21-research-grade-system-identification-cs-p21">Phase 21: Research-Grade System Identification (CS-P21)</h3>
@@ -632,7 +633,7 @@ del{color:var(--muted)}
 </thead><tbody>
 <tr><td>CS-P21-04</td><td>P1</td><td>Done</td><td>Residual validation + uncertainty export</td><td>讓 sysid 結果可接 Phase 18 robust validation</td><td>CS-P18</td><td>whiteness + uncertainty fixtures</td></tr>
 </thead><tbody>
-<tr><td>CS-P21-05</td><td>P2</td><td>Done</td><td>Project-local <code>control-studio-sysid-planner</code> skill package</td><td>將實驗設計、模型族選型、殘差驗證與 uncertainty handoff 抽成 agent skill</td><td><code>CONTROL_SYSTEM_SKILLS_PLAN.md</code></td><td><code>skills/control-studio-sysid-planner/</code></td></tr>
+<tr><td>CS-P21-05</td><td>P2</td><td>Done</td><td>Project-local <code>control-studio-sysid-planner</code> skill package</td><td>將實驗設計、模型族選型、殘差驗證與 uncertainty handoff 抽成 agent skill</td><td><code>docs/src/control-studio/skills.md</code></td><td><code>skills/control-studio-sysid-planner/</code></td></tr>
 </tbody></table>
 
 <h3 id="phase-22-benchmark-cross-tool-validation-cs-p22">Phase 22: Benchmark + Cross-Tool Validation (CS-P22)</h3>
@@ -644,7 +645,7 @@ del{color:var(--muted)}
 </thead><tbody>
 <tr><td>CS-P22-02</td><td>P1</td><td>Done</td><td>MATLAB / Python Control comparison</td><td>建立 cross-tool tolerance 與 drift detection</td><td>codegen + external scripts</td><td>comparison artifacts</td></tr>
 </thead><tbody>
-<tr><td>CS-P22-03</td><td>P1</td><td>Done</td><td><code>control-studio-benchmark-author</code> skill</td><td>標準化新控制案例的推導與 fixture 產生</td><td><code>CONTROL_SYSTEM_SKILLS_PLAN.md</code></td><td>generated benchmark skeleton</td></tr>
+<tr><td>CS-P22-03</td><td>P1</td><td>Done</td><td><code>control-studio-benchmark-author</code> skill</td><td>標準化新控制案例的推導與 fixture 產生</td><td><code>docs/src/control-studio/skills.md</code></td><td>generated benchmark skeleton</td></tr>
 </tbody></table>
 
 <h3 id="phase-23-agentic-design-review-cs-p23">Phase 23: Agentic Design Review (CS-P23)</h3>
@@ -654,7 +655,7 @@ del{color:var(--muted)}
 </thead><tbody>
 <tr><td>CS-P23-01</td><td>P1</td><td>Done</td><td>Structured design review schema</td><td>Advisor 建議需綁定數值證據與適用條件</td><td>existing advisor</td><td>golden review cases</td></tr>
 </thead><tbody>
-<tr><td>CS-P23-02</td><td>P1</td><td>Done</td><td><code>control-studio-system-auditor</code> skill</td><td>讓 agent 能先做 plant/controller 審查再開發</td><td><code>CONTROL_SYSTEM_SKILLS_PLAN.md</code></td><td>audit checklist examples</td></tr>
+<tr><td>CS-P23-02</td><td>P1</td><td>Done</td><td><code>control-studio-system-auditor</code> skill</td><td>讓 agent 能先做 plant/controller 審查再開發</td><td><code>docs/src/control-studio/skills.md</code></td><td>audit checklist examples</td></tr>
 </thead><tbody>
 <tr><td>CS-P23-03</td><td>P2</td><td>Done</td><td>Project-local <code>control-studio-ui-verifier</code> skill package</td><td>將 browser UI walkthrough、SISO/MIMO mode switching、plot/legend 與 issue report 標準化</td><td>browser smoke</td><td><code>skills/control-studio-ui-verifier/</code></td></tr>
 </tbody></table>

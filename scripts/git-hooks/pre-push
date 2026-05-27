@@ -10,7 +10,7 @@ set -e
 repo_root="$(cd "$(dirname "$0")/../.." && pwd)"
 cd "$repo_root"
 
-echo "[pre-push] running verify:math (7 runners)..."
+echo "[pre-push] running verify:math..."
 if npm run --silent verify:math; then
   echo "[pre-push] verify:math passed — push allowed"
   exit 0

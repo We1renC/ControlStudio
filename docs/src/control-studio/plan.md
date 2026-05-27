@@ -1,6 +1,6 @@
 # Control System Development Plan
 
-此文件是控制系統工作台的正式開發計畫。後續 agent 若要修改 `control-studio/`、`workflows/control_advisor_workflow.py`、`test_control.js`，或擴充 `control-advisor` 任務，應先閱讀本文件、`CONTROL_SYSTEM_VERIFICATION_CASES.md`、`CONTROL_SYSTEM_BACKLOG.md`、`CONTROL_SYSTEM_SKILLS_PLAN.md` 並依此執行。
+此文件是控制系統工作台的正式開發計畫。後續 agent 若要修改 `control-studio/`、`workflows/control_advisor_workflow.py`、`test_control.js`，或擴充 `control-advisor` 任務，應先閱讀本文件、`docs/src/control-studio/verification.md`、`docs/src/control-studio/backlog.md`、`docs/src/control-studio/skills.md` 並依此執行。
 
 ## 1. Product Vision
 
@@ -94,13 +94,13 @@
 - Smoke test：
   - `test_control.js`
 - 驗證案例：
-  - `CONTROL_SYSTEM_VERIFICATION_CASES.md`
+  - `docs/src/control-studio/verification.md`
 - 開發順序與文件工作流：
   - `control-studio/ROADMAP.md`
 - 詳細 task ledger：
-  - `CONTROL_SYSTEM_BACKLOG.md`
+  - `docs/src/control-studio/backlog.md`
 - Phase 18+ 與技能化規劃：
-  - `CONTROL_SYSTEM_SKILLS_PLAN.md`
+  - `docs/src/control-studio/skills.md`
 
 ### 已完成能力
 - SISO 傳遞函數輸入
@@ -175,7 +175,7 @@
 - Controller comparison table
 - JSON / CSV / PNG 匯出
 - Markdown report export baseline
-- Frontend analysis source toggle：Local JS / FastAPI / Compare Local/API
+- Frontend analysis source toggle：Auto API Fallback / Local JS / FastAPI / Compare Local/API
 - API analysis status surface：checking / ok / diff / error
 - Regression dashboard command
 - Block Diagram Editor 與 diagram save/load、Undo/Redo、Zoom/Pan
@@ -224,11 +224,12 @@
 - Full math-core audit：`matInverse()` / `matSolve()` / `matRank()` / `matIsPositiveDefinite()` 改用相對矩陣尺度 tolerance，避免縮放很小但條件良好的矩陣被誤判 singular、rank deficient 或非正定。
 - Full math-core audit：discrete Bode evaluation 改走共用 robust complex division path。
 - Real Schur symmetric fast path：對 symmetric real matrices 使用 Jacobi orthogonal Schur，修復 3x3 stable real-spectrum reconstruction regression。
-- Frontend analysis API migration：新 session 預設 `Auto API Fallback`，FastAPI 成功時使用 Unified API metrics，不可用或 z-domain 時明確 fallback Local JS。
+- Frontend analysis API migration：新 session 預設 `Auto API Fallback`，FastAPI 成功時使用 Unified API metrics，不可用或 z-domain 時明確 fallback Local JS；root `package.json` 已提供 `npm run verify:*` 入口。
 - Verification：最新節點已通過 TF / SS / ZPK / C2D 與 PID regression（commit message 記錄 `36/36` 與 `21/21`）。
 
 ### 尚未完成能力
 - Functional Roadmap Tier A-J 已完成 deterministic baseline。
+- Full verification suite 已納入 control verification fixtures 與 FastAPI contract fixtures；目前基線為 `109/109 scripts pass`。
 - Phase 23 ~ Phase 28 舊缺口已同步收斂：continuous-time ID / Hankel norm / LPV synthesis / dynamic D-K / JSDoc API docs 均已有驗證基線。
 - CONTSID、full-order dynamic K fitting、industrial-grade μ synthesis backend 仍可作後續研究擴充，但不再列為目前阻塞項。
 - 自動產生報告 / 報告模板、Electron packaging、教學模式與 Block Diagram expansion 仍依使用者要求擱置。
@@ -331,7 +332,7 @@
 - Done：MIMO Analysis（RGA / Singular Value Bode）
 - Done：MIMO Design（Static Decoupler / MIMO LQR）
 - Paused：更完整 block editor 同步分析
-- Planned：MPC / Robust Control（需獨立設計文件）
+- Done：MPC / Robust Control（Phase 10+ 已完成 baseline、UI 入口與 deterministic verification）
 
 ## 8. UI Plan
 
@@ -440,7 +441,7 @@
 - Done：MIMO 基礎 + RGA / SV Bode + Decoupler + MIMO LQR
 - Done：Phase 0~9 通盤數學理論完善度檢查與 hardening
 - Done：所有數學核心通盤檢查與 hardening：修正 high-order polynomial roots、RK45 Dormand-Prince 權重、TF/DTF zero-denominator guard
-- Deferred：MPC / Robust Control
+- Done：MPC / Robust Control（Phase 10~24 已補 MPC / Robust / H∞ / D-K / Tube / EMPC / Explicit MPC deterministic baselines）
 - Status: Done
 
 ### Phase 7 Theory Track
@@ -520,7 +521,7 @@
 
 ### Stage 4: Productization
 - Paused：Electron desktop packaging
-- Planned：Cloud deployment option（待核心功能凍結後再評估）
+- Done：Cloud deployment baseline（GitHub Pages workflow `deploy.yml` 發布 `control-studio/` 靜態工作台）
 - Paused：Teaching mode
 - Paused：Report generation / report template
 
@@ -537,18 +538,18 @@
 後續 agent 在開發控制系統相關功能時，請遵守：
 
 1. 先讀本文件，再動手修改控制系統相關檔案。
-2. 若修改數值核心、API 分析輸出或穩定性指標，需對照 `CONTROL_SYSTEM_VERIFICATION_CASES.md` 的案例與數學推導。
-3. 後續開發順序以 `control-studio/ROADMAP.md` 為準；詳細 task ledger 再對照 `CONTROL_SYSTEM_BACKLOG.md`。
-4. 目前已到 `1259565 feat(p27-p28): loop shaping H∞ + TypeScript type definitions` 基線；若啟動下一階段，先更新 `control-studio/ROADMAP.md`，再同步 `CONTROL_SYSTEM_BACKLOG.md` 與 `CONTROL_SYSTEM_SKILLS_PLAN.md` 的範圍、技能邊界與驗證基線。
+2. 若修改數值核心、API 分析輸出或穩定性指標，需對照 `docs/src/control-studio/verification.md` 的案例與數學推導。
+3. 後續開發順序以 `control-studio/ROADMAP.md` 為準；詳細 task ledger 再對照 `docs/src/control-studio/backlog.md`。
+4. 目前非 paused roadmap 已到 109/109 verification baseline；若啟動下一階段，先更新 `control-studio/ROADMAP.md`，再同步 `docs/src/control-studio/backlog.md` 與 `docs/src/control-studio/skills.md` 的範圍、技能邊界與驗證基線。
 5. 若新增控制系統分析功能，必須補：
    - 文件
    - 至少一個 smoke test 或驗證流程
    - UI 對應入口（若屬使用者可見功能）
 6. 若引入新模型類型或新控制器類型，先更新資料模型與輸入格式，再補 UI。
-7. 每次完成控制系統功能、數學核心修復、UI 行為調整或驗證補強後，必須同步文件狀態，再做 git checkpoint；至少檢查 `control-studio/ROADMAP.md`、`CONTROL_SYSTEM_PLAN.md`、`CONTROL_SYSTEM_BACKLOG.md`、`CONTROL_SYSTEM_VERIFICATION_CASES.md`、`CONTROL_SYSTEM_SCENARIOS.md`、`AGENT_CONTINUATION.md` 是否需要更新。
+7. 每次完成控制系統功能、數學核心修復、UI 行為調整或驗證補強後，必須同步文件狀態，再做 git checkpoint；至少檢查 `control-studio/ROADMAP.md`、`docs/src/control-studio/plan.md`、`docs/src/control-studio/backlog.md`、`docs/src/control-studio/verification.md`、`docs/src/control-studio/scenarios.md`、`docs/src/agents/continuation.md` 是否需要更新。
 8. 若新增 workflow 或控制系統相關 CLI 能力，需同步更新：
    - `README.md`
-   - `RUNNABLE_WORKFLOWS.md`
-   - `AGENT_CONTINUATION.md`
+   - `docs/src/agents/workflows.md`
+   - `docs/src/agents/continuation.md`
    - `scripts/validate_nvidia_model_selector.sh`
 9. 若要從靜態前端遷移到 React/FastAPI，不要一次重寫全部；用增量替換策略。

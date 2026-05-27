@@ -123,12 +123,13 @@ del{color:var(--muted)}
 <li>2026-05-27 接續完成 Functional Roadmap Tier H-I-J deployment/runtime/integration baseline：新增 <code>js/codegen/<em></code>、<code>js/wasm/loader.js</code>、<code>js/workers/compute_worker.js</code>、<code>js/runtime/</em></code>、<code>js/integration/*</code>，涵蓋 C/Rust/ST/AUTOSAR/FreeRTOS codegen、safety wrapper、WASM adapter、worker/memo/stream/cross-check、HIL/Serial/OPC UA/Modbus/MQTT/TSDB facades；新增 <code>verify_hij_deployment_runtime_integration.mjs</code> 並納入 <code>run_all_verify.sh</code>，最新基線升至 <strong>104/104 scripts pass</strong>。</li>
 <li>2026-05-27 接續完成 Phase 19 dynamic D-K 與 project-local skill gaps：<code>dk_iteration.js</code> 新增 <code>fitDynamicDScaling</code>、<code>evaluateDynamicDScaling</code>、<code>computeDynamicMuBoundFreq</code>、<code>dkIterationDynamic</code>，新增 <code>verify_p19_dynamic_dk.mjs</code>；同時補 <code>control-studio-mpc-designer</code>、<code>control-studio-sysid-planner</code>、<code>control-studio-ui-verifier</code> 三個專案 skills，最新基線升至 <strong>105/105 scripts pass</strong>。</li>
 <li>2026-05-27 接續完成 math/API closure：<code>realschur.js</code> 新增 symmetric Jacobi Schur fast path，修復 3x3 stable real-spectrum reconstruction regression；前端 Analysis Source 預設改為 <code>Auto API Fallback</code>，API 成功時套用 FastAPI metrics，API 不可用或 z-domain 時明確 fallback Local JS；新增 <code>verify_realschur_symmetric.mjs</code>、<code>verify_api_auto_fallback.mjs</code>，最新基線升至 <strong>107/107 scripts pass</strong>。</li>
+<li>2026-05-27 接續完成非 paused 收斂補強：root <code>package.json</code> 重新提供 <code>npm run verify:*</code> 入口並設定 <code>"type": "module"</code>；<code>run_all_verify.sh</code> 納入 <code>verify_control_cases.mjs</code> 與 <code>verify_control_api_contract.mjs</code>，fixture/API contract 不再游離於 full suite；<code>./nv-agent doctor</code> 更新為檢查 <code>docs/src/...</code> 文件路徑與 <code>npm run verify:math</code>，最新基線升至 <strong>109/109 scripts pass</strong>。</li>
 </ul>
 <li>已完成 NVIDIA Build Models 資料集中管理。</li>
 <li>已新增 agent 入口文件：</li>
 <ul>
 <li><code>AGENTS.md</code>：專案規則、標準流程、擴充規則與品質判準。</li>
-<li><code>AGENT_USAGE.md</code>：CLI 操作、選型、執行、評估與擴充手冊。</li>
+<li><code>docs/src/agents/usage.md</code>：CLI 操作、選型、執行、評估與擴充手冊。</li>
 </ul>
 <li>已建立可用 skill 原始碼：</li>
 <ul>
@@ -149,7 +150,7 @@ del{color:var(--muted)}
 <li><code>data/sample_kb.txt</code></li>
 <li><code>data/cuopt_sample_problem.json</code></li>
 <li><code>.env.example</code></li>
-<li><code>RUNNABLE_WORKFLOWS.md</code></li>
+<li><code>docs/src/agents/workflows.md</code></li>
 </ul>
 <li>已建立控制系統工作台：</li>
 <ul>
@@ -158,12 +159,12 @@ del{color:var(--muted)}
 <li><code>control-studio/scripts/control_api.py</code></li>
 <li><code>control-studio/requirements-api.txt</code></li>
 <li><code>test_control.js</code></li>
-<li><code>CONTROL_SYSTEM_PLAN.md</code></li>
-<li><code>CONTROL_SYSTEM_VERIFICATION_CASES.md</code></li>
-<li><code>CONTROL_SYSTEM_BACKLOG.md</code></li>
-<li><code>CONTROL_SYSTEM_SCENARIOS.md</code></li>
-<li><code>CONTROL_SYSTEM_PHASE10_PLAN.md</code></li>
-<li><code>CONTROL_SYSTEM_SKILLS_PLAN.md</code></li>
+<li><code>docs/src/control-studio/plan.md</code></li>
+<li><code>docs/src/control-studio/verification.md</code></li>
+<li><code>docs/src/control-studio/backlog.md</code></li>
+<li><code>docs/src/control-studio/scenarios.md</code></li>
+<li><code>docs/src/control-studio/archive/phase10-plan.md</code></li>
+<li><code>docs/src/control-studio/skills.md</code></li>
 </ul>
 <li>控制系統目前 phase 狀態：</li>
 <ul>
@@ -264,10 +265,10 @@ del{color:var(--muted)}
 <li>Done：Phase 27 H∞ design extensions；MIMO H∞ verification / loop-shaping H∞ / static and dynamic D-K baseline 已提交。</li>
 <li>Done：Phase 28 infrastructure quality；TypeScript definitions / benchmark / JSDoc API docs 已提交。</li>
 <li>主執行看板：<code>control-studio/ROADMAP.md</code>。若 phase status、下一步順序或 dirty worktree 分類改變，先更新 roadmap，再同步 backlog / plan / skills / scenarios / verification cases / continuation。</li>
-<li>Skill plan：<code>CONTROL_SYSTEM_SKILLS_PLAN.md</code> 已規劃 <code>control-studio-robust-validator</code>、<code>control-studio-system-auditor</code>、<code>control-studio-benchmark-author</code>、<code>control-studio-mpc-designer</code>、<code>control-studio-sysid-planner</code> 等候選 skill。</li>
+<li>Skill plan：<code>docs/src/control-studio/skills.md</code> 已規劃 <code>control-studio-robust-validator</code>、<code>control-studio-system-auditor</code>、<code>control-studio-benchmark-author</code>、<code>control-studio-mpc-designer</code>、<code>control-studio-sysid-planner</code> 等候選 skill。</li>
 </ul>
 <li>Block Diagram expansion：Paused</li>
-<li>Phase 0 ~ Phase 28 已完成一次文件進度對齊。後續若修改數值核心，至少依 roadmap 對應 phase 重跑 targeted verify、<code>npm run verify:all</code>、<code>node test_control.js</code>、<code>node control-studio/scripts/control_regression_dashboard.mjs</code>。</li>
+<li>Phase 0 ~ Phase 65 與 Functional Roadmap Tier A-J 已完成文件進度對齊。後續若修改數值核心，至少依 roadmap 對應 phase 重跑 targeted verify、<code>npm run verify:all</code>、<code>node test_control.js</code>、<code>node control-studio/scripts/control_regression_dashboard.mjs</code>。</li>
 </ul>
 <li>已建立 symlink：</li>
 <ul>
@@ -317,15 +318,16 @@ del{color:var(--muted)}
 <pre><code class="lang-bash">cd /Users/w.rc/nvdiaOSsupport
 git status --short
 cat AGENTS.md
-cat AGENT_USAGE.md
+cat docs/src/agents/usage.md
+cat control-studio/ROADMAP.md
 git log --oneline -5
-./scripts/validate_nvidia_model_selector.sh</code></pre>
+./nv-agent doctor</code></pre>
 
 <h2 id="git-維護提醒">Git 維護提醒</h2>
 <ul>
 <li>控制系統開發必須持續用 git 維護；每完成一批功能、修正、或驗證補強，就立刻 commit，不要讓 <code>control-studio/</code> 與 <code>test_control.js</code> 長時間停留在未提交狀態。</li>
 <li>控制系統 commit 請帶 phase / scope，例如 <code>feat(phase9): ...</code>、<code>fix(phase9): ...</code>、<code>test(phase9): ...</code>、<code>docs(control): ...</code>。</li>
-<li>控制系統 checkpoint 前必須同步文件：若本輪改到功能範圍、數學核心、UI 行為、驗證覆蓋或已知限制，先更新 <code>control-studio/ROADMAP.md</code>，再同步 <code>CONTROL_SYSTEM_PLAN.md</code> / backlog / scenarios / verification cases / 本文件中相符項目，再 commit。</li>
+<li>控制系統 checkpoint 前必須同步文件：若本輪改到功能範圍、數學核心、UI 行為、驗證覆蓋或已知限制，先更新 <code>control-studio/ROADMAP.md</code>，再同步 <code>docs/src/control-studio/plan.md</code> / backlog / scenarios / verification cases / 本文件中相符項目，再 commit。</li>
 <li>在切換 agent 前，若本輪有控制系統改動，先確認至少有一個可回溯的 git checkpoint。</li>
 </ul>
 
@@ -343,15 +345,15 @@ git log --oneline -5
 <li><code>ocr_rag_workflow.py</code> 已實測 OCR 抽取與後續問答。</li>
 <li><code>nv-agent workflows</code>、<code>nv-agent search</code>、<code>nv-agent advise</code>、<code>nv-agent run rag</code> 已實測。</li>
 <li><code>nv-agent plan</code>、<code>nv-agent run-plan</code>、<code>nv-agent eval</code> 已實測一輪 RAG 閉環。</li>
-<li><code>AGENTS.md</code> 與 <code>AGENT_USAGE.md</code> 已納入驗證腳本，確保後續 agent 有固定入口。</li>
+<li><code>AGENTS.md</code> 與 <code>docs/src/agents/usage.md</code> 已納入驗證腳本，確保後續 agent 有固定入口。</li>
 <li>image runtime router 已用 dry-run 驗證會輸出 <code>--model</code> 與 <code>--endpoint-url</code>。</li>
 <li><code>test_control.js</code> 已驗證基本極點判定與 step response 指標。</li>
 <li><code>control_advisor_workflow.py --help</code> 可正常執行。</li>
-<li><code>CONTROL_SYSTEM_PLAN.md</code> 已整理控制系統盤點、MVP 範圍與後續 roadmap。</li>
-<li><code>CONTROL_SYSTEM_VERIFICATION_CASES.md</code> 已定義五個具數學推導的控制系統驗證案例，涵蓋一階、二階欠阻尼、初始不穩定/pole-zero/低 PM、RHP zero、State-Space 等價。</li>
+<li><code>docs/src/control-studio/plan.md</code> 已整理控制系統盤點、MVP 範圍與後續 roadmap。</li>
+<li><code>docs/src/control-studio/verification.md</code> 已定義五個具數學推導的控制系統驗證案例，涵蓋一階、二階欠阻尼、初始不穩定/pole-zero/低 PM、RHP zero、State-Space 等價。</li>
 <li><code>control-studio/ROADMAP.md</code> 已整併為 ControlStudio 主執行看板，記錄 P23~P28 進度、dirty worktree 分類、文件工作流與下一步順序；P24 advanced MPC 已完成。</li>
-<li><code>CONTROL_SYSTEM_BACKLOG.md</code> 已改為 detailed task ledger；目前 Phase 0~28 與 Functional Roadmap Tier A-J 均已完成 deterministic baseline。</li>
-<li><code>CONTROL_SYSTEM_SKILLS_PLAN.md</code> 已新增 Phase 18+ skill candidates，且 <code>control-studio-robust-validator</code>、<code>control-studio-system-auditor</code>、<code>control-studio-benchmark-author</code>、<code>control-studio-mpc-designer</code>、<code>control-studio-sysid-planner</code>、<code>control-studio-ui-verifier</code> baseline 已建立。</li>
+<li><code>docs/src/control-studio/backlog.md</code> 已改為 detailed task ledger；目前 Phase 0~65 與 Functional Roadmap Tier A-J 均已完成 deterministic baseline。</li>
+<li><code>docs/src/control-studio/skills.md</code> 已新增 Phase 18+ skill candidates，且 <code>control-studio-robust-validator</code>、<code>control-studio-system-auditor</code>、<code>control-studio-benchmark-author</code>、<code>control-studio-mpc-designer</code>、<code>control-studio-sysid-planner</code>、<code>control-studio-ui-verifier</code> baseline 已建立。</li>
 <li><code>control-studio</code> 已補上 State Space（SISO）輸入、Step/Impulse/Ramp 切換、Nyquist Plot、project save/load 與 JSON/CSV 匯出。</li>
 <li><code>control-studio</code> UI 已改成 sidebar workspace tabs（Model / Sim / Advisor / Compare），並支援 comparison snapshots 疊圖比較。</li>
 <li><code>control-studio</code> plot workspace 已改為固定 <code>主圖全寬 + 下排兩張 companion charts</code>；各 plot tab 有明確 main / companion mapping，<code>Root Locus</code> 主圖時左下為 <code>Step @ K</code>，<code>Pole-Zero</code> 主圖時下排改顯示 <code>Step Response + Bode Plot</code>，避免重複圖表。</li>
@@ -362,7 +364,7 @@ git log --oneline -5
 <li><code>control-studio/js/analysis/time-response.js</code> 已補內部 RK4 substepping，避免低 sample count 時穩定系統數值爆掉。</li>
 <li><code>control-studio</code> 已補 Nichols Chart、ZPK 輸入、Export PNG、Routh-Hurwitz 表、autoFreqRange、Root Locus asymptotes、Nyquist encirclement 計數、輸入驗證強化。</li>
 <li><code>control-studio</code> 已補 Lead/Lag 補償器，作為 PID 後串接的 <code>Cc(s)=Kc(tau<em>s+1)/(alpha</em>tau*s+1)</code>。</li>
-<li><code>control-studio/scripts/verify_control_cases.mjs</code> 已將 <code>CONTROL_SYSTEM_VERIFICATION_CASES.md</code> 的五個數學案例轉為 fixture-based regression runner，並納入 validation script。</li>
+<li><code>control-studio/scripts/verify_control_cases.mjs</code> 已將 <code>docs/src/control-studio/verification.md</code> 的五個數學案例轉為 fixture-based regression runner，並納入 validation script。</li>
 <li><code>control-studio/scripts/verify_control_api_contract.mjs</code> 已用同一組 verification fixtures 比對 FastAPI <code>/api/control/system/response</code>、<code>/api/control/system/stability</code> 與 JS CLI 的 formula / metrics / plot shape，並納入 validation script。</li>
 <li><code>control-studio/js/app.js</code> 已暴露 <code>window.ControlStudioSmoke.run()</code> 與 <code>getState()</code>，供 in-app browser 驗證 UI 公式、plot traces、legend、snapshot 與錯誤狀態。</li>
 <li><code>control-studio</code> 已強化輸入驗證：TF 分母不可全 0、ZPK zeros/poles 有欄位錯誤、State-Space A/B/C/D 會標示對應欄位、Lead/Lag alpha/tau/gain 有模式限制；本輪已用 in-app browser 驗證壞輸入不會覆蓋原可用模型。</li>
@@ -399,7 +401,7 @@ git log --oneline -5
 <li><code>control-studio/scripts/verify_math_core.mjs</code> 已新增為獨立數學核心驗證：覆蓋 Complex、Polynomial roots、Matrix solve/inverse/exp、RK4/RK45、TF/DTF guard、State-Space roundtrip、C2D DC gain。</li>
 <li><code>control-studio/js/math/polynomial.js</code> 已改用 Durand-Kerner 處理三階以上根；舊 QR path 對 <code>s^3+1</code> 會錯誤收斂為 0，勿恢復。</li>
 <li><code>control-studio/js/math/ode.js</code> 已修正 RK45 Dormand-Prince 5th-order 權重缺第 7 項 <code>0</code> 造成 NaN / infinite loop 的問題。</li>
-<li><code>CONTROL_SYSTEM_SCENARIOS.md</code> 已新增 precision servo stage position control 情境，使用 ControlStudio 核心完成 PID + Lead 設計，並記錄後續改善思考。</li>
+<li><code>docs/src/control-studio/scenarios.md</code> 已新增 precision servo stage position control 情境，使用 ControlStudio 核心完成 PID + Lead 設計，並記錄後續改善思考。</li>
 <li><code>control-studio/scripts/run_servo_stage_case.mjs</code> 可重跑 servo-stage 情境並輸出 <code>outputs/controlstudio/precision-servo-stage-case.json</code>；<code>control_regression_dashboard.mjs</code> 已納入此情境檢查。</li>
 <li><code>CONTROL_SYSTEM_PHASE10_PLAN.md</code> 已新增 Phase 10 規劃，明確擱置 Teaching Mode / Electron / Report Template。</li>
 <li><code>control-studio/js/control/state-feedback.js</code> 已新增 <code>solveCareHamiltonianSchur(A,B,Q,R)</code>，以 Hamiltonian stable invariant subspace 求解 CARE；<code>solveLqr()</code> / <code>solveLqrMIMO()</code> 現在優先使用此路徑，失敗才 fallback Newton-Kleinman。</li>
@@ -407,7 +409,7 @@ git log --oneline -5
 <li><code>control-studio/js/control/mpc.js</code> 已新增 Phase 10 MPC baseline：finite-horizon Riccati、first action、unconstrained receding-horizon simulation；<code>test_control.js</code> 以 scalar integrator 手推驗證 <code>K0=0.6</code>。</li>
 <li><code>control-studio/js/control/mimo.js</code> 已新增 <code>dynamicDecouplerAtFrequency(mimoSys, omega)</code>，可在指定 <code>ωc</code> 計算 <code>W(jωc)=G(jωc)⁻¹</code> 並回傳 <code>G(jωc)·W(jωc)</code> residual；<code>test_control.js</code> 已驗證 selected-frequency inverse。</li>
 <li><code>control-studio/js/control/robust.js</code> 已新增 Robust sensitivity baseline：<code>S/T/KS</code>、peak sensitivity、risk classification；<code>test_control.js</code> 已驗證 DC identity 與 singular guard。</li>
-<li>Scenario 5 已用 in-app browser 實際操作 MPC / Robust 情境，結論是 Phase 10 math-core ready 但 UI-not-ready；改善項目已寫入 <code>CONTROL_SYSTEM_SCENARIOS.md</code> 與 <code>CONTROL_SYSTEM_BACKLOG.md</code>。</li>
+<li>Scenario 5 已用 in-app browser 實際操作 MPC / Robust 情境，結論是 Phase 10 math-core ready 但 UI-not-ready；改善項目已寫入 <code>docs/src/control-studio/scenarios.md</code> 與 <code>docs/src/control-studio/backlog.md</code>。</li>
 <li>Scenario 6 已用 in-app browser 實際操作 SISO / MIMO 情境；SISO plant/PID/Lead/Stability/LQR 與 MIMO RGA/SV/Static Decoupler/MIMO LQR 均可透過 UI 完成。S6 問題已修正：切 MIMO 會清空 Phase 7/8 SISO-only 舊輸出，MIMO Analysis 置頂，RGA/Decoupler 表格化，SV plot 加高並顯示 legend，PID 支援 numeric input，LQR output 顯示 solver path。</li>
 <li><code>control-studio/scripts/verify_phase10_math_core.mjs</code> 已新增 Phase 10 專用數學核心驗證，覆蓋 Hamiltonian CARE analytic cases、Spacecraft marginal MIMO、MPC Riccati、Dynamic Decoupler、Robust <code>S/T/KS</code>；已納入 regression dashboard 與 <code>scripts/validate_nvidia_model_selector.sh</code>。</li>
 <li><code>control-studio/js/math/matrix.js</code> 已新增 matrix sign function；<code>control-studio/js/control/state-feedback.js</code> 已補 matrix-sign CARE 與 DARE solver，支援高階 CARE 與離散 terminal-cost 設計。</li>
@@ -433,7 +435,7 @@ git log --oneline -5
 
 <h2 id="後續可做">後續可做</h2>
 <ol>
-<li>目前非暫停的 ControlStudio roadmap 已達 deterministic baseline；下一步應由實際控制情境或明確研究級 backend 需求驅動。</li>
+<li>目前非暫停的 ControlStudio roadmap 已達 deterministic baseline，且 full suite / doctor 入口已收斂；下一步應由實際控制情境或明確研究級 backend 需求驅動。</li>
 <li>可選研究深化：non-normal real Schur refinement、full-order dynamic K fitting、industrial-grade μ synthesis backend、CONTSID。</li>
 <li>使用 <code>control-studio-system-auditor</code> 審查下一個控制設計缺口，並用 <code>control-studio-benchmark-author</code> 補 benchmark fixture。</li>
 <li>Teaching Mode / Electron / Report Template 目前使用者要求擱置，不要開發。</li>
