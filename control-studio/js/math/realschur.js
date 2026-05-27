@@ -22,6 +22,79 @@ function eye(n) {
 }
 function copyMat(A, n) { return Float64Array.from(A); }
 
+function isSymmetricFlat(A, n, tol = 1e-12) {
+  let scale = 1;
+  for (let i = 0; i < n * n; i++) scale = Math.max(scale, Math.abs(A[i]));
+  for (let i = 0; i < n; i++) {
+    for (let j = i + 1; j < n; j++) {
+      if (Math.abs(A[i * n + j] - A[j * n + i]) > tol * scale) return false;
+    }
+  }
+  return true;
+}
+
+function symmetricSchurJacobi(A, n) {
+  const T = copyMat(A, n);
+  const Q = eye(n);
+  const maxIter = 80 * n * n;
+  const tol = 1e-14;
+
+  for (let iter = 0; iter < maxIter; iter++) {
+    let p = 0, q = 1, maxOff = 0;
+    for (let i = 0; i < n; i++) {
+      for (let j = i + 1; j < n; j++) {
+        const v = Math.abs(T[i * n + j]);
+        if (v > maxOff) { maxOff = v; p = i; q = j; }
+      }
+    }
+    if (maxOff < tol) break;
+
+    const app = T[p * n + p];
+    const aqq = T[q * n + q];
+    const apq = T[p * n + q];
+    const tau = (aqq - app) / (2 * apq);
+    const t = Math.sign(tau || 1) / (Math.abs(tau) + Math.sqrt(1 + tau * tau));
+    const c = 1 / Math.sqrt(1 + t * t);
+    const s = t * c;
+
+    for (let k = 0; k < n; k++) {
+      if (k === p || k === q) continue;
+      const tkp = T[k * n + p];
+      const tkq = T[k * n + q];
+      const np = c * tkp - s * tkq;
+      const nq = s * tkp + c * tkq;
+      T[k * n + p] = T[p * n + k] = np;
+      T[k * n + q] = T[q * n + k] = nq;
+    }
+    T[p * n + p] = c * c * app - 2 * s * c * apq + s * s * aqq;
+    T[q * n + q] = s * s * app + 2 * s * c * apq + c * c * aqq;
+    T[p * n + q] = T[q * n + p] = 0;
+
+    for (let k = 0; k < n; k++) {
+      const qkp = Q[k * n + p];
+      const qkq = Q[k * n + q];
+      Q[k * n + p] = c * qkp - s * qkq;
+      Q[k * n + q] = s * qkp + c * qkq;
+    }
+  }
+
+  const order = Array.from({ length: n }, (_, i) => i).sort((a, b) => {
+    const va = T[a * n + a], vb = T[b * n + b];
+    const sa = va < -1e-10 ? 0 : 1;
+    const sb = vb < -1e-10 ? 0 : 1;
+    return sa - sb || va - vb;
+  });
+  const Tout = zeros(n);
+  const Qout = zeros(n);
+  for (let jj = 0; jj < n; jj++) {
+    const oldJ = order[jj];
+    Tout[jj * n + jj] = T[oldJ * n + oldJ];
+    for (let i = 0; i < n; i++) Qout[i * n + jj] = Q[i * n + oldJ];
+  }
+
+  return { T: Tout, Q: Qout };
+}
+
 /** Apply Householder reflector P = I - 2vv' from the left to A[r:,c:] in place. */
 function applyHouseholderLeft(A, v, r, n, colStart) {
   // For each column j >= colStart: A[r:, j] -= 2*v*(v' A[r:, j])
@@ -130,7 +203,7 @@ function eig2x2(a, b, c, d) {
 // Step 2: Francis implicit double-shift QR on upper Hessenberg H (in place).
 // Accumulates orthogonal transformations into Q.
 // ---------------------------------------------------------------------------
-function francisQR(H, Q, n, maxIter = 30 * n) {
+function francisQR(H, Q, n, maxIter = 300 * n) {
   let p = n; // size of active unreduced sub-problem H[0:p, 0:p]
 
   for (let iter = 0; iter < maxIter && p > 1; iter++) {
@@ -365,10 +438,15 @@ export function realSchur(A_nested) {
     for (let j = 0; j < n; j++) A_flat[i * n + j] = A_nested[i][j];
   }
 
-  const { H, Q } = hessenbergReduction(A_flat, n);
-  francisQR(H, Q, n);
-  // Reorder BEFORE extracting eigenvalues so the returned array reflects ordering.
-  reorderSchurStable(H, Q, n);
+  let H, Q;
+  if (isSymmetricFlat(A_flat, n)) {
+    ({ T: H, Q } = symmetricSchurJacobi(A_flat, n));
+  } else {
+    ({ H, Q } = hessenbergReduction(A_flat, n));
+    francisQR(H, Q, n);
+    // Reorder BEFORE extracting eigenvalues so the returned array reflects ordering.
+    reorderSchurStable(H, Q, n);
+  }
   const eigenvalues = extractSchurEigenvalues(H, n);
 
   // Convert back to nested arrays

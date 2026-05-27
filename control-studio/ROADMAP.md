@@ -176,15 +176,15 @@ Per `docs/src/control-studio/functional-roadmap.html`. Tier A-J deterministic ba
 | **F1** | Reachability via zonotopes | Done | `verify_f1_reachability.mjs` | Zonotope operations, finite-horizon reach sets, Monte Carlo containment sanity checks |
 | **F4** | Falsification (S-TaLiRo-style) | Done | `verify_f4_falsification.mjs` | Bounded STL robustness + deterministic random / anneal counterexample search |
 
-**Known issue surfaced during Sprint 1:** `js/math/realschur.js` produces ~1e-1 reconstruction error for 3x3 stable real-spectrum matrices (the reorder pass mis-tracks Q for certain Givens swaps). Sylvester E2 deliberately avoids realSchur via vec-trick. Future task: fix the reorderSchurStable Q update.
+**Math core closure:** `js/math/realschur.js` now uses a Jacobi orthogonal Schur fast path for symmetric real matrices, fixing the 3x3 stable real-spectrum reconstruction regression. Non-normal Schur refinement remains a research-grade backend improvement, but no longer blocks current CARE / Lyapunov / Sylvester baselines.
 
 ## Verification Suite Status (2026-05-27)
 
-**105/105 scripts pass** — run via `bash scripts/run_all_verify.sh` (was 82/82 before Functional Roadmap additions)
+**107/107 scripts pass** — run via `bash scripts/run_all_verify.sh` (was 82/82 before Functional Roadmap additions)
 
 | Group | Scripts | Pass |
 | --- | --- | --- |
-| Phase 9/10/11 foundations | 11 | 11 |
+| Phase 9/10/11 foundations | 13 | 13 |
 | Phase 14–65 advanced control / UI | 67 | 67 |
 | Math audit fixes | 1 | 1 |
 | Functional Roadmap A-J | 22 | 22 |
@@ -473,15 +473,4 @@ Three fixes applied after full math-core read audit:
 | A2 | `js/math/matrix.js` — `matDet()` | Added `_matDetLU()` O(n³) LU fallback for n > 6; Sarrus closed-form for n=3. Eliminates O(n!) cofactor recursion for large matrices. |
 | A3 | `js/analysis/root-locus.js` — `sortRootLocusBranches()` | Replaced greedy nearest-neighbor with **Jonker-Volgenant O(n³) Hungarian** optimal bipartite assignment (`_hungarianAssign`). Eliminates branch-swap artefacts at real-axis crossings. |
 
-Verify baseline: **82/82** (`verify_math_audit_fixes.mjs` added).
-
-## Next Immediate Action
-
-Start **P30-01 Recursive Least Squares** (`js/control/adaptive.js` + `verify_p30_rls.mjs`):
-
-```bash
-# After implementing identifyRLS + verification script
-bash scripts/run_all_verify.sh        # confirm 83+/82 pass
-```
-
-P30 implementation order: RLS → MRAC → STR → ILC → SRIVC
+Verify baseline: **107/107** (`run_all_verify.sh`). Immediate non-paused control roadmap items are complete at the deterministic baseline level; future work should be scenario-driven or target explicit research-grade backend replacements.

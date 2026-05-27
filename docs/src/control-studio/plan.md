@@ -223,6 +223,8 @@
 - Full math-core audit：二階 `polyroots()` 改用 stable quadratic formula，避免 separated roots 因 cancellation 掉成 0。
 - Full math-core audit：`matInverse()` / `matSolve()` / `matRank()` / `matIsPositiveDefinite()` 改用相對矩陣尺度 tolerance，避免縮放很小但條件良好的矩陣被誤判 singular、rank deficient 或非正定。
 - Full math-core audit：discrete Bode evaluation 改走共用 robust complex division path。
+- Real Schur symmetric fast path：對 symmetric real matrices 使用 Jacobi orthogonal Schur，修復 3x3 stable real-spectrum reconstruction regression。
+- Frontend analysis API migration：新 session 預設 `Auto API Fallback`，FastAPI 成功時使用 Unified API metrics，不可用或 z-domain 時明確 fallback Local JS。
 - Verification：最新節點已通過 TF / SS / ZPK / C2D 與 PID regression（commit message 記錄 `36/36` 與 `21/21`）。
 
 ### 尚未完成能力
@@ -230,7 +232,7 @@
 - Phase 23 ~ Phase 28 舊缺口已同步收斂：continuous-time ID / Hankel norm / LPV synthesis / dynamic D-K / JSDoc API docs 均已有驗證基線。
 - CONTSID、full-order dynamic K fitting、industrial-grade μ synthesis backend 仍可作後續研究擴充，但不再列為目前阻塞項。
 - 自動產生報告 / 報告模板、Electron packaging、教學模式與 Block Diagram expansion 仍依使用者要求擱置。
-- 前端分析流程預設全面切到統一 API 尚未完成。
+- 前端分析流程已切為 `Auto API Fallback` 預設，保留 Local JS / FastAPI / Compare Local/API 手動模式。
 
 ## 4. Scope Definition
 

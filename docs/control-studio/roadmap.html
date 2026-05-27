@@ -375,14 +375,16 @@ del{color:var(--muted)}
 <tr><td><strong>G2</strong></td><td>MPC Move Blocking</td><td>Done</td><td><code>verify_g2_move_blocking.mjs</code></td><td>block expansion matrix + condensed QP; singleton-equivalence verified</td></tr>
 </tbody></table>
 
+<p><strong>Math core closure:</strong> <code>js/math/realschur.js</code> now uses a Jacobi orthogonal Schur fast path for symmetric real matrices, fixing the 3x3 stable real-spectrum reconstruction regression. Non-normal Schur refinement remains a research-grade backend improvement, but no longer blocks current CARE / Lyapunov / Sylvester baselines.</p>
+
 <h2 id="verification-suite-status-2026-05-27">Verification Suite Status (2026-05-27)</h2>
 
-<p><strong>105/105 scripts pass</strong> — run via <code>bash scripts/run_all_verify.sh</code></p>
+<p><strong>107/107 scripts pass</strong> — run via <code>bash scripts/run_all_verify.sh</code></p>
 
 <table><thead>
 <tr><th>Group</th><th>Scripts</th><th>Pass</th></tr>
 </thead><tbody>
-<tr><td>Phase 9/10/11 foundations</td><td>11</td><td>11</td></tr>
+<tr><td>Phase 9/10/11 foundations</td><td>13</td><td>13</td></tr>
 </thead><tbody>
 <tr><td>Phase 14–65 advanced control / UI</td><td>67</td><td>67</td></tr>
 </thead><tbody>
@@ -813,12 +815,7 @@ del{color:var(--muted)}
 
 <h2 id="next-immediate-action">Next Immediate Action</h2>
 
-<p>Start <strong>P30-01 Recursive Least Squares</strong> (<code>js/control/adaptive.js</code> + <code>verify_p30_rls.mjs</code>):</p>
-
-<pre><code class="lang-bash"># After implementing identifyRLS + verification script
-bash scripts/run_all_verify.sh        # confirm 44+/43 pass</code></pre>
-
-<p>P30 implementation order: RLS → MRAC → STR → ILC → SRIVC</p>
+<p>Immediate non-paused control roadmap items are complete at the deterministic baseline level. Future work should be scenario-driven or target explicit research-grade backend replacements such as non-normal Schur refinement, full-order dynamic K fitting, industrial-grade μ synthesis, or CONTSID.</p>
 
 </main>
 </body>

@@ -122,6 +122,7 @@ del{color:var(--muted)}
 <li>2026-05-27 接續完成 Functional Roadmap Tier A-G 剩餘 baseline：新增 <code>js/math/qz_descriptor.js</code>、<code>krylov.js</code>、<code>js/verification/{cbf,formal,importance_sampling}.js</code>、<code>js/control/{stochastic_mpc,distributed_mpc,hybrid_mpc,nmpc_warmstart}.js</code>；涵蓋 E3/E6、F2/F3/F5、G1/G3/G4/G5，新增 <code>verify_efg_remaining.mjs</code> 並納入 <code>run_all_verify.sh</code>，最新基線升至 <strong>103/103 scripts pass</strong>。</li>
 <li>2026-05-27 接續完成 Functional Roadmap Tier H-I-J deployment/runtime/integration baseline：新增 <code>js/codegen/<em></code>、<code>js/wasm/loader.js</code>、<code>js/workers/compute_worker.js</code>、<code>js/runtime/</em></code>、<code>js/integration/*</code>，涵蓋 C/Rust/ST/AUTOSAR/FreeRTOS codegen、safety wrapper、WASM adapter、worker/memo/stream/cross-check、HIL/Serial/OPC UA/Modbus/MQTT/TSDB facades；新增 <code>verify_hij_deployment_runtime_integration.mjs</code> 並納入 <code>run_all_verify.sh</code>，最新基線升至 <strong>104/104 scripts pass</strong>。</li>
 <li>2026-05-27 接續完成 Phase 19 dynamic D-K 與 project-local skill gaps：<code>dk_iteration.js</code> 新增 <code>fitDynamicDScaling</code>、<code>evaluateDynamicDScaling</code>、<code>computeDynamicMuBoundFreq</code>、<code>dkIterationDynamic</code>，新增 <code>verify_p19_dynamic_dk.mjs</code>；同時補 <code>control-studio-mpc-designer</code>、<code>control-studio-sysid-planner</code>、<code>control-studio-ui-verifier</code> 三個專案 skills，最新基線升至 <strong>105/105 scripts pass</strong>。</li>
+<li>2026-05-27 接續完成 math/API closure：<code>realschur.js</code> 新增 symmetric Jacobi Schur fast path，修復 3x3 stable real-spectrum reconstruction regression；前端 Analysis Source 預設改為 <code>Auto API Fallback</code>，API 成功時套用 FastAPI metrics，API 不可用或 z-domain 時明確 fallback Local JS；新增 <code>verify_realschur_symmetric.mjs</code>、<code>verify_api_auto_fallback.mjs</code>，最新基線升至 <strong>107/107 scripts pass</strong>。</li>
 </ul>
 <li>已完成 NVIDIA Build Models 資料集中管理。</li>
 <li>已新增 agent 入口文件：</li>
@@ -432,20 +433,12 @@ git log --oneline -5
 
 <h2 id="後續可做">後續可做</h2>
 <ol>
-<li>決定 <code>package.json</code> / <code>package-lock.json</code> 的 dependency policy；若 TypeScript workflow 正式化才提交 lockfile，<code>node_modules/</code> 永不提交。</li>
-<li>UI/UX 下一步先延續 sidebar information architecture：檢查是否仍有單一卡片高度過長、是否需要把 <code>Analyse</code> 下的 model diagnostics 再拆成更細 group，並評估把 group collapse state 做成 user preference；Teaching Mode / Electron / Report Template 仍維持暫停。</li>
-<li>下一個控制理論主線做 P27 full D-K iteration；不要把目前 structured μ surrogate 說成完整 μ-synthesis。</li>
-<li>補 P23 continuous-time identification、P25 Hankel norm approximation、P26 LPV synthesis、P28 JSDoc API docs。</li>
+<li>目前非暫停的 ControlStudio roadmap 已達 deterministic baseline；下一步應由實際控制情境或明確研究級 backend 需求驅動。</li>
+<li>可選研究深化：non-normal real Schur refinement、full-order dynamic K fitting、industrial-grade μ synthesis backend、CONTSID。</li>
 <li>使用 <code>control-studio-system-auditor</code> 審查下一個控制設計缺口，並用 <code>control-studio-benchmark-author</code> 補 benchmark fixture。</li>
 <li>Teaching Mode / Electron / Report Template 目前使用者要求擱置，不要開發。</li>
 <li>Block Diagram 目前維持 paused；不要新增 block diagram 功能，除非使用者重新明確恢復。</li>
-<li>加 <code>agents/openai.yaml</code> UI metadata。</li>
-<li>增強 evaluator：從 heuristic 檢查升級成 judge model + golden dataset。</li>
-<li>若 NVIDIA Build Models 更新，先更新根目錄資料檔，再同步 <code>skills/nvidia-model-selector/references/</code>。</li>
-<li>視需求把 <code>search_models.py</code> 加上 <code>--top-category-summary</code> 或 fuzzy ranking。</li>
-<li>若要更實用，補上本地文件切 chunk / PDF 轉圖 / OCR 結果快取。</li>
-<li>加 parallel runner 與 leaderboard，追蹤同任務多模型輸出品質。</li>
-<li>將 OCR/RAG 的 endpoint source 也改成完整 registry-driven，而不只傳入 model id。</li>
+<li>NVIDIA Build Models 若更新，先更新根目錄資料檔，再同步 <code>skills/nvidia-model-selector/references/</code>。</li>
 </ol>
 
 <h2 id="注意事項">注意事項</h2>

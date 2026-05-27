@@ -93,7 +93,7 @@ const state = {
     D: '0',
   },
   comparisonSnapshots: [],
-  analysisSource: 'local',
+  analysisSource: 'auto',
   apiAnalysis: { status: 'idle', message: '', lastResult: null, diff: null },
   theme: 'dark',
   view: 'dashboard',
@@ -616,7 +616,7 @@ function initEventListeners() {
 
   document.getElementById('btn-ai-advisor')?.addEventListener('click', requestAIAdvice);
   document.getElementById('analysis-source')?.addEventListener('change', (e) => {
-    state.analysisSource = e.target.value || 'local';
+    state.analysisSource = e.target.value || 'auto';
     saveSessionToStorage();
     updateStabilityPanel();
   });
@@ -3667,8 +3667,10 @@ function scheduleApiAnalysis(local) {
 
   if (state.domain === 'z') {
     state.apiAnalysis = {
-      status: 'not_applicable',
-      message: 'FastAPI analysis currently supports continuous-time TF/SS only.',
+      status: state.analysisSource === 'auto' ? 'fallback' : 'not_applicable',
+      message: state.analysisSource === 'auto'
+        ? 'Using Local JS fallback: FastAPI currently supports continuous-time TF/SS only.'
+        : 'FastAPI analysis currently supports continuous-time TF/SS only.',
       lastResult: null,
       diff: null,
     };
@@ -3698,16 +3700,20 @@ async function runApiAnalysis(local) {
     const diff = compareApiMetrics(local, body.metrics || {});
     state.apiAnalysis = {
       status: diff.maxAbs <= 1e-3 ? 'ok' : 'diff',
-      message: diff.maxAbs <= 1e-3 ? 'FastAPI matches local metrics.' : 'FastAPI differs from local metrics.',
+      message: diff.maxAbs <= 1e-3
+        ? (state.analysisSource === 'auto' ? 'Unified API active; FastAPI matches local metrics.' : 'FastAPI matches local metrics.')
+        : 'FastAPI differs from local metrics.',
       lastResult: body,
       diff,
     };
-    if (state.analysisSource === 'api') applyApiMetricDisplay(body.metrics || {});
+    if (state.analysisSource === 'api' || state.analysisSource === 'auto') applyApiMetricDisplay(body.metrics || {});
   } catch (err) {
     if (requestId !== apiAnalysisRequestId) return;
     state.apiAnalysis = {
-      status: 'error',
-      message: `FastAPI unavailable: ${err.message}`,
+      status: state.analysisSource === 'auto' ? 'fallback' : 'error',
+      message: state.analysisSource === 'auto'
+        ? `Using Local JS fallback: FastAPI unavailable (${err.message})`
+        : `FastAPI unavailable: ${err.message}`,
       lastResult: null,
       diff: null,
     };
@@ -3756,6 +3762,7 @@ function renderApiAnalysisStatus() {
   statusEl.style.display = current.status === 'idle' ? 'none' : 'block';
   const tone = current.status === 'ok' ? 'var(--color-stable)'
     : current.status === 'checking' ? 'var(--text-secondary)'
+      : current.status === 'fallback' || current.status === 'not_applicable' ? 'var(--color-warning)'
       : 'var(--color-unstable)';
   const diffText = current.diff
     ? `<div style="margin-top:6px;font-size:11px;color:var(--text-muted);">max |local-api| = ${fmtNum(current.diff.maxAbs, 4)}</div>`
@@ -5397,7 +5404,7 @@ function applyProjectPayload(data) {
   state.systemType = data.systemType === 'ss' ? 'ss' : 'tf';
   state.responseType = data.responseType || 'step';
   state.showClosedLoop = Boolean(data.showClosedLoop);
-  state.analysisSource = data.analysisSource || 'local';
+  state.analysisSource = data.analysisSource || 'auto';
   state.comparisonSnapshots = Array.isArray(data.comparisonSnapshots) ? data.comparisonSnapshots : [];
   state.activePlot = data.activePlot || 'step';
   state.view = data.view || 'dashboard';

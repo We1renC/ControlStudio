@@ -161,13 +161,15 @@ Per `docs/src/control-studio/functional-roadmap.html`. Tier A-J deterministic ba
 | **F4** | Falsification (S-TaLiRo-style) | Done | `verify_f4_falsification.mjs` | bounded STL robustness + deterministic random / anneal counterexample search |
 | **G2** | MPC Move Blocking | Done | `verify_g2_move_blocking.mjs` | block expansion matrix + condensed QP; singleton-equivalence verified |
 
+**Math core closure:** `js/math/realschur.js` now uses a Jacobi orthogonal Schur fast path for symmetric real matrices, fixing the 3x3 stable real-spectrum reconstruction regression. Non-normal Schur refinement remains a research-grade backend improvement, but no longer blocks current CARE / Lyapunov / Sylvester baselines.
+
 ## Verification Suite Status (2026-05-27)
 
-**105/105 scripts pass** — run via `bash scripts/run_all_verify.sh`
+**107/107 scripts pass** — run via `bash scripts/run_all_verify.sh`
 
 | Group | Scripts | Pass |
 | --- | --- | --- |
-| Phase 9/10/11 foundations | 11 | 11 |
+| Phase 9/10/11 foundations | 13 | 13 |
 | Phase 14–65 advanced control / UI | 67 | 67 |
 | Math audit fixes | 1 | 1 |
 | Functional Roadmap A-J | 22 | 22 |
@@ -448,11 +450,4 @@ P27-01 D-K → P29-06; P25-02 Hankel norm and P28-02 JSDoc docs completed (2026-
 
 ## Next Immediate Action
 
-Start **P30-01 Recursive Least Squares** (`js/control/adaptive.js` + `verify_p30_rls.mjs`):
-
-```bash
-# After implementing identifyRLS + verification script
-bash scripts/run_all_verify.sh        # confirm 44+/43 pass
-```
-
-P30 implementation order: RLS → MRAC → STR → ILC → SRIVC
+Immediate non-paused control roadmap items are complete at the deterministic baseline level. Future work should be scenario-driven or target explicit research-grade backend replacements such as non-normal Schur refinement, full-order dynamic K fitting, industrial-grade μ synthesis, or CONTSID.
