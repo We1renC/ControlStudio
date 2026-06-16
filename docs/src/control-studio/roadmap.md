@@ -1,7 +1,7 @@
 # ControlStudio Development Roadmap
 
 > Last updated: 2026-06-17
-> Current committed baseline: `fix(control): harden delay margins`
+> Current committed baseline: `fix(control): harden step metrics`
 > Scope: this is the canonical execution roadmap for ControlStudio implementation status.
 > Do not use this file for product vision, proof derivations, or handoff notes; see the document workflow below.
 
@@ -172,6 +172,8 @@ Per `docs/src/control-studio/functional-roadmap.html`. Tier A-J deterministic ba
 **Discrete time-response input closure:** z-domain step / impulse simulations now reject invalid sample counts, amplitudes, sample times, and non-finite numerator / denominator coefficients before running the difference equation. Plain discrete systems with `den[0] != 1` are handled through the standard normalized recurrence, so API callers do not silently receive mis-scaled outputs or NaN time grids.
 
 **Delay margin closure:** Padé delay application and pure-delay phase now reject non-finite or negative delay parameters instead of silently returning the original plant or NaN phase. Delay margin now reports zero additional delay for non-positive phase margin and preserves infinite PM as infinite margin, preventing already-unstable loops from being displayed with negative delay capacity.
+
+**Step metrics closure:** `stepInfo()` now validates response array shape, finite samples, strictly increasing time grids, finite final value, and finite reference before reporting rise time, settling time, overshoot, or steady-state error. Invalid response data returns `valid:false` with a reason instead of producing plausible-looking metrics from NaN or malformed trajectories.
 
 ## Verification Suite Status (2026-06-17)
 

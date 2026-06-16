@@ -123,13 +123,38 @@ export function stabilityMargins(sys) {
  * Compute step response performance metrics.
  */
 export function stepInfo(tArr, yArr, finalValue = null, reference = null) {
-  if (!tArr || tArr.length < 5) return { riseTime: null, settlingTime: null, overshoot: 0 };
+  const invalid = (reason) => ({
+    riseTime: null,
+    settlingTime: null,
+    overshoot: NaN,
+    steadyStateError: NaN,
+    valid: false,
+    reason,
+  });
+  if (!Array.isArray(tArr) || !Array.isArray(yArr)) return invalid('time and output arrays are required');
+  if (tArr.length !== yArr.length) return invalid('time and output arrays must have the same length');
+  if (tArr.length < 5) return invalid('at least five response samples are required');
+  if (!tArr.every(Number.isFinite) || !yArr.every(Number.isFinite)) return invalid('time and output samples must be finite');
+  for (let i = 1; i < tArr.length; i++) {
+    if (tArr[i] <= tArr[i - 1]) return invalid('time samples must be strictly increasing');
+  }
   const n = tArr.length;
   const yInit = yArr[0];
-  const yFinal = finalValue !== null ? finalValue : yArr[n - 1];
+  const yFinal = finalValue != null ? Number(finalValue) : yArr[n - 1];
+  if (!Number.isFinite(yFinal)) return invalid('final value must be finite');
   const amp = yFinal - yInit;
+  const ref = reference != null ? Number(reference) : 1;
+  if (!Number.isFinite(ref)) return invalid('reference value must be finite');
 
-  if (Math.abs(amp) < 1e-6) return { riseTime: null, settlingTime: 0, overshoot: 0 };
+  if (Math.abs(amp) < 1e-6) {
+    return {
+      riseTime: null,
+      settlingTime: 0,
+      overshoot: 0,
+      steadyStateError: Math.abs(ref - yFinal),
+      valid: true,
+    };
+  }
 
   const t10Idx = yArr.findIndex(y => amp > 0 ? y >= yInit + 0.1 * amp : y <= yInit + 0.1 * amp);
   const t90Idx = yArr.findIndex(y => amp > 0 ? y >= yInit + 0.9 * amp : y <= yInit + 0.9 * amp);
@@ -148,9 +173,8 @@ export function stepInfo(tArr, yArr, finalValue = null, reference = null) {
 
   // SSE = |setpoint − steady-state output|. Caller should pass the reference setpoint
   // (e.g. step amplitude). For backward compatibility, default is 1 (unit step from 0).
-  const ref = reference !== null ? reference : 1;
   const steadyStateError = Math.abs(ref - yFinal);
-  return { riseTime, settlingTime: st, overshoot, steadyStateError };
+  return { riseTime, settlingTime: st, overshoot, steadyStateError, valid: true };
 }
 
 /**

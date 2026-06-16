@@ -852,6 +852,19 @@ try {
   assertNear('stepInfo SSE with ref=2', infoExplicit.steadyStateError, 0, 1e-12);
   const infoLegacy = stepInfo(fakeT, fakeY, 2);
   assertNear('stepInfo SSE legacy default ref=1', infoLegacy.steadyStateError, 1, 1e-12);
+  if (infoExplicit.valid !== true) throw new Error('stepInfo should mark finite response metrics as valid');
+  const invalidNanInfo = stepInfo([0, 1, 2, 3, 4], [0, 0.1, NaN, 0.3, 0.4]);
+  if (invalidNanInfo.valid !== false || !/finite/i.test(invalidNanInfo.reason)) {
+    throw new Error(`stepInfo should reject non-finite response samples, got ${JSON.stringify(invalidNanInfo)}`);
+  }
+  const invalidTimeInfo = stepInfo([0, 1, 1, 2, 3], [0, 0.1, 0.2, 0.3, 0.4]);
+  if (invalidTimeInfo.valid !== false || !/increasing/i.test(invalidTimeInfo.reason)) {
+    throw new Error(`stepInfo should reject non-increasing time grid, got ${JSON.stringify(invalidTimeInfo)}`);
+  }
+  const invalidLengthInfo = stepInfo([0, 1, 2, 3, 4], [0, 0.1, 0.2, 0.3]);
+  if (invalidLengthInfo.valid !== false || !/same length/i.test(invalidLengthInfo.reason)) {
+    throw new Error(`stepInfo should reject mismatched response arrays, got ${JSON.stringify(invalidLengthInfo)}`);
+  }
 
   // (F) Discrete TF: causal pure-delay G(z) = z⁻¹/(1 + 0·z⁻¹) has 1 pole at z=0
   const delayOnly = new DiscreteTransferFunction([0, 1], [1, 0], 0.1);

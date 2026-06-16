@@ -9,7 +9,7 @@
 - 已建立獨立 git repo，避免被 `/Users/w.rc` 外層 git 混入。
 - 控制系統目前同步基線：
   - Branch: `main`
-  - Latest active line: `fix(control): harden delay margins`
+  - Latest active line: `fix(control): harden step metrics`
   - Full phase audit checkpoints:
     - `7a318b3 fix(control): harden phase 7-9 theory diagnostics`
     - `46e20da fix(control): harden phase 0-6 theory checks`
@@ -42,6 +42,7 @@
   - 2026-06-17 接續完成 time-response input hardening：step / impulse / ramp / sine / square / pulse 現在會正規化預設 waveform 參數並拒絕 invalid duration / sampleCount / amplitude / frequency / pulseWidth / disturbance / initialState；PID anti-windup 也會拒絕非有限 controller gain、invalid saturation bounds、非正 Tt、invalid duration/sample/amplitude，避免 NaN trajectory 或靜默無界降級。
   - 2026-06-17 接續完成 discrete response input hardening：`discreteStepResponse()` / `discreteImpulseResponse()` 現在會拒絕 invalid sampleCount、amplitude、sampleTime 與非有限 num/den 係數，並支援 plain discrete system `den[0] != 1` 的標準差分方程除法。
   - 2026-06-17 接續完成 delay margin hardening：`applyDelay()` / `delayPhase()` 現在會拒絕非有限或負 delay 參數；`delayMargin()` 對 non-positive PM 回傳 0 秒、對 infinite PM 保留 `Infinity`，避免已失穩 loop 顯示負 delay capacity。
+  - 2026-06-17 接續完成 step metrics contract hardening：`stepInfo()` 現在會驗證 t/y 長度一致、有限 samples、嚴格遞增 time grid、finite final/reference；invalid response 回傳 `valid:false` 與 reason，不再產生看似有效的 rise/settling/overshoot/SSE。
 - 已完成 NVIDIA Build Models 資料集中管理。
 - 已新增 agent 入口文件：
   - `AGENTS.md`：專案規則、標準流程、擴充規則與品質判準。
@@ -140,6 +141,7 @@
     - Done：time-response simulation inputs 與 PID anti-windup options 加入 finite / positivity guards，預設 sine/square/pulse waveform 不再產生 NaN。
     - Done：discrete step / impulse response inputs 加入 finite / positivity guards，且 plain `den[0] != 1` discrete system 會正確除以 leading denominator。
     - Done：delay / Padé inputs 加入 finite / non-negative guards，delay margin 對 non-positive PM 回傳 0 而不是負秒數。
+    - Done：stepInfo response metrics 加入資料契約檢查，invalid trajectory 不再被誤當有效性能指標。
     - Done：Hamiltonian stable subspace 清除未使用且轉置錯誤的 dead computation。
     - Done：real Schur 1x1 block swap 修正 Givens rotation 公式、乘法方向 / 符號與 reordered eigenvalue 回傳順序。
     - Done：nonlinear equilibrium n-dimensional classification 改走 characteristic polynomial roots，避免高維 linearization 被 trace average 誤分類；nonlinear scan / phase portrait grid APIs 已補 gridSize 與 bounds guards。
