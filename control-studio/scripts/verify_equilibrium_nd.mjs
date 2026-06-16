@@ -5,7 +5,8 @@
  * Locks the regression where n>2 Jacobian classification previously used
  * trace(A)/n as a placeholder for every eigenvalue.
  */
-import { classifyEquilibrium, findEquilibrium } from '../js/analysis/equilibrium.js';
+import { classifyEquilibrium, findEquilibrium, scanEquilibria } from '../js/analysis/equilibrium.js';
+import { phasePortrait } from '../js/analysis/phase-portrait.js';
 
 let passed = 0;
 let failed = 0;
@@ -23,6 +24,19 @@ function record(name, fn) {
 
 function assert(cond, message) {
   if (!cond) throw new Error(message);
+}
+
+function assertThrows(name, fn, pattern) {
+  let err = null;
+  try {
+    fn();
+  } catch (caught) {
+    err = caught;
+  }
+  if (!err) throw new Error(`${name}: expected throw`);
+  if (pattern && !pattern.test(err.message)) {
+    throw new Error(`${name}: message mismatch: ${err.message}`);
+  }
 }
 
 function assertRootSet(name, actual, expected, tol = 1e-6) {
@@ -92,6 +106,39 @@ record('findEquilibrium works with 3D affine nonlinear field', () => {
   assert(Math.abs(eq.x[0] - 1) < 1e-8, `x0=${eq.x[0]}`);
   assert(Math.abs(eq.x[1] + 2) < 1e-8, `x1=${eq.x[1]}`);
   assert(Math.abs(eq.x[2] - 0.5) < 1e-8, `x2=${eq.x[2]}`);
+});
+
+record('scanEquilibria gridSize=1 uses finite center seed', () => {
+  const f = (x) => [
+    -2 * (x[0] - 2),
+    -3 * (x[1] + 1),
+  ];
+  const equilibria = scanEquilibria(f, [[0, 4], [-2, 0]], { gridSize: 1, tol: 1e-7 });
+  assert(equilibria.length === 1, `expected one equilibrium, got ${equilibria.length}`);
+  assert(Math.abs(equilibria[0].x[0] - 2) < 1e-8, `x0=${equilibria[0].x[0]}`);
+  assert(Math.abs(equilibria[0].x[1] + 1) < 1e-8, `x1=${equilibria[0].x[1]}`);
+});
+
+record('phasePortrait gridSize=1 uses finite center trajectory', () => {
+  const portrait = phasePortrait((x) => [-x[0], -2 * x[1]], {
+    x1Min: -1,
+    x1Max: 1,
+    x2Min: -2,
+    x2Max: 2,
+    gridSize: 1,
+    tMax: 0.2,
+    dt: 0.1,
+  });
+  assert(portrait.trajectories.length === 1, `expected one trajectory, got ${portrait.trajectories.length}`);
+  const traj = portrait.trajectories[0];
+  assert(traj.x1.every(Number.isFinite), `non-finite x1 trajectory: ${traj.x1}`);
+  assert(traj.x2.every(Number.isFinite), `non-finite x2 trajectory: ${traj.x2}`);
+  assert(Math.abs(traj.x1[0]) < 1e-12 && Math.abs(traj.x2[0]) < 1e-12, 'single seed should be bounds center');
+});
+
+record('nonlinear grid APIs reject invalid gridSize', () => {
+  assertThrows('scanEquilibria gridSize=0', () => scanEquilibria((x) => x, [[-1, 1]], { gridSize: 0 }), /gridSize/);
+  assertThrows('phasePortrait gridSize=0', () => phasePortrait((x) => x, { gridSize: 0 }), /gridSize/);
 });
 
 console.log(`Equilibrium n-D verification: ${passed} passed, ${failed} failed`);

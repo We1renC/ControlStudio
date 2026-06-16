@@ -130,8 +130,8 @@ del{color:var(--muted)}
 
 <ul>
 <li>Branch: <code>main</code></li>
-<li>Latest synced checkpoint: <code>fix(control): harden nonlinear equilibrium classification</code></li>
-<li>Current checkpoint: <strong>CS-P0 ~ CS-P65 done; Functional Roadmap Tier A-J done; Phase 19/20/21/23 project-local skill gaps closed; nonlinear equilibrium classification hardening closed; verification aggregation closed.</strong> 詳細執行看板見 <code>control-studio/ROADMAP.md</code>。目前僅暫停項目維持不做：教學模式、Electron packaging、報告模板 / 報告自動化、Block Diagram expansion。</li>
+<li>Latest synced checkpoint: <code>fix(control): harden nonlinear grid scans</code></li>
+<li>Current checkpoint: <strong>CS-P0 ~ CS-P65 done; Functional Roadmap Tier A-J done; Phase 19/20/21/23 project-local skill gaps closed; nonlinear equilibrium classification and nonlinear grid-scan hardening closed; verification aggregation closed.</strong> 詳細執行看板見 <code>control-studio/ROADMAP.md</code>。目前僅暫停項目維持不做：教學模式、Electron packaging、報告模板 / 報告自動化、Block Diagram expansion。</li>
 <li>Functional Roadmap Tier A-J checkpoint：Tier A control algorithms、Tier B identification、Tier C estimation、Tier D optimization、Tier E numerical repair、Tier F verification/safety、Tier G advanced MPC、Tier H embedded deployment、Tier I runtime architecture、Tier J HIL/integration 均已有 deterministic verification baseline；最新 full suite 基線見 <code>control-studio/ROADMAP.md</code>。</li>
 <li>Scenario 5 browser walkthrough result: Phase 10 math + UI both operational.</li>
 <li>Scenario 6 browser walkthrough result: SISO / MIMO core workflows are UI-operable.</li>
@@ -548,6 +548,8 @@ del{color:var(--muted)}
 <tr><td>CS-P16-04</td><td>P1</td><td>Done</td><td>GA-based PID auto-tuner</td><td><code>node control-studio/scripts/verify_p16_ga.mjs</code></td></tr>
 </thead><tbody>
 <tr><td>CS-P16-05</td><td>P1</td><td>Done</td><td>n-dimensional equilibrium classification</td><td><code>node control-studio/scripts/verify_equilibrium_nd.mjs</code></td></tr>
+</thead><tbody>
+<tr><td>CS-P16-06</td><td>P1</td><td>Done</td><td>nonlinear scan grid-size and bounds guards</td><td><code>node control-studio/scripts/verify_equilibrium_nd.mjs</code></td></tr>
 </tbody></table>
 
 <h3 id="phase-17-advanced-robust-mimo-mpc-extensions-cs-p17">Phase 17: Advanced Robust / MIMO / MPC Extensions (CS-P17)</h3>

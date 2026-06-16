@@ -111,7 +111,22 @@ export function classifyEquilibrium(f, xstar, options = {}) {
 export function scanEquilibria(f, searchBounds, options = {}) {
   const gridSize = options.gridSize ?? 5;
   const tol = options.tol ?? 1e-6;
+  if (!Number.isInteger(gridSize) || gridSize < 1) {
+    throw new Error('scanEquilibria gridSize must be an integer >= 1');
+  }
+  if (!Array.isArray(searchBounds) || searchBounds.length === 0) {
+    throw new Error('scanEquilibria searchBounds must be a non-empty bounds array');
+  }
   const n = searchBounds.length;
+  for (const [idx, bound] of searchBounds.entries()) {
+    if (!Array.isArray(bound) || bound.length !== 2) {
+      throw new Error(`scanEquilibria searchBounds[${idx}] must be [min, max]`);
+    }
+    const [lo, hi] = bound;
+    if (!Number.isFinite(lo) || !Number.isFinite(hi) || hi < lo) {
+      throw new Error(`scanEquilibria searchBounds[${idx}] must contain finite values with max >= min`);
+    }
+  }
   const found = [];
 
   // Generate grid of starting points
@@ -130,7 +145,7 @@ export function scanEquilibria(f, searchBounds, options = {}) {
     }
     const [lo, hi] = bounds[dim];
     for (let i = 0; i < gridSize; i++) {
-      const val = lo + (hi - lo) * i / (gridSize - 1);
+      const val = gridSize === 1 ? (lo + hi) / 2 : lo + (hi - lo) * i / (gridSize - 1);
       _gridPoints(dim + 1, bounds, [...grid, val]);
     }
   };

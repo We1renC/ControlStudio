@@ -1,7 +1,7 @@
 # ControlStudio Development Roadmap
 
 > Last updated: 2026-06-17
-> Current committed baseline: `fix(control): close non-paused roadmap validation gaps`
+> Current committed baseline: `fix(control): harden nonlinear grid scans`
 > Scope: this is the canonical execution roadmap for ControlStudio implementation status.
 > Do not use this file for product vision, proof derivations, or handoff notes; see the document workflow below.
 
@@ -61,7 +61,7 @@ Before starting any new functional work that is not already a finished P-phase, 
 | P11 | DARE / MIMO / dynamic RGA | Done | `verify_phase11_*.mjs` |
 | P14 | Delay / IMC / RNG | Done | `verify_p14_*.mjs` |
 | P15 | ARX system identification | Done | `verify_p15_sysid.mjs` |
-| P16 | GA tuning / H∞ Nelder-Mead / nonlinear equilibrium classification | Done | `verify_p16_*.mjs`, `verify_equilibrium_nd.mjs` |
+| P16 | GA tuning / H∞ Nelder-Mead / nonlinear equilibrium classification + grid guards | Done | `verify_p16_*.mjs`, `verify_equilibrium_nd.mjs` |
 | P17 | ARMAX / NSGA-II / EKF-UKF / advanced robust baseline | Done | `verify_p17_*.mjs` |
 | P18 | Monte Carlo robust validation + UI + skill | Done | `verify_p18_robust_validation.mjs` |
 | P19 | H∞ Riccati synthesis baseline | Done | `verify_p19_hinf_riccati.mjs` |
@@ -178,7 +178,7 @@ Per `docs/src/control-studio/functional-roadmap.html`. Tier A-J deterministic ba
 
 **Math core closure:** `js/math/realschur.js` now uses a Jacobi orthogonal Schur fast path for symmetric real matrices, fixing the 3x3 stable real-spectrum reconstruction regression. Non-normal Schur refinement remains a research-grade backend improvement, but no longer blocks current CARE / Lyapunov / Sylvester baselines.
 
-**Nonlinear analysis closure:** `js/analysis/equilibrium.js` now classifies n-dimensional equilibria through a Faddeev-LeVerrier characteristic polynomial plus shared `polyroots()` path. This removes the prior n>2 `trace(A)/n` placeholder that could hide saddle or unstable modes in higher-dimensional nonlinear linearizations.
+**Nonlinear analysis closure:** `js/analysis/equilibrium.js` now classifies n-dimensional equilibria through a Faddeev-LeVerrier characteristic polynomial plus shared `polyroots()` path. This removes the prior n>2 `trace(A)/n` placeholder that could hide saddle or unstable modes in higher-dimensional nonlinear linearizations. Nonlinear grid scans now validate grid size and finite bounds, and `gridSize=1` uses the finite bounds-center seed instead of producing NaN equilibrium or phase-portrait trajectories.
 
 ## Verification Suite Status (2026-06-17)
 

@@ -86,6 +86,7 @@
   - `control-studio/js/analysis/frequency-response.js`
   - `control-studio/js/analysis/root-locus.js`
   - `control-studio/js/analysis/equilibrium.js`
+  - `control-studio/js/analysis/phase-portrait.js`
 - 視覺化編輯器：
   - `control-studio/js/editor/`
 - AI 顧問：
@@ -210,7 +211,7 @@
 - Phase 13：UI/UX usability overhaul、Quick Start、confirm modal、live validation、keyboard shortcuts、a11y / responsive cleanup
 - Phase 14：time delay / Padé / Smith predictor、IMC / SIMC tuning、KaTeX 公式渲染、industrial presets、disk margin、seed control
 - Phase 15：ARX system identification、controller A/B compare、MATLAB / Python codegen、root-locus animation
-- Phase 16：H∞ mixed-sensitivity PID synthesis helper、GA PID auto-tuner、phase portrait、describing functions、n-dimensional equilibrium classification；Functional Roadmap Tier A 已補 A1~A7 algorithm baseline
+- Phase 16：H∞ mixed-sensitivity PID synthesis helper、GA PID auto-tuner、phase portrait、describing functions、n-dimensional equilibrium classification、nonlinear grid scan guards；Functional Roadmap Tier A 已補 A1~A7 algorithm baseline
 - Phase 17：plant-order dynamic H∞ mixed-sensitivity synthesis、structured μ D-scaling upper-bound / DK-style static gain surrogate、MIMO characteristic loci / Gershgorin bands / inverse Nyquist array、MPC MIMO output-space setpoint tracking
 
 ### Math Core Hardening 已完成（Post Phase 17）
@@ -495,11 +496,11 @@
 - Done：Phase 13 UI/UX overhaul — collapsible sections、Quick Start modal、confirm modal、field-level validation hints、keyboard shortcuts、accessibility / responsive cleanup。
 - Done：Phase 14 delay / formula / industrial tuning — Padé delay、delay margin、Smith predictor、IMC / SIMC tuning、KaTeX、28 presets、disk margin、seedable RNG。
 - Done：Phase 15 workflow tooling — ARX identification、open-loop A/B Bode compare、MATLAB / Python code export、root-locus K-sweep animation。
-- Done：Phase 16 advanced synthesis / nonlinear entry points — mixed-sensitivity PID tuning、GA PID auto-tuner、2D phase portrait、describing functions、n-dimensional equilibrium classification。
+- Done：Phase 16 advanced synthesis / nonlinear entry points — mixed-sensitivity PID tuning、GA PID auto-tuner、2D phase portrait、describing functions、n-dimensional equilibrium classification、nonlinear grid scan guards。
 - Done：Phase 17 advanced robust / MIMO / MPC extensions — plant-order dynamic H∞ mixed-sensitivity synthesis、structured μ D-scaling upper-bound、DK-style static gain surrogate、characteristic loci、Gershgorin bands、inverse Nyquist array、MIMO output-space MPC tracking。
 - Done：Post Phase 17 math hardening — complex magnitude robustness、ill-conditioned polynomial conjugate pairing、Hamiltonian stable-subspace cleanup、real Schur block reorder correctness。
 - Done：Full math-core audit hardening — robust complex division、stable quadratic roots、scale-aware matrix inverse/solve/rank/PD checks、discrete frequency response division unification。
-- Done：Nonlinear equilibrium audit hardening — n>2 Jacobian eigenvalue classification now uses characteristic polynomial roots instead of trace-average placeholder；`verify_equilibrium_nd.mjs` covers 3D saddle, 4D stable-node, 3D unstable-spiral, and 3D affine equilibrium convergence.
+- Done：Nonlinear equilibrium audit hardening — n>2 Jacobian eigenvalue classification now uses characteristic polynomial roots instead of trace-average placeholder；`scanEquilibria()` / `phasePortrait()` now validate grid size and finite bounds, and `gridSize=1` uses the bounds-center seed instead of NaN；`verify_equilibrium_nd.mjs` covers 7 regression checks including 3D saddle, 4D stable-node, 3D unstable-spiral, 3D affine equilibrium convergence, center-seed behavior, and invalid-grid rejection.
 - Verification：
   - `npm run verify:p14`
   - `npm run verify:p15`

@@ -9,7 +9,7 @@
 - 已建立獨立 git repo，避免被 `/Users/w.rc` 外層 git 混入。
 - 控制系統目前同步基線：
   - Branch: `main`
-  - Latest active line: `fix(control): harden nonlinear equilibrium classification`
+  - Latest active line: `fix(control): harden nonlinear grid scans`
   - Full phase audit checkpoints:
     - `7a318b3 fix(control): harden phase 7-9 theory diagnostics`
     - `46e20da fix(control): harden phase 0-6 theory checks`
@@ -36,6 +36,7 @@
   - 2026-05-27 接續完成 math/API closure：`realschur.js` 新增 symmetric Jacobi Schur fast path，修復 3x3 stable real-spectrum reconstruction regression；前端 Analysis Source 預設改為 `Auto API Fallback`，API 成功時套用 FastAPI metrics，API 不可用或 z-domain 時明確 fallback Local JS；新增 `verify_realschur_symmetric.mjs`、`verify_api_auto_fallback.mjs`，最新基線升至 **107/107 scripts pass**。
   - 2026-05-27 接續完成非 paused 收斂補強：root `package.json` 重新提供 `npm run verify:*` 入口並設定 `"type": "module"`；`run_all_verify.sh` 納入 `verify_control_cases.mjs` 與 `verify_control_api_contract.mjs`，fixture/API contract 不再游離於 full suite；`./nv-agent doctor` 更新為檢查 `docs/src/...` 文件路徑與 `npm run verify:math`，最新基線升至 **109/109 scripts pass**。
   - 2026-06-17 接續完成 nonlinear equilibrium classification hardening：`js/analysis/equilibrium.js` 對 n>2 Jacobian 改用 Faddeev-LeVerrier characteristic polynomial + shared `polyroots()`，移除舊 `trace(A)/n` placeholder；新增 `verify_equilibrium_nd.mjs` 並納入 full suite，最新基線升至 **110/110 scripts pass**。
+  - 2026-06-17 接續完成 nonlinear grid scan hardening：`scanEquilibria()` 與 `phasePortrait()` 現在會拒絕無效 `gridSize` / bounds / timing 參數，且 `gridSize=1` 改用 bounds center seed，避免 equilibrium scan 或 phase portrait trajectory 出現 NaN；`verify_equilibrium_nd.mjs` 擴充為 7 個 regression checks。
 - 已完成 NVIDIA Build Models 資料集中管理。
 - 已新增 agent 入口文件：
   - `AGENTS.md`：專案規則、標準流程、擴充規則與品質判準。
@@ -110,7 +111,7 @@
     - Done：MATLAB / Python codegen
     - Done：root locus K-sweep animation
   - Phase 16：Done
-    - Done：n-dimensional equilibrium classification hardening；3D saddle、4D stable node、3D unstable spiral 與 3D affine equilibrium convergence 已有 regression。
+    - Done：n-dimensional equilibrium classification hardening；3D saddle、4D stable node、3D unstable spiral、3D affine equilibrium convergence、gridSize=1 center seed 與 invalid-grid rejection 已有 regression。
     - Done：H∞ mixed-sensitivity PID synthesis helper
     - Done：GA-based PID auto-tuner
     - Done：2D phase portrait
@@ -131,7 +132,7 @@
     - Done：discrete frequency response 改用共用 robust complex division。
     - Done：Hamiltonian stable subspace 清除未使用且轉置錯誤的 dead computation。
     - Done：real Schur 1x1 block swap 修正 Givens rotation 公式、乘法方向 / 符號與 reordered eigenvalue 回傳順序。
-    - Done：nonlinear equilibrium n-dimensional classification 改走 characteristic polynomial roots，避免高維 linearization 被 trace average 誤分類。
+    - Done：nonlinear equilibrium n-dimensional classification 改走 characteristic polynomial roots，避免高維 linearization 被 trace average 誤分類；nonlinear scan / phase portrait grid APIs 已補 gridSize 與 bounds guards。
   - Phase 18+ Research / Engineering Extension：Active through P28
     - Done：Phase 18 uncertainty + Monte Carlo robust validation。
     - Done：Phase 18 core API in `control-studio/js/control/robust.js`，包含 uncertainty schema、deterministic Monte Carlo sampling、worst-case metrics、robust pass/fail 與 unstable sample classification。
@@ -290,7 +291,7 @@ git log --oneline -5
 - `control-studio` 已補 Phase 13：可折疊 section、Quick Start modal、confirm modal、live field validation、keyboard shortcuts、tablet / reduced-motion / a11y 整理。
 - `control-studio` 已補 Phase 14：time delay / Padé、delay margin、Smith predictor 包裝、IMC / SIMC tuning、KaTeX 公式、28 個 presets、disk margin / additive uncertainty、seedable RNG；`npm run verify:p14` 可重跑 3 組驗證。
 - `control-studio` 已補 Phase 15：ARX system ID（least squares + AIC auto order）、Compare Bode overlay、MATLAB / Python codegen、root-locus K-sweep animation；`npm run verify:p15` 可重跑驗證。
-- `control-studio` 已補 Phase 16：mixed-sensitivity H∞ PID synthesis helper、GA PID auto-tuner、phase portrait、describing functions、n-dimensional equilibrium classification；`npm run verify:p16` 與 `node control-studio/scripts/verify_equilibrium_nd.mjs` 可重跑驗證。
+- `control-studio` 已補 Phase 16：mixed-sensitivity H∞ PID synthesis helper、GA PID auto-tuner、phase portrait、describing functions、n-dimensional equilibrium classification、nonlinear grid scan guards；`npm run verify:p16` 與 `node control-studio/scripts/verify_equilibrium_nd.mjs` 可重跑驗證。
 - `control-studio` 已補 Phase 17：plant-order dynamic H∞ mixed-sensitivity synthesis、structured μ D-scaling upper-bound / DK-style static gain surrogate、MIMO characteristic loci / Gershgorin bands / inverse Nyquist array、MPC MIMO output-space setpoint tracking；`npm run verify:p17` 可重跑驗證。
 - `control-studio` 已補 Phase 24：EMPC (`empc.js`)、Tube MPC (`tube_mpc.js`)、Explicit MPC (`explicit_mpc.js`)；`verify_p24_empc.mjs` 與 `verify_p24_tube_explicit_mpc.mjs` 可重跑驗證。
 - `a2a89d3 fix(math): 4 defects in complex / polynomial / realschur` 已完成 post Phase 17 數學核心修復；commit 記錄 TF/SS/ZPK/C2D `36/36` 與 PID `21/21` 通過。

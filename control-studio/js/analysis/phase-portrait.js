@@ -22,14 +22,23 @@ function rk4Step(f, x, h) {
  */
 export function phasePortrait(f, opts = {}) {
   const { x1Min = -3, x1Max = 3, x2Min = -3, x2Max = 3, gridSize = 8, tMax = 10, dt = 0.05 } = opts;
+  if (!Number.isInteger(gridSize) || gridSize < 1) {
+    throw new Error('phasePortrait gridSize must be an integer >= 1');
+  }
+  if (![x1Min, x1Max, x2Min, x2Max].every(Number.isFinite) || x1Max < x1Min || x2Max < x2Min) {
+    throw new Error('phasePortrait bounds must be finite with max >= min');
+  }
+  if (!(tMax > 0) || !(dt > 0)) {
+    throw new Error('phasePortrait tMax and dt must be positive');
+  }
   const trajectories = [];
 
   // Trajectories from a grid of initial conditions
   for (let i = 0; i < gridSize; i++) {
     for (let j = 0; j < gridSize; j++) {
       const x0 = [
-        x1Min + (i / (gridSize - 1)) * (x1Max - x1Min),
-        x2Min + (j / (gridSize - 1)) * (x2Max - x2Min),
+        _gridValue(x1Min, x1Max, i, gridSize),
+        _gridValue(x2Min, x2Max, j, gridSize),
       ];
       const traj = integrateTrajectory(f, x0, tMax, dt, { x1Min, x1Max, x2Min, x2Max });
       if (traj.x1.length > 2) trajectories.push(traj);
@@ -51,6 +60,10 @@ export function phasePortrait(f, opts = {}) {
     }
   }
   return { trajectories, vectorField: { x1: x1Arr, x2: x2Arr, dx1: dx1Arr, dx2: dx2Arr } };
+}
+
+function _gridValue(min, max, idx, count) {
+  return count === 1 ? (min + max) / 2 : min + (idx / (count - 1)) * (max - min);
 }
 
 function integrateTrajectory(f, x0, tMax, dt, bounds) {
