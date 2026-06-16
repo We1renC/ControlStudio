@@ -96,7 +96,7 @@ del{color:var(--muted)}
 <li>控制系統目前同步基線：</li>
 <ul>
 <li>Branch: <code>main</code></li>
-<li>Latest active line: <code>fix(control): harden discrete bode grids</code></li>
+<li>Latest active line: <code>fix(control): harden time response inputs</code></li>
 <li>Full phase audit checkpoints:</li>
 <ul>
 <li><code>7a318b3 fix(control): harden phase 7-9 theory diagnostics</code></li>
@@ -128,6 +128,7 @@ del{color:var(--muted)}
 <li>2026-06-17 接續完成 nonlinear grid scan hardening：<code>scanEquilibria()</code> 與 <code>phasePortrait()</code> 現在會拒絕無效 <code>gridSize</code> / bounds / timing 參數，且 <code>gridSize=1</code> 改用 bounds center seed，避免 equilibrium scan 或 phase portrait trajectory 出現 NaN；<code>verify_equilibrium_nd.mjs</code> 擴充為 7 個 regression checks。</li>
 <li>2026-06-17 接續完成 continuous analysis grid hardening：<code>bodeData()</code>、<code>nyquistData()</code> / <code>nicholsData()</code>、<code>rootLocusData()</code>、<code>rootLocusJwCrossings()</code> 現在會拒絕非法 frequency/gain range 與單點 grid，避免 analysis API 回傳 NaN samples；<code>verify_math_core.mjs</code> 擴充為 9 個 checks，<code>control_regression_dashboard.mjs</code> 與 <code>scripts/validate_nvidia_model_selector.sh</code> 的 doctor gate 也已同步預期 <code>9/9</code>。</li>
 <li>2026-06-17 接續完成 discrete Bode grid hardening：<code>discreteBodeData()</code> 現在會拒絕非有限 <code>samples</code>、非法 <code>omegaMin &gt;= omegaNyquist</code>，並將 zero-magnitude dB clamp 為有限 floor，避免離散頻域 API / plot 輸出 <code>NaN</code> 或 <code>-Infinity</code>；已納入 <code>verify_math_core.mjs</code> 的 9/9 guard checks。</li>
+<li>2026-06-17 接續完成 time-response input hardening：step / impulse / ramp / sine / square / pulse 現在會正規化預設 waveform 參數並拒絕 invalid duration / sampleCount / amplitude / frequency / pulseWidth / disturbance / initialState；PID anti-windup 也會拒絕非有限 controller gain、invalid saturation bounds、非正 Tt、invalid duration/sample/amplitude，避免 NaN trajectory 或靜默無界降級。</li>
 </ul>
 <li>已完成 NVIDIA Build Models 資料集中管理。</li>
 <li>已新增 agent 入口文件：</li>
@@ -250,6 +251,7 @@ del{color:var(--muted)}
 <li>Done：discrete frequency response 改用共用 robust complex division。</li>
 <li>Done：continuous Bode / Nyquist / Nichols / Root Locus / jω crossing grids 加入 finite range 與 sample-count guards。</li>
 <li>Done：discrete Bode grids 加入 finite <code>samples</code> / Nyquist-bound <code>omegaMin</code> guards，zero-response dB 維持有限 floor。</li>
+<li>Done：time-response simulation inputs 與 PID anti-windup options 加入 finite / positivity guards，預設 sine/square/pulse waveform 不再產生 NaN。</li>
 <li>Done：Hamiltonian stable subspace 清除未使用且轉置錯誤的 dead computation。</li>
 <li>Done：real Schur 1x1 block swap 修正 Givens rotation 公式、乘法方向 / 符號與 reordered eigenvalue 回傳順序。</li>
 <li>Done：nonlinear equilibrium n-dimensional classification 改走 characteristic polynomial roots，避免高維 linearization 被 trace average 誤分類；nonlinear scan / phase portrait grid APIs 已補 gridSize 與 bounds guards。</li>
@@ -406,7 +408,7 @@ git log --oneline -5
 <li><code>control-studio/js/control/stability.js</code> 新增 <code>routhTable</code> Routh-Hurwitz 穩定性表。</li>
 <li><code>control-studio/js/analysis/frequency-response.js</code> 新增 <code>nicholsData</code>、<code>nyquistEncirclements</code>。</li>
 <li><code>test_control.js</code> 已擴充涵蓋 ZPK、polydiv、Routh、Nichols、encirclement、asymptotes、SS Rank 測試。</li>
-<li><code>control-studio/scripts/verify_math_core.mjs</code> 已新增為獨立數學核心驗證：覆蓋 Complex、Polynomial roots、Matrix solve/inverse/exp、RK4/RK45、TF/DTF guard、State-Space roundtrip、C2D DC gain、continuous frequency/root-locus grid guards、discrete Bode grid guards。</li>
+<li><code>control-studio/scripts/verify_math_core.mjs</code> 已新增為獨立數學核心驗證：覆蓋 Complex、Polynomial roots、Matrix solve/inverse/exp、RK4/RK45、TF/DTF guard、State-Space roundtrip、C2D DC gain、continuous frequency/root-locus grid guards、discrete Bode grid guards、time-response input guards。</li>
 <li><code>control-studio/js/math/polynomial.js</code> 已改用 Durand-Kerner 處理三階以上根；舊 QR path 對 <code>s^3+1</code> 會錯誤收斂為 0，勿恢復。</li>
 <li><code>control-studio/js/math/ode.js</code> 已修正 RK45 Dormand-Prince 5th-order 權重缺第 7 項 <code>0</code> 造成 NaN / infinite loop 的問題。</li>
 <li><code>docs/src/control-studio/scenarios.md</code> 已新增 precision servo stage position control 情境，使用 ControlStudio 核心完成 PID + Lead 設計，並記錄後續改善思考。</li>

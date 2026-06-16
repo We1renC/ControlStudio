@@ -347,6 +347,7 @@ del{color:var(--muted)}
 <li>Full math-core audit：discrete Bode evaluation 改走共用 robust complex division path。</li>
 <li>Full math-core audit：continuous Bode / Nyquist / Nichols / Root Locus / jω crossing grids 加入 finite range 與 sample-count guards，避免非法單點 grid 產生 NaN frequency/gain samples。</li>
 <li>Full math-core audit：discrete Bode grids 加入 finite <code>samples</code> 與 <code>0 &lt; omegaMin &lt; omegaNyquist</code> guards，zero-magnitude dB 以有限 floor 輸出，避免離散頻域圖表與 API 出現非有限值。</li>
+<li>Full math-core audit：time-response simulation inputs 加入 finite / positivity guards，涵蓋 step / impulse / ramp / sine / square / pulse 的 duration、sampleCount、amplitude、frequency、pulseWidth、disturbance、initialState，以及 PID anti-windup 的 Kp/Ki/Kd/N、saturation bounds、Tt、duration、sampleCount、reference amplitude。</li>
 <li>Real Schur symmetric fast path：對 symmetric real matrices 使用 Jacobi orthogonal Schur，修復 3x3 stable real-spectrum reconstruction regression。</li>
 <li>Nonlinear equilibrium classification：<code>classifyEquilibrium()</code> 對 n&gt;2 Jacobian 改用 Faddeev-LeVerrier characteristic polynomial + <code>polyroots()</code>，避免舊 <code>trace(A)/n</code> placeholder 隱藏 saddle / unstable modes。</li>
 <li>Frontend analysis API migration：新 session 預設 <code>Auto API Fallback</code>，FastAPI 成功時使用 Unified API metrics，不可用或 z-domain 時明確 fallback Local JS；root <code>package.json</code> 已提供 <code>npm run verify:*</code> 入口。</li>
@@ -671,7 +672,7 @@ del{color:var(--muted)}
 <li>Done：Phase 16 advanced synthesis / nonlinear entry points — mixed-sensitivity PID tuning、GA PID auto-tuner、2D phase portrait、describing functions、n-dimensional equilibrium classification、nonlinear grid scan guards。</li>
 <li>Done：Phase 17 advanced robust / MIMO / MPC extensions — plant-order dynamic H∞ mixed-sensitivity synthesis、structured μ D-scaling upper-bound、DK-style static gain surrogate、characteristic loci、Gershgorin bands、inverse Nyquist array、MIMO output-space MPC tracking。</li>
 <li>Done：Post Phase 17 math hardening — complex magnitude robustness、ill-conditioned polynomial conjugate pairing、Hamiltonian stable-subspace cleanup、real Schur block reorder correctness。</li>
-<li>Done：Full math-core audit hardening — robust complex division、stable quadratic roots、scale-aware matrix inverse/solve/rank/PD checks、discrete frequency response division unification、continuous frequency/root-locus grid guards、discrete Bode grid guards。</li>
+<li>Done：Full math-core audit hardening — robust complex division、stable quadratic roots、scale-aware matrix inverse/solve/rank/PD checks、discrete frequency response division unification、continuous frequency/root-locus grid guards、discrete Bode grid guards、time-response input guards。</li>
 <li>Done：Nonlinear equilibrium audit hardening — n&gt;2 Jacobian eigenvalue classification now uses characteristic polynomial roots instead of trace-average placeholder；<code>scanEquilibria()</code> / <code>phasePortrait()</code> now validate grid size and finite bounds, and <code>gridSize=1</code> uses the bounds-center seed instead of NaN；<code>verify_equilibrium_nd.mjs</code> covers 7 regression checks including 3D saddle, 4D stable-node, 3D unstable-spiral, 3D affine equilibrium convergence, center-seed behavior, and invalid-grid rejection.</li>
 <li>Verification：</li>
 <ul>

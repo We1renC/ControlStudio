@@ -2,30 +2,61 @@
  * time-response.js — Stable time-domain analysis using RK4
  */
 
+function finiteNumber(value, name) {
+  const number = Number(value);
+  if (!Number.isFinite(number)) throw new Error(`${name} must be a finite number`);
+  return number;
+}
+
+function positiveNumber(value, name) {
+  const number = finiteNumber(value, name);
+  if (number <= 0) throw new Error(`${name} must be > 0`);
+  return number;
+}
+
+function nonNegativeNumber(value, name) {
+  const number = finiteNumber(value, name);
+  if (number < 0) throw new Error(`${name} must be >= 0`);
+  return number;
+}
+
+function sampleCount(value, fallback, minimum, name = 'sampleCount') {
+  const number = positiveNumber(value ?? fallback, name);
+  return Math.max(minimum, Math.floor(number));
+}
+
+function finiteOrDefault(value, fallback, name) {
+  if (value == null) return fallback;
+  return finiteNumber(value, name);
+}
+
+function optionalPositive(value, name) {
+  if (value == null) return null;
+  return positiveNumber(value, name);
+}
+
+function optionalInitialState(value) {
+  if (!Array.isArray(value)) return null;
+  return value.map((entry, idx) => finiteNumber(entry, `initialState[${idx}]`));
+}
+
 function normalizeOptions(durationOrOptions) {
   if (durationOrOptions == null) {
-    return {
-      duration: null,
-      sampleCount: 1000,
-      amplitude: 1,
-      disturbanceAmplitude: 0,
-      disturbanceStart: 0,
-      initialState: null,
-    };
+    return normalizeOptions({});
   }
   if (typeof durationOrOptions === 'number') {
     return normalizeOptions({ duration: durationOrOptions });
   }
   return {
-    duration: durationOrOptions.duration ?? null,
-    sampleCount: Math.max(10, Math.floor(durationOrOptions.sampleCount ?? 1000)),
-    amplitude: Number(durationOrOptions.amplitude ?? 1),
-    frequency: Math.max(0.01, Number(durationOrOptions.frequency ?? 1)),
-    pulseWidth: Math.max(0.01, Number(durationOrOptions.pulseWidth ?? 1)),
-    disturbanceAmplitude: Number(durationOrOptions.disturbanceAmplitude ?? 0),
-    disturbanceStart: Number(durationOrOptions.disturbanceStart ?? 0),
+    duration: optionalPositive(durationOrOptions.duration, 'duration'),
+    sampleCount: sampleCount(durationOrOptions.sampleCount, 1000, 10),
+    amplitude: finiteNumber(durationOrOptions.amplitude ?? 1, 'amplitude'),
+    frequency: positiveNumber(durationOrOptions.frequency ?? 1, 'frequency'),
+    pulseWidth: positiveNumber(durationOrOptions.pulseWidth ?? 1, 'pulseWidth'),
+    disturbanceAmplitude: finiteNumber(durationOrOptions.disturbanceAmplitude ?? 0, 'disturbanceAmplitude'),
+    disturbanceStart: nonNegativeNumber(durationOrOptions.disturbanceStart ?? 0, 'disturbanceStart'),
     disturbanceType: durationOrOptions.disturbanceType ?? 'none',
-    initialState: Array.isArray(durationOrOptions.initialState) ? durationOrOptions.initialState.map(Number) : null,
+    initialState: optionalInitialState(durationOrOptions.initialState),
   };
 }
 
@@ -182,10 +213,17 @@ export function rampResponse(sys, durationOrOptions = null) {
  * @returns {{ t: number[], y: number[], u: number[] }}
  */
 export function simulatePIDAntiWindup(plant, pid, options = {}) {
-  const { Kp, Ki = 0, Kd = 0, N = 100 } = pid;
-  const uMin = Number.isFinite(options.uMin) ? options.uMin : -Infinity;
-  const uMax = Number.isFinite(options.uMax) ? options.uMax : Infinity;
-  const Tt = options.Tt ?? (Math.abs(Ki) > 1e-12 ? Math.max(0.01, 1 / Math.abs(Ki)) : 10);
+  const { Kp: rawKp = 0, Ki: rawKi = 0, Kd: rawKd = 0, N: rawN = 100 } = pid || {};
+  const Kp = finiteNumber(rawKp, 'Kp');
+  const Ki = finiteNumber(rawKi, 'Ki');
+  const Kd = finiteNumber(rawKd, 'Kd');
+  const N = positiveNumber(rawN, 'N');
+  const uMin = finiteOrDefault(options.uMin, -Infinity, 'uMin');
+  const uMax = finiteOrDefault(options.uMax, Infinity, 'uMax');
+  if (uMin > uMax) throw new Error('uMin must be <= uMax');
+  const Tt = options.Tt == null
+    ? (Math.abs(Ki) > 1e-12 ? Math.max(0.01, 1 / Math.abs(Ki)) : 10)
+    : positiveNumber(options.Tt, 'Tt');
 
   // Plant CCF state-space
   const n = plant.den.length - 1;
@@ -213,14 +251,14 @@ export function simulatePIDAntiWindup(plant, pid, options = {}) {
   const poles = plant.poles();
   const realParts = poles.map(p => Math.abs(p.re)).filter(re => re > 1e-6);
   const minReal = realParts.length > 0 ? Math.min(...realParts) : 0.1;
-  const tEnd = options.duration ?? Math.min(120, Math.max(5, 8 / minReal));
-  const nPoints = Math.max(20, Math.floor(options.sampleCount ?? 500));
+  const tEnd = optionalPositive(options.duration, 'duration') ?? Math.min(120, Math.max(5, 8 / minReal));
+  const nPoints = sampleCount(options.sampleCount, 500, 20);
   const dt = tEnd / (nPoints - 1);
   const h = Math.min(dt, 0.005);
   const stepsPerOut = Math.max(1, Math.ceil(dt / h));
   const actualH = dt / stepsPerOut;
 
-  const refAmp = options.amplitude ?? 1;
+  const refAmp = finiteNumber(options.amplitude ?? 1, 'amplitude');
   let xp = new Array(n).fill(0);
   let xi = 0; // integral state
   let xd = 0; // derivative filter state
