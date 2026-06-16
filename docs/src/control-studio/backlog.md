@@ -36,8 +36,8 @@
 ## Current Baseline
 
 - Branch: `main`
-- Latest synced checkpoint: `fix(control): harden discrete response inputs`
-- Current checkpoint: **CS-P0 ~ CS-P65 done; Functional Roadmap Tier A-J done; Phase 19/20/21/23 project-local skill gaps closed; nonlinear equilibrium classification, nonlinear grid-scan hardening, continuous analysis-grid hardening, discrete Bode grid hardening, time-response input hardening, and discrete response input hardening closed; verification aggregation closed.** 詳細執行看板見 `control-studio/ROADMAP.md`。目前僅暫停項目維持不做：教學模式、Electron packaging、報告模板 / 報告自動化、Block Diagram expansion。
+- Latest synced checkpoint: `fix(control): harden delay margins`
+- Current checkpoint: **CS-P0 ~ CS-P65 done; Functional Roadmap Tier A-J done; Phase 19/20/21/23 project-local skill gaps closed; nonlinear equilibrium classification, nonlinear grid-scan hardening, continuous analysis-grid hardening, discrete Bode grid hardening, time-response input hardening, discrete response input hardening, and delay margin hardening closed; verification aggregation closed.** 詳細執行看板見 `control-studio/ROADMAP.md`。目前僅暫停項目維持不做：教學模式、Electron packaging、報告模板 / 報告自動化、Block Diagram expansion。
 - Functional Roadmap Tier A-J checkpoint：Tier A control algorithms、Tier B identification、Tier C estimation、Tier D optimization、Tier E numerical repair、Tier F verification/safety、Tier G advanced MPC、Tier H embedded deployment、Tier I runtime architecture、Tier J HIL/integration 均已有 deterministic verification baseline；最新 full suite 基線見 `control-studio/ROADMAP.md`。
 - Scenario 5 browser walkthrough result: Phase 10 math + UI both operational.
 - Scenario 6 browser walkthrough result: SISO / MIMO core workflows are UI-operable.
@@ -307,6 +307,7 @@ Phase 10 + Phase 11 全部完成：
 | CS-P14-04 | P2 | Done | Preset library expansion (8 → 28) | Manual browser walkthrough；`e025a91` |
 | CS-P14-05 | P2 | Done | Disk margin + additive uncertainty | `test_control.js` + UI check；`e025a91` |
 | CS-P14-06 | P1 | Done | Seedable RNG / reproducible LQG randomness | `node control-studio/scripts/verify_p14_rng.mjs` |
+| CS-P14-07 | P1 | Done | Delay input and margin guards | `applyDelay()` / `delayPhase()` reject invalid delay inputs；`delayMargin()` clamps non-positive PM to 0 and preserves infinite PM | `node control-studio/scripts/verify_p14_delay.mjs` |
 
 ### Phase 15: Identification / Compare / Codegen / Animation (CS-P15)
 

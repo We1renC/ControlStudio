@@ -130,8 +130,8 @@ del{color:var(--muted)}
 
 <ul>
 <li>Branch: <code>main</code></li>
-<li>Latest synced checkpoint: <code>fix(control): harden discrete response inputs</code></li>
-<li>Current checkpoint: <strong>CS-P0 ~ CS-P65 done; Functional Roadmap Tier A-J done; Phase 19/20/21/23 project-local skill gaps closed; nonlinear equilibrium classification, nonlinear grid-scan hardening, continuous analysis-grid hardening, discrete Bode grid hardening, time-response input hardening, and discrete response input hardening closed; verification aggregation closed.</strong> 詳細執行看板見 <code>control-studio/ROADMAP.md</code>。目前僅暫停項目維持不做：教學模式、Electron packaging、報告模板 / 報告自動化、Block Diagram expansion。</li>
+<li>Latest synced checkpoint: <code>fix(control): harden delay margins</code></li>
+<li>Current checkpoint: <strong>CS-P0 ~ CS-P65 done; Functional Roadmap Tier A-J done; Phase 19/20/21/23 project-local skill gaps closed; nonlinear equilibrium classification, nonlinear grid-scan hardening, continuous analysis-grid hardening, discrete Bode grid hardening, time-response input hardening, discrete response input hardening, and delay margin hardening closed; verification aggregation closed.</strong> 詳細執行看板見 <code>control-studio/ROADMAP.md</code>。目前僅暫停項目維持不做：教學模式、Electron packaging、報告模板 / 報告自動化、Block Diagram expansion。</li>
 <li>Functional Roadmap Tier A-J checkpoint：Tier A control algorithms、Tier B identification、Tier C estimation、Tier D optimization、Tier E numerical repair、Tier F verification/safety、Tier G advanced MPC、Tier H embedded deployment、Tier I runtime architecture、Tier J HIL/integration 均已有 deterministic verification baseline；最新 full suite 基線見 <code>control-studio/ROADMAP.md</code>。</li>
 <li>Scenario 5 browser walkthrough result: Phase 10 math + UI both operational.</li>
 <li>Scenario 6 browser walkthrough result: SISO / MIMO core workflows are UI-operable.</li>
@@ -522,6 +522,8 @@ del{color:var(--muted)}
 <tr><td>CS-P14-05</td><td>P2</td><td>Done</td><td>Disk margin + additive uncertainty</td><td><code>test_control.js</code> + UI check；<code>e025a91</code></td></tr>
 </thead><tbody>
 <tr><td>CS-P14-06</td><td>P1</td><td>Done</td><td>Seedable RNG / reproducible LQG randomness</td><td><code>node control-studio/scripts/verify_p14_rng.mjs</code></td></tr>
+</thead><tbody>
+<tr><td>CS-P14-07</td><td>P1</td><td>Done</td><td>Delay input and margin guards</td><td><code>applyDelay()</code> / <code>delayPhase()</code> reject invalid delay inputs；<code>delayMargin()</code> clamps non-positive PM to 0 and preserves infinite PM</td><td><code>node control-studio/scripts/verify_p14_delay.mjs</code></td></tr>
 </tbody></table>
 
 <h3 id="phase-15-identification-compare-codegen-animation-cs-p15">Phase 15: Identification / Compare / Codegen / Animation (CS-P15)</h3>

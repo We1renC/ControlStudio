@@ -1,7 +1,7 @@
 # ControlStudio Development Roadmap
 
 > Last updated: 2026-06-17
-> Current committed baseline: `fix(control): harden discrete response inputs`
+> Current committed baseline: `fix(control): harden delay margins`
 > Scope: this is the canonical execution roadmap for ControlStudio implementation status.
 > Do not use this file for product vision, proof derivations, or handoff notes; see the document workflow below.
 
@@ -170,6 +170,8 @@ Per `docs/src/control-studio/functional-roadmap.html`. Tier A-J deterministic ba
 **Time-response input closure:** step / impulse / ramp / sine / square / pulse simulations now normalize default waveform parameters and reject invalid duration, sample count, amplitude, frequency, pulse width, disturbance, and initial-state values before integration. PID anti-windup simulations now validate controller gains, derivative filter `N`, saturation bounds, tracking time `Tt`, duration, sample count, and reference amplitude before RK4 integration, so invalid requests fail explicitly instead of producing empty arrays or NaN trajectories.
 
 **Discrete time-response input closure:** z-domain step / impulse simulations now reject invalid sample counts, amplitudes, sample times, and non-finite numerator / denominator coefficients before running the difference equation. Plain discrete systems with `den[0] != 1` are handled through the standard normalized recurrence, so API callers do not silently receive mis-scaled outputs or NaN time grids.
+
+**Delay margin closure:** Padé delay application and pure-delay phase now reject non-finite or negative delay parameters instead of silently returning the original plant or NaN phase. Delay margin now reports zero additional delay for non-positive phase margin and preserves infinite PM as infinite margin, preventing already-unstable loops from being displayed with negative delay capacity.
 
 ## Verification Suite Status (2026-06-17)
 

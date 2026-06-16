@@ -47,8 +47,10 @@ export function padeApprox(T, n = 2) {
  * @param {number} order - Padé order (1..6 typical, 2 recommended default)
  */
 export function applyDelay(G, delaySeconds, order = 2) {
-  if (!delaySeconds || delaySeconds <= 0) return G;
-  const pade = padeApprox(delaySeconds, order);
+  const delay = Number(delaySeconds);
+  if (!Number.isFinite(delay) || delay < 0) throw new Error('Delay: delaySeconds must be a finite non-negative number');
+  if (delay === 0) return G;
+  const pade = padeApprox(delay, order);
   return G.series(pade);
 }
 
@@ -57,7 +59,11 @@ export function applyDelay(G, delaySeconds, order = 2) {
  * Useful for analytical phase computation without Padé approximation.
  */
 export function delayPhase(omega, delaySeconds) {
-  return -omega * delaySeconds;
+  const w = Number(omega);
+  const delay = Number(delaySeconds);
+  if (!Number.isFinite(w) || w < 0) throw new Error('Delay phase: omega must be a finite non-negative number');
+  if (!Number.isFinite(delay) || delay < 0) throw new Error('Delay phase: delaySeconds must be a finite non-negative number');
+  return -w * delay;
 }
 
 /**
@@ -65,9 +71,14 @@ export function delayPhase(omega, delaySeconds) {
  * DM = PM / ω_gc. This is the additional delay the loop can tolerate before instability.
  */
 export function delayMargin(phaseMarginDeg, gainCrossoverOmega) {
-  if (!Number.isFinite(phaseMarginDeg) || !Number.isFinite(gainCrossoverOmega) || gainCrossoverOmega <= 0) {
+  if (!Number.isFinite(gainCrossoverOmega) || gainCrossoverOmega <= 0) {
     return NaN;
   }
+  if (phaseMarginDeg === Infinity) return Infinity;
+  if (!Number.isFinite(phaseMarginDeg)) {
+    return NaN;
+  }
+  if (phaseMarginDeg <= 0) return 0;
   const pmRad = (phaseMarginDeg * Math.PI) / 180;
   return pmRad / gainCrossoverOmega;
 }
