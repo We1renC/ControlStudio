@@ -130,8 +130,8 @@ del{color:var(--muted)}
 
 <ul>
 <li>Branch: <code>main</code></li>
-<li>Latest synced checkpoint: <code>fix(control): harden analysis grids</code></li>
-<li>Current checkpoint: <strong>CS-P0 ~ CS-P65 done; Functional Roadmap Tier A-J done; Phase 19/20/21/23 project-local skill gaps closed; nonlinear equilibrium classification, nonlinear grid-scan hardening, and continuous analysis-grid hardening closed; verification aggregation closed.</strong> 詳細執行看板見 <code>control-studio/ROADMAP.md</code>。目前僅暫停項目維持不做：教學模式、Electron packaging、報告模板 / 報告自動化、Block Diagram expansion。</li>
+<li>Latest synced checkpoint: <code>fix(control): harden discrete bode grids</code></li>
+<li>Current checkpoint: <strong>CS-P0 ~ CS-P65 done; Functional Roadmap Tier A-J done; Phase 19/20/21/23 project-local skill gaps closed; nonlinear equilibrium classification, nonlinear grid-scan hardening, continuous analysis-grid hardening, and discrete Bode grid hardening closed; verification aggregation closed.</strong> 詳細執行看板見 <code>control-studio/ROADMAP.md</code>。目前僅暫停項目維持不做：教學模式、Electron packaging、報告模板 / 報告自動化、Block Diagram expansion。</li>
 <li>Functional Roadmap Tier A-J checkpoint：Tier A control algorithms、Tier B identification、Tier C estimation、Tier D optimization、Tier E numerical repair、Tier F verification/safety、Tier G advanced MPC、Tier H embedded deployment、Tier I runtime architecture、Tier J HIL/integration 均已有 deterministic verification baseline；最新 full suite 基線見 <code>control-studio/ROADMAP.md</code>。</li>
 <li>Scenario 5 browser walkthrough result: Phase 10 math + UI both operational.</li>
 <li>Scenario 6 browser walkthrough result: SISO / MIMO core workflows are UI-operable.</li>
@@ -231,6 +231,8 @@ del{color:var(--muted)}
 <tr><td>CS-P2-05</td><td>P1</td><td>Done</td><td>Discrete Bode response</td><td>離散模式需頻域分析</td><td><code>discreteBodeData</code></td><td>Phase 5 discrete Bode tests</td></tr>
 </thead><tbody>
 <tr><td>CS-P2-06</td><td>P1</td><td>Done</td><td>High-order ZOH</td><td>支援高階 continuous plant 離散化</td><td>matrix exponential utilities</td><td>Phase 5 high-order ZOH tests</td></tr>
+</thead><tbody>
+<tr><td>CS-P2-07</td><td>P1</td><td>Done</td><td>Discrete Bode grid guards</td><td><code>omegaMin</code> 必須有限且小於 Nyquist，<code>samples</code> 必須有限，zero-magnitude dB 輸出需保持有限</td><td><code>discreteBodeData</code></td><td><code>node control-studio/scripts/verify_math_core.mjs</code></td></tr>
 </tbody></table>
 
 <p>Exit criteria: 已達成。</p>

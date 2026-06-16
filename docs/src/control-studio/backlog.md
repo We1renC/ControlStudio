@@ -36,8 +36,8 @@
 ## Current Baseline
 
 - Branch: `main`
-- Latest synced checkpoint: `fix(control): harden analysis grids`
-- Current checkpoint: **CS-P0 ~ CS-P65 done; Functional Roadmap Tier A-J done; Phase 19/20/21/23 project-local skill gaps closed; nonlinear equilibrium classification, nonlinear grid-scan hardening, and continuous analysis-grid hardening closed; verification aggregation closed.** 詳細執行看板見 `control-studio/ROADMAP.md`。目前僅暫停項目維持不做：教學模式、Electron packaging、報告模板 / 報告自動化、Block Diagram expansion。
+- Latest synced checkpoint: `fix(control): harden discrete bode grids`
+- Current checkpoint: **CS-P0 ~ CS-P65 done; Functional Roadmap Tier A-J done; Phase 19/20/21/23 project-local skill gaps closed; nonlinear equilibrium classification, nonlinear grid-scan hardening, continuous analysis-grid hardening, and discrete Bode grid hardening closed; verification aggregation closed.** 詳細執行看板見 `control-studio/ROADMAP.md`。目前僅暫停項目維持不做：教學模式、Electron packaging、報告模板 / 報告自動化、Block Diagram expansion。
 - Functional Roadmap Tier A-J checkpoint：Tier A control algorithms、Tier B identification、Tier C estimation、Tier D optimization、Tier E numerical repair、Tier F verification/safety、Tier G advanced MPC、Tier H embedded deployment、Tier I runtime architecture、Tier J HIL/integration 均已有 deterministic verification baseline；最新 full suite 基線見 `control-studio/ROADMAP.md`。
 - Scenario 5 browser walkthrough result: Phase 10 math + UI both operational.
 - Scenario 6 browser walkthrough result: SISO / MIMO core workflows are UI-operable.
@@ -114,6 +114,7 @@ Exit criteria: 已達成。
 | CS-P2-04 | P1 | Done | Continuous-to-discrete conversion | 支援 Tustin / ZOH 基礎轉換 | sample time UI | C2D tests |
 | CS-P2-05 | P1 | Done | Discrete Bode response | 離散模式需頻域分析 | `discreteBodeData` | Phase 5 discrete Bode tests |
 | CS-P2-06 | P1 | Done | High-order ZOH | 支援高階 continuous plant 離散化 | matrix exponential utilities | Phase 5 high-order ZOH tests |
+| CS-P2-07 | P1 | Done | Discrete Bode grid guards | `omegaMin` 必須有限且小於 Nyquist，`samples` 必須有限，zero-magnitude dB 輸出需保持有限 | `discreteBodeData` | `node control-studio/scripts/verify_math_core.mjs` |
 
 Exit criteria: 已達成。
 

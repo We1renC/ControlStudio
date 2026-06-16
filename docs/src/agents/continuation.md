@@ -9,7 +9,7 @@
 - 已建立獨立 git repo，避免被 `/Users/w.rc` 外層 git 混入。
 - 控制系統目前同步基線：
   - Branch: `main`
-  - Latest active line: `fix(control): harden analysis grids`
+  - Latest active line: `fix(control): harden discrete bode grids`
   - Full phase audit checkpoints:
     - `7a318b3 fix(control): harden phase 7-9 theory diagnostics`
     - `46e20da fix(control): harden phase 0-6 theory checks`
@@ -38,6 +38,7 @@
   - 2026-06-17 接續完成 nonlinear equilibrium classification hardening：`js/analysis/equilibrium.js` 對 n>2 Jacobian 改用 Faddeev-LeVerrier characteristic polynomial + shared `polyroots()`，移除舊 `trace(A)/n` placeholder；新增 `verify_equilibrium_nd.mjs` 並納入 full suite，最新基線升至 **110/110 scripts pass**。
   - 2026-06-17 接續完成 nonlinear grid scan hardening：`scanEquilibria()` 與 `phasePortrait()` 現在會拒絕無效 `gridSize` / bounds / timing 參數，且 `gridSize=1` 改用 bounds center seed，避免 equilibrium scan 或 phase portrait trajectory 出現 NaN；`verify_equilibrium_nd.mjs` 擴充為 7 個 regression checks。
   - 2026-06-17 接續完成 continuous analysis grid hardening：`bodeData()`、`nyquistData()` / `nicholsData()`、`rootLocusData()`、`rootLocusJwCrossings()` 現在會拒絕非法 frequency/gain range 與單點 grid，避免 analysis API 回傳 NaN samples；`verify_math_core.mjs` 擴充為 9 個 checks，`control_regression_dashboard.mjs` 與 `scripts/validate_nvidia_model_selector.sh` 的 doctor gate 也已同步預期 `9/9`。
+  - 2026-06-17 接續完成 discrete Bode grid hardening：`discreteBodeData()` 現在會拒絕非有限 `samples`、非法 `omegaMin >= omegaNyquist`，並將 zero-magnitude dB clamp 為有限 floor，避免離散頻域 API / plot 輸出 `NaN` 或 `-Infinity`；已納入 `verify_math_core.mjs` 的 9/9 guard checks。
 - 已完成 NVIDIA Build Models 資料集中管理。
 - 已新增 agent 入口文件：
   - `AGENTS.md`：專案規則、標準流程、擴充規則與品質判準。
@@ -132,6 +133,7 @@
     - Done：`matInverse()` / `matSolve()` / `matRank()` / `matIsPositiveDefinite()` 改用相對尺度 tolerance，避免縮放很小但條件良好的矩陣被誤判。
     - Done：discrete frequency response 改用共用 robust complex division。
     - Done：continuous Bode / Nyquist / Nichols / Root Locus / jω crossing grids 加入 finite range 與 sample-count guards。
+    - Done：discrete Bode grids 加入 finite `samples` / Nyquist-bound `omegaMin` guards，zero-response dB 維持有限 floor。
     - Done：Hamiltonian stable subspace 清除未使用且轉置錯誤的 dead computation。
     - Done：real Schur 1x1 block swap 修正 Givens rotation 公式、乘法方向 / 符號與 reordered eigenvalue 回傳順序。
     - Done：nonlinear equilibrium n-dimensional classification 改走 characteristic polynomial roots，避免高維 linearization 被 trace average 誤分類；nonlinear scan / phase portrait grid APIs 已補 gridSize 與 bounds guards。
@@ -272,7 +274,7 @@ git log --oneline -5
 - `control-studio/js/control/stability.js` 新增 `routhTable` Routh-Hurwitz 穩定性表。
 - `control-studio/js/analysis/frequency-response.js` 新增 `nicholsData`、`nyquistEncirclements`。
 - `test_control.js` 已擴充涵蓋 ZPK、polydiv、Routh、Nichols、encirclement、asymptotes、SS Rank 測試。
-- `control-studio/scripts/verify_math_core.mjs` 已新增為獨立數學核心驗證：覆蓋 Complex、Polynomial roots、Matrix solve/inverse/exp、RK4/RK45、TF/DTF guard、State-Space roundtrip、C2D DC gain、continuous frequency/root-locus grid guards。
+- `control-studio/scripts/verify_math_core.mjs` 已新增為獨立數學核心驗證：覆蓋 Complex、Polynomial roots、Matrix solve/inverse/exp、RK4/RK45、TF/DTF guard、State-Space roundtrip、C2D DC gain、continuous frequency/root-locus grid guards、discrete Bode grid guards。
 - `control-studio/js/math/polynomial.js` 已改用 Durand-Kerner 處理三階以上根；舊 QR path 對 `s^3+1` 會錯誤收斂為 0，勿恢復。
 - `control-studio/js/math/ode.js` 已修正 RK45 Dormand-Prince 5th-order 權重缺第 7 項 `0` 造成 NaN / infinite loop 的問題。
 - `docs/src/control-studio/scenarios.md` 已新增 precision servo stage position control 情境，使用 ControlStudio 核心完成 PID + Lead 設計，並記錄後續改善思考。

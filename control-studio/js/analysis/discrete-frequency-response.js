@@ -32,10 +32,17 @@ function evalDtfAt(sys, theta) {
  */
 export function discreteBodeData(sys, options = {}) {
   const Ts = sys.sampleTime;
-  if (!(Ts > 0)) throw new Error('discreteBodeData: invalid sampleTime');
+  if (!Number.isFinite(Ts) || Ts <= 0) throw new Error('discreteBodeData: invalid sampleTime');
   const omegaNyquist = Math.PI / Ts;
-  const samples = Math.max(50, Math.floor(options.samples ?? 500));
-  const omegaMin = Math.max(1e-6, options.omegaMin ?? omegaNyquist * 1e-4);
+  const requestedSamples = options.samples ?? 500;
+  if (!Number.isFinite(requestedSamples)) {
+    throw new Error('discreteBodeData: samples must be finite');
+  }
+  const samples = Math.max(50, Math.floor(requestedSamples));
+  const omegaMin = options.omegaMin ?? omegaNyquist * 1e-4;
+  if (!Number.isFinite(omegaMin) || omegaMin <= 0 || omegaMin >= omegaNyquist) {
+    throw new Error('discreteBodeData: omegaMin must satisfy 0 < omegaMin < Nyquist frequency');
+  }
   const w = [], mag = [], magDB = [], phaseDeg = [];
   let prevPh = null;
   for (let i = 0; i < samples; i++) {
@@ -51,7 +58,7 @@ export function discreteBodeData(sys, options = {}) {
     prevPh = ph;
     w.push(om);
     mag.push(m);
-    magDB.push(20 * Math.log10(m));
+    magDB.push(20 * Math.log10(Math.max(m, 1e-30)));
     phaseDeg.push(ph);
   }
   return { w, mag, magDB, phaseDeg, omegaNyquist };

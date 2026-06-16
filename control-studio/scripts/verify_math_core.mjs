@@ -9,6 +9,7 @@ import { c2dMatchedZ, c2dTustin, c2dTustinPrewarp, c2dZOH } from '../js/control/
 import { stateSpaceToTransferFunction, tfToControllableCanonical } from '../js/control/state-space.js';
 import { stepResponse } from '../js/analysis/time-response.js';
 import { discreteStepResponse } from '../js/analysis/discrete-response.js';
+import { discreteBodeData } from '../js/analysis/discrete-frequency-response.js';
 import { bodeData, nyquistData, nicholsData, nyquistEncirclements } from '../js/analysis/frequency-response.js';
 import { rootLocusData, rootLocusJwCrossings } from '../js/analysis/root-locus.js';
 
@@ -231,6 +232,7 @@ record('Continuous/discrete response consistency', () => {
 
 record('Analysis grid input guards', () => {
   const plant = new TransferFunction([1], [1, 1]);
+  const discretePlant = new DiscreteTransferFunction([0, 1], [1, -0.5], 0.1);
   const bode = bodeData(plant, 1e-2, 1e2, 8);
   assertTrue('bode finite grid', bode.w.length === 8 && bode.w.every(Number.isFinite));
   const nyquist = nyquistData(plant, 1e-2, 1e2, 8);
@@ -240,9 +242,16 @@ record('Analysis grid input guards', () => {
   assertTrue('nyquist encirclements remains finite', Number.isFinite(nyquistEncirclements(plant, 1e-2, 1e2, 8)));
   const locus = rootLocusData(plant, 0, 2, 8);
   assertTrue('root locus finite gains', locus.gains.length === 8 && locus.gains.every(Number.isFinite));
+  const discreteBode = discreteBodeData(discretePlant, { omegaMin: 1e-2, samples: 50 });
+  assertTrue('discrete bode finite grid', discreteBode.w.length === 50 && discreteBode.w.every(Number.isFinite));
+  assertTrue('discrete bode finite dB', discreteBode.magDB.every(Number.isFinite));
+  const zeroDiscreteBode = discreteBodeData(new DiscreteTransferFunction([0], [1], 0.1), { omegaMin: 1e-2, samples: 50 });
+  assertTrue('zero discrete bode dB remains finite', zeroDiscreteBode.magDB.every(Number.isFinite));
 
   assertThrows('bodeData rejects single-point grid', () => bodeData(plant, 1e-2, 1e2, 1), /nPoints/);
   assertThrows('nyquistData rejects invalid range', () => nyquistData(plant, 1, 1, 8), /frequency range/);
+  assertThrows('discreteBodeData rejects non-finite samples', () => discreteBodeData(discretePlant, { samples: NaN }), /samples/);
+  assertThrows('discreteBodeData rejects invalid omegaMin', () => discreteBodeData(discretePlant, { omegaMin: Math.PI / 0.1 }), /omegaMin/);
   assertThrows('rootLocusData rejects single-point grid', () => rootLocusData(plant, 0, 2, 1), /nPoints/);
   assertThrows('rootLocusJwCrossings rejects single-point sweep', () => rootLocusJwCrossings(plant, 10, 1), /samples/);
   assertThrows('rootLocusJwCrossings rejects invalid kMax', () => rootLocusJwCrossings(plant, 1e-4, 8), /kMax/);

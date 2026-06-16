@@ -1,7 +1,7 @@
 # ControlStudio Development Roadmap
 
 > Last updated: 2026-06-17
-> Current committed baseline: `fix(control): harden analysis grids`
+> Current committed baseline: `fix(control): harden discrete bode grids`
 > Scope: this is the canonical execution roadmap for ControlStudio implementation status.
 > Do not use this file for product vision, proof derivations, or handoff notes; see the document workflow below.
 
@@ -165,7 +165,7 @@ Per `docs/src/control-studio/functional-roadmap.html`. Tier A-J deterministic ba
 
 **Nonlinear analysis closure:** `js/analysis/equilibrium.js` now classifies n-dimensional equilibria through a Faddeev-LeVerrier characteristic polynomial plus shared `polyroots()` path. This removes the prior n>2 `trace(A)/n` placeholder that could hide saddle or unstable modes in higher-dimensional nonlinear linearizations. Nonlinear grid scans now validate grid size and finite bounds, and `gridSize=1` uses the finite bounds-center seed instead of producing NaN equilibrium or phase-portrait trajectories.
 
-**Analysis grid closure:** continuous Bode, Nyquist, Nichols, root-locus, and jω crossing sweeps now validate finite ranges and require at least two grid points. Invalid analysis grids fail with explicit errors instead of producing NaN frequency/gain samples.
+**Analysis grid closure:** continuous Bode, Nyquist, Nichols, root-locus, and jω crossing sweeps now validate finite ranges and require at least two grid points. Discrete Bode sweeps now validate finite sample counts and `0 < omegaMin < omegaNyquist`, and clamp zero-magnitude dB output to a finite floor. Invalid analysis grids fail with explicit errors instead of producing NaN or non-finite frequency/gain samples.
 
 ## Verification Suite Status (2026-06-17)
 
