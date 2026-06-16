@@ -36,8 +36,8 @@
 ## Current Baseline
 
 - Branch: `main`
-- Latest synced commit: `3496a71 fix(control): close math and API fallback gaps`
-- Current checkpoint: **CS-P0 ~ CS-P65 done; Functional Roadmap Tier A-J done; Phase 19/20/21/23 project-local skill gaps closed; verification aggregation closed.** 詳細執行看板見 `control-studio/ROADMAP.md`。目前僅暫停項目維持不做：教學模式、Electron packaging、報告模板 / 報告自動化、Block Diagram expansion。
+- Latest synced checkpoint: `fix(control): harden nonlinear equilibrium classification`
+- Current checkpoint: **CS-P0 ~ CS-P65 done; Functional Roadmap Tier A-J done; Phase 19/20/21/23 project-local skill gaps closed; nonlinear equilibrium classification hardening closed; verification aggregation closed.** 詳細執行看板見 `control-studio/ROADMAP.md`。目前僅暫停項目維持不做：教學模式、Electron packaging、報告模板 / 報告自動化、Block Diagram expansion。
 - Functional Roadmap Tier A-J checkpoint：Tier A control algorithms、Tier B identification、Tier C estimation、Tier D optimization、Tier E numerical repair、Tier F verification/safety、Tier G advanced MPC、Tier H embedded deployment、Tier I runtime architecture、Tier J HIL/integration 均已有 deterministic verification baseline；最新 full suite 基線見 `control-studio/ROADMAP.md`。
 - Scenario 5 browser walkthrough result: Phase 10 math + UI both operational.
 - Scenario 6 browser walkthrough result: SISO / MIMO core workflows are UI-operable.
@@ -63,12 +63,13 @@
   - `node control-studio/scripts/verify_p15_sysid.mjs`
   - `node control-studio/scripts/verify_p16_hinf.mjs`
   - `node control-studio/scripts/verify_p16_ga.mjs`
+  - `node control-studio/scripts/verify_equilibrium_nd.mjs`
   - `node test_control.js`
   - `node control-studio/scripts/verify_control_cases.mjs`
   - `node control-studio/scripts/verify_control_api_contract.mjs`
   - `node control-studio/scripts/control_regression_dashboard.mjs`
   - `./scripts/validate_nvidia_model_selector.sh`
-- Full suite baseline：`npm run verify:all` / `bash control-studio/scripts/run_all_verify.sh` 目前納入 109 個 deterministic verification scripts，包含 fixture 與 API contract。
+- Full suite baseline：`npm run verify:all` / `bash control-studio/scripts/run_all_verify.sh` 目前納入 110 個 deterministic verification scripts，包含 fixture、API contract 與 n-dimensional equilibrium classification regression。
 - Pre-push hook：`bash scripts/install-hooks.sh` 啟用後，每次 `git push` 會跑 `verify:math`；失敗阻擋 push（用 `git push --no-verify` 可跳過）。
 
 ## Development Sequence
@@ -243,7 +244,7 @@ Exit criteria: 已達成。
 | CS-P10-15 | P1 | Done | Schur CARE jω-boundary case | Hamiltonian 特徵值靠近虛軸 / 不 stabilizable 時 eigenvector path 會 fail；改為丟出含「stabilizability / boundary」友善訊息（非 NaN）。真正的 real Schur fallback 留待後續 | CS-P10-01 | `verify_phase10_care_robustness.mjs` 3 cases：jω uncontrollable、fully unstabilizable、near-boundary 仍可解 |
 | CS-P10-16 | P1 | Done | Schur vs Bass 對比測試（spacecraft sparse-B） | Spacecraft case 同時測 Schur 通過 (residual 1e-15) 與 Newton-Kleinman/Bass 失敗的友善訊息（已更新訊息明確推薦 Schur path） | CS-P10-01 / CS-P10-15 | `verify_phase10_care_robustness.mjs` 3 cases：Schur 通過 + Lyapunov 證、Kleinman 失敗含 Schur 提示、default path = Schur |
 | CS-P10-17 | P2 | Done | 高階 CARE 壓測 (n ≥ 4) + Matrix Sign Fallback | matrix sign function (Newton iteration)：n≥5 改用 sign(H) = Newton iteration → P=(I−Z)/2 stable projector → QR basis → P=YX⁻¹；n=4,5,6,8 全部 100% pass，residual ≤ 1e-13 | CS-P10-01 | `verify_phase10_high_order_care.mjs` 6×{n,m} 配置 + 4 assertions（n=8 從 0%→100%） |
-| CS-P10-18 | P2 | Done | CI / pre-push verification hook | root `package.json` 加 `verify:math` / `verify:all` / phase-specific scripts；`scripts/git-hooks/pre-push` + `bash scripts/install-hooks.sh` 設 core.hooksPath；失敗 block push（可用 `--no-verify` 跳過） | CS-P10-12 / Phase 9-10 runners | `npm run verify:math` 跑核心 math + fixture suite；`npm run verify:all` 跑 109/109 full suite |
+| CS-P10-18 | P2 | Done | CI / pre-push verification hook | root `package.json` 加 `verify:math` / `verify:all` / phase-specific scripts；`scripts/git-hooks/pre-push` + `bash scripts/install-hooks.sh` 設 core.hooksPath；失敗 block push（可用 `--no-verify` 跳過） | CS-P10-12 / Phase 9-10 runners | `npm run verify:math` 跑核心 math + fixture suite；`npm run verify:all` 跑 110/110 full suite |
 | CS-P10-05 | P3 | Paused | Electron packaging | 使用者要求擱置 | 主功能凍結 | 暫不做 |
 | CS-P10-06 | P3 | Paused | 教學模式 | 使用者要求擱置 | UI 穩定 | 暫不做 |
 | CS-P10-07 | P3 | Paused | 報告模板 / 報告自動化 | 使用者要求擱置 | Scenario docs mature | 暫不做 |
@@ -324,6 +325,7 @@ Phase 10 + Phase 11 全部完成：
 | CS-P16-02 | P2 | Done | Loop shaping workflow（由 H∞ weights 承擔） | `84241c7` |
 | CS-P16-03 | P2 | Done | Phase portrait + describing functions | Browser regression；`84241c7` |
 | CS-P16-04 | P1 | Done | GA-based PID auto-tuner | `node control-studio/scripts/verify_p16_ga.mjs` |
+| CS-P16-05 | P1 | Done | n-dimensional equilibrium classification | `node control-studio/scripts/verify_equilibrium_nd.mjs` |
 
 ### Phase 17: Advanced Robust / MIMO / MPC Extensions (CS-P17)
 
@@ -336,7 +338,7 @@ Phase 10 + Phase 11 全部完成：
 | CS-P17-03 | P2 | Done | MIMO frequency-domain design diagnostics: characteristic loci, Gershgorin bands, inverse Nyquist array | `node control-studio/scripts/verify_p17_advanced_control.mjs` |
 | CS-P17-04 | P1 | Done | MPC MIMO output-space setpoint tracking (`y_ref = Cx + Du`) | `node control-studio/scripts/verify_p17_advanced_control.mjs` |
 
-**Validation aggregate status：`control-studio/scripts/run_all_verify.sh` 與 `npm run verify:all` 是目前主驗證入口；full suite 已納入 fixture/API contract，最新基線為 109/109。P22+ 新增的 P23 / P24 / P25 / P26 / P27 runner 以 roadmap 與 package scripts 為準。**
+**Validation aggregate status：`control-studio/scripts/run_all_verify.sh` 與 `npm run verify:all` 是目前主驗證入口；full suite 已納入 fixture/API contract 與 n-dimensional equilibrium classification regression，最新基線為 110/110。P22+ 新增的 P23 / P24 / P25 / P26 / P27 runner 以 roadmap 與 package scripts 為準。**
 
 ## Phase 18+ Research / Engineering Extension Ledger
 

@@ -130,8 +130,8 @@ del{color:var(--muted)}
 
 <ul>
 <li>Branch: <code>main</code></li>
-<li>Latest synced commit: <code>3496a71 fix(control): close math and API fallback gaps</code></li>
-<li>Current checkpoint: <strong>CS-P0 ~ CS-P65 done; Functional Roadmap Tier A-J done; Phase 19/20/21/23 project-local skill gaps closed; verification aggregation closed.</strong> 詳細執行看板見 <code>control-studio/ROADMAP.md</code>。目前僅暫停項目維持不做：教學模式、Electron packaging、報告模板 / 報告自動化、Block Diagram expansion。</li>
+<li>Latest synced checkpoint: <code>fix(control): harden nonlinear equilibrium classification</code></li>
+<li>Current checkpoint: <strong>CS-P0 ~ CS-P65 done; Functional Roadmap Tier A-J done; Phase 19/20/21/23 project-local skill gaps closed; nonlinear equilibrium classification hardening closed; verification aggregation closed.</strong> 詳細執行看板見 <code>control-studio/ROADMAP.md</code>。目前僅暫停項目維持不做：教學模式、Electron packaging、報告模板 / 報告自動化、Block Diagram expansion。</li>
 <li>Functional Roadmap Tier A-J checkpoint：Tier A control algorithms、Tier B identification、Tier C estimation、Tier D optimization、Tier E numerical repair、Tier F verification/safety、Tier G advanced MPC、Tier H embedded deployment、Tier I runtime architecture、Tier J HIL/integration 均已有 deterministic verification baseline；最新 full suite 基線見 <code>control-studio/ROADMAP.md</code>。</li>
 <li>Scenario 5 browser walkthrough result: Phase 10 math + UI both operational.</li>
 <li>Scenario 6 browser walkthrough result: SISO / MIMO core workflows are UI-operable.</li>
@@ -160,13 +160,14 @@ del{color:var(--muted)}
 <li><code>node control-studio/scripts/verify_p15_sysid.mjs</code></li>
 <li><code>node control-studio/scripts/verify_p16_hinf.mjs</code></li>
 <li><code>node control-studio/scripts/verify_p16_ga.mjs</code></li>
+<li><code>node control-studio/scripts/verify_equilibrium_nd.mjs</code></li>
 <li><code>node test_control.js</code></li>
 <li><code>node control-studio/scripts/verify_control_cases.mjs</code></li>
 <li><code>node control-studio/scripts/verify_control_api_contract.mjs</code></li>
 <li><code>node control-studio/scripts/control_regression_dashboard.mjs</code></li>
 <li><code>./scripts/validate_nvidia_model_selector.sh</code></li>
 </ul>
-<li>Full suite baseline：<code>npm run verify:all</code> / <code>bash control-studio/scripts/run_all_verify.sh</code> 目前納入 109 個 deterministic verification scripts，包含 fixture 與 API contract。</li>
+<li>Full suite baseline：<code>npm run verify:all</code> / <code>bash control-studio/scripts/run_all_verify.sh</code> 目前納入 110 個 deterministic verification scripts，包含 fixture、API contract 與 n-dimensional equilibrium classification regression。</li>
 <li>Pre-push hook：<code>bash scripts/install-hooks.sh</code> 啟用後，每次 <code>git push</code> 會跑 <code>verify:math</code>；失敗阻擋 push（用 <code>git push --no-verify</code> 可跳過）。</li>
 </ul>
 
@@ -428,7 +429,7 @@ del{color:var(--muted)}
 </thead><tbody>
 <tr><td>CS-P10-17</td><td>P2</td><td>Done</td><td>高階 CARE 壓測 (n ≥ 4) + Matrix Sign Fallback</td><td>matrix sign function (Newton iteration)：n≥5 改用 sign(H) = Newton iteration → P=(I−Z)/2 stable projector → QR basis → P=YX⁻¹；n=4,5,6,8 全部 100% pass，residual ≤ 1e-13</td><td>CS-P10-01</td><td><code>verify_phase10_high_order_care.mjs</code> 6×{n,m} 配置 + 4 assertions（n=8 從 0%→100%）</td></tr>
 </thead><tbody>
-<tr><td>CS-P10-18</td><td>P2</td><td>Done</td><td>CI / pre-push verification hook</td><td>root <code>package.json</code> 加 <code>verify:math</code> / <code>verify:all</code> / phase-specific scripts；<code>scripts/git-hooks/pre-push</code> + <code>bash scripts/install-hooks.sh</code> 設 core.hooksPath；失敗 block push（可用 <code>--no-verify</code> 跳過）</td><td>CS-P10-12 / Phase 9-10 runners</td><td><code>npm run verify:math</code> 跑核心 math + fixture suite；<code>npm run verify:all</code> 跑 109/109 full suite</td></tr>
+<tr><td>CS-P10-18</td><td>P2</td><td>Done</td><td>CI / pre-push verification hook</td><td>root <code>package.json</code> 加 <code>verify:math</code> / <code>verify:all</code> / phase-specific scripts；<code>scripts/git-hooks/pre-push</code> + <code>bash scripts/install-hooks.sh</code> 設 core.hooksPath；失敗 block push（可用 <code>--no-verify</code> 跳過）</td><td>CS-P10-12 / Phase 9-10 runners</td><td><code>npm run verify:math</code> 跑核心 math + fixture suite；<code>npm run verify:all</code> 跑 110/110 full suite</td></tr>
 </thead><tbody>
 <tr><td>CS-P10-05</td><td>P3</td><td>Paused</td><td>Electron packaging</td><td>使用者要求擱置</td><td>主功能凍結</td><td>暫不做</td></tr>
 </thead><tbody>
@@ -545,6 +546,8 @@ del{color:var(--muted)}
 <tr><td>CS-P16-03</td><td>P2</td><td>Done</td><td>Phase portrait + describing functions</td><td>Browser regression；<code>84241c7</code></td></tr>
 </thead><tbody>
 <tr><td>CS-P16-04</td><td>P1</td><td>Done</td><td>GA-based PID auto-tuner</td><td><code>node control-studio/scripts/verify_p16_ga.mjs</code></td></tr>
+</thead><tbody>
+<tr><td>CS-P16-05</td><td>P1</td><td>Done</td><td>n-dimensional equilibrium classification</td><td><code>node control-studio/scripts/verify_equilibrium_nd.mjs</code></td></tr>
 </tbody></table>
 
 <h3 id="phase-17-advanced-robust-mimo-mpc-extensions-cs-p17">Phase 17: Advanced Robust / MIMO / MPC Extensions (CS-P17)</h3>
@@ -563,7 +566,7 @@ del{color:var(--muted)}
 <tr><td>CS-P17-04</td><td>P1</td><td>Done</td><td>MPC MIMO output-space setpoint tracking (<code>y_ref = Cx + Du</code>)</td><td><code>node control-studio/scripts/verify_p17_advanced_control.mjs</code></td></tr>
 </tbody></table>
 
-<p><strong>Validation aggregate status：<code>control-studio/scripts/run_all_verify.sh</code> 與 <code>npm run verify:all</code> 是目前主驗證入口；full suite 已納入 fixture/API contract，最新基線為 109/109。P22+ 新增的 P23 / P24 / P25 / P26 / P27 runner 以 roadmap 與 package scripts 為準。</strong></p>
+<p><strong>Validation aggregate status：<code>control-studio/scripts/run_all_verify.sh</code> 與 <code>npm run verify:all</code> 是目前主驗證入口；full suite 已納入 fixture/API contract 與 n-dimensional equilibrium classification regression，最新基線為 110/110。P22+ 新增的 P23 / P24 / P25 / P26 / P27 runner 以 roadmap 與 package scripts 為準。</strong></p>
 
 <h2 id="phase-18-research-engineering-extension-ledger">Phase 18+ Research / Engineering Extension Ledger</h2>
 

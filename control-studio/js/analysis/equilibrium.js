@@ -4,6 +4,8 @@
  * Given a nonlinear vector field f(x): R^n → R^n, find equilibria (f(x*)=0)
  * and classify them via the Jacobian eigenvalues.
  */
+import { matIdentity, matMul, matTrace } from '../math/matrix.js';
+import { polyroots } from '../math/polynomial.js';
 
 /**
  * Newton-Raphson iteration to find an equilibrium x* such that f(x*)=0,
@@ -75,8 +77,7 @@ export function classifyEquilibrium(f, xstar, options = {}) {
     J.push(row);
   }
 
-  // Compute eigenvalues (use characteristic polynomial for n≤2, or QR iteration for n≤4)
-  const eigenvalues = _eigenvalues2x2OrTrace(J, n);
+  const eigenvalues = _jacobianEigenvalues(J, n);
 
   const allNegRe = eigenvalues.every(λ => λ.re < -1e-9);
   const allPosRe = eigenvalues.every(λ => λ.re > 1e-9);
@@ -155,8 +156,8 @@ function _solveLinear(A, b) {
   return M.map((row, i) => row[n] / row[i]);
 }
 
-/** Eigenvalues for n≤4 via characteristic polynomial. */
-function _eigenvalues2x2OrTrace(J, n) {
+/** Eigenvalues for n≤2 via closed-form formulas; n>2 uses characteristic roots. */
+function _jacobianEigenvalues(J, n) {
   if (n === 1) return [{ re: J[0][0], im: 0 }];
   if (n === 2) {
     const tr = J[0][0] + J[1][1];
@@ -168,9 +169,29 @@ function _eigenvalues2x2OrTrace(J, n) {
       return [{ re: tr/2, im: Math.sqrt(-disc)/2 }, { re: tr/2, im: -Math.sqrt(-disc)/2 }];
     }
   }
-  // For n>2: use power iteration or return placeholder
-  // Simple approximation: use trace/n for all (only for classification attempt)
-  const tr = J.reduce((s, row, i) => s + row[i], 0);
-  const avgRe = tr / n;
-  return Array.from({length: n}, () => ({ re: avgRe, im: 0 }));
+  return polyroots(_characteristicPolynomial(J)).map((root) => ({
+    re: root.re,
+    im: root.im,
+  }));
+}
+
+/**
+ * Characteristic polynomial det(λI - A) via Faddeev-LeVerrier.
+ * Returns high-degree-first coefficients [1, c1, ..., cn].
+ */
+function _characteristicPolynomial(A) {
+  const n = A.length;
+  const I = matIdentity(n);
+  const coeffs = [1];
+  let Bk = I;
+
+  for (let k = 1; k <= n; k++) {
+    const Mk = matMul(A, Bk);
+    const ck = -matTrace(Mk) / k;
+    coeffs.push(Math.abs(ck) < 1e-12 ? 0 : ck);
+    if (k < n) {
+      Bk = Mk.map((row, i) => row.map((value, j) => value + ck * I[i][j]));
+    }
+  }
+  return coeffs;
 }

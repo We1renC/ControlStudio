@@ -86,8 +86,8 @@ del{color:var(--muted)}
 <h1 id="controlstudio-development-roadmap">ControlStudio Development Roadmap</h1>
 
 <blockquote>
-<p>Last updated: 2026-05-27</p>
-<p>Current committed baseline: <code>fix(control): close math and API fallback gaps</code></p>
+<p>Last updated: 2026-06-17</p>
+<p>Current committed baseline: <code>fix(control): close non-paused roadmap validation gaps</code></p>
 <p>Scope: this is the canonical execution roadmap for ControlStudio implementation status.</p>
 <p>Do not use this file for product vision, proof derivations, or handoff notes; see the document workflow below.</p>
 </blockquote>
@@ -148,7 +148,7 @@ del{color:var(--muted)}
 </thead><tbody>
 <tr><td>P15</td><td>ARX system identification</td><td>Done</td><td><code>verify_p15_sysid.mjs</code></td></tr>
 </thead><tbody>
-<tr><td>P16</td><td>GA tuning / H∞ Nelder-Mead</td><td>Done</td><td><code>verify_p16_*.mjs</code></td></tr>
+<tr><td>P16</td><td>GA tuning / H∞ Nelder-Mead / nonlinear equilibrium classification</td><td>Done</td><td><code>verify_p16_*.mjs</code>, <code>verify_equilibrium_nd.mjs</code></td></tr>
 </thead><tbody>
 <tr><td>P17</td><td>ARMAX / NSGA-II / EKF-UKF / advanced robust baseline</td><td>Done</td><td><code>verify_p17_*.mjs</code></td></tr>
 </thead><tbody>
@@ -377,9 +377,11 @@ del{color:var(--muted)}
 
 <p><strong>Math core closure:</strong> <code>js/math/realschur.js</code> now uses a Jacobi orthogonal Schur fast path for symmetric real matrices, fixing the 3x3 stable real-spectrum reconstruction regression. Non-normal Schur refinement remains a research-grade backend improvement, but no longer blocks current CARE / Lyapunov / Sylvester baselines.</p>
 
-<h2 id="verification-suite-status-2026-05-27">Verification Suite Status (2026-05-27)</h2>
+<p><strong>Nonlinear analysis closure:</strong> <code>js/analysis/equilibrium.js</code> now classifies n-dimensional equilibria through a Faddeev-LeVerrier characteristic polynomial plus shared <code>polyroots()</code> path. This removes the prior n&gt;2 <code>trace(A)/n</code> placeholder that could hide saddle or unstable modes in higher-dimensional nonlinear linearizations.</p>
 
-<p><strong>109/109 scripts pass</strong> — run via <code>bash scripts/run_all_verify.sh</code> or <code>npm run verify:all</code></p>
+<h2 id="verification-suite-status-2026-06-17">Verification Suite Status (2026-06-17)</h2>
+
+<p><strong>110/110 scripts pass</strong> — run via <code>bash scripts/run_all_verify.sh</code> or <code>npm run verify:all</code></p>
 
 <table><thead>
 <tr><th>Group</th><th>Scripts</th><th>Pass</th></tr>
@@ -388,7 +390,7 @@ del{color:var(--muted)}
 </thead><tbody>
 <tr><td>Phase 9/10/11 foundations</td><td>13</td><td>13</td></tr>
 </thead><tbody>
-<tr><td>Phase 14–65 advanced control / UI</td><td>67</td><td>67</td></tr>
+<tr><td>Phase 14–65 advanced control / UI</td><td>68</td><td>68</td></tr>
 </thead><tbody>
 <tr><td>Math audit fixes</td><td>1</td><td>1</td></tr>
 </thead><tbody>

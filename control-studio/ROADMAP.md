@@ -1,7 +1,7 @@
 # ControlStudio Development Roadmap
 
-> Last updated: 2026-05-27
-> Current committed baseline: `fix(control): close math and API fallback gaps`
+> Last updated: 2026-06-17
+> Current committed baseline: `fix(control): close non-paused roadmap validation gaps`
 > Scope: this is the canonical execution roadmap for ControlStudio implementation status.
 > Do not use this file for product vision, proof derivations, or handoff notes; see the document workflow below.
 
@@ -61,7 +61,7 @@ Before starting any new functional work that is not already a finished P-phase, 
 | P11 | DARE / MIMO / dynamic RGA | Done | `verify_phase11_*.mjs` |
 | P14 | Delay / IMC / RNG | Done | `verify_p14_*.mjs` |
 | P15 | ARX system identification | Done | `verify_p15_sysid.mjs` |
-| P16 | GA tuning / H∞ Nelder-Mead | Done | `verify_p16_*.mjs` |
+| P16 | GA tuning / H∞ Nelder-Mead / nonlinear equilibrium classification | Done | `verify_p16_*.mjs`, `verify_equilibrium_nd.mjs` |
 | P17 | ARMAX / NSGA-II / EKF-UKF / advanced robust baseline | Done | `verify_p17_*.mjs` |
 | P18 | Monte Carlo robust validation + UI + skill | Done | `verify_p18_robust_validation.mjs` |
 | P19 | H∞ Riccati synthesis baseline | Done | `verify_p19_hinf_riccati.mjs` |
@@ -178,15 +178,17 @@ Per `docs/src/control-studio/functional-roadmap.html`. Tier A-J deterministic ba
 
 **Math core closure:** `js/math/realschur.js` now uses a Jacobi orthogonal Schur fast path for symmetric real matrices, fixing the 3x3 stable real-spectrum reconstruction regression. Non-normal Schur refinement remains a research-grade backend improvement, but no longer blocks current CARE / Lyapunov / Sylvester baselines.
 
-## Verification Suite Status (2026-05-27)
+**Nonlinear analysis closure:** `js/analysis/equilibrium.js` now classifies n-dimensional equilibria through a Faddeev-LeVerrier characteristic polynomial plus shared `polyroots()` path. This removes the prior n>2 `trace(A)/n` placeholder that could hide saddle or unstable modes in higher-dimensional nonlinear linearizations.
 
-**109/109 scripts pass** — run via `bash scripts/run_all_verify.sh` or `npm run verify:all` (was 82/82 before Functional Roadmap additions)
+## Verification Suite Status (2026-06-17)
+
+**110/110 scripts pass** — run via `bash scripts/run_all_verify.sh` or `npm run verify:all` (was 82/82 before Functional Roadmap additions)
 
 | Group | Scripts | Pass |
 | --- | --- | --- |
 | Fixture & API contracts | 2 | 2 |
 | Phase 9/10/11 foundations | 13 | 13 |
-| Phase 14–65 advanced control / UI | 67 | 67 |
+| Phase 14–65 advanced control / UI | 68 | 68 |
 | Math audit fixes | 1 | 1 |
 | Functional Roadmap A-J | 22 | 22 |
 | General math & PID | 4 | 4 |
@@ -474,4 +476,4 @@ Three fixes applied after full math-core read audit:
 | A2 | `js/math/matrix.js` — `matDet()` | Added `_matDetLU()` O(n³) LU fallback for n > 6; Sarrus closed-form for n=3. Eliminates O(n!) cofactor recursion for large matrices. |
 | A3 | `js/analysis/root-locus.js` — `sortRootLocusBranches()` | Replaced greedy nearest-neighbor with **Jonker-Volgenant O(n³) Hungarian** optimal bipartite assignment (`_hungarianAssign`). Eliminates branch-swap artefacts at real-axis crossings. |
 
-Verify baseline: **109/109** (`run_all_verify.sh` / `npm run verify:all`). Immediate non-paused control roadmap items are complete at the deterministic baseline level; future work should be scenario-driven or target explicit research-grade backend replacements.
+Verify baseline: **110/110** (`run_all_verify.sh` / `npm run verify:all`). Immediate non-paused control roadmap items are complete at the deterministic baseline level; future work should be scenario-driven or target explicit research-grade backend replacements.

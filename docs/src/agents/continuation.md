@@ -9,7 +9,7 @@
 - 已建立獨立 git repo，避免被 `/Users/w.rc` 外層 git 混入。
 - 控制系統目前同步基線：
   - Branch: `main`
-  - Latest active line: `feat(control): complete Tier B identification baseline`
+  - Latest active line: `fix(control): harden nonlinear equilibrium classification`
   - Full phase audit checkpoints:
     - `7a318b3 fix(control): harden phase 7-9 theory diagnostics`
     - `46e20da fix(control): harden phase 0-6 theory checks`
@@ -35,6 +35,7 @@
   - 2026-05-27 接續完成 Phase 19 dynamic D-K 與 project-local skill gaps：`dk_iteration.js` 新增 `fitDynamicDScaling`、`evaluateDynamicDScaling`、`computeDynamicMuBoundFreq`、`dkIterationDynamic`，新增 `verify_p19_dynamic_dk.mjs`；同時補 `control-studio-mpc-designer`、`control-studio-sysid-planner`、`control-studio-ui-verifier` 三個專案 skills，最新基線升至 **105/105 scripts pass**。
   - 2026-05-27 接續完成 math/API closure：`realschur.js` 新增 symmetric Jacobi Schur fast path，修復 3x3 stable real-spectrum reconstruction regression；前端 Analysis Source 預設改為 `Auto API Fallback`，API 成功時套用 FastAPI metrics，API 不可用或 z-domain 時明確 fallback Local JS；新增 `verify_realschur_symmetric.mjs`、`verify_api_auto_fallback.mjs`，最新基線升至 **107/107 scripts pass**。
   - 2026-05-27 接續完成非 paused 收斂補強：root `package.json` 重新提供 `npm run verify:*` 入口並設定 `"type": "module"`；`run_all_verify.sh` 納入 `verify_control_cases.mjs` 與 `verify_control_api_contract.mjs`，fixture/API contract 不再游離於 full suite；`./nv-agent doctor` 更新為檢查 `docs/src/...` 文件路徑與 `npm run verify:math`，最新基線升至 **109/109 scripts pass**。
+  - 2026-06-17 接續完成 nonlinear equilibrium classification hardening：`js/analysis/equilibrium.js` 對 n>2 Jacobian 改用 Faddeev-LeVerrier characteristic polynomial + shared `polyroots()`，移除舊 `trace(A)/n` placeholder；新增 `verify_equilibrium_nd.mjs` 並納入 full suite，最新基線升至 **110/110 scripts pass**。
 - 已完成 NVIDIA Build Models 資料集中管理。
 - 已新增 agent 入口文件：
   - `AGENTS.md`：專案規則、標準流程、擴充規則與品質判準。
@@ -109,6 +110,7 @@
     - Done：MATLAB / Python codegen
     - Done：root locus K-sweep animation
   - Phase 16：Done
+    - Done：n-dimensional equilibrium classification hardening；3D saddle、4D stable node、3D unstable spiral 與 3D affine equilibrium convergence 已有 regression。
     - Done：H∞ mixed-sensitivity PID synthesis helper
     - Done：GA-based PID auto-tuner
     - Done：2D phase portrait
@@ -129,6 +131,7 @@
     - Done：discrete frequency response 改用共用 robust complex division。
     - Done：Hamiltonian stable subspace 清除未使用且轉置錯誤的 dead computation。
     - Done：real Schur 1x1 block swap 修正 Givens rotation 公式、乘法方向 / 符號與 reordered eigenvalue 回傳順序。
+    - Done：nonlinear equilibrium n-dimensional classification 改走 characteristic polynomial roots，避免高維 linearization 被 trace average 誤分類。
   - Phase 18+ Research / Engineering Extension：Active through P28
     - Done：Phase 18 uncertainty + Monte Carlo robust validation。
     - Done：Phase 18 core API in `control-studio/js/control/robust.js`，包含 uncertainty schema、deterministic Monte Carlo sampling、worst-case metrics、robust pass/fail 與 unstable sample classification。
@@ -149,7 +152,7 @@
     - 主執行看板：`control-studio/ROADMAP.md`。若 phase status、下一步順序或 dirty worktree 分類改變，先更新 roadmap，再同步 backlog / plan / skills / scenarios / verification cases / continuation。
     - Skill plan：`docs/src/control-studio/skills.md` 已規劃 `control-studio-robust-validator`、`control-studio-system-auditor`、`control-studio-benchmark-author`、`control-studio-mpc-designer`、`control-studio-sysid-planner` 等候選 skill。
   - Block Diagram expansion：Paused
-  - Phase 0 ~ Phase 65 與 Functional Roadmap Tier A-J 已完成文件進度對齊。後續若修改數值核心，至少依 roadmap 對應 phase 重跑 targeted verify、`npm run verify:all`、`node test_control.js`、`node control-studio/scripts/control_regression_dashboard.mjs`。
+  - Phase 0 ~ Phase 65 與 Functional Roadmap Tier A-J 已完成文件進度對齊。後續若修改數值核心，至少依 roadmap 對應 phase 重跑 targeted verify、`npm run verify:all`、`node test_control.js`、`node control-studio/scripts/control_regression_dashboard.mjs`；目前 full suite 基線為 **110/110 scripts pass**。
 - 已建立 symlink：
   - `/Users/w.rc/.config/agents/skills/nvidia-model-selector`
   - 指向 `/Users/w.rc/nvdiaOSsupport/skills/nvidia-model-selector`
@@ -287,7 +290,7 @@ git log --oneline -5
 - `control-studio` 已補 Phase 13：可折疊 section、Quick Start modal、confirm modal、live field validation、keyboard shortcuts、tablet / reduced-motion / a11y 整理。
 - `control-studio` 已補 Phase 14：time delay / Padé、delay margin、Smith predictor 包裝、IMC / SIMC tuning、KaTeX 公式、28 個 presets、disk margin / additive uncertainty、seedable RNG；`npm run verify:p14` 可重跑 3 組驗證。
 - `control-studio` 已補 Phase 15：ARX system ID（least squares + AIC auto order）、Compare Bode overlay、MATLAB / Python codegen、root-locus K-sweep animation；`npm run verify:p15` 可重跑驗證。
-- `control-studio` 已補 Phase 16：mixed-sensitivity H∞ PID synthesis helper、GA PID auto-tuner、phase portrait、describing functions；`npm run verify:p16` 可重跑驗證。
+- `control-studio` 已補 Phase 16：mixed-sensitivity H∞ PID synthesis helper、GA PID auto-tuner、phase portrait、describing functions、n-dimensional equilibrium classification；`npm run verify:p16` 與 `node control-studio/scripts/verify_equilibrium_nd.mjs` 可重跑驗證。
 - `control-studio` 已補 Phase 17：plant-order dynamic H∞ mixed-sensitivity synthesis、structured μ D-scaling upper-bound / DK-style static gain surrogate、MIMO characteristic loci / Gershgorin bands / inverse Nyquist array、MPC MIMO output-space setpoint tracking；`npm run verify:p17` 可重跑驗證。
 - `control-studio` 已補 Phase 24：EMPC (`empc.js`)、Tube MPC (`tube_mpc.js`)、Explicit MPC (`explicit_mpc.js`)；`verify_p24_empc.mjs` 與 `verify_p24_tube_explicit_mpc.mjs` 可重跑驗證。
 - `a2a89d3 fix(math): 4 defects in complex / polynomial / realschur` 已完成 post Phase 17 數學核心修復；commit 記錄 TF/SS/ZPK/C2D `36/36` 與 PID `21/21` 通過。
@@ -301,7 +304,7 @@ git log --oneline -5
 - 2026-05-24 sidebar IA 已補做結構整理：workflow sidebar 依任務分為 `Core / ID / Reuse`、`Core / Specs / Advanced`、`Sim / Deploy / QA` 等群組；對次要 panel 套用 default collapsed preset，並將 `Controller Tuning`、`Simulation` 兩個最長卡片再拆成 nested subsections。Browser 實測 `Design` tab nav scroll height 約由 `6225` 降到 `2052`，切 workflow / mode / search 後分類標籤仍能正確跟隨可見面板刷新。
 
 ## 後續可做
-1. 目前非暫停的 ControlStudio roadmap 已達 deterministic baseline，且 full suite / doctor 入口已收斂；下一步應由實際控制情境或明確研究級 backend 需求驅動。
+1. 目前非暫停的 ControlStudio roadmap 已達 deterministic baseline，且 full suite / doctor 入口已收斂至 110/110；下一步應由實際控制情境或明確研究級 backend 需求驅動。
 2. 可選研究深化：non-normal real Schur refinement、full-order dynamic K fitting、industrial-grade μ synthesis backend、CONTSID。
 3. 使用 `control-studio-system-auditor` 審查下一個控制設計缺口，並用 `control-studio-benchmark-author` 補 benchmark fixture。
 4. Teaching Mode / Electron / Report Template 目前使用者要求擱置，不要開發。

@@ -194,14 +194,14 @@
   <p style="color:var(--text-mute); margin-bottom:10px; font-size:13px;">
     後續開發（非 UI/UX）的核心方向、演算法規格、API 設計、驗收條件與依賴關係。
     本文件為 <b style="color:var(--text)">canonical 工程規劃</b>，任何接手 agent 須先閱讀本文。
-    目前 Tier A-J 已完成 deterministic baseline，full suite 基線為 109/109。
+    目前 Tier A-J 已完成 deterministic baseline，full suite 基線為 110/110。
   </p>
   <div class="meta">
     <span><b>Items</b>: 57</span>
     <span><b>Tiers</b>: 10 (A–J)</span>
     <span><b>Estimated Total</b>: ~270 工作天</span>
     <span><b>MVP Path</b>: 3 個月</span>
-    <span><b>Last Updated</b>: 2026-05-27</span>
+    <span><b>Last Updated</b>: 2026-06-17</span>
     <span><b>Status</b>: Implemented baseline</span>
     <span><b>Owner</b>: Functional Planning</span>
   </div>
@@ -1955,7 +1955,7 @@ queryPrometheus({ url, metric, range }) → { t, values }
       <h3>禁忌事項</h3>
     </header>
     <ul class="checks">
-      <li>✗ 不可破壞既有 verify_*.mjs 通過率（目前 82/82）</li>
+      <li>✗ 不可破壞既有 verify_*.mjs 通過率（目前 110/110）</li>
       <li>✗ 不可移除既存 API 函數（如需更名請保留 alias）</li>
       <li>✗ 不可 commit <code>.env*</code>、<code>settings.json</code>、<code>*.key</code>、handoff 等敏感檔</li>
       <li>✗ UI 修改不可破壞 plot-switcher / flow-bar 既已修復的精簡版（見 ROADMAP P66 紀錄）</li>
@@ -1983,7 +1983,7 @@ queryPrometheus({ url, metric, range }) → { t, values }
 
 <footer class="doc-footer">
   <p>
-    ControlStudio Functional Roadmap · Generated 2026-05-24 ·
+    ControlStudio Functional Roadmap · Generated 2026-06-17 ·
     Maintained by: Functional Planning ·
     <a href="../../../control-studio/ROADMAP.md">ROADMAP.md</a> ·
     <a href="./plan.md">plan.md</a>

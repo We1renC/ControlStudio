@@ -85,6 +85,7 @@
   - `control-studio/js/analysis/time-response.js`
   - `control-studio/js/analysis/frequency-response.js`
   - `control-studio/js/analysis/root-locus.js`
+  - `control-studio/js/analysis/equilibrium.js`
 - 視覺化編輯器：
   - `control-studio/js/editor/`
 - AI 顧問：
@@ -209,7 +210,7 @@
 - Phase 13：UI/UX usability overhaul、Quick Start、confirm modal、live validation、keyboard shortcuts、a11y / responsive cleanup
 - Phase 14：time delay / Padé / Smith predictor、IMC / SIMC tuning、KaTeX 公式渲染、industrial presets、disk margin、seed control
 - Phase 15：ARX system identification、controller A/B compare、MATLAB / Python codegen、root-locus animation
-- Phase 16：H∞ mixed-sensitivity PID synthesis helper、GA PID auto-tuner、phase portrait、describing functions；Functional Roadmap Tier A 已補 A1~A7 algorithm baseline
+- Phase 16：H∞ mixed-sensitivity PID synthesis helper、GA PID auto-tuner、phase portrait、describing functions、n-dimensional equilibrium classification；Functional Roadmap Tier A 已補 A1~A7 algorithm baseline
 - Phase 17：plant-order dynamic H∞ mixed-sensitivity synthesis、structured μ D-scaling upper-bound / DK-style static gain surrogate、MIMO characteristic loci / Gershgorin bands / inverse Nyquist array、MPC MIMO output-space setpoint tracking
 
 ### Math Core Hardening 已完成（Post Phase 17）
@@ -224,12 +225,13 @@
 - Full math-core audit：`matInverse()` / `matSolve()` / `matRank()` / `matIsPositiveDefinite()` 改用相對矩陣尺度 tolerance，避免縮放很小但條件良好的矩陣被誤判 singular、rank deficient 或非正定。
 - Full math-core audit：discrete Bode evaluation 改走共用 robust complex division path。
 - Real Schur symmetric fast path：對 symmetric real matrices 使用 Jacobi orthogonal Schur，修復 3x3 stable real-spectrum reconstruction regression。
+- Nonlinear equilibrium classification：`classifyEquilibrium()` 對 n>2 Jacobian 改用 Faddeev-LeVerrier characteristic polynomial + `polyroots()`，避免舊 `trace(A)/n` placeholder 隱藏 saddle / unstable modes。
 - Frontend analysis API migration：新 session 預設 `Auto API Fallback`，FastAPI 成功時使用 Unified API metrics，不可用或 z-domain 時明確 fallback Local JS；root `package.json` 已提供 `npm run verify:*` 入口。
 - Verification：最新節點已通過 TF / SS / ZPK / C2D 與 PID regression（commit message 記錄 `36/36` 與 `21/21`）。
 
 ### 尚未完成能力
 - Functional Roadmap Tier A-J 已完成 deterministic baseline。
-- Full verification suite 已納入 control verification fixtures 與 FastAPI contract fixtures；目前基線為 `109/109 scripts pass`。
+- Full verification suite 已納入 control verification fixtures、FastAPI contract fixtures 與 n-dimensional equilibrium classification regression；目前基線為 `110/110 scripts pass`。
 - Phase 23 ~ Phase 28 舊缺口已同步收斂：continuous-time ID / Hankel norm / LPV synthesis / dynamic D-K / JSDoc API docs 均已有驗證基線。
 - CONTSID、full-order dynamic K fitting、industrial-grade μ synthesis backend 仍可作後續研究擴充，但不再列為目前阻塞項。
 - 自動產生報告 / 報告模板、Electron packaging、教學模式與 Block Diagram expansion 仍依使用者要求擱置。
@@ -493,15 +495,17 @@
 - Done：Phase 13 UI/UX overhaul — collapsible sections、Quick Start modal、confirm modal、field-level validation hints、keyboard shortcuts、accessibility / responsive cleanup。
 - Done：Phase 14 delay / formula / industrial tuning — Padé delay、delay margin、Smith predictor、IMC / SIMC tuning、KaTeX、28 presets、disk margin、seedable RNG。
 - Done：Phase 15 workflow tooling — ARX identification、open-loop A/B Bode compare、MATLAB / Python code export、root-locus K-sweep animation。
-- Done：Phase 16 advanced synthesis / nonlinear entry points — mixed-sensitivity PID tuning、GA PID auto-tuner、2D phase portrait、describing functions。
+- Done：Phase 16 advanced synthesis / nonlinear entry points — mixed-sensitivity PID tuning、GA PID auto-tuner、2D phase portrait、describing functions、n-dimensional equilibrium classification。
 - Done：Phase 17 advanced robust / MIMO / MPC extensions — plant-order dynamic H∞ mixed-sensitivity synthesis、structured μ D-scaling upper-bound、DK-style static gain surrogate、characteristic loci、Gershgorin bands、inverse Nyquist array、MIMO output-space MPC tracking。
 - Done：Post Phase 17 math hardening — complex magnitude robustness、ill-conditioned polynomial conjugate pairing、Hamiltonian stable-subspace cleanup、real Schur block reorder correctness。
 - Done：Full math-core audit hardening — robust complex division、stable quadratic roots、scale-aware matrix inverse/solve/rank/PD checks、discrete frequency response division unification。
+- Done：Nonlinear equilibrium audit hardening — n>2 Jacobian eigenvalue classification now uses characteristic polynomial roots instead of trace-average placeholder；`verify_equilibrium_nd.mjs` covers 3D saddle, 4D stable-node, 3D unstable-spiral, and 3D affine equilibrium convergence.
 - Verification：
   - `npm run verify:p14`
   - `npm run verify:p15`
   - `npm run verify:p16`
   - `npm run verify:p17`
+  - `node control-studio/scripts/verify_equilibrium_nd.mjs`
   - `npm run verify:all`
 
 ### Phase 18+ Research / Engineering Extension Track
@@ -540,7 +544,7 @@
 1. 先讀本文件，再動手修改控制系統相關檔案。
 2. 若修改數值核心、API 分析輸出或穩定性指標，需對照 `docs/src/control-studio/verification.md` 的案例與數學推導。
 3. 後續開發順序以 `control-studio/ROADMAP.md` 為準；詳細 task ledger 再對照 `docs/src/control-studio/backlog.md`。
-4. 目前非 paused roadmap 已到 109/109 verification baseline；若啟動下一階段，先更新 `control-studio/ROADMAP.md`，再同步 `docs/src/control-studio/backlog.md` 與 `docs/src/control-studio/skills.md` 的範圍、技能邊界與驗證基線。
+4. 目前非 paused roadmap 已到 110/110 verification baseline；若啟動下一階段，先更新 `control-studio/ROADMAP.md`，再同步 `docs/src/control-studio/backlog.md` 與 `docs/src/control-studio/skills.md` 的範圍、技能邊界與驗證基線。
 5. 若新增控制系統分析功能，必須補：
    - 文件
    - 至少一個 smoke test 或驗證流程
