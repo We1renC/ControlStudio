@@ -130,8 +130,8 @@ del{color:var(--muted)}
 
 <ul>
 <li>Branch: <code>main</code></li>
-<li>Latest synced checkpoint: <code>fix(control): harden nonlinear grid scans</code></li>
-<li>Current checkpoint: <strong>CS-P0 ~ CS-P65 done; Functional Roadmap Tier A-J done; Phase 19/20/21/23 project-local skill gaps closed; nonlinear equilibrium classification and nonlinear grid-scan hardening closed; verification aggregation closed.</strong> 詳細執行看板見 <code>control-studio/ROADMAP.md</code>。目前僅暫停項目維持不做：教學模式、Electron packaging、報告模板 / 報告自動化、Block Diagram expansion。</li>
+<li>Latest synced checkpoint: <code>fix(control): harden analysis grids</code></li>
+<li>Current checkpoint: <strong>CS-P0 ~ CS-P65 done; Functional Roadmap Tier A-J done; Phase 19/20/21/23 project-local skill gaps closed; nonlinear equilibrium classification, nonlinear grid-scan hardening, and continuous analysis-grid hardening closed; verification aggregation closed.</strong> 詳細執行看板見 <code>control-studio/ROADMAP.md</code>。目前僅暫停項目維持不做：教學模式、Electron packaging、報告模板 / 報告自動化、Block Diagram expansion。</li>
 <li>Functional Roadmap Tier A-J checkpoint：Tier A control algorithms、Tier B identification、Tier C estimation、Tier D optimization、Tier E numerical repair、Tier F verification/safety、Tier G advanced MPC、Tier H embedded deployment、Tier I runtime architecture、Tier J HIL/integration 均已有 deterministic verification baseline；最新 full suite 基線見 <code>control-studio/ROADMAP.md</code>。</li>
 <li>Scenario 5 browser walkthrough result: Phase 10 math + UI both operational.</li>
 <li>Scenario 6 browser walkthrough result: SISO / MIMO core workflows are UI-operable.</li>
@@ -189,6 +189,8 @@ del{color:var(--muted)}
 <tr><td>CS-P0-04</td><td>P0</td><td>Done</td><td>Input validation hardening</td><td>統一 TF/SS/ZPK/Lead/Lag 錯誤提示與邊界條件</td><td>現有 field error helper</td><td><code>test_control.js</code> 與 browser smoke</td></tr>
 </thead><tbody>
 <tr><td>CS-P0-05</td><td>P0</td><td>Done</td><td>Math core verification runner</td><td>獨立鎖住 Complex / Polynomial / Matrix / ODE / TF / DTF / State-Space / C2D 基礎不變量</td><td>math/control core modules</td><td><code>node control-studio/scripts/verify_math_core.mjs</code></td></tr>
+</thead><tbody>
+<tr><td>CS-P0-06</td><td>P0</td><td>Done</td><td>Continuous analysis grid guards</td><td>Bode / Nyquist / Nichols / Root Locus / jω crossing 對非法範圍或單點 grid 明確 throw，避免 NaN samples</td><td>frequency/root-locus core</td><td><code>node control-studio/scripts/verify_math_core.mjs</code></td></tr>
 </tbody></table>
 
 <p>Exit criteria: 已達成。</p>

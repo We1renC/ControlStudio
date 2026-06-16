@@ -96,7 +96,7 @@ del{color:var(--muted)}
 <li>控制系統目前同步基線：</li>
 <ul>
 <li>Branch: <code>main</code></li>
-<li>Latest active line: <code>fix(control): harden nonlinear grid scans</code></li>
+<li>Latest active line: <code>fix(control): harden analysis grids</code></li>
 <li>Full phase audit checkpoints:</li>
 <ul>
 <li><code>7a318b3 fix(control): harden phase 7-9 theory diagnostics</code></li>
@@ -126,6 +126,7 @@ del{color:var(--muted)}
 <li>2026-05-27 接續完成非 paused 收斂補強：root <code>package.json</code> 重新提供 <code>npm run verify:*</code> 入口並設定 <code>"type": "module"</code>；<code>run_all_verify.sh</code> 納入 <code>verify_control_cases.mjs</code> 與 <code>verify_control_api_contract.mjs</code>，fixture/API contract 不再游離於 full suite；<code>./nv-agent doctor</code> 更新為檢查 <code>docs/src/...</code> 文件路徑與 <code>npm run verify:math</code>，最新基線升至 <strong>109/109 scripts pass</strong>。</li>
 <li>2026-06-17 接續完成 nonlinear equilibrium classification hardening：<code>js/analysis/equilibrium.js</code> 對 n&gt;2 Jacobian 改用 Faddeev-LeVerrier characteristic polynomial + shared <code>polyroots()</code>，移除舊 <code>trace(A)/n</code> placeholder；新增 <code>verify_equilibrium_nd.mjs</code> 並納入 full suite，最新基線升至 <strong>110/110 scripts pass</strong>。</li>
 <li>2026-06-17 接續完成 nonlinear grid scan hardening：<code>scanEquilibria()</code> 與 <code>phasePortrait()</code> 現在會拒絕無效 <code>gridSize</code> / bounds / timing 參數，且 <code>gridSize=1</code> 改用 bounds center seed，避免 equilibrium scan 或 phase portrait trajectory 出現 NaN；<code>verify_equilibrium_nd.mjs</code> 擴充為 7 個 regression checks。</li>
+<li>2026-06-17 接續完成 continuous analysis grid hardening：<code>bodeData()</code>、<code>nyquistData()</code> / <code>nicholsData()</code>、<code>rootLocusData()</code>、<code>rootLocusJwCrossings()</code> 現在會拒絕非法 frequency/gain range 與單點 grid，避免 analysis API 回傳 NaN samples；<code>verify_math_core.mjs</code> 擴充為 9 個 checks，<code>control_regression_dashboard.mjs</code> 與 <code>scripts/validate_nvidia_model_selector.sh</code> 的 doctor gate 也已同步預期 <code>9/9</code>。</li>
 </ul>
 <li>已完成 NVIDIA Build Models 資料集中管理。</li>
 <li>已新增 agent 入口文件：</li>
@@ -246,6 +247,7 @@ del{color:var(--muted)}
 <li>Done：二階 <code>polyroots()</code> 改為 stable quadratic formula，保留 separated roots 的小根。</li>
 <li>Done：<code>matInverse()</code> / <code>matSolve()</code> / <code>matRank()</code> / <code>matIsPositiveDefinite()</code> 改用相對尺度 tolerance，避免縮放很小但條件良好的矩陣被誤判。</li>
 <li>Done：discrete frequency response 改用共用 robust complex division。</li>
+<li>Done：continuous Bode / Nyquist / Nichols / Root Locus / jω crossing grids 加入 finite range 與 sample-count guards。</li>
 <li>Done：Hamiltonian stable subspace 清除未使用且轉置錯誤的 dead computation。</li>
 <li>Done：real Schur 1x1 block swap 修正 Givens rotation 公式、乘法方向 / 符號與 reordered eigenvalue 回傳順序。</li>
 <li>Done：nonlinear equilibrium n-dimensional classification 改走 characteristic polynomial roots，避免高維 linearization 被 trace average 誤分類；nonlinear scan / phase portrait grid APIs 已補 gridSize 與 bounds guards。</li>
@@ -402,7 +404,7 @@ git log --oneline -5
 <li><code>control-studio/js/control/stability.js</code> 新增 <code>routhTable</code> Routh-Hurwitz 穩定性表。</li>
 <li><code>control-studio/js/analysis/frequency-response.js</code> 新增 <code>nicholsData</code>、<code>nyquistEncirclements</code>。</li>
 <li><code>test_control.js</code> 已擴充涵蓋 ZPK、polydiv、Routh、Nichols、encirclement、asymptotes、SS Rank 測試。</li>
-<li><code>control-studio/scripts/verify_math_core.mjs</code> 已新增為獨立數學核心驗證：覆蓋 Complex、Polynomial roots、Matrix solve/inverse/exp、RK4/RK45、TF/DTF guard、State-Space roundtrip、C2D DC gain。</li>
+<li><code>control-studio/scripts/verify_math_core.mjs</code> 已新增為獨立數學核心驗證：覆蓋 Complex、Polynomial roots、Matrix solve/inverse/exp、RK4/RK45、TF/DTF guard、State-Space roundtrip、C2D DC gain、continuous frequency/root-locus grid guards。</li>
 <li><code>control-studio/js/math/polynomial.js</code> 已改用 Durand-Kerner 處理三階以上根；舊 QR path 對 <code>s^3+1</code> 會錯誤收斂為 0，勿恢復。</li>
 <li><code>control-studio/js/math/ode.js</code> 已修正 RK45 Dormand-Prince 5th-order 權重缺第 7 項 <code>0</code> 造成 NaN / infinite loop 的問題。</li>
 <li><code>docs/src/control-studio/scenarios.md</code> 已新增 precision servo stage position control 情境，使用 ControlStudio 核心完成 PID + Lead 設計，並記錄後續改善思考。</li>

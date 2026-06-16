@@ -36,8 +36,8 @@
 ## Current Baseline
 
 - Branch: `main`
-- Latest synced checkpoint: `fix(control): harden nonlinear grid scans`
-- Current checkpoint: **CS-P0 ~ CS-P65 done; Functional Roadmap Tier A-J done; Phase 19/20/21/23 project-local skill gaps closed; nonlinear equilibrium classification and nonlinear grid-scan hardening closed; verification aggregation closed.** 詳細執行看板見 `control-studio/ROADMAP.md`。目前僅暫停項目維持不做：教學模式、Electron packaging、報告模板 / 報告自動化、Block Diagram expansion。
+- Latest synced checkpoint: `fix(control): harden analysis grids`
+- Current checkpoint: **CS-P0 ~ CS-P65 done; Functional Roadmap Tier A-J done; Phase 19/20/21/23 project-local skill gaps closed; nonlinear equilibrium classification, nonlinear grid-scan hardening, and continuous analysis-grid hardening closed; verification aggregation closed.** 詳細執行看板見 `control-studio/ROADMAP.md`。目前僅暫停項目維持不做：教學模式、Electron packaging、報告模板 / 報告自動化、Block Diagram expansion。
 - Functional Roadmap Tier A-J checkpoint：Tier A control algorithms、Tier B identification、Tier C estimation、Tier D optimization、Tier E numerical repair、Tier F verification/safety、Tier G advanced MPC、Tier H embedded deployment、Tier I runtime architecture、Tier J HIL/integration 均已有 deterministic verification baseline；最新 full suite 基線見 `control-studio/ROADMAP.md`。
 - Scenario 5 browser walkthrough result: Phase 10 math + UI both operational.
 - Scenario 6 browser walkthrough result: SISO / MIMO core workflows are UI-operable.
@@ -85,6 +85,7 @@
 | CS-P0-03 | P0 | Done | Browser regression smoke | 固定核心 UI 流程：輸入 plant、調 controller、看 plot、匯出 | 前端服務 `8765`, API `8770` | `window.ControlStudioSmoke.run()` |
 | CS-P0-04 | P0 | Done | Input validation hardening | 統一 TF/SS/ZPK/Lead/Lag 錯誤提示與邊界條件 | 現有 field error helper | `test_control.js` 與 browser smoke |
 | CS-P0-05 | P0 | Done | Math core verification runner | 獨立鎖住 Complex / Polynomial / Matrix / ODE / TF / DTF / State-Space / C2D 基礎不變量 | math/control core modules | `node control-studio/scripts/verify_math_core.mjs` |
+| CS-P0-06 | P0 | Done | Continuous analysis grid guards | Bode / Nyquist / Nichols / Root Locus / jω crossing 對非法範圍或單點 grid 明確 throw，避免 NaN samples | frequency/root-locus core | `node control-studio/scripts/verify_math_core.mjs` |
 
 Exit criteria: 已達成。
 

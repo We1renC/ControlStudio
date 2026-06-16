@@ -3,11 +3,21 @@
  */
 import { Complex } from '../math/complex.js';
 
+function assertFrequencyGrid(wMin, wMax, nPoints, label) {
+  if (!Number.isFinite(wMin) || !Number.isFinite(wMax) || wMin <= 0 || wMax <= wMin) {
+    throw new Error(`${label}: frequency range must satisfy 0 < wMin < wMax`);
+  }
+  if (!Number.isInteger(nPoints) || nPoints < 2) {
+    throw new Error(`${label}: nPoints must be an integer >= 2`);
+  }
+}
+
 /**
  * Compute Bode plot data.
  * @returns {{ w: number[], magDB: number[], phaseDeg: number[] }}
  */
 export function bodeData(sys, wMin = 1e-2, wMax = 1e3, nPoints = 500) {
+  assertFrequencyGrid(wMin, wMax, nPoints, 'bodeData');
   const logMin = Math.log10(wMin), logMax = Math.log10(wMax);
   const w = [], magDB = [], phaseDeg = [];
   let prevPhase = null;
@@ -39,6 +49,7 @@ export function bodeData(sys, wMin = 1e-2, wMax = 1e3, nPoints = 500) {
  * Returns real and imaginary parts for positive and negative frequencies.
  */
 export function nyquistData(sys, wMin = 1e-3, wMax = 1e3, nPoints = 1000) {
+  assertFrequencyGrid(wMin, wMax, nPoints, 'nyquistData');
   const logMin = Math.log10(wMin), logMax = Math.log10(wMax);
   const re = [], im = [], w = [];
 

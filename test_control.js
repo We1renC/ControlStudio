@@ -811,10 +811,17 @@ try {
 
   // (A) Bode of 1/(s+1) at ω=1: |G|=1/√2 (-3.0103 dB), phase=-45°
   const a1 = new TransferFunction([1], [1, 1]);
-  // Hit ω=1 exactly: ask for 2 points at the same frequency.
-  const a1Bode = bodeData(a1, 1, 1, 2);
+  // Hit ω=1 exactly at the first sample while preserving a valid log grid.
+  const a1Bode = bodeData(a1, 1, 1 + 1e-12, 2);
   assertNear('1/(s+1) magDB at ω=1', a1Bode.magDB[0], -3.0103, 1e-3);
   assertNear('1/(s+1) phase at ω=1', a1Bode.phaseDeg[0], -45, 1e-3);
+  let threwEqualBodeGrid = false;
+  try {
+    bodeData(a1, 1, 1, 2);
+  } catch (err) {
+    threwEqualBodeGrid = /frequency range/i.test(err.message);
+  }
+  if (!threwEqualBodeGrid) throw new Error('bodeData should reject equal wMin/wMax grids');
 
   // (B) Tustin always preserves DC gain across orders
   for (const sysC of [new TransferFunction([2], [1, 2]), new TransferFunction([1, 3], [1, 3, 2]), new TransferFunction([1], [1, 6, 11, 6])]) {

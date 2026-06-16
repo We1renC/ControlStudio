@@ -18,7 +18,7 @@ const checks = [
   {
     name: 'Math core verification',
     command: ['node', 'control-studio/scripts/verify_math_core.mjs'],
-    expect: ['Math core verification passed: 8/8'],
+    expect: ['Math core verification passed: 9/9'],
   },
   {
     name: 'Phase 10 math core verification',

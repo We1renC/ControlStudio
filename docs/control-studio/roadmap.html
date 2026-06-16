@@ -87,7 +87,7 @@ del{color:var(--muted)}
 
 <blockquote>
 <p>Last updated: 2026-06-17</p>
-<p>Current committed baseline: <code>fix(control): harden nonlinear grid scans</code></p>
+<p>Current committed baseline: <code>fix(control): harden analysis grids</code></p>
 <p>Scope: this is the canonical execution roadmap for ControlStudio implementation status.</p>
 <p>Do not use this file for product vision, proof derivations, or handoff notes; see the document workflow below.</p>
 </blockquote>
@@ -378,6 +378,8 @@ del{color:var(--muted)}
 <p><strong>Math core closure:</strong> <code>js/math/realschur.js</code> now uses a Jacobi orthogonal Schur fast path for symmetric real matrices, fixing the 3x3 stable real-spectrum reconstruction regression. Non-normal Schur refinement remains a research-grade backend improvement, but no longer blocks current CARE / Lyapunov / Sylvester baselines.</p>
 
 <p><strong>Nonlinear analysis closure:</strong> <code>js/analysis/equilibrium.js</code> now classifies n-dimensional equilibria through a Faddeev-LeVerrier characteristic polynomial plus shared <code>polyroots()</code> path. This removes the prior n&gt;2 <code>trace(A)/n</code> placeholder that could hide saddle or unstable modes in higher-dimensional nonlinear linearizations. Nonlinear grid scans now validate grid size and finite bounds, and <code>gridSize=1</code> uses the finite bounds-center seed instead of producing NaN equilibrium or phase-portrait trajectories.</p>
+
+<p><strong>Analysis grid closure:</strong> continuous Bode, Nyquist, Nichols, root-locus, and jω crossing sweeps now validate finite ranges and require at least two grid points. Invalid analysis grids fail with explicit errors instead of producing NaN frequency/gain samples.</p>
 
 <h2 id="verification-suite-status-2026-06-17">Verification Suite Status (2026-06-17)</h2>
 

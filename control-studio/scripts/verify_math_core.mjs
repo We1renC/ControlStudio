@@ -9,6 +9,8 @@ import { c2dMatchedZ, c2dTustin, c2dTustinPrewarp, c2dZOH } from '../js/control/
 import { stateSpaceToTransferFunction, tfToControllableCanonical } from '../js/control/state-space.js';
 import { stepResponse } from '../js/analysis/time-response.js';
 import { discreteStepResponse } from '../js/analysis/discrete-response.js';
+import { bodeData, nyquistData, nicholsData, nyquistEncirclements } from '../js/analysis/frequency-response.js';
+import { rootLocusData, rootLocusJwCrossings } from '../js/analysis/root-locus.js';
 
 const checks = [];
 
@@ -27,6 +29,19 @@ function assertRelNear(name, actual, expected, relTolerance = 1e-9, absTolerance
 
 function assertTrue(name, condition) {
   if (!condition) throw new Error(name);
+}
+
+function assertThrows(name, fn, pattern) {
+  let err = null;
+  try {
+    fn();
+  } catch (caught) {
+    err = caught;
+  }
+  if (!err) throw new Error(`${name}: expected throw`);
+  if (pattern && !pattern.test(err.message)) {
+    throw new Error(`${name}: message mismatch: ${err.message}`);
+  }
 }
 
 function record(name, fn) {
@@ -212,6 +227,25 @@ record('Continuous/discrete response consistency', () => {
   const discPoles = matched.poles();
   const realPole = discPoles.find((p) => Math.abs(p.im) < 1e-9);
   assertNear('Matched-Z pole = exp(-Ts)', realPole?.re ?? 0, expectedPole, 1e-8);
+});
+
+record('Analysis grid input guards', () => {
+  const plant = new TransferFunction([1], [1, 1]);
+  const bode = bodeData(plant, 1e-2, 1e2, 8);
+  assertTrue('bode finite grid', bode.w.length === 8 && bode.w.every(Number.isFinite));
+  const nyquist = nyquistData(plant, 1e-2, 1e2, 8);
+  assertTrue('nyquist finite grid', nyquist.w.length === 8 && nyquist.re.every(Number.isFinite) && nyquist.im.every(Number.isFinite));
+  const nichols = nicholsData(plant, 1e-2, 1e2, 8);
+  assertTrue('nichols finite grid', nichols.w.length === 8 && nichols.magDB.every(Number.isFinite));
+  assertTrue('nyquist encirclements remains finite', Number.isFinite(nyquistEncirclements(plant, 1e-2, 1e2, 8)));
+  const locus = rootLocusData(plant, 0, 2, 8);
+  assertTrue('root locus finite gains', locus.gains.length === 8 && locus.gains.every(Number.isFinite));
+
+  assertThrows('bodeData rejects single-point grid', () => bodeData(plant, 1e-2, 1e2, 1), /nPoints/);
+  assertThrows('nyquistData rejects invalid range', () => nyquistData(plant, 1, 1, 8), /frequency range/);
+  assertThrows('rootLocusData rejects single-point grid', () => rootLocusData(plant, 0, 2, 1), /nPoints/);
+  assertThrows('rootLocusJwCrossings rejects single-point sweep', () => rootLocusJwCrossings(plant, 10, 1), /samples/);
+  assertThrows('rootLocusJwCrossings rejects invalid kMax', () => rootLocusJwCrossings(plant, 1e-4, 8), /kMax/);
 });
 
 const failed = checks.filter((check) => !check.ok);

@@ -4,6 +4,15 @@
  */
 import { polyroots, polyadd, polyscale, polymul, polysub, polyderiv, polyvalReal } from '../math/polynomial.js?v=p4';
 
+function assertGainSweep(kMin, kMax, nPoints, label) {
+  if (!Number.isFinite(kMin) || !Number.isFinite(kMax) || kMax < kMin) {
+    throw new Error(`${label}: gain range must satisfy finite kMin <= kMax`);
+  }
+  if (!Number.isInteger(nPoints) || nPoints < 2) {
+    throw new Error(`${label}: nPoints must be an integer >= 2`);
+  }
+}
+
 /**
  * Compute root locus data.
  * For characteristic equation: den(s) + K·num(s) = 0
@@ -14,6 +23,7 @@ import { polyroots, polyadd, polyscale, polymul, polysub, polyderiv, polyvalReal
  * @returns {{ gains: number[], roots: Complex[][] }}
  */
 export function rootLocusData(sys, kMin = 0, kMax = 100, nPoints = 500) {
+  assertGainSweep(kMin, kMax, nPoints, 'rootLocusData');
   const gains = [];
   const roots = [];
 
@@ -209,6 +219,12 @@ function denominatorPolesNearby(sys, s) {
  * @returns {{ K: number, omega: number }[]}
  */
 export function rootLocusJwCrossings(sys, kMax = 1e4, samples = 400) {
+  if (!Number.isFinite(kMax) || kMax <= 1e-3) {
+    throw new Error('rootLocusJwCrossings: kMax must be finite and greater than 1e-3');
+  }
+  if (!Number.isInteger(samples) || samples < 2) {
+    throw new Error('rootLocusJwCrossings: samples must be an integer >= 2');
+  }
   // Logarithmic spacing: fine resolution near K=0 where low-gain crossings hide
   const kMin = 1e-3;
   const kSweep = [];
