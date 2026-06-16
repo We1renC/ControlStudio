@@ -179,6 +179,20 @@ try {
   if (routhMarginal.signChanges !== 0) throw new Error(`Marginal Routh case should have 0 sign changes, got ${routhMarginal.signChanges}`);
   if (!routhMarginal.marginal) throw new Error('Routh should flag auxiliary-polynomial zero-row case as marginal');
   if (routhMarginal.stable) throw new Error('Marginal Routh case should not be reported as stable');
+  const expectRouthReject = (name, den, pattern) => {
+    let rejected = false;
+    try {
+      routhTable(den);
+    } catch (err) {
+      rejected = pattern.test(err.message);
+    }
+    if (!rejected) throw new Error(`Routh should reject ${name}`);
+  };
+  expectRouthReject('non-array denominator', null, /array/i);
+  expectRouthReject('short denominator', [1], /at least two/i);
+  expectRouthReject('non-finite coefficients', [1, NaN, 1], /finite/i);
+  expectRouthReject('zero polynomial', [0, 0, 0], /zero polynomial/i);
+  expectRouthReject('zero leading coefficient', [0, 1, 1], /leading/i);
   console.log('Routh-Hurwitz test passed');
 
   // Stability analysis summary

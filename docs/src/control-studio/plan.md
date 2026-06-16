@@ -231,6 +231,7 @@
 - Full math-core audit：discrete step / impulse response inputs 加入 sampleCount、amplitude、sampleTime、num/den finite guards，並讓 `den[0] != 1` 的 plain discrete system 走標準差分方程除法，避免 mis-scaled output 或 NaN time grid。
 - Full math-core audit：delay / Padé inputs 加入 finite / non-negative guards；`delayMargin()` 對 non-positive phase margin 回傳 0 秒、對 infinite PM 保留 infinite margin，避免已失穩 loop 顯示負 delay capacity。
 - Full math-core audit：`stepInfo()` 對 response array shape、finite samples、strictly increasing time grid、finite final/reference value 加入 contract guards，invalid response 會回傳 `valid:false`，避免 NaN 或 malformed trajectory 被誤報成有效 step metrics。
+- Full math-core audit：`routhTable()` 對 denominator array、length、finite coefficients、zero polynomial、leading coefficient 加入 contract guards，避免 invalid denominator 被靜默誤報為 stable。
 - Real Schur symmetric fast path：對 symmetric real matrices 使用 Jacobi orthogonal Schur，修復 3x3 stable real-spectrum reconstruction regression。
 - Nonlinear equilibrium classification：`classifyEquilibrium()` 對 n>2 Jacobian 改用 Faddeev-LeVerrier characteristic polynomial + `polyroots()`，避免舊 `trace(A)/n` placeholder 隱藏 saddle / unstable modes。
 - Frontend analysis API migration：新 session 預設 `Auto API Fallback`，FastAPI 成功時使用 Unified API metrics，不可用或 z-domain 時明確 fallback Local JS；root `package.json` 已提供 `npm run verify:*` 入口。
@@ -505,7 +506,7 @@
 - Done：Phase 16 advanced synthesis / nonlinear entry points — mixed-sensitivity PID tuning、GA PID auto-tuner、2D phase portrait、describing functions、n-dimensional equilibrium classification、nonlinear grid scan guards。
 - Done：Phase 17 advanced robust / MIMO / MPC extensions — plant-order dynamic H∞ mixed-sensitivity synthesis、structured μ D-scaling upper-bound、DK-style static gain surrogate、characteristic loci、Gershgorin bands、inverse Nyquist array、MIMO output-space MPC tracking。
 - Done：Post Phase 17 math hardening — complex magnitude robustness、ill-conditioned polynomial conjugate pairing、Hamiltonian stable-subspace cleanup、real Schur block reorder correctness。
-- Done：Full math-core audit hardening — robust complex division、stable quadratic roots、scale-aware matrix inverse/solve/rank/PD checks、discrete frequency response division unification、continuous frequency/root-locus grid guards、discrete Bode grid guards、time-response input guards、discrete response input guards、delay margin guards、step metrics contract guards。
+- Done：Full math-core audit hardening — robust complex division、stable quadratic roots、scale-aware matrix inverse/solve/rank/PD checks、discrete frequency response division unification、continuous frequency/root-locus grid guards、discrete Bode grid guards、time-response input guards、discrete response input guards、delay margin guards、step metrics contract guards、Routh-Hurwitz input guards。
 - Done：Nonlinear equilibrium audit hardening — n>2 Jacobian eigenvalue classification now uses characteristic polynomial roots instead of trace-average placeholder；`scanEquilibria()` / `phasePortrait()` now validate grid size and finite bounds, and `gridSize=1` uses the bounds-center seed instead of NaN；`verify_equilibrium_nd.mjs` covers 7 regression checks including 3D saddle, 4D stable-node, 3D unstable-spiral, 3D affine equilibrium convergence, center-seed behavior, and invalid-grid rejection.
 - Verification：
   - `npm run verify:p14`

@@ -183,8 +183,23 @@ export function stepInfo(tArr, yArr, finalValue = null, reference = null) {
  * @returns {{ table: number[][], stable: boolean, signChanges: number }}
  */
 export function routhTable(den) {
-  if (!den || den.length < 2) return { table: [], stable: true, signChanges: 0 };
-  const n = den.length;
+  if (!Array.isArray(den)) {
+    throw new Error('Routh-Hurwitz denominator must be an array of coefficients');
+  }
+  if (den.length < 2) {
+    throw new Error('Routh-Hurwitz denominator must contain at least two coefficients');
+  }
+  const coeffs = den.map((value) => Number(value));
+  if (!coeffs.every(Number.isFinite)) {
+    throw new Error('Routh-Hurwitz denominator coefficients must be finite');
+  }
+  if (coeffs.every((value) => Math.abs(value) < 1e-15)) {
+    throw new Error('Routh-Hurwitz denominator must not be the zero polynomial');
+  }
+  if (Math.abs(coeffs[0]) < 1e-15) {
+    throw new Error('Routh-Hurwitz leading denominator coefficient must be nonzero');
+  }
+  const n = coeffs.length;
   const cols = Math.ceil(n / 2);
   const table = [];
   let hasZeroRow = false;
@@ -193,8 +208,8 @@ export function routhTable(den) {
   const row0 = new Array(cols).fill(0);
   const row1 = new Array(cols).fill(0);
   for (let i = 0; i < n; i++) {
-    if (i % 2 === 0) row0[i / 2] = den[i];
-    else row1[(i - 1) / 2] = den[i];
+    if (i % 2 === 0) row0[i / 2] = coeffs[i];
+    else row1[(i - 1) / 2] = coeffs[i];
   }
   table.push(row0);
   table.push(row1);

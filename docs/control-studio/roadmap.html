@@ -87,7 +87,7 @@ del{color:var(--muted)}
 
 <blockquote>
 <p>Last updated: 2026-06-17</p>
-<p>Current committed baseline: <code>fix(control): harden step metrics</code></p>
+<p>Current committed baseline: <code>fix(control): harden routh inputs</code></p>
 <p>Scope: this is the canonical execution roadmap for ControlStudio implementation status.</p>
 <p>Do not use this file for product vision, proof derivations, or handoff notes; see the document workflow below.</p>
 </blockquote>
@@ -388,6 +388,8 @@ del{color:var(--muted)}
 <p><strong>Delay margin closure:</strong> Padé delay application and pure-delay phase now reject non-finite or negative delay parameters instead of silently returning the original plant or NaN phase. Delay margin now reports zero additional delay for non-positive phase margin and preserves infinite PM as infinite margin, preventing already-unstable loops from being displayed with negative delay capacity.</p>
 
 <p><strong>Step metrics closure:</strong> <code>stepInfo()</code> now validates response array shape, finite samples, strictly increasing time grids, finite final value, and finite reference before reporting rise time, settling time, overshoot, or steady-state error. Invalid response data returns <code>valid:false</code> with a reason instead of producing plausible-looking metrics from NaN or malformed trajectories.</p>
+
+<p><strong>Routh-Hurwitz input closure:</strong> <code>routhTable()</code> now validates denominator coefficient arrays before building the table. Non-array, short, non-finite, zero-polynomial, and zero-leading-coefficient inputs fail explicitly instead of being silently classified as stable.</p>
 
 <h2 id="verification-suite-status-2026-06-17">Verification Suite Status (2026-06-17)</h2>
 
