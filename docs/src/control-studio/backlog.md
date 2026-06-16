@@ -36,8 +36,8 @@
 ## Current Baseline
 
 - Branch: `main`
-- Latest synced checkpoint: `fix(control): harden time response inputs`
-- Current checkpoint: **CS-P0 ~ CS-P65 done; Functional Roadmap Tier A-J done; Phase 19/20/21/23 project-local skill gaps closed; nonlinear equilibrium classification, nonlinear grid-scan hardening, continuous analysis-grid hardening, discrete Bode grid hardening, and time-response input hardening closed; verification aggregation closed.** 詳細執行看板見 `control-studio/ROADMAP.md`。目前僅暫停項目維持不做：教學模式、Electron packaging、報告模板 / 報告自動化、Block Diagram expansion。
+- Latest synced checkpoint: `fix(control): harden discrete response inputs`
+- Current checkpoint: **CS-P0 ~ CS-P65 done; Functional Roadmap Tier A-J done; Phase 19/20/21/23 project-local skill gaps closed; nonlinear equilibrium classification, nonlinear grid-scan hardening, continuous analysis-grid hardening, discrete Bode grid hardening, time-response input hardening, and discrete response input hardening closed; verification aggregation closed.** 詳細執行看板見 `control-studio/ROADMAP.md`。目前僅暫停項目維持不做：教學模式、Electron packaging、報告模板 / 報告自動化、Block Diagram expansion。
 - Functional Roadmap Tier A-J checkpoint：Tier A control algorithms、Tier B identification、Tier C estimation、Tier D optimization、Tier E numerical repair、Tier F verification/safety、Tier G advanced MPC、Tier H embedded deployment、Tier I runtime architecture、Tier J HIL/integration 均已有 deterministic verification baseline；最新 full suite 基線見 `control-studio/ROADMAP.md`。
 - Scenario 5 browser walkthrough result: Phase 10 math + UI both operational.
 - Scenario 6 browser walkthrough result: SISO / MIMO core workflows are UI-operable.
@@ -87,6 +87,7 @@
 | CS-P0-05 | P0 | Done | Math core verification runner | 獨立鎖住 Complex / Polynomial / Matrix / ODE / TF / DTF / State-Space / C2D 基礎不變量 | math/control core modules | `node control-studio/scripts/verify_math_core.mjs` |
 | CS-P0-06 | P0 | Done | Continuous analysis grid guards | Bode / Nyquist / Nichols / Root Locus / jω crossing 對非法範圍或單點 grid 明確 throw，避免 NaN samples | frequency/root-locus core | `node control-studio/scripts/verify_math_core.mjs` |
 | CS-P0-07 | P0 | Done | Time-response input guards | Step / impulse / ramp / sine / square / pulse 與 PID anti-windup simulation 對 duration、sample count、waveform、disturbance、initial state、controller gain、saturation bounds 先做 finite / positivity guard，避免 NaN trajectory | `time-response.js` | `node control-studio/scripts/verify_math_core.mjs` |
+| CS-P0-08 | P0 | Done | Discrete response input guards | z-domain step / impulse response 對 sample count、amplitude、sample time、num/den 係數先做 finite / positivity guard，並支援 `den[0] != 1` 的標準差分方程除法 | `discrete-response.js` | `node control-studio/scripts/verify_math_core.mjs` |
 
 Exit criteria: 已達成。
 

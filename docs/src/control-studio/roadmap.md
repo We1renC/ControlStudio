@@ -1,7 +1,7 @@
 # ControlStudio Development Roadmap
 
 > Last updated: 2026-06-17
-> Current committed baseline: `fix(control): harden time response inputs`
+> Current committed baseline: `fix(control): harden discrete response inputs`
 > Scope: this is the canonical execution roadmap for ControlStudio implementation status.
 > Do not use this file for product vision, proof derivations, or handoff notes; see the document workflow below.
 
@@ -168,6 +168,8 @@ Per `docs/src/control-studio/functional-roadmap.html`. Tier A-J deterministic ba
 **Analysis grid closure:** continuous Bode, Nyquist, Nichols, root-locus, and jω crossing sweeps now validate finite ranges and require at least two grid points. Discrete Bode sweeps now validate finite sample counts and `0 < omegaMin < omegaNyquist`, and clamp zero-magnitude dB output to a finite floor. Invalid analysis grids fail with explicit errors instead of producing NaN or non-finite frequency/gain samples.
 
 **Time-response input closure:** step / impulse / ramp / sine / square / pulse simulations now normalize default waveform parameters and reject invalid duration, sample count, amplitude, frequency, pulse width, disturbance, and initial-state values before integration. PID anti-windup simulations now validate controller gains, derivative filter `N`, saturation bounds, tracking time `Tt`, duration, sample count, and reference amplitude before RK4 integration, so invalid requests fail explicitly instead of producing empty arrays or NaN trajectories.
+
+**Discrete time-response input closure:** z-domain step / impulse simulations now reject invalid sample counts, amplitudes, sample times, and non-finite numerator / denominator coefficients before running the difference equation. Plain discrete systems with `den[0] != 1` are handled through the standard normalized recurrence, so API callers do not silently receive mis-scaled outputs or NaN time grids.
 
 ## Verification Suite Status (2026-06-17)
 

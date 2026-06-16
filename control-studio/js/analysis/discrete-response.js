@@ -2,25 +2,63 @@
  * discrete-response.js — Difference-equation responses for z-domain systems.
  */
 
+function finiteNumber(value, name) {
+  const number = Number(value);
+  if (!Number.isFinite(number)) throw new Error(`${name} must be a finite number`);
+  return number;
+}
+
+function positiveNumber(value, name) {
+  const number = finiteNumber(value, name);
+  if (number <= 0) throw new Error(`${name} must be > 0`);
+  return number;
+}
+
+function discreteSampleCount(value, fallback = 100) {
+  return Math.max(2, Math.floor(positiveNumber(value ?? fallback, 'sampleCount')));
+}
+
 function normalizeDiscreteOptions(options = {}) {
+  const source = options ?? {};
   return {
-    sampleCount: Math.max(2, Math.floor(options.sampleCount ?? 100)),
-    amplitude: Number(options.amplitude ?? 1),
+    sampleCount: discreteSampleCount(source.sampleCount),
+    amplitude: finiteNumber(source.amplitude ?? 1, 'amplitude'),
+  };
+}
+
+function validateDiscreteSystem(sys) {
+  if (!sys || !Array.isArray(sys.num) || sys.num.length === 0) {
+    throw new Error('discrete system numerator must be a non-empty array');
+  }
+  if (!Array.isArray(sys.den) || sys.den.length === 0) {
+    throw new Error('discrete system denominator must be a non-empty array');
+  }
+  const num = sys.num.map((value, idx) => finiteNumber(value, `num[${idx}]`));
+  const den = sys.den.map((value, idx) => finiteNumber(value, `den[${idx}]`));
+  const den0 = den[0];
+  if (Math.abs(den0) < 1e-15) throw new Error('discrete system denominator leading coefficient must be non-zero');
+  return {
+    num,
+    den,
+    sampleTime: positiveNumber(sys.sampleTime, 'sampleTime'),
   };
 }
 
 function runDifferenceEquation(sys, u, sampleCount) {
+  const model = validateDiscreteSystem(sys);
+  const den0 = model.den[0];
   const t = [];
   const y = [];
   for (let k = 0; k < sampleCount; k += 1) {
     let yk = 0;
-    for (let i = 0; i < sys.num.length; i += 1) {
-      if (k - i >= 0) yk += sys.num[i] * u[k - i];
+    for (let i = 0; i < model.num.length; i += 1) {
+      if (k - i >= 0) yk += model.num[i] * u[k - i];
     }
-    for (let i = 1; i < sys.den.length; i += 1) {
-      if (k - i >= 0) yk -= sys.den[i] * y[k - i];
+    for (let i = 1; i < model.den.length; i += 1) {
+      if (k - i >= 0) yk -= model.den[i] * y[k - i];
     }
-    t.push(k * sys.sampleTime);
+    yk /= den0;
+    t.push(k * model.sampleTime);
     y.push(yk);
   }
   return { t, y };

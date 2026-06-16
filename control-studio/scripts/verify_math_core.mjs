@@ -8,7 +8,7 @@ import { DiscreteTransferFunction } from '../js/control/discrete-transfer-functi
 import { c2dMatchedZ, c2dTustin, c2dTustinPrewarp, c2dZOH } from '../js/control/c2d.js';
 import { stateSpaceToTransferFunction, tfToControllableCanonical } from '../js/control/state-space.js';
 import { simulatePIDAntiWindup, simulateTimeResponse, stepResponse } from '../js/analysis/time-response.js';
-import { discreteStepResponse } from '../js/analysis/discrete-response.js';
+import { discreteImpulseResponse, discreteStepResponse } from '../js/analysis/discrete-response.js';
 import { discreteBodeData } from '../js/analysis/discrete-frequency-response.js';
 import { bodeData, nyquistData, nicholsData, nyquistEncirclements } from '../js/analysis/frequency-response.js';
 import { rootLocusData, rootLocusJwCrossings } from '../js/analysis/root-locus.js';
@@ -175,6 +175,16 @@ record('Discrete transfer function invariants', () => {
   assertTrue('DTF stable pole', g.isStable());
   const step = discreteStepResponse(g, { sampleCount: 80 });
   assertNear('DTF step final', step.y.at(-1), 1, 1e-10);
+  assertTrue('DTF step finite grid', step.t.length === 80 && step.t.every(Number.isFinite));
+  assertTrue('DTF step finite output', step.y.length === 80 && step.y.every(Number.isFinite));
+  const impulse = discreteImpulseResponse(g, { sampleCount: '6', amplitude: '2' });
+  assertNear('DTF impulse delayed sample', impulse.y[1], 1, 1e-12);
+  const scaledDen = discreteStepResponse({ num: [2], den: [2], sampleTime: 0.25 }, { sampleCount: 3 });
+  assertNear('plain DTF den0 scaling', scaledDen.y[0], 1, 1e-12);
+  assertThrows('discreteStepResponse rejects non-finite sampleCount', () => discreteStepResponse(g, { sampleCount: NaN }), /sampleCount/);
+  assertThrows('discreteStepResponse rejects non-positive sampleCount', () => discreteStepResponse(g, { sampleCount: 0 }), /sampleCount/);
+  assertThrows('discreteStepResponse rejects non-finite amplitude', () => discreteStepResponse(g, { amplitude: NaN }), /amplitude/);
+  assertThrows('discreteStepResponse rejects invalid sampleTime', () => discreteStepResponse({ num: [1], den: [1], sampleTime: NaN }), /sampleTime/);
 });
 
 record('State-space conversion roundtrip', () => {
