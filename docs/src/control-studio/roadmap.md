@@ -1,7 +1,7 @@
 # ControlStudio Development Roadmap
 
 > Last updated: 2026-06-17
-> Current committed baseline: `fix(control): harden discrete dc gain cancellations`
+> Current committed baseline: `fix(control): harden matched-z gain normalization`
 > Scope: this is the canonical execution roadmap for ControlStudio implementation status.
 > Do not use this file for product vision, proof derivations, or handoff notes; see the document workflow below.
 
@@ -170,6 +170,8 @@ Per `docs/src/control-studio/functional-roadmap.html`. Tier A-J deterministic ba
 **DC gain origin-cancellation closure:** continuous TF and ZPK `dcGain()` now cancel removable origin pole-zero factors before evaluating the low-frequency limit. Systems such as `s/s` report finite unity DC gain, extra origin zeros report zero DC gain, and extra origin poles preserve signed infinite gain. This prevents RGA, static decoupler, low-frequency design, and robustness summaries from treating removable integrators as real steady-state singularities.
 
 **Discrete DC gain unit-root closure:** discrete TF `dcGain()` now evaluates the low-frequency limit at `q=z^-1=1` by cancelling removable unit-circle factors. Systems such as `(1-z^-1)/(1-z^-1)` report finite unity DC gain, extra unit-circle zeros report zero DC gain, and extra unit-circle poles report infinite DC gain. This prevents z-domain step final-value checks, C2D DC preservation, and discrete controller comparisons from treating removable unit roots as true steady-state singularities.
+
+**Matched-Z gain normalization closure:** `c2dMatchedZ()` now preserves the continuous leading gain before low-frequency matching, then normalizes against the discrete TF `dcGain()` limit rather than raw coefficient sums. Removable origin pole-zero factors such as `2s/s` therefore map to a removable `z=1` pair with DC gain 2 instead of silently collapsing to unity gain.
 
 **Phase-margin branch closure:** `stabilityMargins()` now evaluates phase margin from the continuous unwrapped Bode phase branch rather than the principal phase returned at the crossover point. Negative low-frequency loops start on the `-180 deg` branch, so `L(s)=-2/(s+1)` reports approximately `-60 deg` PM and matches its unstable unity-feedback pole at `+1`, instead of being misreported as a large positive margin.
 

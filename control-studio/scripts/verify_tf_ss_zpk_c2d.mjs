@@ -384,6 +384,14 @@ record('C2D#9: d2cTustin DC gain preserved', () => {
   assertNear('C2D#9: DC gain', recovered.dcGain(), sys.dcGain(), 1e-8);
 });
 
+record('C2D#10: c2dMatchedZ preserves gain after removable origin pole-zero', () => {
+  const sys = new TransferFunction([2, 0], [1, 0]);
+  const dtf = c2dMatchedZ(sys, 0.1);
+  assertNear('C2D#10: 2s/s maps to DC gain 2', dtf.dcGain(), 2, 1e-12);
+  assertNear('C2D#10: numerator retains leading gain', dtf.num[0], 2, 1e-12);
+  assertTrue('C2D#10: gain normalized', dtf._gainNormalized === true);
+});
+
 // ============================================================
 const failed = checks.filter(c => !c.ok);
 if (failed.length) {

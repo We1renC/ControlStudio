@@ -6,6 +6,7 @@
 - 先比對 transfer function 多項式係數，再比對 poles / zeros / DC gain。
 - DC gain 驗證必須使用低頻極限，先消去 removable origin pole-zero factors；不可只用常數項相除。
 - Discrete DC gain 驗證必須在 `q=z^-1=1` 使用低頻極限，先消去 removable unit-circle factors；不可只用係數和相除。
+- Matched-Z C2D gain normalization 必須先保留 continuous leading gain，再使用 discrete low-frequency limit；遇到 removable origin pole-zero 映射為 `z=1` pair 時，不可因 raw coefficient sums 為 0 而退回 unity gain。
 - Phase margin 驗證必須使用 continuous unwrapped Bode phase branch；negative low-frequency loop 不可用 principal `+180 deg` phase 誤報成高正 PM。
 - 時域響應使用理論 final value、overshoot、settling/rise trend 作為主判準。
 - 頻域響應使用 DC/low-frequency gain、phase margin 或已知風險作為主判準。

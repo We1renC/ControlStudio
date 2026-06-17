@@ -268,6 +268,10 @@ record('Continuous/discrete response consistency', () => {
   const discPoles = matched.poles();
   const realPole = discPoles.find((p) => Math.abs(p.im) < 1e-9);
   assertNear('Matched-Z pole = exp(-Ts)', realPole?.re ?? 0, expectedPole, 1e-8);
+
+  const removableOrigin = new TransferFunction([2, 0], [1, 0]);
+  const matchedRemovable = c2dMatchedZ(removableOrigin, 0.1);
+  assertNear('Matched-Z preserves gain across removable origin pole-zero', matchedRemovable.dcGain(), 2, 1e-12);
 });
 
 record('Analysis grid input guards', () => {

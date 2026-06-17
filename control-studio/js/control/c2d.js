@@ -122,16 +122,22 @@ export function c2dMatchedZ(sys, Ts) {
   const nExcess = contPoles.length - contZeros.length;
   for (let i = 0; i < nExcess; i++) discZeros.push({ re: -1, im: 0 });
 
-  const numZ = rootsToRealPoly(discZeros);
+  const leadingGain = sys.num[0] / sys.den[0];
+  const numZ = rootsToRealPoly(discZeros).map((c) => c * leadingGain);
   const denZ = rootsToRealPoly(discPoles);
 
-  // Match DC gain
+  // Match DC gain using the DTF low-frequency limit. Direct coefficient sums
+  // fail when removable z=1 pole-zero factors make both sums zero.
   const dcCont = sys.dcGain();
-  const sumNum = numZ.reduce((a, b) => a + b, 0);
-  const sumDen = denZ.reduce((a, b) => a + b, 0);
+  const baseDtf = new DiscreteTransferFunction(numZ, denZ, Ts);
+  const dcBase = baseDtf.dcGain();
   let gainFactor = 1;
-  if (Number.isFinite(dcCont) && Math.abs(sumNum) > 1e-14 && Math.abs(sumDen) > 1e-14) {
-    gainFactor = dcCont * sumDen / sumNum;
+  let gainNormalized = false;
+  if (Number.isFinite(dcCont) && Number.isFinite(dcBase) && Math.abs(dcBase) > 1e-14) {
+    gainFactor = dcCont / dcBase;
+    gainNormalized = true;
+  } else if (Number.isFinite(dcCont) && Math.abs(dcCont) < 1e-14 && Math.abs(dcBase) < 1e-14) {
+    gainNormalized = true;
   } else if (!Number.isFinite(dcCont)) {
     // Integrating plant: gain normalization skipped — warn via returned metadata
     console.warn('c2dMatchedZ: integrating plant (DC gain = ∞); gain normalization skipped. ' +
@@ -139,7 +145,7 @@ export function c2dMatchedZ(sys, Ts) {
   }
   const scaledNum = numZ.map((c) => c * gainFactor);
   const dtf = new DiscreteTransferFunction(scaledNum, denZ, Ts);
-  dtf._gainNormalized = Number.isFinite(dcCont);
+  dtf._gainNormalized = gainNormalized;
   return dtf;
 }
 
