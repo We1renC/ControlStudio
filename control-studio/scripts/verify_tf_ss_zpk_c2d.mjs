@@ -26,6 +26,12 @@ function assertNear(name, actual, expected, tol = 1e-6) {
     throw new Error(`${name}: expected ${expected}, got ${actual}`);
 }
 function assertTrue(name, cond) { if (!cond) throw new Error(name); }
+function assertThrows(name, fn, pattern) {
+  let err = null;
+  try { fn(); } catch (caught) { err = caught; }
+  if (!err) throw new Error(`${name}: expected throw`);
+  if (pattern && !pattern.test(err.message)) throw new Error(`${name}: message mismatch: ${err.message}`);
+}
 function record(name, fn) {
   try { fn(); checks.push({ name, ok: true }); console.log(`[PASS] ${name}`); }
   catch (err) { checks.push({ name, ok: false }); console.error(`[FAIL] ${name}: ${err.message}`); }
@@ -390,6 +396,11 @@ record('C2D#10: c2dMatchedZ preserves gain after removable origin pole-zero', ()
   assertNear('C2D#10: 2s/s maps to DC gain 2', dtf.dcGain(), 2, 1e-12);
   assertNear('C2D#10: numerator retains leading gain', dtf.num[0], 2, 1e-12);
   assertTrue('C2D#10: gain normalized', dtf._gainNormalized === true);
+});
+
+record('C2D#11: c2dMatchedZ rejects improper continuous plants', () => {
+  const improper = new TransferFunction([1, 2, 1], [1, 1]);
+  assertThrows('C2D#11: improper plant rejected', () => c2dMatchedZ(improper, 0.1), /proper/);
 });
 
 // ============================================================

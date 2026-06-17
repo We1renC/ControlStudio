@@ -108,6 +108,9 @@ export function c2dTustinPrewarp(sys, Ts, omegaPrewarp) {
 // ---------------------------------------------------------------------------
 export function c2dMatchedZ(sys, Ts) {
   validateTs(Ts);
+  if (sys.num.length > sys.den.length) {
+    throw new Error('Matched-Z: system must be proper (numerator degree <= denominator degree)');
+  }
   const mapToZ = (s) => {
     const mag = Math.exp(s.re * Ts);
     return { re: mag * Math.cos(s.im * Ts), im: mag * Math.sin(s.im * Ts) };

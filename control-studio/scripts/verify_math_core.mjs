@@ -272,6 +272,11 @@ record('Continuous/discrete response consistency', () => {
   const removableOrigin = new TransferFunction([2, 0], [1, 0]);
   const matchedRemovable = c2dMatchedZ(removableOrigin, 0.1);
   assertNear('Matched-Z preserves gain across removable origin pole-zero', matchedRemovable.dcGain(), 2, 1e-12);
+  assertThrows(
+    'Matched-Z rejects improper continuous plant',
+    () => c2dMatchedZ(new TransferFunction([1, 2, 1], [1, 1]), 0.1),
+    /proper/
+  );
 });
 
 record('Analysis grid input guards', () => {

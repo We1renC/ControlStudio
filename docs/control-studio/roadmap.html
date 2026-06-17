@@ -87,7 +87,7 @@ del{color:var(--muted)}
 
 <blockquote>
 <p>Last updated: 2026-06-17</p>
-<p>Current committed baseline: <code>fix(control): harden matched-z gain normalization</code></p>
+<p>Current committed baseline: <code>fix(control): harden matched-z properness</code></p>
 <p>Scope: this is the canonical execution roadmap for ControlStudio implementation status.</p>
 <p>Do not use this file for product vision, proof derivations, or handoff notes; see the document workflow below.</p>
 </blockquote>
@@ -386,6 +386,8 @@ del{color:var(--muted)}
 <p><strong>Discrete DC gain unit-root closure:</strong> discrete TF <code>dcGain()</code> now evaluates the low-frequency limit at <code>q=z^-1=1</code> by cancelling removable unit-circle factors. Systems such as <code>(1-z^-1)/(1-z^-1)</code> report finite unity DC gain, extra unit-circle zeros report zero DC gain, and extra unit-circle poles report infinite DC gain. This prevents z-domain step final-value checks, C2D DC preservation, and discrete controller comparisons from treating removable unit roots as true steady-state singularities.</p>
 
 <p><strong>Matched-Z gain normalization closure:</strong> <code>c2dMatchedZ()</code> now preserves the continuous leading gain before low-frequency matching, then normalizes against the discrete TF <code>dcGain()</code> limit rather than raw coefficient sums. Removable origin pole-zero factors such as <code>2s/s</code> therefore map to a removable <code>z=1</code> pair with DC gain 2 instead of silently collapsing to unity gain.</p>
+
+<p><strong>Matched-Z properness closure:</strong> <code>c2dMatchedZ()</code> now rejects improper continuous plants before pole-zero mapping, matching the structural gate already enforced by Tustin, ZOH, impulse-invariant, and time-response simulation. This prevents derivative-like or non-realizable continuous models such as <code>(s+1)^2/(s+1)</code> from being silently converted into plausible but misleading stable discrete transfer functions.</p>
 
 <p><strong>Phase-margin branch closure:</strong> <code>stabilityMargins()</code> now evaluates phase margin from the continuous unwrapped Bode phase branch rather than the principal phase returned at the crossover point. Negative low-frequency loops start on the <code>-180 deg</code> branch, so <code>L(s)=-2/(s+1)</code> reports approximately <code>-60 deg</code> PM and matches its unstable unity-feedback pole at <code>+1</code>, instead of being misreported as a large positive margin.</p>
 

@@ -93,6 +93,7 @@ del{color:var(--muted)}
 <li>DC gain 驗證必須使用低頻極限，先消去 removable origin pole-zero factors；不可只用常數項相除。</li>
 <li>Discrete DC gain 驗證必須在 <code>q=z^-1=1</code> 使用低頻極限，先消去 removable unit-circle factors；不可只用係數和相除。</li>
 <li>Matched-Z C2D gain normalization 必須先保留 continuous leading gain，再使用 discrete low-frequency limit；遇到 removable origin pole-zero 映射為 <code>z=1</code> pair 時，不可因 raw coefficient sums 為 0 而退回 unity gain。</li>
+<li>C2D 方法必須一致拒絕 improper continuous plant；不可把 derivative-like 或不可實現的原始模型離散成看似 stable 的 DTF。</li>
 <li>Phase margin 驗證必須使用 continuous unwrapped Bode phase branch；negative low-frequency loop 不可用 principal <code>+180 deg</code> phase 誤報成高正 PM。</li>
 <li>時域響應使用理論 final value、overshoot、settling/rise trend 作為主判準。</li>
 <li>頻域響應使用 DC/low-frequency gain、phase margin 或已知風險作為主判準。</li>
