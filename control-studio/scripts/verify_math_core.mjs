@@ -164,6 +164,10 @@ record('Transfer function invariants', () => {
   assertNear('series dc gain', series.dcGain(), 1);
   const closed = h.feedback();
   assertNear('feedback den constant', closed.den.at(-1), 2);
+  assertNear('dc gain cancels origin pole-zero', new TransferFunction([1, 0], [1, 0]).dcGain(), 1);
+  assertNear('dc gain zero after extra origin zero', new TransferFunction([1, 0, 0], [1, 0]).dcGain(), 0);
+  assertTrue('dc gain infinite after extra origin pole', new TransferFunction([1, 0], [1, 0, 0]).dcGain() === Infinity);
+  assertTrue('dc gain preserves signed infinity', new TransferFunction([-1], [1, 0]).dcGain() === -Infinity);
 });
 
 record('Discrete transfer function invariants', () => {

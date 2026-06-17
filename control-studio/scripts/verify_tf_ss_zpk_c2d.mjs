@@ -81,6 +81,13 @@ record('TF#7: divide — G1/G2 = G1*inv(G2)', () => {
   assertNear('TF#7: divide DC', quot.dcGain(), 1);  // 2*1/2 = 1
 });
 
+record('TF#7b: dcGain — cancels removable origin pole-zero factors', () => {
+  assertNear('TF#7b: s/s DC gain = 1', new TransferFunction([1, 0], [1, 0]).dcGain(), 1);
+  assertNear('TF#7b: s^2/s DC gain = 0', new TransferFunction([1, 0, 0], [1, 0]).dcGain(), 0);
+  assertTrue('TF#7b: s/s^2 DC gain = Infinity', new TransferFunction([1, 0], [1, 0, 0]).dcGain() === Infinity);
+  assertTrue('TF#7b: -1/s DC gain = -Infinity', new TransferFunction([-1], [1, 0]).dcGain() === -Infinity);
+});
+
 // ============================================================
 // TF — minreal
 // ============================================================
@@ -241,6 +248,12 @@ record('ZPK#3: ZPK class evalAt and dcGain', () => {
   // At s=1: G(1) = 2·1/(2·3) = 1/3
   const g1 = zpk.evalAt(new Complex(1, 0)).re;
   assertNear('ZPK#3: G(1) = 1/3', g1, 1 / 3, 1e-8);
+});
+
+record('ZPK#3b: dcGain — cancels removable origin zero-pole factors', () => {
+  assertNear('ZPK#3b: K*s/s DC gain = K', new ZPK([new Complex(0, 0)], [new Complex(0, 0)], 3).dcGain(), 3);
+  assertNear('ZPK#3b: extra origin zero gives zero DC', new ZPK([new Complex(0, 0), new Complex(0, 0)], [new Complex(0, 0)], 3).dcGain(), 0);
+  assertTrue('ZPK#3b: extra origin pole gives infinite DC', new ZPK([new Complex(0, 0)], [new Complex(0, 0), new Complex(0, 0)], 3).dcGain() === Infinity);
 });
 
 record('ZPK#4: ZPK series — combined gain and roots', () => {

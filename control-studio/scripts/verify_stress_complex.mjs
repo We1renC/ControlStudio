@@ -154,8 +154,8 @@ console.log('\n=== System 2: SISO 5th-order unstable + integrator ===\n');
   const num = [1];
   const G = new TransferFunction(num, den);
 
-  // 1. DC gain is infinite (integrator at s=0)
-  assertTrue('Sys2 DC gain = Infinity (integrator)', G.dcGain() === Infinity,
+  // 1. DC gain is signed-infinite: near s=0, G(s) ≈ 1/(-5s).
+  assertTrue('Sys2 DC gain = -Infinity (signed integrator)', G.dcGain() === -Infinity,
     `dcGain=${G.dcGain()}`);
 
   // 2. polyroots on denominator finds all 5 roots

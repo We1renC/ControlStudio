@@ -9,7 +9,7 @@
 - 已建立獨立 git repo，避免被 `/Users/w.rc` 外層 git 混入。
 - 控制系統目前同步基線：
   - Branch: `main`
-  - Latest active line: `fix(control): harden proper time response`
+  - Latest active line: `fix(control): harden dc gain origin cancellations`
   - Full phase audit checkpoints:
     - `7a318b3 fix(control): harden phase 7-9 theory diagnostics`
     - `46e20da fix(control): harden phase 0-6 theory checks`
@@ -44,6 +44,7 @@
   - 2026-06-17 接續完成 delay margin hardening：`applyDelay()` / `delayPhase()` 現在會拒絕非有限或負 delay 參數；`delayMargin()` 對 non-positive PM 回傳 0 秒、對 infinite PM 保留 `Infinity`，避免已失穩 loop 顯示負 delay capacity。
   - 2026-06-17 接續完成 step metrics contract hardening：`stepInfo()` 現在會驗證 t/y 長度一致、有限 samples、嚴格遞增 time grid、finite final/reference；invalid response 回傳 `valid:false` 與 reason，不再產生看似有效的 rise/settling/overshoot/SSE。
   - 2026-06-17 接續完成 Routh-Hurwitz input hardening：`routhTable()` 現在會拒絕非陣列、短 denominator、非有限係數、zero polynomial 與 leading coefficient 為 0 的輸入，避免 invalid denominator 被誤判為 stable。
+  - 2026-06-17 接續完成 DC gain origin-cancellation hardening：continuous TF / ZPK `dcGain()` 現在會先消去 removable origin pole-zero factors；`s/s` 回傳 1、extra origin zero 回傳 0、extra origin pole 保留 signed infinity，避免 RGA、static decoupler、low-frequency design 與 robustness summary 把可消 integrator 誤當真實 steady-state singularity。
 - 已完成 NVIDIA Build Models 資料集中管理。
 - 已新增 agent 入口文件：
   - `AGENTS.md`：專案規則、標準流程、擴充規則與品質判準。
@@ -144,6 +145,7 @@
     - Done：delay / Padé inputs 加入 finite / non-negative guards，delay margin 對 non-positive PM 回傳 0 而不是負秒數。
     - Done：stepInfo response metrics 加入資料契約檢查，invalid trajectory 不再被誤當有效性能指標。
     - Done：Routh-Hurwitz denominator 加入資料契約檢查，invalid denominator 不再被靜默誤判為 stable。
+    - Done：continuous TF / ZPK `dcGain()` 先消去 removable origin pole-zero factors，避免 `s/s` 這類可消 integrator 被誤判為 infinite DC gain。
     - Done：Hamiltonian stable subspace 清除未使用且轉置錯誤的 dead computation。
     - Done：real Schur 1x1 block swap 修正 Givens rotation 公式、乘法方向 / 符號與 reordered eigenvalue 回傳順序。
     - Done：nonlinear equilibrium n-dimensional classification 改走 characteristic polynomial roots，避免高維 linearization 被 trace average 誤分類；nonlinear scan / phase portrait grid APIs 已補 gridSize 與 bounds guards。
@@ -284,7 +286,7 @@ git log --oneline -5
 - `control-studio/js/control/stability.js` 新增 `routhTable` Routh-Hurwitz 穩定性表。
 - `control-studio/js/analysis/frequency-response.js` 新增 `nicholsData`、`nyquistEncirclements`。
 - `test_control.js` 已擴充涵蓋 ZPK、polydiv、Routh、Nichols、encirclement、asymptotes、SS Rank 測試。
-- `control-studio/scripts/verify_math_core.mjs` 已新增為獨立數學核心驗證：覆蓋 Complex、Polynomial roots、Matrix solve/inverse/exp、RK4/RK45、TF/DTF guard、State-Space roundtrip、C2D DC gain、continuous frequency/root-locus grid guards、discrete Bode grid guards、time-response input/properness guards、discrete response input guards。
+- `control-studio/scripts/verify_math_core.mjs` 已新增為獨立數學核心驗證：覆蓋 Complex、Polynomial roots、Matrix solve/inverse/exp、RK4/RK45、TF/DTF guard、State-Space roundtrip、C2D DC gain、DC gain origin-cancellation guards、continuous frequency/root-locus grid guards、discrete Bode grid guards、time-response input/properness guards、discrete response input guards。
 - `control-studio/js/math/polynomial.js` 已改用 Durand-Kerner 處理三階以上根；舊 QR path 對 `s^3+1` 會錯誤收斂為 0，勿恢復。
 - `control-studio/js/math/ode.js` 已修正 RK45 Dormand-Prince 5th-order 權重缺第 7 項 `0` 造成 NaN / infinite loop 的問題。
 - `docs/src/control-studio/scenarios.md` 已新增 precision servo stage position control 情境，使用 ControlStudio 核心完成 PID + Lead 設計，並記錄後續改善思考。
@@ -308,7 +310,7 @@ git log --oneline -5
 - `control-studio` 已補 Phase 16：mixed-sensitivity H∞ PID synthesis helper、GA PID auto-tuner、phase portrait、describing functions、n-dimensional equilibrium classification、nonlinear grid scan guards；`npm run verify:p16` 與 `node control-studio/scripts/verify_equilibrium_nd.mjs` 可重跑驗證。
 - `control-studio` 已補 Phase 17：plant-order dynamic H∞ mixed-sensitivity synthesis、structured μ D-scaling upper-bound / DK-style static gain surrogate、MIMO characteristic loci / Gershgorin bands / inverse Nyquist array、MPC MIMO output-space setpoint tracking；`npm run verify:p17` 可重跑驗證。
 - `control-studio` 已補 Phase 24：EMPC (`empc.js`)、Tube MPC (`tube_mpc.js`)、Explicit MPC (`explicit_mpc.js`)；`verify_p24_empc.mjs` 與 `verify_p24_tube_explicit_mpc.mjs` 可重跑驗證。
-- `a2a89d3 fix(math): 4 defects in complex / polynomial / realschur` 已完成 post Phase 17 數學核心修復；commit 記錄 TF/SS/ZPK/C2D `36/36` 與 PID `21/21` 通過。
+- `a2a89d3 fix(math): 4 defects in complex / polynomial / realschur` 已完成 post Phase 17 數學核心修復；後續 TF/SS/ZPK/C2D targeted 基線已擴充到 `38/38`，PID `21/21` 維持通過。
 - 本輪補上 unpaired complex root error wording 相容性後，`node test_control.js` / `./nv-agent doctor` 不應再因錯誤訊息分類失敗。
 - 本輪同步 `scripts/validate_nvidia_model_selector.sh` 的 Phase 10 math-core 預期值為 `16/16`，避免標準 `doctor` workflow 停留在舊 `12/12` 基線。
 - `workflows/cuopt_demo_workflow.py` 已新增 `--local-validate`，`./nv-agent doctor` 改用本地 cuOpt payload validator，不再因外部 cuOpt API timeout 讓本地健康檢查失敗。

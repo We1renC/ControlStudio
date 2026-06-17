@@ -143,8 +143,25 @@ export class ZPK {
 
   /** DC gain G(0) */
   dcGain() {
-    const v = this.evalAt(new Complex(0, 0));
-    return v.re; // imaginary part should be 0 for a real system at s=0
+    const tol = 1e-12;
+    const isOrigin = (root) => Math.hypot(root.re, root.im) < tol;
+    const zeroOriginCount = this.zeros.filter(isOrigin).length;
+    const poleOriginCount = this.poles.filter(isOrigin).length;
+    const reducedZeros = this.zeros.filter((root) => !isOrigin(root));
+    const reducedPoles = this.poles.filter((root) => !isOrigin(root));
+
+    let num = new Complex(this.gain, 0);
+    for (const z of reducedZeros) num = num.mul(new Complex(-z.re, -z.im));
+    let den = new Complex(1, 0);
+    for (const p of reducedPoles) den = den.mul(new Complex(-p.re, -p.im));
+    const finitePart = num.div(den);
+
+    if (zeroOriginCount > poleOriginCount) return 0;
+    if (poleOriginCount > zeroOriginCount) {
+      if (finitePart.magnitude < 1e-15) return 0;
+      return finitePart.re < 0 ? -Infinity : Infinity;
+    }
+    return finitePart.re; // imaginary part should be 0 for a real system at s=0
   }
 
   /** Series: G1 * G2 = ZPK(z1∪z2, p1∪p2, k1·k2) */

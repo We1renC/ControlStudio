@@ -44,9 +44,16 @@ export class TransferFunction {
 
   /** DC gain G(0) */
   dcGain() {
-    const d = this.den[this.den.length - 1];
-    const n = this.num[this.num.length - 1];
-    if (Math.abs(d) < 1e-15) return Infinity;
+    const numOriginZeros = countTrailingZeros(this.num);
+    const denOriginZeros = countTrailingZeros(this.den);
+    const n = this.num[this.num.length - 1 - numOriginZeros];
+    const d = this.den[this.den.length - 1 - denOriginZeros];
+
+    if (numOriginZeros > denOriginZeros) return 0;
+    if (denOriginZeros > numOriginZeros) {
+      if (Math.abs(n) < 1e-15) return 0;
+      return n / d < 0 ? -Infinity : Infinity;
+    }
     return n / d;
   }
 
@@ -242,6 +249,15 @@ export class TransferFunction {
   toString() {
     return `(${polyToString(this.num)}) / (${polyToString(this.den)})`;
   }
+}
+
+function countTrailingZeros(coeffs) {
+  let count = 0;
+  for (let i = coeffs.length - 1; i > 0; i--) {
+    if (Math.abs(coeffs[i]) >= 1e-15) break;
+    count++;
+  }
+  return count;
 }
 
 function polyToLatex(coeffs) {
