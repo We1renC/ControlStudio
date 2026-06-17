@@ -28,7 +28,14 @@ function magnitudePeak(values) {
   return { peak, peakOmega, peakDB: 20 * Math.log10(Math.max(peak, 1e-30)) };
 }
 
+function assertContinuousLoop(loopTf, label) {
+  if (loopTf && Number.isFinite(loopTf.sampleTime)) {
+    throw new Error(`${label}: continuous robust sensitivity analysis requires an s-domain loop transfer function; use discrete frequency response and z-domain robustness checks for discrete systems`);
+  }
+}
+
 export function sensitivityAt(loopTf, omega, controllerTf = null) {
+  assertContinuousLoop(loopTf, 'sensitivityAt');
   if (!(omega >= 0)) throw new Error('omega must be >= 0');
   const s = new Complex(0, omega);
   const L = loopTf.evalAt(s);
@@ -44,6 +51,7 @@ export function sensitivityAt(loopTf, omega, controllerTf = null) {
 }
 
 export function sensitivityBode(loopTf, omegas, controllerTf = null) {
+  assertContinuousLoop(loopTf, 'sensitivityBode');
   if (!Array.isArray(omegas) || !omegas.length) {
     throw new Error('omegas must be a non-empty array');
   }
@@ -57,6 +65,7 @@ export function sensitivityBode(loopTf, omegas, controllerTf = null) {
 }
 
 export function robustPeaks(loopTf, omegas, controllerTf = null) {
+  assertContinuousLoop(loopTf, 'robustPeaks');
   if (!Array.isArray(omegas) || !omegas.length) {
     throw new Error('omegas must be a non-empty array');
   }
@@ -116,6 +125,7 @@ export function robustPeaks(loopTf, omegas, controllerTf = null) {
  * @param {TransferFunction} options.controllerTf
  */
 export function additiveUncertaintyEnvelope(loopTf, omegas, options = {}) {
+  assertContinuousLoop(loopTf, 'additiveUncertaintyEnvelope');
   if (!Array.isArray(omegas) || !omegas.length) throw new Error('omegas must be a non-empty array');
   const radius = options.radius ?? 0.1;
   const radiusFn = options.radiusFn || (() => radius);
@@ -195,6 +205,7 @@ export function diskMargin(loopTf, omegas, controllerTf = null) {
 }
 
 export function uncertaintyEnvelope(loopTf, omegas, options = {}) {
+  assertContinuousLoop(loopTf, 'uncertaintyEnvelope');
   if (!Array.isArray(omegas) || !omegas.length) {
     throw new Error('omegas must be a non-empty array');
   }

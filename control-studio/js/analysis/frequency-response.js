@@ -12,11 +12,18 @@ function assertFrequencyGrid(wMin, wMax, nPoints, label) {
   }
 }
 
+function assertContinuousFrequencySystem(sys, label) {
+  if (sys && Number.isFinite(sys.sampleTime)) {
+    throw new Error(`${label}: continuous frequency analysis requires an s-domain transfer function; use discrete frequency response for z-domain systems`);
+  }
+}
+
 /**
  * Compute Bode plot data.
  * @returns {{ w: number[], magDB: number[], phaseDeg: number[] }}
  */
 export function bodeData(sys, wMin = 1e-2, wMax = 1e3, nPoints = 500) {
+  assertContinuousFrequencySystem(sys, 'bodeData');
   assertFrequencyGrid(wMin, wMax, nPoints, 'bodeData');
   const logMin = Math.log10(wMin), logMax = Math.log10(wMax);
   const w = [], magDB = [], phaseDeg = [];
@@ -49,6 +56,7 @@ export function bodeData(sys, wMin = 1e-2, wMax = 1e3, nPoints = 500) {
  * Returns real and imaginary parts for positive and negative frequencies.
  */
 export function nyquistData(sys, wMin = 1e-3, wMax = 1e3, nPoints = 1000) {
+  assertContinuousFrequencySystem(sys, 'nyquistData');
   assertFrequencyGrid(wMin, wMax, nPoints, 'nyquistData');
   const logMin = Math.log10(wMin), logMax = Math.log10(wMax);
   const re = [], im = [], w = [];
@@ -74,6 +82,7 @@ export function nyquistData(sys, wMin = 1e-3, wMax = 1e3, nPoints = 1000) {
  * Auto-detect frequency range based on poles and zeros.
  */
 export function autoFreqRange(sys) {
+  assertContinuousFrequencySystem(sys, 'autoFreqRange');
   const poles = sys.poles();
   const zeros = sys.zeros();
   const all = [...poles, ...zeros].filter(p => p.magnitude > 1e-10);
@@ -95,6 +104,7 @@ export function autoFreqRange(sys) {
  * @returns {{ phaseDeg: number[], magDB: number[], w: number[] }}
  */
 export function nicholsData(sys, wMin = 1e-2, wMax = 1e3, nPoints = 500) {
+  assertContinuousFrequencySystem(sys, 'nicholsData');
   const data = bodeData(sys, wMin, wMax, nPoints);
   return { phaseDeg: data.phaseDeg, magDB: data.magDB, w: data.w };
 }
@@ -106,6 +116,7 @@ export function nicholsData(sys, wMin = 1e-2, wMax = 1e3, nPoints = 500) {
  * @returns {number} Number of clockwise encirclements
  */
 export function nyquistEncirclements(sys, wMin = 1e-3, wMax = 1e3, nPoints = 2000) {
+  assertContinuousFrequencySystem(sys, 'nyquistEncirclements');
   const data = nyquistData(sys, wMin, wMax, nPoints);
   // Build the full Nyquist contour: ω = -∞ → -wMin (negative branch, in increasing ω
   // order = reverse of stored "negative" data which is already in -wMax → -wMin order or

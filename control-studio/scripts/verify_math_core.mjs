@@ -10,9 +10,10 @@ import { stateSpaceToTransferFunction, tfToControllableCanonical } from '../js/c
 import { simulatePIDAntiWindup, simulateTimeResponse, stepResponse } from '../js/analysis/time-response.js';
 import { discreteImpulseResponse, discreteStepResponse } from '../js/analysis/discrete-response.js';
 import { discreteBodeData } from '../js/analysis/discrete-frequency-response.js';
-import { bodeData, nyquistData, nicholsData, nyquistEncirclements } from '../js/analysis/frequency-response.js';
+import { autoFreqRange, bodeData, nyquistData, nicholsData, nyquistEncirclements } from '../js/analysis/frequency-response.js';
 import { rootLocusAsymptotes, rootLocusBreakPoints, rootLocusData, rootLocusJwCrossings } from '../js/analysis/root-locus.js';
 import { stabilityMargins } from '../js/control/stability.js';
+import { robustPeaks, sensitivityAt, sensitivityBode } from '../js/control/robust.js';
 
 const checks = [];
 
@@ -341,6 +342,14 @@ record('Analysis grid input guards', () => {
   assertThrows('rootLocusBreakPoints rejects discrete systems', () => rootLocusBreakPoints(discretePlant), /s-domain|discrete/);
   assertThrows('rootLocusJwCrossings rejects discrete systems', () => rootLocusJwCrossings(discretePlant, 10, 8), /s-domain|discrete/);
   assertThrows('stabilityMargins rejects discrete systems', () => stabilityMargins(discretePlant), /s-domain|discrete/);
+  assertThrows('bodeData rejects discrete systems', () => bodeData(discretePlant, 1e-2, 1e2, 8), /s-domain|discrete/);
+  assertThrows('nyquistData rejects discrete systems', () => nyquistData(discretePlant, 1e-2, 1e2, 8), /s-domain|discrete/);
+  assertThrows('nicholsData rejects discrete systems', () => nicholsData(discretePlant, 1e-2, 1e2, 8), /s-domain|discrete/);
+  assertThrows('nyquistEncirclements rejects discrete systems', () => nyquistEncirclements(discretePlant, 1e-2, 1e2, 8), /s-domain|discrete/);
+  assertThrows('autoFreqRange rejects discrete systems', () => autoFreqRange(discretePlant), /s-domain|discrete/);
+  assertThrows('sensitivityAt rejects discrete systems', () => sensitivityAt(discretePlant, 1), /s-domain|discrete/);
+  assertThrows('sensitivityBode rejects discrete systems', () => sensitivityBode(discretePlant, [1]), /s-domain|discrete/);
+  assertThrows('robustPeaks rejects discrete systems', () => robustPeaks(discretePlant, [1]), /s-domain|discrete/);
 });
 
 const failed = checks.filter((check) => !check.ok);

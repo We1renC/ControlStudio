@@ -14,7 +14,7 @@
 - Impulse-invariant C2D 目前為 simple-pole baseline；repeated poles 必須明確回報 unsupported，不可靜默跳過 residue 或輸出 zero/mis-scaled DTF。
 - Impulse-invariant C2D 目前為 strictly-proper simple-pole baseline；biproper direct-feedthrough terms 代表 `t=0` impulse，不可被 residue-only DTF path 靜默丟棄，必須明確回報 unsupported 或改用 ZOH / Tustin。
 - Phase margin 驗證必須使用 continuous unwrapped Bode phase branch；negative low-frequency loop 不可用 principal `+180 deg` phase 誤報成高正 PM。
-- Continuous root-locus 與 gain/phase margin analysis 只能用 s-domain transfer function；finite `sampleTime` 的 discrete TF 必須被明確拒絕，不可把 z-domain polynomial 當作 `den(s)+Knum(s)` 或 `G(jω)` 直接掃描。
+- Continuous Bode / Nyquist / Nichols / root-locus、gain/phase margin 與 robust `S/T/KS` analysis 只能用 s-domain transfer function；finite `sampleTime` 的 discrete TF 必須被明確拒絕，不可把 z-domain polynomial 當作 `den(s)+Knum(s)`、`G(jω)` 或 continuous robustness metric 直接掃描。
 - 時域響應使用理論 final value、overshoot、settling/rise trend 作為主判準。
 - 頻域響應使用 DC/low-frequency gain、phase margin 或已知風險作為主判準。
 - 不以圖形外觀作為唯一依據；圖形只作為人眼審查輔助。
