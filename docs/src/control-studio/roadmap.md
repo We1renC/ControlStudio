@@ -1,7 +1,7 @@
 # ControlStudio Development Roadmap
 
 > Last updated: 2026-06-18
-> Current committed baseline: `fix(control): harden discrete interconnections`
+> Current committed baseline: `fix(control): guard discrete continuous analysis`
 > Scope: this is the canonical execution roadmap for ControlStudio implementation status.
 > Do not use this file for product vision, proof derivations, or handoff notes; see the document workflow below.
 
@@ -166,6 +166,8 @@ Per `docs/src/control-studio/functional-roadmap.html`. Tier A-J deterministic ba
 **Nonlinear analysis closure:** `js/analysis/equilibrium.js` now classifies n-dimensional equilibria through a Faddeev-LeVerrier characteristic polynomial plus shared `polyroots()` path. This removes the prior n>2 `trace(A)/n` placeholder that could hide saddle or unstable modes in higher-dimensional nonlinear linearizations. Nonlinear grid scans now validate grid size and finite bounds, and `gridSize=1` uses the finite bounds-center seed instead of producing NaN equilibrium or phase-portrait trajectories.
 
 **Analysis grid closure:** continuous Bode, Nyquist, Nichols, root-locus, and jω crossing sweeps now validate finite ranges and require at least two grid points. Discrete Bode sweeps now validate finite sample counts and `0 < omegaMin < omegaNyquist`, and clamp zero-magnitude dB output to a finite floor. Invalid analysis grids fail with explicit errors instead of producing NaN or non-finite frequency/gain samples.
+
+**Continuous-analysis domain closure:** continuous root-locus helpers (`rootLocusData`, asymptotes, break points, and jω crossings) and `stabilityMargins()` now reject discrete transfer functions with finite `sampleTime`. This prevents z-domain coefficient arrays from being interpreted as s-domain characteristic equations or `G(jω)` margin scans; discrete plants must use z-plane pole analysis and discrete frequency-response tooling. The UI Root Locus tab now falls back to the z-plane pole-zero map for discrete systems instead of calling the continuous solver.
 
 **DC gain origin-cancellation closure:** continuous TF and ZPK `dcGain()` now cancel removable origin pole-zero factors before evaluating the low-frequency limit. Systems such as `s/s` report finite unity DC gain, extra origin zeros report zero DC gain, and extra origin poles preserve signed infinite gain. This prevents RGA, static decoupler, low-frequency design, and robustness summaries from treating removable integrators as real steady-state singularities.
 

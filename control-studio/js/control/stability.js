@@ -56,6 +56,9 @@ export function stabilityMargins(sys) {
     phaseMargin: NaN, gainCrossover: NaN, phaseCrossover: NaN,
     allGainCrossings: [], allPhaseCrossings: [],
   };
+  if (Number.isFinite(sys.sampleTime)) {
+    throw new Error('stabilityMargins: continuous gain/phase margins require an s-domain transfer function; use discrete frequency response and z-domain stability metrics for discrete systems');
+  }
 
   // Auto-extend the frequency window to cover all pole/zero break frequencies
   // (clamped to [1e-4, 1e6]). Fixed-window scans silently miss crossovers far

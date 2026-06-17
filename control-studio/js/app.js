@@ -4477,6 +4477,11 @@ function renderActivePlot(sys) {
       renderNicholsChart(loopSys, 'chart-active');
     },
     rlocus: () => {
+      if (state.domain === 'z') {
+        updateActivePlotHeader('Pole-Zero Map', 'Z-Plane');
+        renderPoleZeroMap(state.plant, 'chart-active');
+        return;
+      }
       updateActivePlotHeader('Root Locus', 'Stability Analysis');
       renderRootLocus(state.plant, 'chart-active');
     },
@@ -4498,6 +4503,10 @@ function renderActivePlot(sys) {
 }
 
 function renderRootLocus(sys, targetId = 'chart-rlocus') {
+  if (sys instanceof DiscreteTransferFunction || Number.isFinite(sys?.sampleTime)) {
+    renderPoleZeroMap(sys, targetId);
+    return;
+  }
   const result = rootLocusData(sys);
   if (!result || !result.roots || result.roots.length === 0) return;
   const sortedSteps = sortRootLocusBranches(result.roots);

@@ -9,7 +9,7 @@
 - 已建立獨立 git repo，避免被 `/Users/w.rc` 外層 git 混入。
 - 控制系統目前同步基線：
   - Branch: `main`
-  - Latest active line: `fix(control): harden discrete interconnections`
+  - Latest active line: `fix(control): guard discrete continuous analysis`
   - Full phase audit checkpoints:
     - `7a318b3 fix(control): harden phase 7-9 theory diagnostics`
     - `46e20da fix(control): harden phase 0-6 theory checks`
@@ -50,6 +50,7 @@
   - 2026-06-18 接續完成 discrete delay pole hardening：`DiscreteTransferFunction.poles()` 現在會補上 numerator delay order 大於 denominator order 時的隱含 `z=0` causal delay poles；自然 `z^-1` pure delay 表示 `num=[0,1], den=[1]` 不再回傳 empty pole set，避免 z-plane map 與 discrete stability summary 漏掉純延遲極點。
   - 2026-06-18 接續完成 discrete delay polynomial normalization hardening：`DiscreteTransferFunction` constructor 現在會修剪 numerator/denominator 尾端 structural zeros，保留 numerator 前導零作為真實 input delay；`num=[1,0,0], den=[1,0]` 不再產生 spurious `z=0` zero/pole，`den=[0,1]` 會明確拒絕為 invalid non-causal denominator。
   - 2026-06-18 接續完成 discrete interconnection hardening：`DiscreteTransferFunction.parallel()` / `feedback()` 現在使用 z^-1 delay-polynomial index 對齊加法；mixed-order parallel 與 unity feedback 不再把動態分母誤折成 static gain，feedback path 也會拒絕 sample-time mismatch。
+  - 2026-06-18 接續完成 continuous-analysis domain hardening：continuous root-locus helpers 與 `stabilityMargins()` 現在會拒絕 finite `sampleTime` 的 discrete transfer function，避免 z-domain coefficient arrays 被誤當 s-domain root locus 或 `G(jω)` gain/phase margin；Root Locus tab 在 z-domain 會 fallback 到 z-plane pole-zero map；regression 已納入 `verify_math_core.mjs` 既有 9/9 guard checks。
   - 2026-06-17 接續完成 matched-z removable-origin gain normalization hardening：`c2dMatchedZ()` 現在先保留 continuous leading gain，再用 Discrete TF `dcGain()` low-frequency limit 做 DC normalization；`2s/s` 這類 removable origin pole-zero 會映射為 removable `z=1` pair 並保留 DC gain 2，不再因 raw coefficient sums 為 0 而退回 unity gain。
   - 2026-06-17 接續完成 matched-z properness hardening：`c2dMatchedZ()` 現在與 Tustin / ZOH / impulse-invariant 一致拒絕 improper continuous plant；`(s+1)^2/(s+1)` 這類 derivative-like 原始模型不再被靜默映射成看似 stable 的 discrete TF。
   - 2026-06-17 接續完成 impulse-invariant repeated-pole hardening：`c2dImpulseInvariant()` 現在明確拒絕 repeated continuous poles；`1/(s+1)^2` 不再被 residue loop 靜默跳過成 zero DTF，改要求使用 ZOH 或 Tustin。
@@ -304,7 +305,7 @@ git log --oneline -5
 - `control-studio/js/control/stability.js` 新增 `routhTable` Routh-Hurwitz 穩定性表。
 - `control-studio/js/analysis/frequency-response.js` 新增 `nicholsData`、`nyquistEncirclements`。
 - `test_control.js` 已擴充涵蓋 ZPK、polydiv、Routh、Nichols、encirclement、asymptotes、SS Rank 測試。
-- `control-studio/scripts/verify_math_core.mjs` 已新增為獨立數學核心驗證：覆蓋 Complex、Polynomial roots、Matrix solve/inverse/exp、RK4/RK45、TF/DTF guard、State-Space roundtrip、C2D DC gain、continuous/ZPK DC gain origin-cancellation guards、discrete DC gain unit-root guards、discrete delay pole guards、discrete delay polynomial normalization guards、discrete interconnection alignment guards、matched-z removable-origin gain normalization guards、matched-z properness guards、impulse-invariant repeated-pole guards、impulse-invariant direct-feedthrough guards、continuous frequency/root-locus grid guards、discrete Bode grid guards、time-response input/properness guards、discrete response input guards。
+- `control-studio/scripts/verify_math_core.mjs` 已新增為獨立數學核心驗證：覆蓋 Complex、Polynomial roots、Matrix solve/inverse/exp、RK4/RK45、TF/DTF guard、State-Space roundtrip、C2D DC gain、continuous/ZPK DC gain origin-cancellation guards、discrete DC gain unit-root guards、discrete delay pole guards、discrete delay polynomial normalization guards、discrete interconnection alignment guards、matched-z removable-origin gain normalization guards、matched-z properness guards、impulse-invariant repeated-pole guards、impulse-invariant direct-feedthrough guards、continuous frequency/root-locus grid guards、continuous-analysis domain guards、discrete Bode grid guards、time-response input/properness guards、discrete response input guards。
 - `control-studio/js/math/polynomial.js` 已改用 Durand-Kerner 處理三階以上根；舊 QR path 對 `s^3+1` 會錯誤收斂為 0，勿恢復。
 - `control-studio/js/math/ode.js` 已修正 RK45 Dormand-Prince 5th-order 權重缺第 7 項 `0` 造成 NaN / infinite loop 的問題。
 - `docs/src/control-studio/scenarios.md` 已新增 precision servo stage position control 情境，使用 ControlStudio 核心完成 PID + Lead 設計，並記錄後續改善思考。

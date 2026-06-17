@@ -11,7 +11,8 @@ import { simulatePIDAntiWindup, simulateTimeResponse, stepResponse } from '../js
 import { discreteImpulseResponse, discreteStepResponse } from '../js/analysis/discrete-response.js';
 import { discreteBodeData } from '../js/analysis/discrete-frequency-response.js';
 import { bodeData, nyquistData, nicholsData, nyquistEncirclements } from '../js/analysis/frequency-response.js';
-import { rootLocusData, rootLocusJwCrossings } from '../js/analysis/root-locus.js';
+import { rootLocusAsymptotes, rootLocusBreakPoints, rootLocusData, rootLocusJwCrossings } from '../js/analysis/root-locus.js';
+import { stabilityMargins } from '../js/control/stability.js';
 
 const checks = [];
 
@@ -335,6 +336,11 @@ record('Analysis grid input guards', () => {
   assertThrows('rootLocusData rejects single-point grid', () => rootLocusData(plant, 0, 2, 1), /nPoints/);
   assertThrows('rootLocusJwCrossings rejects single-point sweep', () => rootLocusJwCrossings(plant, 10, 1), /samples/);
   assertThrows('rootLocusJwCrossings rejects invalid kMax', () => rootLocusJwCrossings(plant, 1e-4, 8), /kMax/);
+  assertThrows('rootLocusData rejects discrete systems', () => rootLocusData(discretePlant, 0, 2, 8), /s-domain|discrete/);
+  assertThrows('rootLocusAsymptotes rejects discrete systems', () => rootLocusAsymptotes(discretePlant), /s-domain|discrete/);
+  assertThrows('rootLocusBreakPoints rejects discrete systems', () => rootLocusBreakPoints(discretePlant), /s-domain|discrete/);
+  assertThrows('rootLocusJwCrossings rejects discrete systems', () => rootLocusJwCrossings(discretePlant, 10, 8), /s-domain|discrete/);
+  assertThrows('stabilityMargins rejects discrete systems', () => stabilityMargins(discretePlant), /s-domain|discrete/);
 });
 
 const failed = checks.filter((check) => !check.ok);

@@ -13,6 +13,12 @@ function assertGainSweep(kMin, kMax, nPoints, label) {
   }
 }
 
+function assertContinuousRootLocusSystem(sys, label) {
+  if (sys && Number.isFinite(sys.sampleTime)) {
+    throw new Error(`${label}: continuous root-locus analysis requires an s-domain transfer function; use z-domain pole analysis or discrete gain-sweep tooling for discrete systems`);
+  }
+}
+
 /**
  * Compute root locus data.
  * For characteristic equation: den(s) + K·num(s) = 0
@@ -23,6 +29,7 @@ function assertGainSweep(kMin, kMax, nPoints, label) {
  * @returns {{ gains: number[], roots: Complex[][] }}
  */
 export function rootLocusData(sys, kMin = 0, kMax = 100, nPoints = 500) {
+  assertContinuousRootLocusSystem(sys, 'rootLocusData');
   assertGainSweep(kMin, kMax, nPoints, 'rootLocusData');
   const gains = [];
   const roots = [];
@@ -59,6 +66,7 @@ export function rootLocusData(sys, kMin = 0, kMax = 100, nPoints = 500) {
  * @returns {{ centroid: number, angles: number[] }}
  */
 export function rootLocusAsymptotes(sys) {
+  assertContinuousRootLocusSystem(sys, 'rootLocusAsymptotes');
   const poles = sys.poles();
   const zeros = sys.zeros();
   const n = poles.length;
@@ -175,6 +183,7 @@ function _hungarianAssign(cost, n) {
  * @returns {{ s: number, K: number, kind: 'breakaway'|'breakin' }[]}
  */
 export function rootLocusBreakPoints(sys) {
+  assertContinuousRootLocusSystem(sys, 'rootLocusBreakPoints');
   const num = sys.num;
   const den = sys.den;
   const numD = polyderiv(num);
@@ -219,6 +228,7 @@ function denominatorPolesNearby(sys, s) {
  * @returns {{ K: number, omega: number }[]}
  */
 export function rootLocusJwCrossings(sys, kMax = 1e4, samples = 400) {
+  assertContinuousRootLocusSystem(sys, 'rootLocusJwCrossings');
   if (!Number.isFinite(kMax) || kMax <= 1e-3) {
     throw new Error('rootLocusJwCrossings: kMax must be finite and greater than 1e-3');
   }
