@@ -35,7 +35,11 @@ export class DiscreteTransferFunction {
   get order() { return this.den.length - 1; }
 
   poles() {
-    return polyroots(this.den);
+    const roots = polyroots(this.den);
+    if (this.num.every((value) => Math.abs(value) < 1e-15)) return roots;
+    const implicitDelayPoles = Math.max(0, this.num.length - this.den.length);
+    for (let i = 0; i < implicitDelayPoles; i++) roots.push(new Complex(0, 0));
+    return roots;
   }
 
   /**

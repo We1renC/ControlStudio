@@ -164,6 +164,17 @@ record('DTF#3b: dcGain — cancels removable unit-circle pole-zero factors', () 
   assertTrue('DTF#3b: extra unit-circle pole gives infinite DC', new DiscreteTransferFunction([1, -1], [1, -2, 1], 0.1).dcGain() === Infinity);
 });
 
+record('DTF#3c: poles — implicit delay pole at z=0', () => {
+  const delay = new DiscreteTransferFunction([0, 1], [1], 0.1);
+  const poles = delay.poles();
+  assertTrue('DTF#3c: pure delay has one pole', poles.length === 1);
+  assertNear('DTF#3c: pole at z=0', Math.hypot(poles[0].re, poles[0].im), 0, 1e-12);
+  const delayedFirstOrder = new DiscreteTransferFunction([0, 0, 1], [1, -0.5], 0.1);
+  const delayedPoles = delayedFirstOrder.poles().map((p) => p.re).sort((a, b) => a - b);
+  assertNear('DTF#3c: implicit pole at origin', delayedPoles[0], 0, 1e-12);
+  assertNear('DTF#3c: dynamic pole preserved', delayedPoles[1], 0.5, 1e-12);
+});
+
 // ============================================================
 // DTF — series / parallel / feedback
 // ============================================================

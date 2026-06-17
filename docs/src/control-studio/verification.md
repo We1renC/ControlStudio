@@ -6,6 +6,7 @@
 - 先比對 transfer function 多項式係數，再比對 poles / zeros / DC gain。
 - DC gain 驗證必須使用低頻極限，先消去 removable origin pole-zero factors；不可只用常數項相除。
 - Discrete DC gain 驗證必須在 `q=z^-1=1` 使用低頻極限，先消去 removable unit-circle factors；不可只用係數和相除。
+- Discrete `z^-1` transfer functions must include implicit `z=0` delay poles when numerator delay order exceeds denominator order；natural pure-delay input `num=[0,1], den=[1]` must not appear pole-free in z-plane analysis.
 - Matched-Z C2D gain normalization 必須先保留 continuous leading gain，再使用 discrete low-frequency limit；遇到 removable origin pole-zero 映射為 `z=1` pair 時，不可因 raw coefficient sums 為 0 而退回 unity gain。
 - C2D 方法必須一致拒絕 improper continuous plant；不可把 derivative-like 或不可實現的原始模型離散成看似 stable 的 DTF。
 - Impulse-invariant C2D 目前為 simple-pole baseline；repeated poles 必須明確回報 unsupported，不可靜默跳過 residue 或輸出 zero/mis-scaled DTF。

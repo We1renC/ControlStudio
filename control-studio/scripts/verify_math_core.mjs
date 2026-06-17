@@ -188,6 +188,11 @@ record('Discrete transfer function invariants', () => {
   assertNear('DTF dc gain cancels unit-root pole-zero', new DiscreteTransferFunction([1, -1], [1, -1], 0.1).dcGain(), 1);
   assertNear('DTF dc gain zero after extra unit-root zero', new DiscreteTransferFunction([1, -2, 1], [1, -1], 0.1).dcGain(), 0);
   assertTrue('DTF dc gain infinite after extra unit-root pole', new DiscreteTransferFunction([1, -1], [1, -2, 1], 0.1).dcGain() === Infinity);
+  const pureDelay = new DiscreteTransferFunction([0, 1], [1], 0.1);
+  assertTrue('DTF pure delay has implicit z=0 pole', pureDelay.poles().length === 1 && Math.hypot(pureDelay.poles()[0].re, pureDelay.poles()[0].im) < 1e-12);
+  assertTrue('DTF pure delay remains stable', pureDelay.isStable());
+  const delayedFirstOrder = new DiscreteTransferFunction([0, 0, 1], [1, -0.5], 0.1);
+  assertTrue('DTF delayed first-order includes explicit and implicit poles', hasRoot(delayedFirstOrder.poles(), 0.5) && hasRoot(delayedFirstOrder.poles(), 0));
   assertThrows('discreteStepResponse rejects non-finite sampleCount', () => discreteStepResponse(g, { sampleCount: NaN }), /sampleCount/);
   assertThrows('discreteStepResponse rejects non-positive sampleCount', () => discreteStepResponse(g, { sampleCount: 0 }), /sampleCount/);
   assertThrows('discreteStepResponse rejects non-finite amplitude', () => discreteStepResponse(g, { amplitude: NaN }), /amplitude/);
