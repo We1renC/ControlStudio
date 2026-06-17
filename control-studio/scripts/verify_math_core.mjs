@@ -198,6 +198,17 @@ record('Discrete transfer function invariants', () => {
   assertTrue('DTF trailing zeros do not create zeros', paddedStatic.zeros().length === 0);
   assertNear('DTF trailing-zero normalization preserves DC gain', paddedStatic.dcGain(), 1, 1e-12);
   assertThrows('DTF denominator leading zero is rejected', () => new DiscreteTransferFunction([1], [0, 1], 0.1), /leading coefficient/);
+  const closed = new DiscreteTransferFunction([0.5], [1, -0.5], 0.1).feedback();
+  assertNear('DTF feedback aligns delay-polynomial denominator a0', closed.den[0], 1, 1e-12);
+  assertNear('DTF feedback preserves dynamic pole', closed.poles()[0].re, 1 / 3, 1e-12);
+  const mixedParallel = new DiscreteTransferFunction([1], [1], 0.1)
+    .parallel(new DiscreteTransferFunction([0.5], [1, -0.5], 0.1));
+  assertNear('DTF parallel aligns mixed-order delay polynomials', mixedParallel.dcGain(), 2, 1e-12);
+  assertThrows(
+    'DTF feedback rejects sample-time mismatch',
+    () => new DiscreteTransferFunction([0.5], [1, -0.5], 0.1).feedback(new DiscreteTransferFunction([1], [1], 0.2)),
+    /Sample times/
+  );
   assertThrows('discreteStepResponse rejects non-finite sampleCount', () => discreteStepResponse(g, { sampleCount: NaN }), /sampleCount/);
   assertThrows('discreteStepResponse rejects non-positive sampleCount', () => discreteStepResponse(g, { sampleCount: 0 }), /sampleCount/);
   assertThrows('discreteStepResponse rejects non-finite amplitude', () => discreteStepResponse(g, { amplitude: NaN }), /amplitude/);

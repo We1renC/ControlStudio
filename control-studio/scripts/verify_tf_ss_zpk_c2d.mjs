@@ -207,6 +207,16 @@ record('DTF#5: parallel — DC gain sum', () => {
   assertNear('DTF#5: parallel DC', par.dcGain(), g1.dcGain() + g2.dcGain(), 1e-6);
 });
 
+record('DTF#5b: parallel — delay-polynomial alignment for mixed orders', () => {
+  const staticGain = new DiscreteTransferFunction([1], [1], 0.1);
+  const firstOrder = new DiscreteTransferFunction([0.5], [1, -0.5], 0.1);
+  const par = staticGain.parallel(firstOrder);
+  assertNear('DTF#5b: mixed-order parallel DC', par.dcGain(), 2, 1e-12);
+  assertNear('DTF#5b: numerator a0', par.num[0], 1.5, 1e-12);
+  assertNear('DTF#5b: numerator a1', par.num[1], -0.5, 1e-12);
+  assertNear('DTF#5b: denominator a1', par.den[1], -0.5, 1e-12);
+});
+
 record('DTF#6: feedback — closed-loop DC gain', () => {
   // G/(1+G) where G has DC gain K → CL DC = K/(1+K)
   const K = 2; // dcGain = 2
@@ -215,6 +225,13 @@ record('DTF#6: feedback — closed-loop DC gain', () => {
   const g2 = new DiscreteTransferFunction([0.8], [1, -0.2], 0.1);
   const cl = g2.feedback();
   assertNear('DTF#6: CL DC = G/(1+G)', cl.dcGain(), g2.dcGain() / (1 + g2.dcGain()), 1e-6);
+  assertNear('DTF#6: CL pole preserved by delay-polynomial alignment', cl.poles()[0].re, 0.2 / 1.8, 1e-12);
+});
+
+record('DTF#6b: feedback — sample time must match feedback path', () => {
+  const plant = new DiscreteTransferFunction([0.5], [1, -0.5], 0.1);
+  const sensor = new DiscreteTransferFunction([1], [1], 0.2);
+  assertThrows('DTF#6b: mismatched sample time rejected', () => plant.feedback(sensor), /Sample times/);
 });
 
 // ============================================================

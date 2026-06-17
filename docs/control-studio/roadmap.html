@@ -87,7 +87,7 @@ del{color:var(--muted)}
 
 <blockquote>
 <p>Last updated: 2026-06-18</p>
-<p>Current committed baseline: <code>fix(control): normalize discrete delay polynomials</code></p>
+<p>Current committed baseline: <code>fix(control): harden discrete interconnections</code></p>
 <p>Scope: this is the canonical execution roadmap for ControlStudio implementation status.</p>
 <p>Do not use this file for product vision, proof derivations, or handoff notes; see the document workflow below.</p>
 </blockquote>
@@ -388,6 +388,8 @@ del{color:var(--muted)}
 <p><strong>Discrete delay pole closure:</strong> discrete TF <code>poles()</code> now includes implicit poles at <code>z=0</code> when the numerator delay order exceeds the denominator order. Natural z^-1 inputs such as <code>num=[0,1], den=[1]</code> for <code>G(z)=z^-1</code> now report the causal delay pole at the origin instead of an empty pole set, while existing explicit denominator poles and the no-spurious-zero convention remain unchanged.</p>
 
 <p><strong>Discrete delay polynomial normalization closure:</strong> discrete TF construction now trims trailing structural zeros from numerator and denominator <code>z^-1</code> coefficient arrays while preserving leading numerator zeros as real input delay. Padded static gains such as <code>num=[1,0,0], den=[1,0]</code> no longer report spurious <code>z=0</code> zeros or poles, padded unit-delay models such as <code>num=[0,1,0], den=[1,0]</code> still report exactly one causal delay pole, and denominator leading-zero forms such as <code>den=[0,1]</code> are rejected as invalid non-causal/advance representations.</p>
+
+<p><strong>Discrete interconnection closure:</strong> discrete TF <code>parallel()</code> and <code>feedback()</code> now add <code>z^-1</code> delay polynomials by coefficient index instead of using high-degree polynomial alignment. Mixed-order interconnections such as <code>1 + 0.5/(1-0.5z^-1)</code> preserve the correct numerator and denominator, and feedback on <code>0.5/(1-0.5z^-1)</code> keeps the expected closed-loop pole at <code>z=1/3</code> instead of collapsing into a static gain. Feedback paths also now enforce matching sample times.</p>
 
 <p><strong>Matched-Z gain normalization closure:</strong> <code>c2dMatchedZ()</code> now preserves the continuous leading gain before low-frequency matching, then normalizes against the discrete TF <code>dcGain()</code> limit rather than raw coefficient sums. Removable origin pole-zero factors such as <code>2s/s</code> therefore map to a removable <code>z=1</code> pair with DC gain 2 instead of silently collapsing to unity gain.</p>
 

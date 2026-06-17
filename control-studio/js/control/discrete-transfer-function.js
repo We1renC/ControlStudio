@@ -4,7 +4,7 @@
  * G(z) = (b0 + b1 z^-1 + ... + bm z^-m) / (1 + a1 z^-1 + ... + an z^-n)
  */
 import { Complex } from '../math/complex.js';
-import { polymul, polyadd, polyroots } from '../math/polynomial.js';
+import { polymul, polyroots } from '../math/polynomial.js';
 
 export class DiscreteTransferFunction {
   constructor(num, den, sampleTime = 1) {
@@ -108,7 +108,7 @@ export class DiscreteTransferFunction {
     if (Math.abs(this.sampleTime - other.sampleTime) > 1e-12) {
       throw new Error('Sample times must match for discrete TF parallel connection');
     }
-    const num = polyadd(
+    const num = delayPolyAdd(
       polymul(this.num, other.den),
       polymul(other.num, this.den)
     );
@@ -121,10 +121,13 @@ export class DiscreteTransferFunction {
    * CL = G*Hd / (Gd*Hd + Gn*Hn)
    */
   feedback(H = null) {
+    if (H && Math.abs(this.sampleTime - H.sampleTime) > 1e-12) {
+      throw new Error('Sample times must match for discrete TF feedback connection');
+    }
     const Hnum = H ? H.num : [1];
     const Hden = H ? H.den : [1];
     const clNum = polymul(this.num, Hden);
-    const clDen = polyadd(
+    const clDen = delayPolyAdd(
       polymul(this.den, Hden),
       polymul(this.num, Hnum)
     );
@@ -147,6 +150,16 @@ function trimDelayPolynomial(coeffs) {
   let end = coeffs.length - 1;
   while (end > 0 && Math.abs(coeffs[end]) < 1e-15) end--;
   return coeffs.slice(0, end + 1);
+}
+
+function delayPolyAdd(a, b) {
+  const len = Math.max(a.length, b.length);
+  const out = new Array(len).fill(0);
+  for (let i = 0; i < len; i++) {
+    if (i < a.length) out[i] += a[i];
+    if (i < b.length) out[i] += b[i];
+  }
+  return trimDelayPolynomial(out);
 }
 
 function delayPolyDerivativeAtOne(coeffs, order) {
