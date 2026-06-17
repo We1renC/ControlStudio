@@ -282,6 +282,11 @@ record('Continuous/discrete response consistency', () => {
     () => c2dImpulseInvariant(new TransferFunction([1], [1, 2, 1]), 0.1),
     /repeated poles/
   );
+  assertThrows(
+    'Impulse-invariant rejects biproper direct feedthrough',
+    () => c2dImpulseInvariant(new TransferFunction([1, 2], [1, 1]), 0.1),
+    /strictly proper|feedthrough/
+  );
 });
 
 record('Analysis grid input guards', () => {

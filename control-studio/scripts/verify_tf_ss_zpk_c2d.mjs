@@ -408,6 +408,11 @@ record('C2D#12: c2dImpulseInvariant rejects repeated poles', () => {
   assertThrows('C2D#12: repeated pole rejected', () => c2dImpulseInvariant(repeatedPole, 0.1), /repeated poles/);
 });
 
+record('C2D#13: c2dImpulseInvariant rejects biproper direct feedthrough', () => {
+  const biproper = new TransferFunction([1, 2], [1, 1]);
+  assertThrows('C2D#13: biproper feedthrough rejected', () => c2dImpulseInvariant(biproper, 0.1), /strictly proper|feedthrough/);
+});
+
 // ============================================================
 const failed = checks.filter(c => !c.ok);
 if (failed.length) {

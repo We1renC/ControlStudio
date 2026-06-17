@@ -1,7 +1,7 @@
 # ControlStudio Development Roadmap
 
 > Last updated: 2026-06-17
-> Current committed baseline: `fix(control): harden impulse-invariant repeated poles`
+> Current committed baseline: `fix(control): harden impulse-invariant feedthrough`
 > Scope: this is the canonical execution roadmap for ControlStudio implementation status.
 > Do not use this file for product vision, proof derivations, or handoff notes; see the document workflow below.
 
@@ -176,6 +176,8 @@ Per `docs/src/control-studio/functional-roadmap.html`. Tier A-J deterministic ba
 **Matched-Z properness closure:** `c2dMatchedZ()` now rejects improper continuous plants before pole-zero mapping, matching the structural gate already enforced by Tustin, ZOH, impulse-invariant, and time-response simulation. This prevents derivative-like or non-realizable continuous models such as `(s+1)^2/(s+1)` from being silently converted into plausible but misleading stable discrete transfer functions.
 
 **Impulse-invariant repeated-pole closure:** `c2dImpulseInvariant()` now rejects repeated continuous poles before residue expansion. The implementation is explicitly simple-pole only, so systems such as `1/(s+1)^2` fail with a clear unsupported-case error instead of silently returning a zero discrete system or a numerically inflated transfer function.
+
+**Impulse-invariant feedthrough closure:** `c2dImpulseInvariant()` now requires strictly proper continuous systems. Biproper plants such as `(s+2)/(s+1)` contain a direct-feedthrough impulse term at `t=0`; the current residue-only DTF representation does not encode that distributional component, so the method rejects the case explicitly and directs engineers to ZOH or Tustin instead of silently dropping the feedthrough path.
 
 **Phase-margin branch closure:** `stabilityMargins()` now evaluates phase margin from the continuous unwrapped Bode phase branch rather than the principal phase returned at the crossover point. Negative low-frequency loops start on the `-180 deg` branch, so `L(s)=-2/(s+1)` reports approximately `-60 deg` PM and matches its unstable unity-feedback pole at `+1`, instead of being misreported as a large positive margin.
 

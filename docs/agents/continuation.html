@@ -96,7 +96,7 @@ del{color:var(--muted)}
 <li>控制系統目前同步基線：</li>
 <ul>
 <li>Branch: <code>main</code></li>
-<li>Latest active line: <code>fix(control): harden impulse-invariant repeated poles</code></li>
+<li>Latest active line: <code>fix(control): harden impulse-invariant feedthrough</code></li>
 <li>Full phase audit checkpoints:</li>
 <ul>
 <li><code>7a318b3 fix(control): harden phase 7-9 theory diagnostics</code></li>
@@ -139,6 +139,7 @@ del{color:var(--muted)}
 <li>2026-06-17 接續完成 matched-z removable-origin gain normalization hardening：<code>c2dMatchedZ()</code> 現在先保留 continuous leading gain，再用 Discrete TF <code>dcGain()</code> low-frequency limit 做 DC normalization；<code>2s/s</code> 這類 removable origin pole-zero 會映射為 removable <code>z=1</code> pair 並保留 DC gain 2，不再因 raw coefficient sums 為 0 而退回 unity gain。</li>
 <li>2026-06-17 接續完成 matched-z properness hardening：<code>c2dMatchedZ()</code> 現在與 Tustin / ZOH / impulse-invariant 一致拒絕 improper continuous plant；<code>(s+1)^2/(s+1)</code> 這類 derivative-like 原始模型不再被靜默映射成看似 stable 的 discrete TF。</li>
 <li>2026-06-17 接續完成 impulse-invariant repeated-pole hardening：<code>c2dImpulseInvariant()</code> 現在明確拒絕 repeated continuous poles；<code>1/(s+1)^2</code> 不再被 residue loop 靜默跳過成 zero DTF，改要求使用 ZOH 或 Tustin。</li>
+<li>2026-06-17 接續完成 impulse-invariant direct-feedthrough hardening：<code>c2dImpulseInvariant()</code> 現在限定 strictly proper continuous systems；<code>(s+2)/(s+1)</code> 這類 biproper plant 的 direct-feedthrough impulse 不會被 residue-only DTF path 靜默丟棄，改要求使用 ZOH 或 Tustin。</li>
 </ul>
 <li>已完成 NVIDIA Build Models 資料集中管理。</li>
 <li>已新增 agent 入口文件：</li>
@@ -271,6 +272,7 @@ del{color:var(--muted)}
 <li>Done：<code>c2dMatchedZ()</code> 先保留 continuous leading gain，再用 discrete low-frequency limit 做 normalization，避免 <code>2s/s</code> 這類 removable origin pole-zero 被離散成 unity gain。</li>
 <li>Done：<code>c2dMatchedZ()</code> 與其他 C2D 方法一致拒絕 improper continuous plant，避免不可實現模型被靜默轉成 misleading DTF。</li>
 <li>Done：<code>c2dImpulseInvariant()</code> 對 repeated poles 明確 throw，避免 simple-pole-only residue path 靜默輸出 zero 或 mis-scaled DTF。</li>
+<li>Done：<code>c2dImpulseInvariant()</code> 對 biproper direct-feedthrough plant 明確 throw，避免 residue-only DTF path 靜默丟棄 <code>t=0</code> impulse component。</li>
 <li>Done：<code>stabilityMargins()</code> phase margin 改用 unwrapped branch；negative low-frequency loop 不再因 principal phase 被誤報為高正 margin。</li>
 <li>Done：Hamiltonian stable subspace 清除未使用且轉置錯誤的 dead computation。</li>
 <li>Done：real Schur 1x1 block swap 修正 Givens rotation 公式、乘法方向 / 符號與 reordered eigenvalue 回傳順序。</li>
@@ -428,7 +430,7 @@ git log --oneline -5
 <li><code>control-studio/js/control/stability.js</code> 新增 <code>routhTable</code> Routh-Hurwitz 穩定性表。</li>
 <li><code>control-studio/js/analysis/frequency-response.js</code> 新增 <code>nicholsData</code>、<code>nyquistEncirclements</code>。</li>
 <li><code>test_control.js</code> 已擴充涵蓋 ZPK、polydiv、Routh、Nichols、encirclement、asymptotes、SS Rank 測試。</li>
-<li><code>control-studio/scripts/verify_math_core.mjs</code> 已新增為獨立數學核心驗證：覆蓋 Complex、Polynomial roots、Matrix solve/inverse/exp、RK4/RK45、TF/DTF guard、State-Space roundtrip、C2D DC gain、continuous/ZPK DC gain origin-cancellation guards、discrete DC gain unit-root guards、matched-z removable-origin gain normalization guards、matched-z properness guards、impulse-invariant repeated-pole guards、continuous frequency/root-locus grid guards、discrete Bode grid guards、time-response input/properness guards、discrete response input guards。</li>
+<li><code>control-studio/scripts/verify_math_core.mjs</code> 已新增為獨立數學核心驗證：覆蓋 Complex、Polynomial roots、Matrix solve/inverse/exp、RK4/RK45、TF/DTF guard、State-Space roundtrip、C2D DC gain、continuous/ZPK DC gain origin-cancellation guards、discrete DC gain unit-root guards、matched-z removable-origin gain normalization guards、matched-z properness guards、impulse-invariant repeated-pole guards、impulse-invariant direct-feedthrough guards、continuous frequency/root-locus grid guards、discrete Bode grid guards、time-response input/properness guards、discrete response input guards。</li>
 <li><code>control-studio/js/math/polynomial.js</code> 已改用 Durand-Kerner 處理三階以上根；舊 QR path 對 <code>s^3+1</code> 會錯誤收斂為 0，勿恢復。</li>
 <li><code>control-studio/js/math/ode.js</code> 已修正 RK45 Dormand-Prince 5th-order 權重缺第 7 項 <code>0</code> 造成 NaN / infinite loop 的問題。</li>
 <li><code>docs/src/control-studio/scenarios.md</code> 已新增 precision servo stage position control 情境，使用 ControlStudio 核心完成 PID + Lead 設計，並記錄後續改善思考。</li>
@@ -452,7 +454,7 @@ git log --oneline -5
 <li><code>control-studio</code> 已補 Phase 16：mixed-sensitivity H∞ PID synthesis helper、GA PID auto-tuner、phase portrait、describing functions、n-dimensional equilibrium classification、nonlinear grid scan guards；<code>npm run verify:p16</code> 與 <code>node control-studio/scripts/verify_equilibrium_nd.mjs</code> 可重跑驗證。</li>
 <li><code>control-studio</code> 已補 Phase 17：plant-order dynamic H∞ mixed-sensitivity synthesis、structured μ D-scaling upper-bound / DK-style static gain surrogate、MIMO characteristic loci / Gershgorin bands / inverse Nyquist array、MPC MIMO output-space setpoint tracking；<code>npm run verify:p17</code> 可重跑驗證。</li>
 <li><code>control-studio</code> 已補 Phase 24：EMPC (<code>empc.js</code>)、Tube MPC (<code>tube_mpc.js</code>)、Explicit MPC (<code>explicit_mpc.js</code>)；<code>verify_p24_empc.mjs</code> 與 <code>verify_p24_tube_explicit_mpc.mjs</code> 可重跑驗證。</li>
-<li><code>a2a89d3 fix(math): 4 defects in complex / polynomial / realschur</code> 已完成 post Phase 17 數學核心修復；後續 TF/SS/ZPK/C2D targeted 基線已擴充到 <code>42/42</code>，PID <code>21/21</code> 維持通過。</li>
+<li><code>a2a89d3 fix(math): 4 defects in complex / polynomial / realschur</code> 已完成 post Phase 17 數學核心修復；後續 TF/SS/ZPK/C2D targeted 基線已擴充到 <code>43/43</code>，PID <code>21/21</code> 維持通過。</li>
 <li>本輪補上 unpaired complex root error wording 相容性後，<code>node test_control.js</code> / <code>./nv-agent doctor</code> 不應再因錯誤訊息分類失敗。</li>
 <li>本輪同步 <code>scripts/validate_nvidia_model_selector.sh</code> 的 Phase 10 math-core 預期值為 <code>16/16</code>，避免標準 <code>doctor</code> workflow 停留在舊 <code>12/12</code> 基線。</li>
 <li><code>workflows/cuopt_demo_workflow.py</code> 已新增 <code>--local-validate</code>，<code>./nv-agent doctor</code> 改用本地 cuOpt payload validator，不再因外部 cuOpt API timeout 讓本地健康檢查失敗。</li>

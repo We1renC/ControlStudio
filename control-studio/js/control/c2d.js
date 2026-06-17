@@ -236,13 +236,14 @@ export function c2dZOH(sys, Ts) {
 // Complex conjugate poles are handled by combining conjugate residue pairs
 // into real second-order sections.
 //
-// Limitation: assumes simple (non-repeated) poles. For systems with repeated
-// poles, use Tustin or ZOH instead.
+// Limitation: assumes strictly proper systems with simple (non-repeated) poles.
+// Biproper/direct-feedthrough terms contain an impulse at t=0 that this
+// residue-only DTF representation does not encode. Use ZOH or Tustin instead.
 // ---------------------------------------------------------------------------
 export function c2dImpulseInvariant(sys, Ts) {
   validateTs(Ts);
-  if (sys.num.length > sys.den.length) {
-    throw new Error('Impulse-invariant: system must be proper');
+  if (sys.num.length >= sys.den.length) {
+    throw new Error('Impulse-invariant: system must be strictly proper; direct feedthrough is unsupported');
   }
   const poles = sys.poles();
   ensureSimplePoles(poles, 'Impulse-invariant');

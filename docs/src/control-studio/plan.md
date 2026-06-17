@@ -232,6 +232,7 @@
 - Full math-core audit：`c2dMatchedZ()` 先保留 continuous leading gain，再用 Discrete TF `dcGain()` low-frequency limit 做 normalization；`2s/s` 這類 removable origin pole-zero 不再因 `z=1` coefficient sums 為 0 而離散成 unity gain。
 - Full math-core audit：`c2dMatchedZ()` 現在與 Tustin / ZOH / impulse-invariant 一致拒絕 improper continuous plant，避免 derivative-like 原始模型被靜默離散化成 misleading stable DTF。
 - Full math-core audit：`c2dImpulseInvariant()` 現在明確拒絕 repeated poles；`1/(s+1)^2` 不再被 residue loop 靜默跳過成 zero DTF，需改用 ZOH 或 Tustin。
+- Full math-core audit：`c2dImpulseInvariant()` 現在限定 strictly proper continuous systems；`(s+2)/(s+1)` 這類 biproper direct-feedthrough impulse 不會被 residue-only DTF path 靜默丟棄，需改用 ZOH 或 Tustin。
 - Full math-core audit：`stabilityMargins()` 的 phase margin 改以 unwrapped Bode phase branch 計算；negative low-frequency loop 從 `-180 deg` branch 起算，避免 `L(s)=-2/(s+1)` 這類不穩定 unity-feedback loop 被 principal phase 誤報為高正 PM。
 - Full math-core audit：time-response simulation inputs 加入 finite / positivity / properness guards，涵蓋 step / impulse / ramp / sine / square / pulse 的 duration、sampleCount、amplitude、frequency、pulseWidth、disturbance、initialState、improper TF rejection、biproper disturbance feedthrough，以及 PID anti-windup 的 Kp/Ki/Kd/N、saturation bounds、Tt、duration、sampleCount、reference amplitude 與 strictly proper plant requirement。
 - Full math-core audit：discrete step / impulse response inputs 加入 sampleCount、amplitude、sampleTime、num/den finite guards，並讓 `den[0] != 1` 的 plain discrete system 走標準差分方程除法，避免 mis-scaled output 或 NaN time grid。
@@ -241,7 +242,7 @@
 - Real Schur symmetric fast path：對 symmetric real matrices 使用 Jacobi orthogonal Schur，修復 3x3 stable real-spectrum reconstruction regression。
 - Nonlinear equilibrium classification：`classifyEquilibrium()` 對 n>2 Jacobian 改用 Faddeev-LeVerrier characteristic polynomial + `polyroots()`，避免舊 `trace(A)/n` placeholder 隱藏 saddle / unstable modes。
 - Frontend analysis API migration：新 session 預設 `Auto API Fallback`，FastAPI 成功時使用 Unified API metrics，不可用或 z-domain 時明確 fallback Local JS；root `package.json` 已提供 `npm run verify:*` 入口。
-- Verification：最新節點已通過 TF / SS / ZPK / C2D 與 PID regression（最新 targeted 基線 `42/42` 與 `21/21`）。
+- Verification：最新節點已通過 TF / SS / ZPK / C2D 與 PID regression（最新 targeted 基線 `43/43` 與 `21/21`）。
 
 ### 尚未完成能力
 - Functional Roadmap Tier A-J 已完成 deterministic baseline。
@@ -512,7 +513,7 @@
 - Done：Phase 16 advanced synthesis / nonlinear entry points — mixed-sensitivity PID tuning、GA PID auto-tuner、2D phase portrait、describing functions、n-dimensional equilibrium classification、nonlinear grid scan guards。
 - Done：Phase 17 advanced robust / MIMO / MPC extensions — plant-order dynamic H∞ mixed-sensitivity synthesis、structured μ D-scaling upper-bound、DK-style static gain surrogate、characteristic loci、Gershgorin bands、inverse Nyquist array、MIMO output-space MPC tracking。
 - Done：Post Phase 17 math hardening — complex magnitude robustness、ill-conditioned polynomial conjugate pairing、Hamiltonian stable-subspace cleanup、real Schur block reorder correctness。
-- Done：Full math-core audit hardening — robust complex division、stable quadratic roots、scale-aware matrix inverse/solve/rank/PD checks、discrete frequency response division unification、continuous frequency/root-locus grid guards、discrete Bode grid guards、continuous/ZPK DC gain origin-cancellation guards、discrete DC gain unit-root guards、matched-z removable-origin gain normalization guards、matched-z properness guards、impulse-invariant repeated-pole guards、negative-loop phase-margin branch guards、time-response input/properness guards、discrete response input guards、delay margin guards、step metrics contract guards、Routh-Hurwitz input guards。
+- Done：Full math-core audit hardening — robust complex division、stable quadratic roots、scale-aware matrix inverse/solve/rank/PD checks、discrete frequency response division unification、continuous frequency/root-locus grid guards、discrete Bode grid guards、continuous/ZPK DC gain origin-cancellation guards、discrete DC gain unit-root guards、matched-z removable-origin gain normalization guards、matched-z properness guards、impulse-invariant repeated-pole guards、impulse-invariant direct-feedthrough guards、negative-loop phase-margin branch guards、time-response input/properness guards、discrete response input guards、delay margin guards、step metrics contract guards、Routh-Hurwitz input guards。
 - Done：Nonlinear equilibrium audit hardening — n>2 Jacobian eigenvalue classification now uses characteristic polynomial roots instead of trace-average placeholder；`scanEquilibria()` / `phasePortrait()` now validate grid size and finite bounds, and `gridSize=1` uses the bounds-center seed instead of NaN；`verify_equilibrium_nd.mjs` covers 7 regression checks including 3D saddle, 4D stable-node, 3D unstable-spiral, 3D affine equilibrium convergence, center-seed behavior, and invalid-grid rejection.
 - Verification：
   - `npm run verify:p14`
