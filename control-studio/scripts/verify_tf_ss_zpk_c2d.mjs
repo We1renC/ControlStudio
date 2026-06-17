@@ -175,6 +175,21 @@ record('DTF#3c: poles — implicit delay pole at z=0', () => {
   assertNear('DTF#3c: dynamic pole preserved', delayedPoles[1], 0.5, 1e-12);
 });
 
+record('DTF#3d: polynomial normalization — trailing zeros are structural padding', () => {
+  const staticPadded = new DiscreteTransferFunction([1, 0, 0], [1, 0], 0.1);
+  assertTrue('DTF#3d: padded static gain has no poles', staticPadded.poles().length === 0);
+  assertTrue('DTF#3d: padded static gain has no zeros', staticPadded.zeros().length === 0);
+  assertNear('DTF#3d: padded static gain DC', staticPadded.dcGain(), 1, 1e-12);
+  const delayedPadded = new DiscreteTransferFunction([0, 1, 0], [1, 0], 0.1);
+  const poles = delayedPadded.poles();
+  assertTrue('DTF#3d: padded unit delay still has one pole', poles.length === 1);
+  assertNear('DTF#3d: delayed pole at origin', Math.hypot(poles[0].re, poles[0].im), 0, 1e-12);
+  assertTrue('DTF#3d: denominator leading zero rejected', (() => {
+    try { new DiscreteTransferFunction([1], [0, 1], 0.1); } catch (err) { return /leading coefficient/.test(err.message); }
+    return false;
+  })());
+});
+
 // ============================================================
 // DTF — series / parallel / feedback
 // ============================================================

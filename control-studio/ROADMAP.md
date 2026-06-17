@@ -1,7 +1,7 @@
 # ControlStudio Development Roadmap
 
-> Last updated: 2026-06-17
-> Current committed baseline: `fix(control): harden discrete delay poles`
+> Last updated: 2026-06-18
+> Current committed baseline: `fix(control): normalize discrete delay polynomials`
 > Scope: this is the canonical execution roadmap for ControlStudio implementation status.
 > Do not use this file for product vision, proof derivations, or handoff notes; see the document workflow below.
 
@@ -187,6 +187,8 @@ Per `docs/src/control-studio/functional-roadmap.html`. Tier A-J deterministic ba
 **Discrete DC gain unit-root closure:** discrete TF `dcGain()` now evaluates the low-frequency limit at `q=z^-1=1` by cancelling removable unit-circle factors. Systems such as `(1-z^-1)/(1-z^-1)` report finite unity DC gain, extra unit-circle zeros report zero DC gain, and extra unit-circle poles report infinite DC gain. This prevents z-domain step final-value checks, C2D DC preservation, and discrete controller comparisons from treating removable unit roots as true steady-state singularities.
 
 **Discrete delay pole closure:** discrete TF `poles()` now includes implicit poles at `z=0` when the numerator delay order exceeds the denominator order. Natural z^-1 inputs such as `num=[0,1], den=[1]` for `G(z)=z^-1` now report the causal delay pole at the origin instead of an empty pole set, while existing explicit denominator poles and the no-spurious-zero convention remain unchanged.
+
+**Discrete delay polynomial normalization closure:** discrete TF construction now trims trailing structural zeros from numerator and denominator `z^-1` coefficient arrays while preserving leading numerator zeros as real input delay. Padded static gains such as `num=[1,0,0], den=[1,0]` no longer report spurious `z=0` zeros or poles, padded unit-delay models such as `num=[0,1,0], den=[1,0]` still report exactly one causal delay pole, and denominator leading-zero forms such as `den=[0,1]` are rejected as invalid non-causal/advance representations.
 
 **Matched-Z gain normalization closure:** `c2dMatchedZ()` now preserves the continuous leading gain before low-frequency matching, then normalizes against the discrete TF `dcGain()` limit rather than raw coefficient sums. Removable origin pole-zero factors such as `2s/s` therefore map to a removable `z=1` pair with DC gain 2 instead of silently collapsing to unity gain.
 

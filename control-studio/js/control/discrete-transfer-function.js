@@ -4,19 +4,19 @@
  * G(z) = (b0 + b1 z^-1 + ... + bm z^-m) / (1 + a1 z^-1 + ... + an z^-n)
  */
 import { Complex } from '../math/complex.js';
-import { polymul, polyadd, polyroots, trimPoly } from '../math/polynomial.js';
+import { polymul, polyadd, polyroots } from '../math/polynomial.js';
 
 export class DiscreteTransferFunction {
   constructor(num, den, sampleTime = 1) {
     if (!Array.isArray(num) || num.length === 0) num = [1];
     if (!Array.isArray(den) || den.length === 0) den = [1];
-    this.num = num.map(Number);
-    this.den = trimPoly(den.map(Number));
+    this.num = trimDelayPolynomial(num.map(Number));
+    this.den = trimDelayPolynomial(den.map(Number));
     this.sampleTime = Number(sampleTime);
     if (!this.num.every(Number.isFinite) || !this.den.every(Number.isFinite)) {
       throw new Error('Discrete transfer function coefficients must be finite numbers');
     }
-    if (this.den.length === 1 && Math.abs(this.den[0]) < 1e-15) {
+    if (this.den.every((value) => Math.abs(value) < 1e-15)) {
       throw new Error('Discrete denominator must not be the zero polynomial');
     }
     if (!Number.isFinite(this.sampleTime) || this.sampleTime <= 0) {
@@ -141,6 +141,12 @@ export class DiscreteTransferFunction {
   toString() {
     return `(${delayPolyToString(this.num)}) / (${delayPolyToString(this.den)})`;
   }
+}
+
+function trimDelayPolynomial(coeffs) {
+  let end = coeffs.length - 1;
+  while (end > 0 && Math.abs(coeffs[end]) < 1e-15) end--;
+  return coeffs.slice(0, end + 1);
 }
 
 function delayPolyDerivativeAtOne(coeffs, order) {

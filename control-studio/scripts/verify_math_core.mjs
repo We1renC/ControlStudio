@@ -193,6 +193,11 @@ record('Discrete transfer function invariants', () => {
   assertTrue('DTF pure delay remains stable', pureDelay.isStable());
   const delayedFirstOrder = new DiscreteTransferFunction([0, 0, 1], [1, -0.5], 0.1);
   assertTrue('DTF delayed first-order includes explicit and implicit poles', hasRoot(delayedFirstOrder.poles(), 0.5) && hasRoot(delayedFirstOrder.poles(), 0));
+  const paddedStatic = new DiscreteTransferFunction([1, 0, 0], [1, 0], 0.1);
+  assertTrue('DTF trailing zeros do not create poles', paddedStatic.poles().length === 0);
+  assertTrue('DTF trailing zeros do not create zeros', paddedStatic.zeros().length === 0);
+  assertNear('DTF trailing-zero normalization preserves DC gain', paddedStatic.dcGain(), 1, 1e-12);
+  assertThrows('DTF denominator leading zero is rejected', () => new DiscreteTransferFunction([1], [0, 1], 0.1), /leading coefficient/);
   assertThrows('discreteStepResponse rejects non-finite sampleCount', () => discreteStepResponse(g, { sampleCount: NaN }), /sampleCount/);
   assertThrows('discreteStepResponse rejects non-positive sampleCount', () => discreteStepResponse(g, { sampleCount: 0 }), /sampleCount/);
   assertThrows('discreteStepResponse rejects non-finite amplitude', () => discreteStepResponse(g, { amplitude: NaN }), /amplitude/);
