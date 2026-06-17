@@ -40,6 +40,22 @@ function optionalInitialState(value) {
   return value.map((entry, idx) => finiteNumber(entry, `initialState[${idx}]`));
 }
 
+function assertProperTransferFunction(sys, context) {
+  if (!sys || !Array.isArray(sys.num) || !Array.isArray(sys.den)) {
+    throw new Error(`${context}: valid transfer function is required`);
+  }
+  if (sys.num.length > sys.den.length) {
+    throw new Error(`${context}: time response requires a proper transfer function (numerator degree <= denominator degree)`);
+  }
+}
+
+function assertStrictlyProperTransferFunction(sys, context) {
+  assertProperTransferFunction(sys, context);
+  if (sys.num.length >= sys.den.length) {
+    throw new Error(`${context}: PID anti-windup simulation requires a strictly proper plant with no direct feedthrough`);
+  }
+}
+
 function normalizeOptions(durationOrOptions) {
   if (durationOrOptions == null) {
     return normalizeOptions({});
@@ -93,6 +109,7 @@ function initialStateForInput(order, type, options) {
 }
 
 export function simulateTimeResponse(sys, type = 'step', durationOrOptions = null) {
+  assertProperTransferFunction(sys, 'simulateTimeResponse');
   const options = normalizeOptions(durationOrOptions);
   // 1. Convert TF to State-Space (Controllable Canonical Form)
   const n = sys.den.length - 1;
@@ -157,7 +174,7 @@ export function simulateTimeResponse(sys, type = 'step', durationOrOptions = nul
     const u = responseInput(type, t, options);
     const disturbance = disturbanceInput(t, options);
     tArr.push(i * dt);
-    const curY = getOutput(curX, u);
+    const curY = getOutput(curX, u + disturbance);
     yArr.push(curY);
 
     for (let step = 0; step < integrationSteps; step++) {
@@ -213,6 +230,7 @@ export function rampResponse(sys, durationOrOptions = null) {
  * @returns {{ t: number[], y: number[], u: number[] }}
  */
 export function simulatePIDAntiWindup(plant, pid, options = {}) {
+  assertStrictlyProperTransferFunction(plant, 'simulatePIDAntiWindup');
   const { Kp: rawKp = 0, Ki: rawKi = 0, Kd: rawKd = 0, N: rawN = 100 } = pid || {};
   const Kp = finiteNumber(rawKp, 'Kp');
   const Ki = finiteNumber(rawKi, 'Ki');

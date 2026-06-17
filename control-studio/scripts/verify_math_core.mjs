@@ -210,9 +210,21 @@ record('Continuous/discrete response consistency', () => {
   assertThrows('stepResponse rejects non-positive duration', () => stepResponse(plant, { duration: -1 }), /duration/);
   assertThrows('simulateTimeResponse rejects non-finite frequency', () => simulateTimeResponse(plant, 'sine', { frequency: NaN }), /frequency/);
   assertThrows('simulateTimeResponse rejects non-finite initialState', () => simulateTimeResponse(plant, 'step', { initialState: [0, NaN] }), /initialState/);
+  assertThrows('stepResponse rejects improper TF', () => stepResponse(new TransferFunction([1, 1], [1]), { sampleCount: 20 }), /proper transfer function/);
+  const biproper = new TransferFunction([1, 2], [1, 1]);
+  const biproperDisturbance = stepResponse(biproper, {
+    duration: 1,
+    sampleCount: 20,
+    amplitude: 1,
+    disturbanceType: 'step',
+    disturbanceAmplitude: 1,
+    disturbanceStart: 0,
+  });
+  assertNear('biproper disturbance feedthrough at t=0', biproperDisturbance.y[0], 2, 1e-12);
   assertThrows('simulatePIDAntiWindup rejects non-finite saturation bound', () => simulatePIDAntiWindup(plant, { Kp: 1 }, { uMax: NaN }), /uMax/);
   assertThrows('simulatePIDAntiWindup rejects invalid saturation bounds', () => simulatePIDAntiWindup(plant, { Kp: 1 }, { uMin: 2, uMax: 1 }), /uMin/);
   assertThrows('simulatePIDAntiWindup rejects non-positive tracking time', () => simulatePIDAntiWindup(plant, { Kp: 1, Ki: 1 }, { Tt: 0 }), /Tt/);
+  assertThrows('simulatePIDAntiWindup rejects biproper plant', () => simulatePIDAntiWindup(biproper, { Kp: 1 }, { sampleCount: 20 }), /strictly proper/);
   const tustin = c2dTustin(plant, 0.1);
   const zoh = c2dZOH(plant, 0.1);
   assertNear('Tustin DC gain', tustin.dcGain(), plant.dcGain(), 1e-12);
