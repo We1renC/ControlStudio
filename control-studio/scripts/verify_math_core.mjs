@@ -185,6 +185,9 @@ record('Discrete transfer function invariants', () => {
   assertNear('DTF impulse delayed sample', impulse.y[1], 1, 1e-12);
   const scaledDen = discreteStepResponse({ num: [2], den: [2], sampleTime: 0.25 }, { sampleCount: 3 });
   assertNear('plain DTF den0 scaling', scaledDen.y[0], 1, 1e-12);
+  assertNear('DTF dc gain cancels unit-root pole-zero', new DiscreteTransferFunction([1, -1], [1, -1], 0.1).dcGain(), 1);
+  assertNear('DTF dc gain zero after extra unit-root zero', new DiscreteTransferFunction([1, -2, 1], [1, -1], 0.1).dcGain(), 0);
+  assertTrue('DTF dc gain infinite after extra unit-root pole', new DiscreteTransferFunction([1, -1], [1, -2, 1], 0.1).dcGain() === Infinity);
   assertThrows('discreteStepResponse rejects non-finite sampleCount', () => discreteStepResponse(g, { sampleCount: NaN }), /sampleCount/);
   assertThrows('discreteStepResponse rejects non-positive sampleCount', () => discreteStepResponse(g, { sampleCount: 0 }), /sampleCount/);
   assertThrows('discreteStepResponse rejects non-finite amplitude', () => discreteStepResponse(g, { amplitude: NaN }), /amplitude/);

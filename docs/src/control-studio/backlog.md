@@ -36,8 +36,8 @@
 ## Current Baseline
 
 - Branch: `main`
-- Latest synced checkpoint: `fix(control): harden negative loop margins`
-- Current checkpoint: **CS-P0 ~ CS-P65 done; Functional Roadmap Tier A-J done; Phase 19/20/21/23 project-local skill gaps closed; nonlinear equilibrium classification, nonlinear grid-scan hardening, continuous analysis-grid hardening, discrete Bode grid hardening, DC gain origin-cancellation hardening, negative-loop phase-margin branch hardening, time-response input/properness hardening, discrete response input hardening, delay margin hardening, step metrics contract hardening, and Routh-Hurwitz input hardening closed; verification aggregation closed.** 詳細執行看板見 `control-studio/ROADMAP.md`。目前僅暫停項目維持不做：教學模式、Electron packaging、報告模板 / 報告自動化、Block Diagram expansion。
+- Latest synced checkpoint: `fix(control): harden discrete dc gain cancellations`
+- Current checkpoint: **CS-P0 ~ CS-P65 done; Functional Roadmap Tier A-J done; Phase 19/20/21/23 project-local skill gaps closed; nonlinear equilibrium classification, nonlinear grid-scan hardening, continuous analysis-grid hardening, discrete Bode grid hardening, continuous/ZPK DC gain origin-cancellation hardening, discrete DC gain unit-root hardening, negative-loop phase-margin branch hardening, time-response input/properness hardening, discrete response input hardening, delay margin hardening, step metrics contract hardening, and Routh-Hurwitz input hardening closed; verification aggregation closed.** 詳細執行看板見 `control-studio/ROADMAP.md`。目前僅暫停項目維持不做：教學模式、Electron packaging、報告模板 / 報告自動化、Block Diagram expansion。
 - Functional Roadmap Tier A-J checkpoint：Tier A control algorithms、Tier B identification、Tier C estimation、Tier D optimization、Tier E numerical repair、Tier F verification/safety、Tier G advanced MPC、Tier H embedded deployment、Tier I runtime architecture、Tier J HIL/integration 均已有 deterministic verification baseline；最新 full suite 基線見 `control-studio/ROADMAP.md`。
 - Scenario 5 browser walkthrough result: Phase 10 math + UI both operational.
 - Scenario 6 browser walkthrough result: SISO / MIMO core workflows are UI-operable.
@@ -92,6 +92,7 @@
 | CS-P0-10 | P0 | Done | Routh-Hurwitz input guards | `routhTable()` 對 denominator array、length、finite coefficients、zero polynomial、leading coefficient 先做資料契約檢查；invalid denominator 會明確 throw 而非被誤分類為 stable | `stability.js` | `node test_control.js` |
 | CS-P0-11 | P0 | Done | DC gain origin-cancellation guards | Continuous TF / ZPK `dcGain()` 先消去 removable origin pole-zero factors；`s/s` 回傳 1、extra origin zero 回傳 0、extra origin pole 保留 signed infinity，避免 RGA / decoupler / low-frequency design 把可消 integrator 誤當真實 steady-state singularity | `transfer-function.js`, `zpk.js` | `node control-studio/scripts/verify_math_core.mjs`, `node control-studio/scripts/verify_tf_ss_zpk_c2d.mjs` |
 | CS-P0-12 | P0 | Done | Negative-loop phase-margin branch guards | `stabilityMargins()` 以 continuous unwrapped Bode phase branch 計算 PM；negative low-frequency loop 從 `-180 deg` branch 起算，避免 `L(s)=-2/(s+1)` 被 principal phase 誤報為高正 PM，並與不穩定 unity-feedback pole 對齊 | `stability.js` | `node test_control.js` |
+| CS-P0-13 | P0 | Done | Discrete DC gain unit-root cancellation guards | Discrete TF `dcGain()` 以 `q=z^-1=1` 的低頻極限計算，先消去 removable unit-circle factors；`(1-z^-1)/(1-z^-1)` 回傳 1、extra unit-circle zero 回傳 0、extra unit-circle pole 回傳 Infinity，避免 z-domain step final、C2D DC preservation、discrete controller comparison 把可消 unit root 當真實 steady-state singularity | `discrete-transfer-function.js` | `node control-studio/scripts/verify_math_core.mjs`, `node control-studio/scripts/verify_tf_ss_zpk_c2d.mjs` |
 
 Exit criteria: 已達成。
 

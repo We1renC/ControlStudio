@@ -47,9 +47,14 @@ export class DiscreteTransferFunction {
   }
 
   dcGain() {
-    const denSum = this.den.reduce((sum, value) => sum + value, 0);
-    if (Math.abs(denSum) < 1e-15) return Infinity;
-    return this.num.reduce((sum, value) => sum + value, 0) / denSum;
+    const numLimit = delayPolyRootLimitAtOne(this.num);
+    const denLimit = delayPolyRootLimitAtOne(this.den);
+
+    if (numLimit.zeroPolynomial) return 0;
+    if (denLimit.zeroPolynomial) return Infinity;
+    if (numLimit.multiplicity > denLimit.multiplicity) return 0;
+    if (denLimit.multiplicity > numLimit.multiplicity) return Infinity;
+    return numLimit.derivativeValue / denLimit.derivativeValue;
   }
 
   isStable() {
@@ -132,6 +137,26 @@ export class DiscreteTransferFunction {
   toString() {
     return `(${delayPolyToString(this.num)}) / (${delayPolyToString(this.den)})`;
   }
+}
+
+function delayPolyDerivativeAtOne(coeffs, order) {
+  let sum = 0;
+  for (let i = order; i < coeffs.length; i++) {
+    let falling = 1;
+    for (let k = 0; k < order; k++) falling *= (i - k);
+    sum += coeffs[i] * falling;
+  }
+  return sum;
+}
+
+function delayPolyRootLimitAtOne(coeffs) {
+  for (let order = 0; order < coeffs.length; order++) {
+    const value = delayPolyDerivativeAtOne(coeffs, order);
+    if (Math.abs(value) >= 1e-15) {
+      return { multiplicity: order, derivativeValue: value, zeroPolynomial: false };
+    }
+  }
+  return { multiplicity: Infinity, derivativeValue: 0, zeroPolynomial: true };
 }
 
 function fmtCoeff(c) {

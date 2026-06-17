@@ -152,6 +152,12 @@ record('DTF#3: evalAt(z=1) = dcGain()', () => {
   assertNear('DTF#3: evalAt(1) = dcGain', evAt1, dc, 1e-8);
 });
 
+record('DTF#3b: dcGain — cancels removable unit-circle pole-zero factors', () => {
+  assertNear('DTF#3b: (1-z^-1)/(1-z^-1) DC gain = 1', new DiscreteTransferFunction([1, -1], [1, -1], 0.1).dcGain(), 1);
+  assertNear('DTF#3b: extra unit-circle zero gives zero DC', new DiscreteTransferFunction([1, -2, 1], [1, -1], 0.1).dcGain(), 0);
+  assertTrue('DTF#3b: extra unit-circle pole gives infinite DC', new DiscreteTransferFunction([1, -1], [1, -2, 1], 0.1).dcGain() === Infinity);
+});
+
 // ============================================================
 // DTF — series / parallel / feedback
 // ============================================================
