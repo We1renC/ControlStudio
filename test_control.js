@@ -296,6 +296,13 @@ try {
   const marginRes2 = stabilityMargins(marginSys2);
   assertNear('Margin exact ωpc for 1/(s(s+1)(s+2))', marginRes2.phaseCrossover, Math.sqrt(2), 5e-4);
   assertNear('Margin exact GM for 1/(s(s+1)(s+2))', marginRes2.gainMargin, 6, 5e-3);
+  const negativeLoop = new TransferFunction([-2], [1, 1]);
+  const negativeMargins = stabilityMargins(negativeLoop);
+  const negativeClosedLoop = negativeLoop.feedback();
+  assertNear('Negative loop exact PM for -2/(s+1)', negativeMargins.phaseMargin, -60, 0.1);
+  if (negativeClosedLoop.isStable()) {
+    throw new Error('Negative loop unity feedback should be unstable when PM is negative');
+  }
   assertNear('Complex phase margin', complexMargins.phaseMargin, 15, 0.1);
   assertNear('Complex closed-loop final value', complexResponse.y[complexResponse.y.length - 1], 5, 1e-4);
   if (!Number.isFinite(complexInfo.settlingTime)) throw new Error('Complex settling time should be finite');

@@ -9,7 +9,7 @@
 - 已建立獨立 git repo，避免被 `/Users/w.rc` 外層 git 混入。
 - 控制系統目前同步基線：
   - Branch: `main`
-  - Latest active line: `fix(control): harden dc gain origin cancellations`
+  - Latest active line: `fix(control): harden negative loop margins`
   - Full phase audit checkpoints:
     - `7a318b3 fix(control): harden phase 7-9 theory diagnostics`
     - `46e20da fix(control): harden phase 0-6 theory checks`
@@ -45,6 +45,7 @@
   - 2026-06-17 接續完成 step metrics contract hardening：`stepInfo()` 現在會驗證 t/y 長度一致、有限 samples、嚴格遞增 time grid、finite final/reference；invalid response 回傳 `valid:false` 與 reason，不再產生看似有效的 rise/settling/overshoot/SSE。
   - 2026-06-17 接續完成 Routh-Hurwitz input hardening：`routhTable()` 現在會拒絕非陣列、短 denominator、非有限係數、zero polynomial 與 leading coefficient 為 0 的輸入，避免 invalid denominator 被誤判為 stable。
   - 2026-06-17 接續完成 DC gain origin-cancellation hardening：continuous TF / ZPK `dcGain()` 現在會先消去 removable origin pole-zero factors；`s/s` 回傳 1、extra origin zero 回傳 0、extra origin pole 保留 signed infinity，避免 RGA、static decoupler、low-frequency design 與 robustness summary 把可消 integrator 誤當真實 steady-state singularity。
+  - 2026-06-17 接續完成 negative-loop phase-margin branch hardening：`stabilityMargins()` 現在以 continuous unwrapped Bode phase branch 計算 PM；negative low-frequency loop 從 `-180 deg` branch 起算，`L(s)=-2/(s+1)` 回報約 `-60 deg` PM，與 unity-feedback RHP pole 一致，不再被 principal phase 誤報為高正 PM。
 - 已完成 NVIDIA Build Models 資料集中管理。
 - 已新增 agent 入口文件：
   - `AGENTS.md`：專案規則、標準流程、擴充規則與品質判準。
@@ -146,6 +147,7 @@
     - Done：stepInfo response metrics 加入資料契約檢查，invalid trajectory 不再被誤當有效性能指標。
     - Done：Routh-Hurwitz denominator 加入資料契約檢查，invalid denominator 不再被靜默誤判為 stable。
     - Done：continuous TF / ZPK `dcGain()` 先消去 removable origin pole-zero factors，避免 `s/s` 這類可消 integrator 被誤判為 infinite DC gain。
+    - Done：`stabilityMargins()` phase margin 改用 unwrapped branch；negative low-frequency loop 不再因 principal phase 被誤報為高正 margin。
     - Done：Hamiltonian stable subspace 清除未使用且轉置錯誤的 dead computation。
     - Done：real Schur 1x1 block swap 修正 Givens rotation 公式、乘法方向 / 符號與 reordered eigenvalue 回傳順序。
     - Done：nonlinear equilibrium n-dimensional classification 改走 characteristic polynomial roots，避免高維 linearization 被 trace average 誤分類；nonlinear scan / phase portrait grid APIs 已補 gridSize 與 bounds guards。

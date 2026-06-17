@@ -130,8 +130,8 @@ del{color:var(--muted)}
 
 <ul>
 <li>Branch: <code>main</code></li>
-<li>Latest synced checkpoint: <code>fix(control): harden dc gain origin cancellations</code></li>
-<li>Current checkpoint: <strong>CS-P0 ~ CS-P65 done; Functional Roadmap Tier A-J done; Phase 19/20/21/23 project-local skill gaps closed; nonlinear equilibrium classification, nonlinear grid-scan hardening, continuous analysis-grid hardening, discrete Bode grid hardening, DC gain origin-cancellation hardening, time-response input/properness hardening, discrete response input hardening, delay margin hardening, step metrics contract hardening, and Routh-Hurwitz input hardening closed; verification aggregation closed.</strong> 詳細執行看板見 <code>control-studio/ROADMAP.md</code>。目前僅暫停項目維持不做：教學模式、Electron packaging、報告模板 / 報告自動化、Block Diagram expansion。</li>
+<li>Latest synced checkpoint: <code>fix(control): harden negative loop margins</code></li>
+<li>Current checkpoint: <strong>CS-P0 ~ CS-P65 done; Functional Roadmap Tier A-J done; Phase 19/20/21/23 project-local skill gaps closed; nonlinear equilibrium classification, nonlinear grid-scan hardening, continuous analysis-grid hardening, discrete Bode grid hardening, DC gain origin-cancellation hardening, negative-loop phase-margin branch hardening, time-response input/properness hardening, discrete response input hardening, delay margin hardening, step metrics contract hardening, and Routh-Hurwitz input hardening closed; verification aggregation closed.</strong> 詳細執行看板見 <code>control-studio/ROADMAP.md</code>。目前僅暫停項目維持不做：教學模式、Electron packaging、報告模板 / 報告自動化、Block Diagram expansion。</li>
 <li>Functional Roadmap Tier A-J checkpoint：Tier A control algorithms、Tier B identification、Tier C estimation、Tier D optimization、Tier E numerical repair、Tier F verification/safety、Tier G advanced MPC、Tier H embedded deployment、Tier I runtime architecture、Tier J HIL/integration 均已有 deterministic verification baseline；最新 full suite 基線見 <code>control-studio/ROADMAP.md</code>。</li>
 <li>Scenario 5 browser walkthrough result: Phase 10 math + UI both operational.</li>
 <li>Scenario 6 browser walkthrough result: SISO / MIMO core workflows are UI-operable.</li>
@@ -201,6 +201,8 @@ del{color:var(--muted)}
 <tr><td>CS-P0-10</td><td>P0</td><td>Done</td><td>Routh-Hurwitz input guards</td><td><code>routhTable()</code> 對 denominator array、length、finite coefficients、zero polynomial、leading coefficient 先做資料契約檢查；invalid denominator 會明確 throw 而非被誤分類為 stable</td><td><code>stability.js</code></td><td><code>node test_control.js</code></td></tr>
 </thead><tbody>
 <tr><td>CS-P0-11</td><td>P0</td><td>Done</td><td>DC gain origin-cancellation guards</td><td>Continuous TF / ZPK <code>dcGain()</code> 先消去 removable origin pole-zero factors；<code>s/s</code> 回傳 1、extra origin zero 回傳 0、extra origin pole 保留 signed infinity，避免 RGA / decoupler / low-frequency design 把可消 integrator 誤當真實 steady-state singularity</td><td><code>transfer-function.js</code>, <code>zpk.js</code></td><td><code>node control-studio/scripts/verify_math_core.mjs</code>, <code>node control-studio/scripts/verify_tf_ss_zpk_c2d.mjs</code></td></tr>
+</thead><tbody>
+<tr><td>CS-P0-12</td><td>P0</td><td>Done</td><td>Negative-loop phase-margin branch guards</td><td><code>stabilityMargins()</code> 以 continuous unwrapped Bode phase branch 計算 PM；negative low-frequency loop 從 <code>-180 deg</code> branch 起算，避免 <code>L(s)=-2/(s+1)</code> 被 principal phase 誤報為高正 PM，並與不穩定 unity-feedback pole 對齊</td><td><code>stability.js</code></td><td><code>node test_control.js</code></td></tr>
 </tbody></table>
 
 <p>Exit criteria: 已達成。</p>

@@ -1,7 +1,7 @@
 # ControlStudio Development Roadmap
 
 > Last updated: 2026-06-17
-> Current committed baseline: `fix(control): harden dc gain origin cancellations`
+> Current committed baseline: `fix(control): harden negative loop margins`
 > Scope: this is the canonical execution roadmap for ControlStudio implementation status.
 > Do not use this file for product vision, proof derivations, or handoff notes; see the document workflow below.
 
@@ -183,6 +183,8 @@ Per `docs/src/control-studio/functional-roadmap.html`. Tier A-J deterministic ba
 **Analysis grid closure:** continuous Bode, Nyquist, Nichols, root-locus, and jω crossing sweeps now validate finite ranges and require at least two grid points. Discrete Bode sweeps now validate finite sample counts and `0 < omegaMin < omegaNyquist`, and clamp zero-magnitude dB output to a finite floor. Invalid analysis grids fail with explicit errors instead of producing NaN or non-finite frequency/gain samples.
 
 **DC gain origin-cancellation closure:** continuous TF and ZPK `dcGain()` now cancel removable origin pole-zero factors before evaluating the low-frequency limit. Systems such as `s/s` report finite unity DC gain, extra origin zeros report zero DC gain, and extra origin poles preserve signed infinite gain. This prevents RGA, static decoupler, low-frequency design, and robustness summaries from treating removable integrators as real steady-state singularities.
+
+**Phase-margin branch closure:** `stabilityMargins()` now evaluates phase margin from the continuous unwrapped Bode phase branch rather than the principal phase returned at the crossover point. Negative low-frequency loops start on the `-180 deg` branch, so `L(s)=-2/(s+1)` reports approximately `-60 deg` PM and matches its unstable unity-feedback pole at `+1`, instead of being misreported as a large positive margin.
 
 **Time-response input closure:** step / impulse / ramp / sine / square / pulse simulations now normalize default waveform parameters and reject invalid duration, sample count, amplitude, frequency, pulse width, disturbance, and initial-state values before integration. Continuous transfer-function simulations reject improper plants, biproper sampled outputs include disturbance through direct feedthrough, and PID anti-windup simulations require a strictly proper plant while validating controller gains, derivative filter `N`, saturation bounds, tracking time `Tt`, duration, sample count, and reference amplitude before RK4 integration. Invalid requests fail explicitly instead of producing empty arrays, NaN trajectories, or feedthrough-inconsistent samples.
 
@@ -486,7 +488,7 @@ Three fixes applied after full math-core read audit:
 
 | ID | File | Fix |
 |----|------|-----|
-| A1 | `js/control/stability.js` — `stabilityMargins()` | Collects **all** gain/phase crossings; returns worst-case (minimum) PM and GM plus `allGainCrossings`/`allPhaseCrossings` arrays. Fixes non-minimum-phase and high-order systems where only the first crossing was returned. |
+| A1 | `js/control/stability.js` — `stabilityMargins()` | Collects **all** gain/phase crossings; returns worst-case (minimum) PM and GM plus `allGainCrossings`/`allPhaseCrossings` arrays. Fixes non-minimum-phase and high-order systems where only the first crossing was returned; phase margin now uses the unwrapped branch so negative low-frequency loops do not appear as falsely high-margin stable designs. |
 | A2 | `js/math/matrix.js` — `matDet()` | Added `_matDetLU()` O(n³) LU fallback for n > 6; Sarrus closed-form for n=3. Eliminates O(n!) cofactor recursion for large matrices. |
 | A3 | `js/analysis/root-locus.js` — `sortRootLocusBranches()` | Replaced greedy nearest-neighbor with **Jonker-Volgenant O(n³) Hungarian** optimal bipartite assignment (`_hungarianAssign`). Eliminates branch-swap artefacts at real-axis crossings. |
 

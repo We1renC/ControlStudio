@@ -19,6 +19,21 @@ function evaluateMarginPoint(sys, w) {
   };
 }
 
+function canonicalInitialPhase(phase) {
+  return phase > 90 ? phase - 360 : phase;
+}
+
+function interpolateLogValue(w0, w1, y0, y1, wTarget) {
+  if (!Number.isFinite(w0) || !Number.isFinite(w1) || !Number.isFinite(wTarget) || w0 <= 0 || w1 <= 0) {
+    return y1;
+  }
+  const span = Math.log10(w1) - Math.log10(w0);
+  if (Math.abs(span) < 1e-15) return y1;
+  const t = (Math.log10(wTarget) - Math.log10(w0)) / span;
+  const clamped = Math.min(1, Math.max(0, t));
+  return y0 + (y1 - y0) * clamped;
+}
+
 /**
  * Compute gain margin and phase margin from a transfer function.
  *
@@ -67,7 +82,9 @@ export function stabilityMargins(sys) {
     const g = sys.evalAt(new Complex(0, w));
     const mag = g.magnitude;
     let phase = g.angleDeg;
-    if (prevPhase !== null) {
+    if (prevPhase === null) {
+      phase = canonicalInitialPhase(phase);
+    } else {
       while (phase - prevPhase > 180) phase -= 360;
       while (phase - prevPhase < -180) phase += 360;
     }
@@ -75,8 +92,8 @@ export function stabilityMargins(sys) {
     // Gain crossover: |G(jω)| crosses 1 from either direction
     if (prevMag !== null && ((prevMag >= 1 && mag < 1) || (prevMag < 1 && mag >= 1))) {
       const wGc = interpolateLogFrequency(prevW, w, prevMag, mag, 1);
-      const pt = evaluateMarginPoint(sys, wGc);
-      allGainCrossings.push({ omega: wGc, phaseMargin: 180 + pt.phase });
+      const phaseAtGc = interpolateLogValue(prevW, w, prevPhase, phase, wGc);
+      allGainCrossings.push({ omega: wGc, phaseMargin: 180 + phaseAtGc });
     }
 
     // Phase crossover: ∠G(jω) crosses -180° from either direction

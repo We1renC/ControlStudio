@@ -87,7 +87,7 @@ del{color:var(--muted)}
 
 <blockquote>
 <p>Last updated: 2026-06-17</p>
-<p>Current committed baseline: <code>fix(control): harden dc gain origin cancellations</code></p>
+<p>Current committed baseline: <code>fix(control): harden negative loop margins</code></p>
 <p>Scope: this is the canonical execution roadmap for ControlStudio implementation status.</p>
 <p>Do not use this file for product vision, proof derivations, or handoff notes; see the document workflow below.</p>
 </blockquote>
@@ -382,6 +382,8 @@ del{color:var(--muted)}
 <p><strong>Analysis grid closure:</strong> continuous Bode, Nyquist, Nichols, root-locus, and jω crossing sweeps now validate finite ranges and require at least two grid points. Discrete Bode sweeps now validate finite sample counts and <code>0 &lt; omegaMin &lt; omegaNyquist</code>, and clamp zero-magnitude dB output to a finite floor. Invalid analysis grids fail with explicit errors instead of producing NaN or non-finite frequency/gain samples.</p>
 
 <p><strong>DC gain origin-cancellation closure:</strong> continuous TF and ZPK <code>dcGain()</code> now cancel removable origin pole-zero factors before evaluating the low-frequency limit. Systems such as <code>s/s</code> report finite unity DC gain, extra origin zeros report zero DC gain, and extra origin poles preserve signed infinite gain. This prevents RGA, static decoupler, low-frequency design, and robustness summaries from treating removable integrators as real steady-state singularities.</p>
+
+<p><strong>Phase-margin branch closure:</strong> <code>stabilityMargins()</code> now evaluates phase margin from the continuous unwrapped Bode phase branch rather than the principal phase returned at the crossover point. Negative low-frequency loops start on the <code>-180 deg</code> branch, so <code>L(s)=-2/(s+1)</code> reports approximately <code>-60 deg</code> PM and matches its unstable unity-feedback pole at <code>+1</code>, instead of being misreported as a large positive margin.</p>
 
 <p><strong>Time-response input closure:</strong> step / impulse / ramp / sine / square / pulse simulations now normalize default waveform parameters and reject invalid duration, sample count, amplitude, frequency, pulse width, disturbance, and initial-state values before integration. Continuous transfer-function simulations reject improper plants, biproper sampled outputs include disturbance through direct feedthrough, and PID anti-windup simulations require a strictly proper plant while validating controller gains, derivative filter <code>N</code>, saturation bounds, tracking time <code>Tt</code>, duration, sample count, and reference amplitude before RK4 integration. Invalid requests fail explicitly instead of producing empty arrays, NaN trajectories, or feedthrough-inconsistent samples.</p>
 

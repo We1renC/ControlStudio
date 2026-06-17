@@ -5,6 +5,7 @@
 驗證原則：
 - 先比對 transfer function 多項式係數，再比對 poles / zeros / DC gain。
 - DC gain 驗證必須使用低頻極限，先消去 removable origin pole-zero factors；不可只用常數項相除。
+- Phase margin 驗證必須使用 continuous unwrapped Bode phase branch；negative low-frequency loop 不可用 principal `+180 deg` phase 誤報成高正 PM。
 - 時域響應使用理論 final value、overshoot、settling/rise trend 作為主判準。
 - 頻域響應使用 DC/low-frequency gain、phase margin 或已知風險作為主判準。
 - 不以圖形外觀作為唯一依據；圖形只作為人眼審查輔助。
