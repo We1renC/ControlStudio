@@ -245,6 +245,7 @@ export function c2dImpulseInvariant(sys, Ts) {
     throw new Error('Impulse-invariant: system must be proper');
   }
   const poles = sys.poles();
+  ensureSimplePoles(poles, 'Impulse-invariant');
   const denDeriv = polyderiv(sys.den);
   if (denDeriv.every(c => Math.abs(c) < 1e-15)) {
     throw new Error('Impulse-invariant: cannot compute — denominator derivative is zero');
@@ -352,6 +353,18 @@ function tfToDtf(tf, Ts) {
   const diff = denArr.length - numArr.length;
   if (diff > 0) numArr = [...new Array(diff).fill(0), ...numArr];
   return new DiscreteTransferFunction(numArr, denArr, Ts);
+}
+
+function ensureSimplePoles(poles, methodName) {
+  for (let i = 0; i < poles.length; i++) {
+    for (let j = i + 1; j < poles.length; j++) {
+      const scale = Math.max(1, poles[i].magnitude, poles[j].magnitude);
+      const distance = Math.hypot(poles[i].re - poles[j].re, poles[i].im - poles[j].im);
+      if (distance <= 1e-7 * scale) {
+        throw new Error(`${methodName}: repeated poles are unsupported; use ZOH or Tustin instead`);
+      }
+    }
+  }
 }
 
 function evalComplexPolyAt(coeffs, z) {

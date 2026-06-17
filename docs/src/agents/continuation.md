@@ -9,7 +9,7 @@
 - 已建立獨立 git repo，避免被 `/Users/w.rc` 外層 git 混入。
 - 控制系統目前同步基線：
   - Branch: `main`
-  - Latest active line: `fix(control): harden matched-z properness`
+  - Latest active line: `fix(control): harden impulse-invariant repeated poles`
   - Full phase audit checkpoints:
     - `7a318b3 fix(control): harden phase 7-9 theory diagnostics`
     - `46e20da fix(control): harden phase 0-6 theory checks`
@@ -49,6 +49,7 @@
   - 2026-06-17 接續完成 discrete DC gain unit-root hardening：`DiscreteTransferFunction.dcGain()` 現在以 `q=z^-1=1` 的低頻極限計算，先消去 removable unit-circle factors；`(1-z^-1)/(1-z^-1)` 回傳 1、extra unit-circle zero 回傳 0、extra unit-circle pole 回傳 Infinity，避免 z-domain step final、C2D DC preservation 與 discrete controller comparison 把可消 unit root 誤當真實 steady-state singularity。
   - 2026-06-17 接續完成 matched-z removable-origin gain normalization hardening：`c2dMatchedZ()` 現在先保留 continuous leading gain，再用 Discrete TF `dcGain()` low-frequency limit 做 DC normalization；`2s/s` 這類 removable origin pole-zero 會映射為 removable `z=1` pair 並保留 DC gain 2，不再因 raw coefficient sums 為 0 而退回 unity gain。
   - 2026-06-17 接續完成 matched-z properness hardening：`c2dMatchedZ()` 現在與 Tustin / ZOH / impulse-invariant 一致拒絕 improper continuous plant；`(s+1)^2/(s+1)` 這類 derivative-like 原始模型不再被靜默映射成看似 stable 的 discrete TF。
+  - 2026-06-17 接續完成 impulse-invariant repeated-pole hardening：`c2dImpulseInvariant()` 現在明確拒絕 repeated continuous poles；`1/(s+1)^2` 不再被 residue loop 靜默跳過成 zero DTF，改要求使用 ZOH 或 Tustin。
 - 已完成 NVIDIA Build Models 資料集中管理。
 - 已新增 agent 入口文件：
   - `AGENTS.md`：專案規則、標準流程、擴充規則與品質判準。
@@ -153,6 +154,7 @@
     - Done：discrete TF `dcGain()` 先消去 removable unit-circle factors，避免 `(1-z^-1)/(1-z^-1)` 這類可消 unit root 被誤判為 infinite DC gain。
     - Done：`c2dMatchedZ()` 先保留 continuous leading gain，再用 discrete low-frequency limit 做 normalization，避免 `2s/s` 這類 removable origin pole-zero 被離散成 unity gain。
     - Done：`c2dMatchedZ()` 與其他 C2D 方法一致拒絕 improper continuous plant，避免不可實現模型被靜默轉成 misleading DTF。
+    - Done：`c2dImpulseInvariant()` 對 repeated poles 明確 throw，避免 simple-pole-only residue path 靜默輸出 zero 或 mis-scaled DTF。
     - Done：`stabilityMargins()` phase margin 改用 unwrapped branch；negative low-frequency loop 不再因 principal phase 被誤報為高正 margin。
     - Done：Hamiltonian stable subspace 清除未使用且轉置錯誤的 dead computation。
     - Done：real Schur 1x1 block swap 修正 Givens rotation 公式、乘法方向 / 符號與 reordered eigenvalue 回傳順序。
@@ -294,7 +296,7 @@ git log --oneline -5
 - `control-studio/js/control/stability.js` 新增 `routhTable` Routh-Hurwitz 穩定性表。
 - `control-studio/js/analysis/frequency-response.js` 新增 `nicholsData`、`nyquistEncirclements`。
 - `test_control.js` 已擴充涵蓋 ZPK、polydiv、Routh、Nichols、encirclement、asymptotes、SS Rank 測試。
-- `control-studio/scripts/verify_math_core.mjs` 已新增為獨立數學核心驗證：覆蓋 Complex、Polynomial roots、Matrix solve/inverse/exp、RK4/RK45、TF/DTF guard、State-Space roundtrip、C2D DC gain、continuous/ZPK DC gain origin-cancellation guards、discrete DC gain unit-root guards、matched-z removable-origin gain normalization guards、matched-z properness guards、continuous frequency/root-locus grid guards、discrete Bode grid guards、time-response input/properness guards、discrete response input guards。
+- `control-studio/scripts/verify_math_core.mjs` 已新增為獨立數學核心驗證：覆蓋 Complex、Polynomial roots、Matrix solve/inverse/exp、RK4/RK45、TF/DTF guard、State-Space roundtrip、C2D DC gain、continuous/ZPK DC gain origin-cancellation guards、discrete DC gain unit-root guards、matched-z removable-origin gain normalization guards、matched-z properness guards、impulse-invariant repeated-pole guards、continuous frequency/root-locus grid guards、discrete Bode grid guards、time-response input/properness guards、discrete response input guards。
 - `control-studio/js/math/polynomial.js` 已改用 Durand-Kerner 處理三階以上根；舊 QR path 對 `s^3+1` 會錯誤收斂為 0，勿恢復。
 - `control-studio/js/math/ode.js` 已修正 RK45 Dormand-Prince 5th-order 權重缺第 7 項 `0` 造成 NaN / infinite loop 的問題。
 - `docs/src/control-studio/scenarios.md` 已新增 precision servo stage position control 情境，使用 ControlStudio 核心完成 PID + Lead 設計，並記錄後續改善思考。
@@ -318,7 +320,7 @@ git log --oneline -5
 - `control-studio` 已補 Phase 16：mixed-sensitivity H∞ PID synthesis helper、GA PID auto-tuner、phase portrait、describing functions、n-dimensional equilibrium classification、nonlinear grid scan guards；`npm run verify:p16` 與 `node control-studio/scripts/verify_equilibrium_nd.mjs` 可重跑驗證。
 - `control-studio` 已補 Phase 17：plant-order dynamic H∞ mixed-sensitivity synthesis、structured μ D-scaling upper-bound / DK-style static gain surrogate、MIMO characteristic loci / Gershgorin bands / inverse Nyquist array、MPC MIMO output-space setpoint tracking；`npm run verify:p17` 可重跑驗證。
 - `control-studio` 已補 Phase 24：EMPC (`empc.js`)、Tube MPC (`tube_mpc.js`)、Explicit MPC (`explicit_mpc.js`)；`verify_p24_empc.mjs` 與 `verify_p24_tube_explicit_mpc.mjs` 可重跑驗證。
-- `a2a89d3 fix(math): 4 defects in complex / polynomial / realschur` 已完成 post Phase 17 數學核心修復；後續 TF/SS/ZPK/C2D targeted 基線已擴充到 `41/41`，PID `21/21` 維持通過。
+- `a2a89d3 fix(math): 4 defects in complex / polynomial / realschur` 已完成 post Phase 17 數學核心修復；後續 TF/SS/ZPK/C2D targeted 基線已擴充到 `42/42`，PID `21/21` 維持通過。
 - 本輪補上 unpaired complex root error wording 相容性後，`node test_control.js` / `./nv-agent doctor` 不應再因錯誤訊息分類失敗。
 - 本輪同步 `scripts/validate_nvidia_model_selector.sh` 的 Phase 10 math-core 預期值為 `16/16`，避免標準 `doctor` workflow 停留在舊 `12/12` 基線。
 - `workflows/cuopt_demo_workflow.py` 已新增 `--local-validate`，`./nv-agent doctor` 改用本地 cuOpt payload validator，不再因外部 cuOpt API timeout 讓本地健康檢查失敗。

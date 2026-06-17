@@ -5,7 +5,7 @@ import { polyadd, polydiv, polymul, polyroots, rootsToRealPoly } from '../js/mat
 import { rk4, rk45, interpolateUniform } from '../js/math/ode.js';
 import { TransferFunction } from '../js/control/transfer-function.js';
 import { DiscreteTransferFunction } from '../js/control/discrete-transfer-function.js';
-import { c2dMatchedZ, c2dTustin, c2dTustinPrewarp, c2dZOH } from '../js/control/c2d.js';
+import { c2dImpulseInvariant, c2dMatchedZ, c2dTustin, c2dTustinPrewarp, c2dZOH } from '../js/control/c2d.js';
 import { stateSpaceToTransferFunction, tfToControllableCanonical } from '../js/control/state-space.js';
 import { simulatePIDAntiWindup, simulateTimeResponse, stepResponse } from '../js/analysis/time-response.js';
 import { discreteImpulseResponse, discreteStepResponse } from '../js/analysis/discrete-response.js';
@@ -276,6 +276,11 @@ record('Continuous/discrete response consistency', () => {
     'Matched-Z rejects improper continuous plant',
     () => c2dMatchedZ(new TransferFunction([1, 2, 1], [1, 1]), 0.1),
     /proper/
+  );
+  assertThrows(
+    'Impulse-invariant rejects repeated poles',
+    () => c2dImpulseInvariant(new TransferFunction([1], [1, 2, 1]), 0.1),
+    /repeated poles/
   );
 });
 

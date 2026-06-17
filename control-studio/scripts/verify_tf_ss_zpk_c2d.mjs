@@ -403,6 +403,11 @@ record('C2D#11: c2dMatchedZ rejects improper continuous plants', () => {
   assertThrows('C2D#11: improper plant rejected', () => c2dMatchedZ(improper, 0.1), /proper/);
 });
 
+record('C2D#12: c2dImpulseInvariant rejects repeated poles', () => {
+  const repeatedPole = new TransferFunction([1], [1, 2, 1]);
+  assertThrows('C2D#12: repeated pole rejected', () => c2dImpulseInvariant(repeatedPole, 0.1), /repeated poles/);
+});
+
 // ============================================================
 const failed = checks.filter(c => !c.ok);
 if (failed.length) {
