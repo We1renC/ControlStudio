@@ -1,6 +1,6 @@
 # Control System Verification Cases
 
-此文件定義 ControlStudio 後續回歸測試的八個基準案例。每個案例都必須能以數學推導得到期望結果，再用 `control-studio` 數值核心、`control_analysis_cli.mjs` 與 FastAPI API 交叉驗證。
+此文件定義 ControlStudio 後續回歸測試的九個基準案例。每個案例都必須能以數學推導得到期望結果，再用 `control-studio` 數值核心、`control_analysis_cli.mjs` 與 FastAPI API 交叉驗證。
 
 驗證原則：
 - 先比對 transfer function 多項式係數，再比對 poles / zeros / DC gain。
@@ -707,6 +707,96 @@ If `stepInfo()` uses a hard-coded reference of `1`, the reported error becomes a
 }
 ```
 
+## Case 9: Zero-DC-Gain Step Metrics Contract
+
+### Purpose
+
+驗證 step response 若最終輸出回到初始值，但中間存在明顯 transient，ControlStudio 不會把 normalized rise time、settling time、overshoot 誤報為有效 step metrics。
+
+這類系統常見於零 DC gain、高通、band-pass 或含 zero-at-origin 的 plant。它們對 step input 可能有暫態輸出，但 steady-state output 為零；此時以 `final - initial` 正規化的 rise / overshoot 沒有工程意義。
+
+### Model
+
+```text
+G(s) = s / (s^2 + 2s + 2)
+```
+
+### Mathematical Derivation
+
+DC gain:
+
+```text
+G(0) = 0
+```
+
+Unit step input:
+
+```text
+Y(s) = G(s) * 1/s
+     = 1 / (s^2 + 2s + 2)
+```
+
+Complete the square:
+
+```text
+s^2 + 2s + 2 = (s + 1)^2 + 1
+```
+
+Time response:
+
+```text
+y(t) = e^(-t) sin(t)
+```
+
+Final value:
+
+```text
+lim t->inf y(t) = 0
+```
+
+Peak transient is nonzero:
+
+```text
+y'(t) = e^(-t)(cos(t) - sin(t))
+y'(t) = 0  =>  t = pi/4
+y(pi/4) = e^(-pi/4) / sqrt(2) ~= 0.3224
+```
+
+Because:
+
+```text
+y(0) = 0
+y(inf) = 0
+```
+
+the net final response change is zero. Therefore normalized rise time, settling time, and percent overshoot based on final response amplitude are undefined. The only meaningful scalar metric in the standard step-performance group is steady-state error relative to the reference:
+
+```text
+e_ss = |1 - 0| = 1
+```
+
+### Expected Assertions
+
+- plant poles equal `-1 +- j`
+- plant zero equals `0`
+- plant `isStable = true`
+- plant `dcGain = 0`
+- response final value `~= 0`
+- transient peak is nonzero by mathematical derivation
+- `metrics.valid = false`
+- `metrics.reason` clearly states that a nonzero final response change is required
+- `metrics.steadyStateError ~= 1`
+- API metrics matches CLI metrics
+
+### Suggested Payload
+
+```json
+{
+  "system": { "type": "transfer_function", "num": [1, 0], "den": [1, 2, 2] },
+  "simulation": { "mode": "open_loop", "inputWaveform": "step", "duration": 12, "sampleCount": 1200, "amplitude": 1 }
+}
+```
+
 ## Phase 24 Advanced MPC Verification Addendum
 
 Phase 24 的 NMPC / EMPC / Tube MPC / Explicit MPC 屬離散時間最佳控制基線，驗證重點不是圖形外觀，而是最佳化問題、約束與閉迴路行為是否符合數學定義。
@@ -768,7 +858,7 @@ u(x) = a_i x + b_i,  x in region_i
 
 後續 agent 將這些案例自動化時，建議順序如下：
 
-1. 把八個案例整理成 JSON fixtures。
+1. 把九個案例整理成 JSON fixtures。
 2. 在 `test_control.js` 中新增共用 assertion helper。
 3. 先跑 local JS numerical core。
 4. 再跑 `control_analysis_cli.mjs`。

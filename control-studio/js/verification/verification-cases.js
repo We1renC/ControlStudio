@@ -165,4 +165,30 @@ export const CONTROL_VERIFICATION_CASES = [
       cli: { plantFormula: '(1) / (s +1)', closedLoopFormula: '(1) / (s +1)' },
     },
   },
+  {
+    id: 'case-9-zero-dc-step-metrics-contract',
+    title: 'Zero-DC transient step response does not report normalized step metrics',
+    payload: {
+      system: { type: 'transfer_function', num: [1, 0], den: [1, 2, 2] },
+      simulation: { mode: 'open_loop', inputWaveform: 'step', duration: 12, sampleCount: 1200, amplitude: 1 },
+    },
+    expected: {
+      plant: {
+        num: [1, 0],
+        den: [1, 2, 2],
+        poles: [{ re: -1, im: 1 }, { re: -1, im: -1 }],
+        zeros: [{ re: 0, im: 0 }],
+        stable: true,
+        dcGain: 0,
+      },
+      response: { finalValue: 0, tolerance: 0.001 },
+      metrics: {
+        valid: false,
+        reason: 'nonzero final response change',
+        steadyStateError: 1,
+        tolerance: 0.002,
+      },
+      cli: { plantFormula: '(s) / (s^2 +2s +2)', closedLoopFormula: '(s) / (s^2 +2s +2)' },
+    },
+  },
 ];

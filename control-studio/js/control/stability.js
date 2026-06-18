@@ -165,14 +165,18 @@ export function stepInfo(tArr, yArr, finalValue = null, reference = null) {
   const amp = yFinal - yInit;
   const ref = reference != null ? Number(reference) : 1;
   if (!Number.isFinite(ref)) return invalid('reference value must be finite');
+  const steadyStateError = Math.abs(ref - yFinal);
+  const excursion = Math.max(...yArr.map((value) => Math.abs(value - yInit)));
+  const netAmplitude = Math.abs(amp);
 
-  if (Math.abs(amp) < 1e-6) {
+  if (netAmplitude < Math.max(1e-6, 1e-3 * excursion)) {
     return {
       riseTime: null,
-      settlingTime: 0,
-      overshoot: 0,
-      steadyStateError: Math.abs(ref - yFinal),
-      valid: true,
+      settlingTime: null,
+      overshoot: null,
+      steadyStateError,
+      valid: false,
+      reason: 'step metrics require a nonzero final response change; zero-DC-gain or zero-amplitude step responses have undefined rise, settling, and overshoot metrics',
     };
   }
 
@@ -193,7 +197,6 @@ export function stepInfo(tArr, yArr, finalValue = null, reference = null) {
 
   // SSE = |setpoint − steady-state output|. Caller should pass the reference setpoint
   // (e.g. step amplitude). For backward compatibility, default is 1 (unit step from 0).
-  const steadyStateError = Math.abs(ref - yFinal);
   return { riseTime, settlingTime: st, overshoot, steadyStateError, valid: true };
 }
 

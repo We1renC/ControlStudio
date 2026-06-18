@@ -96,7 +96,7 @@ del{color:var(--muted)}
 <li>控制系統目前同步基線：</li>
 <ul>
 <li>Branch: <code>main</code></li>
-<li>Latest active line: <code>fix(control): use step amplitude for API metrics</code></li>
+<li>Latest active line: <code>fix(control): reject zero-final-change step metrics</code></li>
 <li>Full phase audit checkpoints:</li>
 <ul>
 <li><code>7a318b3 fix(control): harden phase 7-9 theory diagnostics</code></li>
@@ -146,6 +146,7 @@ del{color:var(--muted)}
 <li>2026-06-18 接續完成 API open-loop simulation contract：<code>control_analysis_cli.mjs</code> 在 <code>simulation.mode === "open_loop"</code> 且存在 controller 時改為模擬 <code>C(s)G(s)</code>；<code>verify_control_cases.mjs</code> 新增 CLI response final-value assertion，golden fixtures / API contract fixtures 擴充至 6/6 cases。</li>
 <li>2026-06-18 接續完成 non-step response metrics gating：<code>control_analysis_cli.mjs</code> 對 impulse/ramp/sine/square/pulse 不再回傳有效 step metrics，改以 <code>valid:false</code> 與 reason 標明；<code>verify_control_cases.mjs</code> 改用與 CLI 相同 waveform selector，golden fixtures / API contract fixtures 擴充至 7/7 cases。</li>
 <li>2026-06-18 接續完成 step amplitude metrics reference contract：<code>control_analysis_cli.mjs</code> 對 step response 會把 <code>simulation.amplitude</code> 傳入 <code>stepInfo()</code> 作為 reference；非單位 step 的 <code>steadyStateError</code> 不再固定對 unity 計算。golden fixtures / API contract fixtures 擴充至 8/8 cases，新增 amplitude=2 first-order step case。</li>
+<li>2026-06-18 接續完成 zero-final-change step metrics rejection：<code>stepInfo()</code> 對 zero-DC-gain 或 zero-amplitude step response 不再輸出 normalized rise/settling/overshoot；保留 SSE 並回傳 <code>valid:false</code>。golden fixtures / API contract fixtures 擴充至 9/9 cases，新增 <code>G(s)=s/(s^2+2s+2)</code> transient case，避免 &gt;400,000% overshoot 類誤報。</li>
 <li>2026-06-17 接續完成 matched-z removable-origin gain normalization hardening：<code>c2dMatchedZ()</code> 現在先保留 continuous leading gain，再用 Discrete TF <code>dcGain()</code> low-frequency limit 做 DC normalization；<code>2s/s</code> 這類 removable origin pole-zero 會映射為 removable <code>z=1</code> pair 並保留 DC gain 2，不再因 raw coefficient sums 為 0 而退回 unity gain。</li>
 <li>2026-06-17 接續完成 matched-z properness hardening：<code>c2dMatchedZ()</code> 現在與 Tustin / ZOH / impulse-invariant 一致拒絕 improper continuous plant；<code>(s+1)^2/(s+1)</code> 這類 derivative-like 原始模型不再被靜默映射成看似 stable 的 discrete TF。</li>
 <li>2026-06-17 接續完成 impulse-invariant repeated-pole hardening：<code>c2dImpulseInvariant()</code> 現在明確拒絕 repeated continuous poles；<code>1/(s+1)^2</code> 不再被 residue loop 靜默跳過成 zero DTF，改要求使用 ZOH 或 Tustin。</li>
@@ -313,7 +314,7 @@ del{color:var(--muted)}
 <li>Skill plan：<code>docs/src/control-studio/skills.md</code> 已規劃 <code>control-studio-robust-validator</code>、<code>control-studio-system-auditor</code>、<code>control-studio-benchmark-author</code>、<code>control-studio-mpc-designer</code>、<code>control-studio-sysid-planner</code> 等候選 skill。</li>
 </ul>
 <li>Block Diagram expansion：Paused</li>
-<li>Phase 0 ~ Phase 66 與 Functional Roadmap Tier A-J 已完成文件進度對齊。後續若修改數值核心或 API 分析輸出，至少依 roadmap 對應 phase 重跑 targeted verify、<code>npm run verify:all</code>、<code>node test_control.js</code>、<code>node control-studio/scripts/control_regression_dashboard.mjs</code>；目前 full suite 基線為 <strong>111/111 scripts pass</strong>，fixture/API contract 為 <strong>8/8 cases</strong>。</li>
+<li>Phase 0 ~ Phase 66 與 Functional Roadmap Tier A-J 已完成文件進度對齊。後續若修改數值核心或 API 分析輸出，至少依 roadmap 對應 phase 重跑 targeted verify、<code>npm run verify:all</code>、<code>node test_control.js</code>、<code>node control-studio/scripts/control_regression_dashboard.mjs</code>；目前 full suite 基線為 <strong>111/111 scripts pass</strong>，fixture/API contract 為 <strong>9/9 cases</strong>。</li>
 </ul>
 <li>已建立 symlink：</li>
 <ul>
@@ -480,7 +481,7 @@ git log --oneline -5
 
 <h2 id="後續可做">後續可做</h2>
 <ol>
-<li>目前非暫停的 ControlStudio roadmap 已達 deterministic baseline，且 full suite / doctor 入口已收斂至 111/111；fixture/API contract 已收斂至 8/8 cases；下一步應由實際控制情境或明確研究級 backend 需求驅動。</li>
+<li>目前非暫停的 ControlStudio roadmap 已達 deterministic baseline，且 full suite / doctor 入口已收斂至 111/111；fixture/API contract 已收斂至 9/9 cases；下一步應由實際控制情境或明確研究級 backend 需求驅動。</li>
 <li>可選研究深化：non-normal real Schur refinement、full-order dynamic K fitting、industrial-grade μ synthesis backend、CONTSID。</li>
 <li>使用 <code>control-studio-system-auditor</code> 審查下一個控制設計缺口，並用 <code>control-studio-benchmark-author</code> 補 benchmark fixture。</li>
 <li>Teaching Mode / Electron / Report Template 目前使用者要求擱置，不要開發。</li>

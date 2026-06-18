@@ -87,7 +87,7 @@ del{color:var(--muted)}
 
 <blockquote>
 <p>Last updated: 2026-06-18</p>
-<p>Current committed baseline: <code>fix(control): use step amplitude for API metrics</code></p>
+<p>Current committed baseline: <code>fix(control): reject zero-final-change step metrics</code></p>
 <p>Scope: this is the canonical execution roadmap for ControlStudio implementation status.</p>
 <p>Do not use this file for product vision, proof derivations, or handoff notes; see the document workflow below.</p>
 </blockquote>
@@ -395,6 +395,8 @@ del{color:var(--muted)}
 
 <p><strong>Step amplitude metrics closure:</strong> CLI/API step metrics now pass the requested step amplitude into <code>stepInfo()</code> as the reference value. Non-unit steps therefore report steady-state error against the commanded input amplitude rather than hard-coded unity. The golden fixture set includes an amplitude=2 first-order step case proving final value and <code>steadyStateError</code> both track the requested reference; API contract fixtures and the regression dashboard were updated to the 8/8 fixture baseline.</p>
 
+<p><strong>Zero-final-change step metrics closure:</strong> <code>stepInfo()</code> now rejects normalized rise time, settling time, and overshoot metrics when the net final response change is effectively zero relative to the observed transient excursion. Zero-DC-gain or zero-amplitude step responses keep a meaningful <code>steadyStateError</code>, but report <code>valid:false</code> for normalized step metrics instead of producing misleading values such as &gt;400,000% overshoot. The golden fixture set includes <code>G(s)=s/(s^2+2s+2)</code> with a unit step, proving the transient peak exists while final output returns to zero; API contract fixtures and the regression dashboard were updated to the 9/9 fixture baseline.</p>
+
 <p><strong>DC gain origin-cancellation closure:</strong> continuous TF and ZPK <code>dcGain()</code> now cancel removable origin pole-zero factors before evaluating the low-frequency limit. Systems such as <code>s/s</code> report finite unity DC gain, extra origin zeros report zero DC gain, and extra origin poles preserve signed infinite gain. This prevents RGA, static decoupler, low-frequency design, and robustness summaries from treating removable integrators as real steady-state singularities.</p>
 
 <p><strong>Discrete DC gain unit-root closure:</strong> discrete TF <code>dcGain()</code> now evaluates the low-frequency limit at <code>q=z^-1=1</code> by cancelling removable unit-circle factors. Systems such as <code>(1-z^-1)/(1-z^-1)</code> report finite unity DC gain, extra unit-circle zeros report zero DC gain, and extra unit-circle poles report infinite DC gain. This prevents z-domain step final-value checks, C2D DC preservation, and discrete controller comparisons from treating removable unit roots as true steady-state singularities.</p>
@@ -427,7 +429,7 @@ del{color:var(--muted)}
 
 <h2 id="verification-suite-status-2026-06-18">Verification Suite Status (2026-06-18)</h2>
 
-<p><strong>111/111 scripts pass</strong> — run via <code>bash scripts/run_all_verify.sh</code> or <code>npm run verify:all</code>. Fixture/API contract coverage is now <strong>8/8 cases</strong>, including open-loop controller cascade response, non-step waveform metrics gating, and non-unit step amplitude reference metrics.</p>
+<p><strong>111/111 scripts pass</strong> — run via <code>bash scripts/run_all_verify.sh</code> or <code>npm run verify:all</code>. Fixture/API contract coverage is now <strong>9/9 cases</strong>, including open-loop controller cascade response, non-step waveform metrics gating, non-unit step amplitude reference metrics, and zero-final-change step metrics rejection.</p>
 
 <table><thead>
 <tr><th>Group</th><th>Scripts</th><th>Pass</th></tr>
