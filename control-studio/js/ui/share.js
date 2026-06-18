@@ -68,7 +68,7 @@ export async function shareDesign() {
       (_, p1) => String.fromCharCode(parseInt(p1, 16))));
     const url = `${location.origin}${location.pathname}#design=${encoded}`;
     await navigator.clipboard.writeText(url);
-    _ctx.updateGlobalStatusBar(`🔗 分享連結已複製（${url.length} 字元）`);
+    _ctx.updateGlobalStatusBar(`分享連結已複製（${url.length} 字元）`);
     setTimeout(() => _ctx.updateGlobalStatusBar(''), 3000);
   } catch (err) {
     console.warn('[CS P65] share error', err);
@@ -88,7 +88,7 @@ export function restoreFromURL() {
     if (payload.v !== 2) throw new Error('version mismatch');
     _ctx.applyDesignPayload?.(payload);
     history.replaceState(null, '', location.pathname);
-    _ctx.updateGlobalStatusBar('✓ 已載入分享的設計');
+    _ctx.updateGlobalStatusBar('已載入分享的設計');
     setTimeout(() => _ctx.updateGlobalStatusBar(''), 3000);
     return true;
   } catch {
@@ -198,7 +198,7 @@ pre { background: #f8f8f8; padding: 12px; border: 1px solid #ddd; font-size: 11p
 img { max-width: 100%; } .no-print { display: none; }
 @media print { .no-print { display: none; } body { padding: 0; } }
 </style></head><body>
-<h1>⚙ ControlStudio 設計報告</h1>
+<h1>ControlStudio 設計報告</h1>
 <p>生成日期：${date} | ControlStudio v2 | 自動生成，僅供參考</p>
 <h2>1. 系統摘要</h2>
 <table><tr><th>項目</th><th>值</th></tr>
@@ -210,19 +210,19 @@ img { max-width: 100%; } .no-print { display: none; }
 </table>
 <h2>2. 規格合規</h2>
 <table><tr><th>規格</th><th>目標</th><th>實際值</th><th>狀態</th></tr>
-${specRows.map(r => `<tr><td>${r.spec}</td><td>${r.target}</td><td>${r.actual}</td><td class="${r.pass ? 'pass' : 'fail'}">${r.pass ? '✓' : '✗'}</td></tr>`).join('')}
+${specRows.map(r => `<tr><td>${r.spec}</td><td>${r.target}</td><td>${r.actual}</td><td class="${r.pass ? 'pass' : 'fail'}">${r.pass ? 'PASS' : 'FAIL'}</td></tr>`).join('')}
 </table>
 <h2>3. 圖表</h2>
 ${stepSvg ? `<img src="${stepSvg}" alt="Step Response">` : '<p><em>（圖表不可用）</em></p>'}
 <h2>4. 程式碼</h2>
 <pre>${typeof _ctx.toPythonScript !== 'undefined' && state.plant ? _ctx.toPythonScript(_ctx.buildCodegenPayload()) : '# No plant defined'}</pre>
-<p class="no-print"><button onclick="window.print()">🖨 列印 / 儲存為 PDF</button></p>
+<p class="no-print"><button onclick="window.print()">列印 / 儲存為 PDF</button></p>
 </body></html>`;
 }
 
 export async function generatePDFReport() {
   const btn = document.getElementById('btn-pdf-report');
-  if (btn) btn.textContent = '⌛ 生成中…';
+  if (btn) btn.textContent = '生成中…';
   try {
     const svgMap = {};
     try {
@@ -235,7 +235,7 @@ export async function generatePDFReport() {
     const w = window.open('', '_blank');
     if (w) { w.document.write(html); w.document.close(); }
   } catch (err) { console.warn('[CS P65] PDF report error', err); }
-  if (btn) btn.textContent = '📄 報告';
+  if (btn) btn.textContent = '報告';
 }
 
 export function initPDFReport() {
@@ -246,15 +246,15 @@ export function initPDFReport() {
 
 export async function copyChartToClipboard(chartId) {
   const btn      = document.getElementById('btn-copy-chart');
-  const origText = btn?.textContent ?? '📋';
+  const origText = btn?.textContent ?? 'Copy';
   try {
-    if (btn) btn.textContent = '⌛';
+    if (btn) btn.textContent = 'Working';
     const dataURL = await Plotly.toImage(chartId, { format: 'png', width: 1200, height: 600, scale: 2 });
     const res     = await fetch(dataURL);
     const blob    = await res.blob();
     await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
-    if (btn) { btn.textContent = '✓ 已複製'; setTimeout(() => { if (btn) btn.textContent = origText; }, 1500); }
-    _ctx.updateGlobalStatusBar('📋 圖表已複製為 PNG（@2x）');
+    if (btn) { btn.textContent = '已複製'; setTimeout(() => { if (btn) btn.textContent = origText; }, 1500); }
+    _ctx.updateGlobalStatusBar('圖表已複製為 PNG（@2x）');
     setTimeout(() => _ctx.updateGlobalStatusBar(''), 2000);
   } catch {
     try {
@@ -263,7 +263,7 @@ export async function copyChartToClipboard(chartId) {
       if (w) { w.document.write(`<img src="${dataURL}" style="max-width:100%">`); }
     } catch {}
     if (btn) btn.textContent = origText;
-    _ctx.updateGlobalStatusBar('📋 已在新分頁開啟（請右鍵儲存）');
+    _ctx.updateGlobalStatusBar('已在新分頁開啟（請右鍵儲存）');
     setTimeout(() => _ctx.updateGlobalStatusBar(''), 2000);
   }
 }

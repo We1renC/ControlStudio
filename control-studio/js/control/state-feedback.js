@@ -1150,7 +1150,7 @@ export function innovationStats(innovation) {
 
   let diagnosis;
   if (meanSmall && acf1Small && acf2Small) {
-    diagnosis = 'Innovation is white noise ✓ — KF well-tuned';
+    diagnosis = 'Innovation is white noise — KF well-tuned';
   } else if (!meanSmall) {
     diagnosis = 'Non-zero mean — check model bias or Qn/Rn';
   } else if (!acf1Small) {
@@ -1485,7 +1485,7 @@ export function solveHinfFilter(A, C, Qw, Rv, gamma) {
   const L = _choleskyLower(S);
 
   // Dual LQR: solve CARE for (A^T, L, Qw, I_n) → P is the H∞ filter covariance
-  // CARE: A·P + P·A^T - P·L·L^T·P + Qw = 0  ✓
+  // CARE: A·P + P·A^T - P·L·L^T·P + Qw = 0
   // Use MIMO solver for n > 1; SISO solver for scalar systems.
   const I_n = matIdentity(n);
   const At = matTranspose(A);

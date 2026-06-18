@@ -36,8 +36,8 @@
 ## Current Baseline
 
 - Branch: `main`
-- Latest synced checkpoint: `fix(control): repair discretization comparison`
-- Current checkpoint: **CS-P0 ~ CS-P65 done; Functional Roadmap Tier A-J done; Phase 19/20/21/23 project-local skill gaps closed; nonlinear equilibrium classification, nonlinear grid-scan hardening, continuous analysis-grid hardening, continuous-analysis domain guards, continuous frequency/robust domain guards, P41 discretization comparison API-contract repair, discrete Bode grid hardening, continuous/ZPK DC gain origin-cancellation hardening, discrete DC gain unit-root hardening, discrete delay pole hardening, discrete delay polynomial normalization hardening, discrete interconnection hardening, matched-z removable origin gain normalization hardening, matched-z properness hardening, impulse-invariant repeated-pole hardening, impulse-invariant direct-feedthrough hardening, negative-loop phase-margin branch hardening, time-response input/properness hardening, discrete response input hardening, delay margin hardening, step metrics contract hardening, and Routh-Hurwitz input hardening closed; verification aggregation closed.** 詳細執行看板見 `control-studio/ROADMAP.md`。目前僅暫停項目維持不做：教學模式、Electron packaging、報告模板 / 報告自動化、Block Diagram expansion。
+- Latest synced checkpoint: `fix(control): enforce UI symbol contract`
+- Current checkpoint: **CS-P0 ~ CS-P66 done; Functional Roadmap Tier A-J done; Phase 19/20/21/23 project-local skill gaps closed; nonlinear equilibrium classification, nonlinear grid-scan hardening, continuous analysis-grid hardening, continuous-analysis domain guards, continuous frequency/robust domain guards, P41 discretization comparison API-contract repair, runtime UI symbol contract enforcement, discrete Bode grid hardening, continuous/ZPK DC gain origin-cancellation hardening, discrete DC gain unit-root hardening, discrete delay pole hardening, discrete delay polynomial normalization hardening, discrete interconnection hardening, matched-z removable origin gain normalization hardening, matched-z properness hardening, impulse-invariant repeated-pole hardening, impulse-invariant direct-feedthrough hardening, negative-loop phase-margin branch hardening, time-response input/properness hardening, discrete response input hardening, delay margin hardening, step metrics contract hardening, and Routh-Hurwitz input hardening closed; verification aggregation closed.** 詳細執行看板見 `control-studio/ROADMAP.md`。目前僅暫停項目維持不做：教學模式、Electron packaging、報告模板 / 報告自動化、Block Diagram expansion。
 - Functional Roadmap Tier A-J checkpoint：Tier A control algorithms、Tier B identification、Tier C estimation、Tier D optimization、Tier E numerical repair、Tier F verification/safety、Tier G advanced MPC、Tier H embedded deployment、Tier I runtime architecture、Tier J HIL/integration 均已有 deterministic verification baseline；最新 full suite 基線見 `control-studio/ROADMAP.md`。
 - Scenario 5 browser walkthrough result: Phase 10 math + UI both operational.
 - Scenario 6 browser walkthrough result: SISO / MIMO core workflows are UI-operable.
@@ -69,7 +69,7 @@
   - `node control-studio/scripts/verify_control_api_contract.mjs`
   - `node control-studio/scripts/control_regression_dashboard.mjs`
   - `./scripts/validate_nvidia_model_selector.sh`
-- Full suite baseline：`npm run verify:all` / `bash control-studio/scripts/run_all_verify.sh` 目前納入 110 個 deterministic verification scripts，包含 fixture、API contract 與 n-dimensional equilibrium classification regression。
+- Full suite baseline：`npm run verify:all` / `bash control-studio/scripts/run_all_verify.sh` 目前納入 111 個 deterministic verification scripts，包含 fixture、API contract、runtime UI symbol contract 與 n-dimensional equilibrium classification regression。
 - Pre-push hook：`bash scripts/install-hooks.sh` 啟用後，每次 `git push` 會跑 `verify:math`；失敗阻擋 push（用 `git push --no-verify` 可跳過）。
 
 ## Development Sequence
@@ -103,6 +103,7 @@
 | CS-P0-21 | P0 | Done | Continuous-analysis domain guard | Continuous root-locus helpers 與 `stabilityMargins()` 只接受 s-domain transfer functions；finite `sampleTime` 的 discrete TF 會明確 throw，避免 z-domain polynomial 被誤當 `den(s)+Knum(s)` 或 `G(jω)` margin scan | `root-locus.js`, `stability.js` | `node control-studio/scripts/verify_math_core.mjs` |
 | CS-P0-22 | P0 | Done | Continuous frequency and robust domain guard | Continuous Bode / Nyquist / Nichols / auto-frequency range / Nyquist encirclement 與 robust `S/T/KS` helpers 只接受 s-domain loop；finite `sampleTime` 的 discrete TF 會明確 throw，避免 z-domain model 被誤報成 continuous frequency response 或 robustness metric | `frequency-response.js`, `robust.js` | `node control-studio/scripts/verify_math_core.mjs` |
 | CS-P0-23 | P0 | Done | P41 discretization comparison API-contract repair | Discretization comparison 不再使用舊 `bodeData(sys, [w])` / `bodeData(sys, omegas)` / `discreteBodeData(disc, Ts, omegas)` 呼叫形狀；phase error 改用 explicit single-frequency helpers，Bode overlay 使用 Nyquist 以下 shared grid，DC gain 使用 `disc.dcGain()` | `app.js`, `verify_p41_disc_spec.mjs` | `node control-studio/scripts/verify_p41_disc_spec.mjs` |
+| CS-P0-24 | P0 | Done | Runtime UI symbol contract enforcement | Runtime UI source 不再以 emoji / pictographic glyphs 表示 button、status badge、warning、command palette icon、report cell 或動態 DOM 狀態；改用文字狀態與既有 CSS class，並由 verifier 掃描 `index.html`、`js/app.js`、`js/ui/*.js` 與 report/status modules | `index.html`, `app.js`, `js/ui/*.js`, `productization.js`, `state-feedback.js`, `verify_ui_symbol_contract.mjs` | `node control-studio/scripts/verify_ui_symbol_contract.mjs` |
 
 Exit criteria: 已達成。
 

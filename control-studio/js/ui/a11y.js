@@ -214,9 +214,9 @@ export function meetsWCAG(fg, bg, level = 'AA', textSize = 'normal') {
 /**
  * Generate a human-readable keyboard shortcut label.
  *
- * @param {string[]}  keys  e.g. ['Ctrl', 'Shift', 'K'] or ['⌘', 'K']
+ * @param {string[]}  keys  e.g. ['Ctrl', 'Shift', 'K'] or ['Meta', 'K']
  * @param {'mac'|'win'|'auto'} [platform='auto']
- * @returns {string}  e.g. 'Ctrl+Shift+K' or '⌘⇧K'
+ * @returns {string}  e.g. 'Ctrl+Shift+K' or 'Cmd+Shift+K'
  */
 export function describeKey(keys, platform = 'auto') {
   const isMac = platform === 'mac' ||
@@ -225,12 +225,12 @@ export function describeKey(keys, platform = 'auto') {
 
   const mapped = keys.map((k) => {
     if (isMac) {
-      return { ctrl:'⌃', alt:'⌥', shift:'⇧', meta:'⌘', ctrl_:'ctrl' }[k.toLowerCase()] ?? k;
+      return { ctrl:'Ctrl', alt:'Option', shift:'Shift', meta:'Cmd', ctrl_:'Ctrl' }[k.toLowerCase()] ?? k;
     }
     return k;
   });
 
-  return isMac ? mapped.join('') : mapped.join('+');
+  return mapped.join('+');
 }
 
 // ── Screen-reader only CSS ───────────────────────────────────────────────────

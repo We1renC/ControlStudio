@@ -413,7 +413,7 @@ function initEventListeners() {
         document.getElementById('sys-tf').style.display = 'block';
         updateDomainUI(); refreshAllCharts(); clearError();
         if (analysisEl) {
-          analysisEl.innerHTML = `<b>D→C 完成</b><br>DC Gain = ${fmtNum(ctf.dcGain())}&emsp;Stable: ${ctf.isStable() ? '✓' : '✗'}&emsp;Order: ${ctf.order}`;
+          analysisEl.innerHTML = `<b>D→C 完成</b><br>DC Gain = ${fmtNum(ctf.dcGain())}&emsp;Stable: ${ctf.isStable() ? 'YES' : 'NO'}&emsp;Order: ${ctf.order}`;
           analysisEl.style.display = 'block';
         }
         return;
@@ -432,7 +432,7 @@ function initEventListeners() {
       } else if (method === 'matched-z') {
         disc = c2dMatchedZ(state.plant, Ts);
         if (!disc._gainNormalized) {
-          showError('⚠ Matched-Z: 積分器系統增益無法正規化，DC 增益可能不正確。建議改用 ZOH 或 Tustin。');
+          showError('Warning: Matched-Z 積分器系統增益無法正規化，DC 增益可能不正確。建議改用 ZOH 或 Tustin。');
         }
       } else if (method === 'impulse-invariant') {
         disc = c2dImpulseInvariant(state.plant, Ts);
@@ -471,14 +471,14 @@ function initEventListeners() {
         analysisEl.innerHTML =
           `<b>Discrete TF Analysis (${method})</b><br>` +
           `DC Gain G(1) = ${Number.isFinite(dcG) ? dcG.toFixed(4) : '∞'}&emsp;` +
-          `Stable: <span style="color:${stable ? 'var(--color-stable)' : 'var(--color-unstable)'}">${stable ? '✓' : '✗'}</span><br>` +
+          `Stable: <span style="color:${stable ? 'var(--color-stable)' : 'var(--color-unstable)'}">${stable ? 'YES' : 'NO'}</span><br>` +
           `Poles: ${poleStr}<br>` +
           (zeros.length ? `Zeros: ${zeroStr}` : '');
         analysisEl.style.display = 'block';
       }
     } catch (err) {
       showError(err.message);
-      if (analysisEl) { analysisEl.textContent = '✗ ' + err.message; analysisEl.style.display = 'block'; }
+      if (analysisEl) { analysisEl.textContent = 'Error: ' + err.message; analysisEl.style.display = 'block'; }
     }
   });
 
@@ -647,7 +647,7 @@ function initEventListeners() {
       const kxStr = result.Kx.map(row => `[${row.map(v => v.toFixed(4)).join(', ')}]`).join(', ');
       const kiStr = result.Ki.map(row => `[${row.map(v => v.toFixed(4)).join(', ')}]`).join(', ');
       const poleStr = result.poles.map(p => {
-        const stab = p.re < 0 ? '✓' : '✗';
+        const stab = p.re < 0 ? 'STABLE' : 'UNSTABLE';
         return `${p.re.toFixed(3)}${p.im >= 0 ? '+' : ''}${p.im.toFixed(3)}j ${stab}`;
       }).join(', ');
       const out = document.getElementById('ilqr-out');
@@ -656,7 +656,7 @@ function initEventListeners() {
         <div style="color:var(--color-accent);font-weight:700;">Integral-Action LQR (augmented order ${n}+${p})</div>
         <div>Kx = ${kxStr}</div>
         <div>Ki = ${kiStr}</div>
-        <div>Augmented CL stable: ${result.augCLStable ? '<span style="color:var(--color-stable)">Yes ✓</span>' : '<span style="color:var(--color-unstable)">No ✗</span>'}</div>
+        <div>Augmented CL stable: ${result.augCLStable ? '<span style="color:var(--color-stable)">Yes</span>' : '<span style="color:var(--color-unstable)">No</span>'}</div>
         <div style="color:var(--text-muted);font-size:10px;">CL poles: ${poleStr}</div>
         <div style="color:var(--text-muted);font-size:10px;margin-top:4px;">Control law: u = −Kx·x − Ki·∫(r−y)dt eliminates steady-state error</div>`;
       clearError();
@@ -692,7 +692,7 @@ function initEventListeners() {
       const out = document.getElementById('pole-region-out');
       out.style.display = 'block';
       const poleStr = result.poles.map(p => `${p.re.toFixed(3)}${p.im >= 0 ? '+' : ''}${p.im.toFixed(3)}j`).join(', ');
-      out.innerHTML = `<div style="color:${result.satisfied ? 'var(--color-stable)' : 'var(--color-unstable)'};font-weight:700;">Region ${result.satisfied ? 'Satisfied ✓' : 'Not satisfied ✗'} (${result.iterations} iter)</div>
+      out.innerHTML = `<div style="color:${result.satisfied ? 'var(--color-stable)' : 'var(--color-unstable)'};font-weight:700;">Region ${result.satisfied ? 'Satisfied' : 'Not satisfied'} (${result.iterations} iter)</div>
         <div style="color:var(--text-muted);font-size:10px;">CL poles: ${poleStr}</div>
         <div>K = [${result.K.map(row=>row.map(v=>v.toFixed(4)).join(', ')).join('; ')}]</div>`;
       clearError();
@@ -1001,7 +1001,7 @@ function initEventListeners() {
     navigator.clipboard?.writeText(url).then(() => {
       const btn = document.getElementById('btn-share-url');
       const orig = btn.textContent;
-      btn.textContent = '✓ Copied!';
+      btn.textContent = 'Copied';
       setTimeout(() => { btn.textContent = orig; }, 2000);
       notify('Share URL copied to clipboard.', 'success', { title: 'Share' });
     }).catch(() => {
@@ -1037,7 +1037,7 @@ function initEventListeners() {
     const code = document.getElementById('code-preview-code')?.textContent ?? '';
     navigator.clipboard?.writeText(code).then(() => {
       const btn = document.getElementById('code-preview-copy');
-      if (btn) { const t = btn.textContent; btn.textContent = '✓ Copied'; setTimeout(() => { btn.textContent = t; }, 1800); }
+      if (btn) { const t = btn.textContent; btn.textContent = 'Copied'; setTimeout(() => { btn.textContent = t; }, 1800); }
     });
   });
 
@@ -1262,7 +1262,7 @@ const _SMART_WARNINGS = [
     level: 'error',
     message: () => {
       const poles = (state._lastStability?.poles ?? []).filter(p => (p.re ?? 0) > 1e-9);
-      return `⛔ 閉迴路不穩定：${poles.length} 個 RHP 極點`;
+      return `Error: 閉迴路不穩定：${poles.length} 個 RHP 極點`;
     },
     suggestion: '嘗試降低 Kp 50% 後重新驗證。',
     action: { label: '前往分析', fn: () => switchWorkflowTab('analyse') },
@@ -1271,7 +1271,7 @@ const _SMART_WARNINGS = [
     id: 'low-gm', priority: 2,
     condition: () => { const gm = state._lastStability?.gainMarginDb; return isFinite(gm) && gm < 6; },
     level: 'warning',
-    message: () => `⚠ GM = ${state._lastStability.gainMarginDb.toFixed(1)} dB（建議 > 6 dB）`,
+    message: () => `Warning: GM = ${state._lastStability.gainMarginDb.toFixed(1)} dB（建議 > 6 dB）`,
     suggestion: '降低 Kp 可提升 GM；或加入 Lead 補償器。',
     action: { label: '前往設計', fn: () => switchWorkflowTab('design') },
   },
@@ -1279,14 +1279,14 @@ const _SMART_WARNINGS = [
     id: 'low-pm', priority: 3,
     condition: () => { const pm = state._lastStability?.phaseMargin; return isFinite(pm) && pm < 30; },
     level: 'warning',
-    message: () => `⚠ PM = ${state._lastStability.phaseMargin.toFixed(1)}°（建議 > 45°）`,
+    message: () => `Warning: PM = ${state._lastStability.phaseMargin.toFixed(1)}°（建議 > 45°）`,
     suggestion: '增加 Kd 或 Lead 補償器可提升 PM。',
   },
   {
     id: 'rhp-zeros', priority: 4,
     condition: () => { try { return (state.plant?.zeros?.() ?? []).some(z => (z.re ?? 0) > 1e-9); } catch { return false; } },
     level: 'info',
-    message: () => 'ℹ Plant 含 RHP 零點（非最小相位），閉迴路頻寬受限。',
+    message: () => 'Info: Plant 含 RHP 零點（非最小相位），閉迴路頻寬受限。',
   },
 ];
 const _dismissedWarnings = new Set();
@@ -1625,7 +1625,7 @@ function initTFPolyPreview(inputId, previewId, variable) {
   const render = () => {
     const result = _coeffsToPolyStr(input.value, variable);
     if (result === null) {
-      preview.textContent = '⚠ 無效輸入';
+      preview.textContent = 'Warning: 無效輸入';
       preview.className = 'tf-poly-preview invalid';
     } else {
       preview.textContent = result;
@@ -1894,11 +1894,11 @@ function applyPIDPreset() {
       const ratio = td / tau;
       let msg = '';
       if ((preset === 'cohen-coon' || preset.startsWith('itae-')) && ratio < 0.05) {
-        msg = `⚠ θ/τ = ${ratio.toFixed(3)}（偏小，建議 ≥ 0.1）。Cohen-Coon / ITAE 公式精度在極小延遲下會下降。`;
+        msg = `Warning: θ/τ = ${ratio.toFixed(3)}（偏小，建議 ≥ 0.1）。Cohen-Coon / ITAE 公式精度在極小延遲下會下降。`;
       } else if ((preset === 'cohen-coon' || preset.startsWith('itae-')) && ratio > 1.0) {
-        msg = `⚠ θ/τ = ${ratio.toFixed(2)}（偏大，建議 < 1.0）。大延遲系統建議改用 IMC-PID 或 Smith Predictor。`;
+        msg = `Warning: θ/τ = ${ratio.toFixed(2)}（偏大，建議 < 1.0）。大延遲系統建議改用 IMC-PID 或 Smith Predictor。`;
       } else if ((preset.startsWith('imc-') || preset === 'simc') && ratio > 2.0) {
-        msg = `⚠ θ/τ = ${ratio.toFixed(2)}。IMC / SIMC 在大延遲系統（θ/τ > 2）效果會下降，建議考慮 Smith Predictor。`;
+        msg = `Warning: θ/τ = ${ratio.toFixed(2)}。IMC / SIMC 在大延遲系統（θ/τ > 2）效果會下降，建議考慮 Smith Predictor。`;
       }
       fopdtWarn.textContent = msg;
       fopdtWarn.style.display = msg ? 'block' : 'none';
@@ -1946,7 +1946,7 @@ function computeDesignTargetPoles() {
           _pendingPolesK = K;
           gainHtml = [
             `<div style="margin-top:10px;border-top:1px solid var(--border-primary);padding-top:8px;">`,
-            `<div style="color:var(--color-stable);font-weight:700;">✓ 目標極點在根軌跡上</div>`,
+            `<div style="color:var(--color-stable);font-weight:700;">PASS: 目標極點在根軌跡上</div>`,
             `<div>∠G(s*) = ${angleGs.toFixed(1)}°　偏差 ${angleDev.toFixed(1)}°（需為 ±180°）</div>`,
             `<div>K = 1 / |G(s*)| = <strong style="color:var(--color-accent);font-size:14px;">${K.toFixed(4)}</strong></div>`,
             `</div>`,
@@ -1955,7 +1955,7 @@ function computeDesignTargetPoles() {
         } else {
           gainHtml = [
             `<div style="margin-top:10px;border-top:1px solid var(--border-primary);padding-top:8px;">`,
-            `<div style="color:var(--color-unstable);font-weight:700;">✗ 目標極點不在根軌跡上</div>`,
+            `<div style="color:var(--color-unstable);font-weight:700;">FAIL: 目標極點不在根軌跡上</div>`,
             `<div>∠G(s*) = ${angleGs.toFixed(1)}°　偏差 ${angleDev.toFixed(1)}°（需 &lt; 10°）</div>`,
             `<div style="color:var(--text-muted);font-size:10px;margin-top:4px;">`,
             `→ 純增益 K 無法將極點放到目標位置。<br>`,
@@ -1999,7 +1999,7 @@ function applyPolesKToController() {
   const btn = document.getElementById('btn-apply-poles-k');
   if (btn) {
     const orig = btn.textContent;
-    btn.textContent = '✓ Applied!';
+    btn.textContent = 'Applied';
     btn.style.background = '#10b981';
     setTimeout(() => { btn.textContent = orig; btn.style.background = ''; }, 1500);
   }
@@ -2069,7 +2069,7 @@ function computeDeadbeat() {
       `<div style="margin:4px 0;">${kStr}</div>`,
       `<div style="color:var(--color-stable);margin-top:4px;">→ 閉迴路特徵值全部在 z=0</div>`,
       `<div>最多 ${result.K.length} 個取樣步驟 = ${(result.K.length * result.Ts).toFixed(3)} s 後穩定</div>`,
-      `<div style="margin-top:6px;color:var(--text-muted);font-size:10px;">⚠ 此為狀態回授增益（State Feedback），需搭配完整狀態估測器（觀測器）實作，無法直接套用為 PID 參數。</div>`,
+      `<div style="margin-top:6px;color:var(--text-muted);font-size:10px;">Warning: 此為狀態回授增益（State Feedback），需搭配完整狀態估測器（觀測器）實作，無法直接套用為 PID 參數。</div>`,
     ].join('');
     if (copyBtn) copyBtn.style.display = 'block';
   } catch (err) {
@@ -2088,7 +2088,7 @@ function copyDeadbeatGains() {
     const btn = document.getElementById('btn-copy-deadbeat-k');
     if (btn) {
       const orig = btn.textContent;
-      btn.textContent = '✓ Copied!';
+      btn.textContent = 'Copied';
       setTimeout(() => { btn.textContent = orig; }, 1500);
     }
   }).catch(() => {/* ignore clipboard errors */});
@@ -2293,7 +2293,7 @@ function computeLqrDesign() {
       `<div>trace(P) = ${fmtNum(traceP, 6)}</div>`,
       `<div>ΔK residual = ${fmtNum(result.residualNorm, 6)}</div>`,
       `<div>CARE residual = ${fmtNum(result.riccatiResidualNorm, 6)}</div>`,
-      `<div>Closed-loop Lyapunov stable: ${result.closedLoopStable ? 'Yes ✓' : 'No ✗'}</div>`,
+      `<div>Closed-loop Lyapunov stable: ${result.closedLoopStable ? 'Yes' : 'No'}</div>`,
       `<div style="margin-top:6px;color:var(--color-stable);">Closed-loop poles</div>`,
       `<div>${formatPoleListHtml(previewTf.poles(), 's')}</div>`,
       `<div style="margin-top:6px;">Step rise = ${fmtTime(preview.info.riseTime)} / settling = ${fmtTime(preview.info.settlingTime)} / OS = ${fmtPercent(preview.info.overshoot)}</div>`,
@@ -2381,7 +2381,7 @@ function computeKalmanGain() {
       `<div>rank(Wo) = ${result.observabilityRank}/${n} &nbsp;|&nbsp; Init: ${escapeHtml(result.initialGainStrategy)}</div>`,
       `<div>ΔK residual = ${fmtNum(result.residualNorm, 6)}</div>`,
       `<div>CARE residual = ${fmtNum(result.riccatiResidualNorm, 6)}</div>`,
-      `<div>Observer Lyapunov stable: ${result.observerStable ? 'Yes ✓' : 'No ✗'}</div>`,
+      `<div>Observer Lyapunov stable: ${result.observerStable ? 'Yes' : 'No'}</div>`,
       `<div style="margin-top:6px;color:var(--color-accent);">Pe (error covariance)</div>`,
       `<div>${Pehtml}</div>`,
       `<div style="margin-top:6px;color:var(--text-muted);font-size:10px;">Kalman gain minimizes estimation error covariance under Gaussian noise.</div>`,
@@ -2421,7 +2421,7 @@ function computeObserverSimulation() {
 
     const initErr = result.eNorm[0] || 1;
     const finalErr = result.eNorm[result.eNorm.length - 1];
-    const converged = finalErr < 0.01 * initErr ? 'Yes ✓' : finalErr < 0.1 * initErr ? 'Partial' : 'No';
+    const converged = finalErr < 0.01 * initErr ? 'Yes' : finalErr < 0.1 * initErr ? 'Partial' : 'No';
     setPhase7Output('phase8-sim-out', [
       `<div style="color:var(--color-accent);font-weight:700;">Observer Simulation (step input)</div>`,
       `<div>Duration: ${fmtNum(duration, 1)} s &nbsp;|&nbsp; Initial eNorm: ${fmtNum(initErr, 4)} &nbsp;|&nbsp; Final: ${fmtNum(finalErr, 4)}</div>`,
@@ -2563,15 +2563,15 @@ function computeDiscreteKalman() {
     const poleStr = result.observerPolesD.map(p => {
       const mag = Math.hypot(p.re, p.im);
       const im = Math.abs(p.im) < 1e-9 ? '' : p.im > 0 ? `+j${fmtNum(Math.abs(p.im), 3)}` : `-j${fmtNum(Math.abs(p.im), 3)}`;
-      const stable = mag < 1 - 1e-9 ? ' ✓' : ' ✗';
+      const stable = mag < 1 - 1e-9 ? ' STABLE' : ' UNSTABLE';
       return `${fmtNum(p.re, 3)}${im} (|z|=${fmtNum(mag, 3)}${stable})`;
     }).join(', ');
 
     setPhase7Output('dkf-out', [
       `<div style="color:var(--color-accent);font-weight:700;">Discrete Kalman Gain L_kf[d]  (Ts=${Ts}s, ZOH)</div>`,
       `<div>L_kf = [${lStr}]</div>`,
-      `<div>Iterations: ${result.iterations} &nbsp;|&nbsp; Converged: ${result.converged ? 'Yes ✓' : 'No ✗'}</div>`,
-      `<div>rank(Wo) = ${result.observabilityRank}/${Ad.length} &nbsp;|&nbsp; Stable: ${result.observerStable ? 'Yes ✓' : 'No ✗'} &nbsp;|&nbsp; max|z| = ${fmtNum(result.maxPoleMagnitude, 4)}</div>`,
+      `<div>Iterations: ${result.iterations} &nbsp;|&nbsp; Converged: ${result.converged ? 'Yes' : 'No'}</div>`,
+      `<div>rank(Wo) = ${result.observabilityRank}/${Ad.length} &nbsp;|&nbsp; Stable: ${result.observerStable ? 'Yes' : 'No'} &nbsp;|&nbsp; max|z| = ${fmtNum(result.maxPoleMagnitude, 4)}</div>`,
       `<div style="color:var(--text-muted);">Observer poles (z-plane): ${poleStr}</div>`,
       `<div style="font-size:10px;color:var(--text-muted);margin-top:4px;">Stable: all poles must be inside unit circle |z|&lt;1</div>`,
     ].join(''));
@@ -2840,14 +2840,14 @@ function applyAutoTunePID() {
     const achWc = Number.isFinite(r.achievedWc) ? r.achievedWc.toFixed(3) + ' rad/s' : '—';
     const achGM = Number.isFinite(r.achievedGM) ? r.achievedGM.toFixed(1) + ' dB' : '∞';
     if (outEl) outEl.innerHTML =
-      `<b>✓ Kp=${r.Kp.toFixed(4)}  Ki=${r.Ki.toFixed(4)}  Kd=${r.Kd.toFixed(4)}</b><br>` +
+      `<b>PID: Kp=${r.Kp.toFixed(4)}  Ki=${r.Ki.toFixed(4)}  Kd=${r.Kd.toFixed(4)}</b><br>` +
       (r.Ti != null ? `Ti=${r.Ti.toFixed(4)} s&emsp;Td=${r.Td.toFixed(4)} s<br>` : '') +
       `φ_C required: ${r.phiC_deg.toFixed(1)}°<br>` +
       `Achieved PM=${achPM}&emsp;ωc=${achWc}&emsp;GM=${achGM}`;
     if (outEl) outEl.style.display = 'block';
   } catch (err) {
     showError(err.message);
-    if (outEl) { outEl.textContent = '✗ ' + err.message; outEl.style.display = 'block'; }
+    if (outEl) { outEl.textContent = 'Error: ' + err.message; outEl.style.display = 'block'; }
   }
 }
 
@@ -2876,7 +2876,7 @@ function applyLeadLagHelper() {
     clearError();
   } catch (err) {
     const outEl = document.getElementById('leadlag-out');
-    if (outEl) { outEl.textContent = '✗ ' + err.message; outEl.style.display = 'block'; }
+    if (outEl) { outEl.textContent = 'Error: ' + err.message; outEl.style.display = 'block'; }
     showError(err.message);
   }
 }
@@ -3535,7 +3535,7 @@ function updateStabilityPanel() {
       if (caveatEl) {
         if (!isDiscrete && (rhpCount > 0 || encN !== 0)) {
           caveatEl.style.display = 'block';
-          caveatEl.innerHTML = `⚠ <strong>古典裕度（GM/PM）可能失效。</strong>開迴路含 ${rhpCount} 個 RHP 極點（P=${rhpCount}），Nyquist 包圍數 N=${encN}。`
+          caveatEl.innerHTML = `Warning: <strong>古典裕度（GM/PM）可能失效。</strong>開迴路含 ${rhpCount} 個 RHP 極點（P=${rhpCount}），Nyquist 包圍數 N=${encN}。`
             + ` 閉迴路 RHP 極點 Z = P−N = ${clRhpZ}。`
             + (clRhpZ !== 0 ? ' <strong>系統不穩定，請以極點與包圍數為準。</strong>' : ' 閉迴路穩定（Z=0）。');
         } else {
@@ -3605,7 +3605,7 @@ function updateStabilityPanel() {
           const isNeg = firstVal < -1e-10;
           const isChange = signChangeRows.has(idx);
           const fc = isChange ? 'routh-sign-change' : (isNeg ? 'routh-neg' : '');
-          const firstTd = `<td class="${fc}" title="${isChange ? '⚠ 符號變號 — 不穩定根' : (isNeg ? '⚠ 負值' : '')}">${fmtNum(firstVal)}</td>`;
+          const firstTd = `<td class="${fc}" title="${isChange ? 'Warning: 符號變號 — 不穩定根' : (isNeg ? 'Warning: 負值' : '')}">${fmtNum(firstVal)}</td>`;
           const restCells = row.slice(1).map(v => `<td>${fmtNum(v)}</td>`).join('');
           return `<tr><td>${labels[idx] || ''}</td>${firstTd}${restCells}</tr>`;
         }).join('');
@@ -4166,7 +4166,7 @@ function renderBodePlot(sys, targetId = 'chart-active') {
         const note = {
           xref: 'paper', yref: 'paper', x: 0.02, y: 0.98,
           xanchor: 'left', yanchor: 'top',
-          text: '⚠ Plant 不穩定 (RHP 極點)。PM/GM 數字以 Nyquist criterion 解讀需考慮 RHP poles 數，不能直接套用「PM>0 = 穩定」的規則',
+        text: 'Warning: Plant 不穩定 (RHP 極點)。PM/GM 數字以 Nyquist criterion 解讀需考慮 RHP poles 數，不能直接套用「PM>0 = 穩定」的規則',
           showarrow: false,
           bgcolor: 'rgba(239,68,68,0.15)',
           bordercolor: '#ef4444',
@@ -4283,7 +4283,7 @@ function renderNyquistPlot(sys, targetId = 'chart-active') {
       annotList.push({
         xref: 'paper', yref: 'paper', x: 0.02, y: 0.98,
         xanchor: 'left', yanchor: 'top',
-        text: `Z=P−N=${P}−${Nstr}=<b>${Z}</b>  ${Z !== 0 ? '⚠ 不穩定' : '✓ 穩定'}`,
+        text: `Z=P−N=${P}−${Nstr}=<b>${Z}</b>  ${Z !== 0 ? 'UNSTABLE' : 'STABLE'}`,
         showarrow: false,
         bgcolor: Z !== 0 ? 'rgba(239,68,68,0.15)' : 'rgba(34,197,94,0.1)',
         bordercolor: zColor, borderwidth: 1, borderpad: 4,
@@ -4624,7 +4624,7 @@ function renderRootLocus(sys, targetId = 'chart-rlocus') {
     layout.annotations = [{
       xref: 'paper', yref: 'paper', x: 0.01, y: 0.99,
       xanchor: 'left', yanchor: 'top',
-      text: '💡 Click a branch to pick a gain — K-slider & step preview appear below the chart',
+        text: 'Tip: Click a branch to pick a gain — K-slider & step preview appear below the chart',
       showarrow: false,
       font: { size: 10, color: getCSS('--text-muted') },
       bgcolor: 'rgba(15,17,23,.6)', borderpad: 4,
@@ -4683,7 +4683,7 @@ function applyRlocusKToController() {
   const btn = document.getElementById('btn-apply-rlocus-k');
   if (btn) {
     const orig = btn.textContent;
-    btn.textContent = '✓ Applied!';
+    btn.textContent = 'Applied';
     btn.style.background = '#10b981';
     setTimeout(() => { btn.textContent = orig; btn.style.background = ''; }, 1500);
   }
@@ -4743,7 +4743,7 @@ function applyZNPIDFromRlocus(type) {
   const btn = document.getElementById(btnId);
   if (btn) {
     const orig = btn.textContent;
-    btn.textContent = '✓ Applied!';
+    btn.textContent = 'Applied';
     btn.style.background = '#10b981';
     setTimeout(() => { btn.textContent = orig; btn.style.background = ''; }, 1500);
   }
@@ -4871,7 +4871,7 @@ function renderPoleZeroMap(sys, targetId = 'chart-pzmap') {
       layout.annotations = [{
         xref: 'paper', yref: 'paper', x: 0.01, y: 0.99,
         xanchor: 'left', yanchor: 'top',
-        text: '💡 Click a pole (×) to see |z|, decay rate and equivalent s-plane metrics',
+        text: 'Tip: Click a pole (×) to see |z|, decay rate and equivalent s-plane metrics',
         showarrow: false,
         font: { size: 10, color: getCSS('--text-muted') },
         bgcolor: 'rgba(15,17,23,.6)', borderpad: 4,
@@ -5725,7 +5725,7 @@ function updateMIMOSystem() {
     const statusEl = document.getElementById('mimo-status-out');
     if (statusEl) {
       statusEl.style.display = 'block';
-      statusEl.innerHTML = `<div style="color:var(--color-stable);font-weight:700;">MIMO Plant OK ✓</div>
+      statusEl.innerHTML = `<div style="color:var(--color-stable);font-weight:700;">MIMO Plant OK</div>
         <div>n=${mimoPlant.n} states, m=${mimoPlant.m} inputs, p=${mimoPlant.p} outputs</div>
         <div>Total channels: ${mimoPlant.p * mimoPlant.m}</div>
         <div>Controllability rank: ${rankC}/${mimoPlant.n} &nbsp;|&nbsp; Observability rank: ${rankO}/${mimoPlant.n}</div>`;
@@ -5908,7 +5908,7 @@ function computeMIMORGA() {
       .join('');
 
     const sugg = diag.suggestion
-      ? `<div style="color:var(--color-accent);margin-top:6px;">💡 ${diag.suggestion}</div>`
+        ? `<div style="color:var(--color-accent);margin-top:6px;">Tip: ${diag.suggestion}</div>`
       : '';
 
     const outEl = document.getElementById('mimo-rga-out');
@@ -6003,7 +6003,7 @@ function computeMIMODecoupler() {
 
     const outEl = document.getElementById('mimo-decoupler-out');
     outEl.style.display = 'block';
-    outEl.innerHTML = `<div style="color:var(--color-accent);font-weight:700;">Static DC Decoupler Applied ✓</div>
+    outEl.innerHTML = `<div style="color:var(--color-accent);font-weight:700;">Static DC Decoupler Applied</div>
       <div style="margin-top:4px;">G(0) was:</div>
       <div>${renderLabeledMatrixTable(G0, { rowPrefix: 'y', colPrefix: 'u', digits: 3 })}</div>
       <div style="margin-top:4px;">W = G(0)⁻¹:</div>
@@ -6769,7 +6769,7 @@ function autoToggleOpenLoopForUnstablePlant() {
       state.showClosedLoop = false;
       const clToggle = document.getElementById('cl-toggle');
       if (clToggle) clToggle.checked = false;
-      showBanner('⚠ Plant 包含 RHP 極點（不穩定），已自動切到 Open-loop view 以利觀察 plant 真實極點。完成穩定化後請手動切回 Closed-loop。');
+      showBanner('Warning: Plant 包含 RHP 極點（不穩定），已自動切到 Open-loop view 以利觀察 plant 真實極點。完成穩定化後請手動切回 Closed-loop。');
     }
   } catch (_) { /* defensive — don't block updateSystem */ }
 }
@@ -7346,7 +7346,7 @@ const csUI = (() => {
       const dims = parseMatrixDims(el.value);
       if (!dims) { hint.textContent = ''; hint.className = 'input-validation'; return; }
       if (!dims.valid) {
-        hint.textContent = '⚠ rows have inconsistent column counts';
+        hint.textContent = 'Warning: rows have inconsistent column counts';
         hint.className = 'input-validation err';
       } else {
         hint.textContent = `${dims.rows} × ${dims.cols}`;
@@ -7668,28 +7668,28 @@ function scheduleCodePreviewRefresh() {
 
 /** Registry of all palette commands. */
 const COMMANDS = [
-  { icon: '⚙', group: 'Plant', title: 'SISO 模式',        sub: 'Switch to SISO', keys: [], action: () => document.querySelector('.system-mode-btn[data-mode="siso"]')?.click() },
+  { icon: 'S', group: 'Plant', title: 'SISO 模式',        sub: 'Switch to SISO', keys: [], action: () => document.querySelector('.system-mode-btn[data-mode="siso"]')?.click() },
   { icon: '⊞', group: 'Plant', title: 'MIMO 模式',        sub: 'Switch to MIMO', keys: [], action: () => document.querySelector('.system-mode-btn[data-mode="mimo"]')?.click() },
   { icon: '▶', group: 'Plant', title: 'RC Circuit preset', sub: '1/(s+1)',          keys: [], action: () => csUI?.loadPreset?.('rc-circuit') },
   { icon: '▶', group: 'Plant', title: 'DC Motor preset',   sub: '5/(s²+6s+5)',     keys: [], action: () => csUI?.loadPreset?.('dc-motor') },
   { icon: '▶', group: 'Plant', title: 'Mass-Spring preset',sub: '1/(s²+0.4s+4)',  keys: [], action: () => csUI?.loadPreset?.('mass-spring') },
-  { icon: '🎨', group: 'Theme', title: 'Theme: Dark',       sub: '',                keys: [], action: () => { if (state.theme !== 'dark') toggleTheme(); } },
-  { icon: '🎨', group: 'Theme', title: 'Theme: Light',      sub: '',                keys: [], action: () => { if (state.theme !== 'light') { if (state.theme === 'dark') toggleTheme(); else toggleTheme(); } } },
-  { icon: '🖨', group: 'Theme', title: 'Theme: Print',      sub: '',                keys: [], action: () => { if (state.theme !== 'print') { if (state.theme === 'dark') { toggleTheme(); toggleTheme(); } else if (state.theme === 'light') toggleTheme(); } } },
-  { icon: '📋', group: 'Export', title: 'Export MATLAB',    sub: '.m script',       keys: [], action: () => document.getElementById('btn-export-matlab')?.click() },
-  { icon: '📋', group: 'Export', title: 'Export Python',    sub: '.py script',      keys: [], action: () => document.getElementById('btn-export-python')?.click() },
-  { icon: '📋', group: 'Export', title: 'Export JSON',      sub: 'Project file',    keys: [], action: () => document.getElementById('btn-export-json')?.click() },
-  { icon: '📋', group: 'Export', title: 'Export CSV',       sub: 'Step response',   keys: ['Ctrl+E'], action: () => document.getElementById('btn-export-csv')?.click() },
-  { icon: '💾', group: 'Project',title: 'Save Project',     sub: 'Ctrl+S',          keys: ['Ctrl+S'], action: () => document.getElementById('btn-save-project')?.click() },
-  { icon: '📂', group: 'Project',title: 'Load Project',     sub: '',                keys: [], action: () => document.getElementById('btn-load-project')?.click() },
+  { icon: 'T', group: 'Theme', title: 'Theme: Dark',       sub: '',                keys: [], action: () => { if (state.theme !== 'dark') toggleTheme(); } },
+  { icon: 'T', group: 'Theme', title: 'Theme: Light',      sub: '',                keys: [], action: () => { if (state.theme !== 'light') { if (state.theme === 'dark') toggleTheme(); else toggleTheme(); } } },
+  { icon: 'P', group: 'Theme', title: 'Theme: Print',      sub: '',                keys: [], action: () => { if (state.theme !== 'print') { if (state.theme === 'dark') { toggleTheme(); toggleTheme(); } else if (state.theme === 'light') toggleTheme(); } } },
+  { icon: 'EX', group: 'Export', title: 'Export MATLAB',    sub: '.m script',       keys: [], action: () => document.getElementById('btn-export-matlab')?.click() },
+  { icon: 'EX', group: 'Export', title: 'Export Python',    sub: '.py script',      keys: [], action: () => document.getElementById('btn-export-python')?.click() },
+  { icon: 'EX', group: 'Export', title: 'Export JSON',      sub: 'Project file',    keys: [], action: () => document.getElementById('btn-export-json')?.click() },
+  { icon: 'EX', group: 'Export', title: 'Export CSV',       sub: 'Step response',   keys: ['Ctrl+E'], action: () => document.getElementById('btn-export-csv')?.click() },
+  { icon: 'SV', group: 'Project',title: 'Save Project',     sub: 'Ctrl+S',          keys: ['Ctrl+S'], action: () => document.getElementById('btn-save-project')?.click() },
+  { icon: 'LD', group: 'Project',title: 'Load Project',     sub: '',                keys: [], action: () => document.getElementById('btn-load-project')?.click() },
   { icon: '↺',  group: 'History',title: 'Undo',             sub: 'Ctrl+Z',          keys: ['Ctrl+Z'], action: () => historyUndo?.() },
   { icon: '↻',  group: 'History',title: 'Redo',             sub: 'Ctrl+Y',          keys: ['Ctrl+Y'], action: () => historyRedo?.() },
-  { icon: '⌨',  group: 'Help',   title: 'Keyboard shortcuts',sub: '?',             keys: ['Ctrl+?'], action: () => csUI?.showModal?.('shortcuts-modal') },
-  { icon: '❓',  group: 'Help',   title: 'Quick Start guide', sub: 'Ctrl+/',        keys: ['Ctrl+/'], action: () => csUI?.showModal?.('quickstart-modal') },
-  { icon: '⚙',  group: 'Help',   title: '偏好設定',           sub: 'G4 Preferences',keys: [],        action: () => csUI?.showModal?.('prefs-modal') },
-  { icon: '📐', group: 'Navigate',title: 'Go to Plant tab',  sub: '',               keys: [], action: () => switchSidebarPanel?.('model') },
-  { icon: '📊', group: 'Navigate',title: 'Go to Compare tab',sub: '',               keys: [], action: () => switchSidebarPanel?.('compare') },
-  { icon: '✏',  group: 'Navigate',title: 'Go to Design tab', sub: '',               keys: [], action: () => switchSidebarPanel?.('advisor') },
+  { icon: 'K',  group: 'Help',   title: 'Keyboard shortcuts',sub: '?',             keys: ['Ctrl+?'], action: () => csUI?.showModal?.('shortcuts-modal') },
+  { icon: '?',  group: 'Help',   title: 'Quick Start guide', sub: 'Ctrl+/',        keys: ['Ctrl+/'], action: () => csUI?.showModal?.('quickstart-modal') },
+  { icon: 'G',  group: 'Help',   title: '偏好設定',           sub: 'G4 Preferences',keys: [],        action: () => csUI?.showModal?.('prefs-modal') },
+  { icon: 'N', group: 'Navigate',title: 'Go to Plant tab',  sub: '',               keys: [], action: () => switchSidebarPanel?.('model') },
+  { icon: 'N', group: 'Navigate',title: 'Go to Compare tab',sub: '',               keys: [], action: () => switchSidebarPanel?.('compare') },
+  { icon: 'N', group: 'Navigate',title: 'Go to Design tab', sub: '',               keys: [], action: () => switchSidebarPanel?.('advisor') },
 ];
 
 let _cmdFocusIdx = -1;
@@ -8242,7 +8242,7 @@ function initFieldHints() {
     el.addEventListener('mouseleave', hideHint);
   });
 
-  // Also wire up ⓘ help icons next to inputs
+  // Also wire up help affordances next to inputs
   document.querySelectorAll('.help-icon[title]').forEach(icon => {
     icon.addEventListener('mouseenter', () => {
       const parentInput = icon.closest('.input-group')?.querySelector('input,select,textarea');
@@ -8678,7 +8678,7 @@ function initErrorGuidance() {
     }
     const guidance = _matchErrorGuidance(msg);
     if (guidance) {
-      guidanceEl.innerHTML = `💡 <strong>建議：</strong>${escapeHtml(guidance)}`;
+  guidanceEl.innerHTML = `Tip: <strong>建議：</strong>${escapeHtml(guidance)}`;
       guidanceEl.style.display = 'block';
     } else {
       guidanceEl.style.display = 'none';
@@ -8738,7 +8738,7 @@ function initDesignWizard() {
       stepEl.className = `wizard-step${i < currentStep ? ' done' : i === currentStep ? ' active' : ''}`;
       stepEl.setAttribute('title', step.hint);
       stepEl.innerHTML = `
-        <div class="wizard-step-dot">${i < currentStep ? '✓' : i + 1}</div>
+        <div class="wizard-step-dot">${i < currentStep ? 'OK' : i + 1}</div>
         <div class="wizard-step-label">${step.title}</div>`;
       stepEl.addEventListener('click', () => { if (i <= currentStep + 1) goToStep(i); });
       track.appendChild(stepEl);
@@ -8751,7 +8751,7 @@ function initDesignWizard() {
     buildTrack();
     btnPrev.disabled = currentStep === 0;
     if (currentStep === WIZARD_STEPS.length - 1) {
-      btnNext.textContent = '完成 ✓';
+      btnNext.textContent = '完成';
     } else {
       btnNext.textContent = '下一步 →';
     }
@@ -8799,7 +8799,7 @@ function initDesignWizard() {
 
   // Register command palette entry
   if (Array.isArray(window.COMMANDS)) {
-    window.COMMANDS.push({ group: 'UI', icon: '🧭', title: '開啟設計精靈', keys: [], action: openWizard });
+    window.COMMANDS.push({ group: 'UI', icon: 'WZ', title: '開啟設計精靈', keys: [], action: openWizard });
   }
 }
 
@@ -8861,7 +8861,7 @@ function initMethodComplexityLabels() {
 const WHY_EXPLAIN = {
   pid: {
     title: 'PID 控制器',
-    icon: '⚙',
+    icon: 'PID',
     why: '最廣泛使用的工業控制器，設計直覺、調整簡單、實作成本低。',
     when_good: '穩定、低階（1~2 階）的 SISO 系統，或對實作資源有限制時。',
     caution: '高階/非線性/MIMO 系統效果有限，積分飽和需加 anti-windup。',
@@ -8869,7 +8869,7 @@ const WHY_EXPLAIN = {
   },
   lead: {
     title: 'Lead 補償器',
-    icon: '📈',
+    icon: 'LD',
     why: '增加相位裕度，改善暫態響應速度，比 PID 更精準控制頻域特性。',
     when_good: '需要提升相位裕度或加快響應，系統在特定頻率範圍內工作。',
     caution: '高頻雜訊放大，需確認 sensor 雜訊水準。',
@@ -8877,7 +8877,7 @@ const WHY_EXPLAIN = {
   },
   lag: {
     title: 'Lag 補償器',
-    icon: '📉',
+    icon: 'LG',
     why: '降低稳態誤差、改善穩健性，適合需要高增益的低頻系統。',
     when_good: '靜差要求嚴格，或需提升低頻增益的 Type 0 系統。',
     caution: '會減慢動態響應，注意 phase lag 對穩定裕度的影響。',
@@ -8885,7 +8885,7 @@ const WHY_EXPLAIN = {
   },
   leadlag: {
     title: 'Lead-Lag 補償器',
-    icon: '🔀',
+    icon: 'LL',
     why: '結合 Lead 和 Lag 優點：改善暫態響應並降低穩態誤差。',
     when_good: '同時有靜差和響應速度要求，且系統為低~中階 SISO。',
     caution: '參數較多，需系統性調整；對不穩定系統需謹慎。',
@@ -8893,7 +8893,7 @@ const WHY_EXPLAIN = {
   },
   lqr: {
     title: 'LQR 最優狀態回授',
-    icon: '🎯',
+    icon: 'LQR',
     why: '最小化二次性能指標 J = ∫(xᵀQx + uᵀRu)dt，保證穩定且有良好增益/相位裕度。',
     when_good: '狀態可完全量測（或有觀測器），系統為線性，有明確 Q/R 權重設定。',
     caution: '需要全狀態量測或觀測器；對參數不確定性的穩健性需另外驗證。',
@@ -8901,7 +8901,7 @@ const WHY_EXPLAIN = {
   },
   mpc: {
     title: 'Model Predictive Control (MPC)',
-    icon: '🔮',
+    icon: 'MPC',
     why: '在線上滾動時域內求解最優化，自然處理輸入/輸出約束，適合多目標控制。',
     when_good: '有明確約束（輸入飽和、狀態限制），慢動態過程（化工、建築），MIMO 系統。',
     caution: '每個取樣週期需線上求解 QP；計算資源需求高，即時性可能受限。',
@@ -8909,7 +8909,7 @@ const WHY_EXPLAIN = {
   },
   hinf: {
     title: 'H∞ 魯棒控制',
-    icon: '🛡',
+    icon: 'HINF',
     why: '最小化最壞情況下的干擾放大增益，對模型不確定性具有強鳥棒保證。',
     when_good: '高確定性需求（航空、精密製造），有顯著模型不確定性或外部干擾。',
     caution: '設計複雜（需 Riccati / LMI 求解），控制器階數可能很高，建議做模型降階。',
@@ -8917,7 +8917,7 @@ const WHY_EXPLAIN = {
   },
   adaptive: {
     title: '自適應控制 (MRAC/GA)',
-    icon: '🤖',
+    icon: 'ADP',
     why: '參數或結構在線上自動調整，適應系統時變特性或初始不確定性大的場景。',
     when_good: '系統參數明顯時變（航空器不同飛行包絡），或初始模型精度低。',
     caution: '穩定性分析複雜，調整不當可能造成參數漂移；不適合快速動態系統。',
@@ -8936,7 +8936,7 @@ function showRecommendExplain(method) {
       <span class="rec-explain-icon">${info.icon}</span>
       <strong class="rec-explain-title">${info.title}</strong>
       <span class="rec-explain-complexity" title="Complexity ${info.complexity}/5">${dots}</span>
-      <button class="rec-explain-close" id="rec-explain-close" aria-label="關閉解釋">✕</button>
+      <button class="rec-explain-close" id="rec-explain-close" aria-label="關閉解釋">×</button>
     </div>
     <div class="rec-explain-body">
       <div class="rec-explain-row"><span class="rec-explain-label">為何推薦</span><span>${info.why}</span></div>
@@ -9041,7 +9041,7 @@ function initChartCursorReadout() {
 }
 
 // ── P40 init ──────────────────────────────────────────────────────────────────
-// Note: B3-3 Chart Theme Toggle (🎨 palette button) removed per UX cleanup.
+// Note: B3-3 Chart Theme Toggle palette button removed per UX cleanup.
 document.addEventListener('DOMContentLoaded', () => {
   initDesignWizard();
   setTimeout(() => {
@@ -9057,7 +9057,7 @@ document.addEventListener('DOMContentLoaded', () => {
 const D2_METHODS = [
   { id: 'zoh',      label: 'ZOH',      c2dFn: (sys, Ts) => c2dZOH(sys, Ts),                    desc: '零阶保持（最精確）' },
   { id: 'tustin',   label: 'Tustin',   c2dFn: (sys, Ts, pw) => c2dTustinPrewarp(sys, Ts, pw), desc: 'Bilinear（可預翹）' },
-  { id: 'forward',  label: '向前差分', c2dFn: (sys, Ts) => null,                               desc: 'Forward Euler（⚠ 可能不穩）' },
+  { id: 'forward',  label: '向前差分', c2dFn: (sys, Ts) => null,                               desc: 'Forward Euler（Warning: 可能不穩）' },
   { id: 'backward', label: '向後差分', c2dFn: (sys, Ts) => null,                               desc: 'Backward Euler' },
 ];
 
@@ -9132,7 +9132,7 @@ function initDiscretizationTool() {
           const bw = margins.wgc;
           const tsRec = parseFloat((1 / (10 * bw)).toFixed(4));
           const ok2 = Ts <= tsRec * 1.5;
-          advEl.textContent = `系統頻寬 ωgc ≈ ${fmtNum(bw)} rad/s → 建議 Ts ≤ ${tsRec} s（目前 ${Ts} s ${ok2 ? '✓' : '⚠ 可能過大'}）`;
+          advEl.textContent = `系統頻寬 ωgc ≈ ${fmtNum(bw)} rad/s → 建議 Ts ≤ ${tsRec} s（目前 ${Ts} s ${ok2 ? 'OK' : 'Warning: 可能過大'}）`;
           advEl.style.display = 'block';
           advEl.style.color = ok2 ? 'var(--text-muted)' : 'var(--color-unstable)';
         }
@@ -9177,7 +9177,7 @@ function initDiscretizationTool() {
     tableEl.innerHTML = `<tr>
       <th>方法</th><th>穩定性</th><th>DC 增益</th><th>相位誤差 (ω_N/4)</th><th>說明</th>
     </tr>` + results.map((r, i) => {
-      const stabBadge = r.disc ? (r.stable ? '<span class="disc-compare-badge ok">✓ 穩定</span>' : '<span class="disc-compare-badge bad">⚠ 不穩</span>') : '<span class="disc-compare-badge warn">N/A</span>';
+      const stabBadge = r.disc ? (r.stable ? '<span class="disc-compare-badge ok">STABLE</span>' : '<span class="disc-compare-badge bad">UNSTABLE</span>') : '<span class="disc-compare-badge warn">N/A</span>';
       const dcStr = Number.isFinite(r.dcGain) ? fmtNum(r.dcGain, 4) : '—';
       const phStr = Number.isFinite(r.phaseErr) ? `${fmtNum(r.phaseErr, 2)}°` : '—';
       return `<tr${i === bestIdx ? ' class="recommended"' : ''}>
@@ -9254,10 +9254,10 @@ function updateSpecComplianceBadges() {
       el.textContent = `${label} —`;
     } else if (pass) {
       el.className = 'spec-badge pass';
-      el.textContent = `${label} ✓`;
+      el.textContent = `${label} PASS`;
     } else {
       el.className = 'spec-badge fail';
-      el.textContent = `${label} ✗`;
+      el.textContent = `${label} FAIL`;
     }
   }
 
@@ -9404,7 +9404,7 @@ function initCompareTableEnhancements() {
         if (COLS[ci]?.dir !== null) {
           const arrow = document.createElement('span');
           arrow.className = 'compare-sort-arrow';
-          arrow.textContent = _sortCol === ci ? (_sortDir === 1 ? '▲' : '▼') : '⇅';
+          arrow.textContent = _sortCol === ci ? (_sortDir === 1 ? '▲' : '▼') : '↔';
           th.appendChild(arrow);
           if (!th.dataset.b1Wired) {
             th.dataset.b1Wired = '1';
@@ -9482,9 +9482,9 @@ function initSystemInputWizard() {
   function setBadge(id, ok) {
     const el = document.getElementById(id);
     if (!el) return;
-    if (ok === null) { el.className = 'syswin-badge na'; el.textContent = el.textContent.replace(/[✓✗]/g, '').trim(); }
-    else if (ok) { el.className = 'syswin-badge ok'; el.textContent += ' ✓'; }
-    else { el.className = 'syswin-badge fail'; el.textContent += ' ✗'; }
+    if (ok === null) { el.className = 'syswin-badge na'; el.textContent = el.textContent.replace(/\b(PASS|FAIL)\b/g, '').trim(); }
+    else if (ok) { el.className = 'syswin-badge ok'; el.textContent += ' PASS'; }
+    else { el.className = 'syswin-badge fail'; el.textContent += ' FAIL'; }
   }
 
   function resetBadges() {
@@ -9627,7 +9627,7 @@ function initSystemInputWizard() {
 
   // Register command
   if (Array.isArray(window.COMMANDS)) {
-    window.COMMANDS.push({ group: 'UI', icon: '＋', title: '新增系統模型', keys: [], action: openWizard });
+    window.COMMANDS.push({ group: 'UI', icon: '+', title: '新增系統模型', keys: [], action: openWizard });
   }
 
   // Expose
@@ -9718,7 +9718,7 @@ function updateRobustnessBadges() {
       if (sel) {
         const ok = Number.isFinite(val) && (goodHigh ? val >= thresh : val <= thresh);
         sel.className = `rb-status ${ok ? 'ok' : 'fail'}`;
-        sel.textContent = ok ? ' ✓' : ' ✗';
+        sel.textContent = ok ? ' PASS' : ' FAIL';
       }
     }
 
@@ -10059,10 +10059,10 @@ function renderPlatformBadges(requiredMflops, container) {
     const ok = effectiveMflops >= requiredMflops;
     const ratio = ok ? (effectiveMflops / requiredMflops).toFixed(1) : (requiredMflops / effectiveMflops).toFixed(1);
     const fpuNote = p.hasFPU ? '' : '（無 FPU, 軟體浮點 ×10 cost）';
-    const tooltipText = `${p.name}：算力 ${p.mflops} MFLOP/s${fpuNote}\n此控制器需要 ${requiredMflops.toFixed(2)} MFLOP/s — ${ok ? `充裕 ✓（${ratio}× 餘裕）` : `不足 ✗（差 ${ratio}×）`}`;
+    const tooltipText = `${p.name}：算力 ${p.mflops} MFLOP/s${fpuNote}\n此控制器需要 ${requiredMflops.toFixed(2)} MFLOP/s — ${ok ? `充裕 PASS（${ratio}× 餘裕）` : `不足 FAIL（差 ${ratio}×）`}`;
     const badge = document.createElement('span');
     badge.className = `platform-badge ${ok ? 'ok' : 'no'}`;
-    badge.innerHTML = `${ok ? '✓' : '✗'} ${p.name}<span class="platform-badge-tooltip" style="white-space:pre-line;">${tooltipText}</span>`;
+    badge.innerHTML = `${ok ? 'PASS' : 'FAIL'} ${p.name}<span class="platform-badge-tooltip" style="white-space:pre-line;">${tooltipText}</span>`;
     container.appendChild(badge);
   });
 }
@@ -10463,8 +10463,8 @@ function showCondWarn(level, msg, advice) {
   if (!bar) return;
   bar.className = `cond-warn-banner ${level}`;
   bar.innerHTML = `
-    <button class="cond-warn-close" aria-label="關閉">✕</button>
-    <b>${level === 'error' ? '⚠ 錯誤' : '⚠ 警告'}：</b>${msg}
+    <button class="cond-warn-close" aria-label="關閉">×</button>
+    <b>${level === 'error' ? 'Error' : 'Warning'}：</b>${msg}
     ${advice ? `<div style="margin-top:3px;font-size:10px;opacity:0.8;">${advice}</div>` : ''}
   `;
   bar.querySelector('.cond-warn-close').addEventListener('click', () => {
@@ -10494,7 +10494,7 @@ function checkNumericalHealth(M, context = 'kappa_a') {
 function _buildCalcStep(num, title, bodyText, kappa) {
   const kappaClass = kappa != null ? _kappaClass(kappa) : null;
   const kappaBadge = kappaClass
-    ? `<span class="calc-step-kappa ${kappaClass}">κ=${kappa < 1e4 ? kappa.toFixed(1) : kappa.toExponential(1)} ${kappaClass === 'good' ? '✓' : kappaClass === 'warn' ? '⚠' : '✗'}</span>`
+    ? `<span class="calc-step-kappa ${kappaClass}">κ=${kappa < 1e4 ? kappa.toFixed(1) : kappa.toExponential(1)} ${kappaClass === 'good' ? 'PASS' : kappaClass === 'warn' ? 'WARN' : 'FAIL'}</span>`
     : '';
   return `
     <div class="calc-step-item">
@@ -10636,7 +10636,7 @@ function renderMatrixGrid(M, name = '', digits = 4) {
   const kappaClass = _kappaClass(kappa);
   const det = n === m ? _matDetSmall(M) : NaN;
   const pdCls = n === m ? _pdClass(M) : null;
-  const pdLabel = { pd: '正定 ✓', spd: '半正定 ⚠', npd: '非正定 ✗' };
+  const pdLabel = { pd: '正定 PASS', spd: '半正定 WARN', npd: '非正定 FAIL' };
 
   const rows = M.map(row =>
     `<tr>${row.map(v => `<td title="${v}">${fmtNum(v, digits)}</td>`).join('')}</tr>`
@@ -10800,7 +10800,7 @@ document.addEventListener('DOMContentLoaded', () => {
 const LEARN_TOPICS = [
   {
     id: 'pid',
-    icon: '🎛',
+    icon: 'PID',
     title: 'PID 控制',
     desc: '最常見的控制器。學習比例、積分、微分三個增益的調整。',
     badge: '入門',
@@ -10808,7 +10808,7 @@ const LEARN_TOPICS = [
   },
   {
     id: 'rlocus',
-    icon: '📈',
+    icon: 'RL',
     title: '根軌跡',
     desc: '圖形化極點設計，直觀看到增益如何影響系統穩定性。',
     badge: '入門',
@@ -10816,7 +10816,7 @@ const LEARN_TOPICS = [
   },
   {
     id: 'freq',
-    icon: '📊',
+    icon: 'FR',
     title: '頻域分析',
     desc: 'Bode 圖 + Nyquist 圖，分析增益裕度與相位裕度。',
     badge: '入門',
@@ -10824,7 +10824,7 @@ const LEARN_TOPICS = [
   },
   {
     id: 'ss',
-    icon: '🔲',
+    icon: 'SS',
     title: '狀態空間',
     desc: 'LQR/LQG 最優控制、Kalman 濾波器設計。',
     badge: '進階',
@@ -10833,7 +10833,7 @@ const LEARN_TOPICS = [
 ];
 
 const LEARN_ADVANCED = {
-  icon: '🔬',
+  icon: 'ADV',
   title: '進階主題',
   desc: 'H∞ 強健控制、MPC 模型預測、非線性控制、自適應控制',
 };
@@ -10961,7 +10961,7 @@ function initExplainPanel() {
     titleEl.textContent = info.title;
 
     const whenItems = info.when.map(w =>
-      `<div class="explain-item ${w.ok ? 'yes' : 'no'}">${w.ok ? '✓' : '✗'} ${w.text}</div>`
+      `<div class="explain-item ${w.ok ? 'yes' : 'no'}">${w.ok ? 'PASS' : 'FAIL'} ${w.text}</div>`
     ).join('');
     const paramItems = (info.params || []).map(p =>
       `<div class="explain-item"><b>${p.name}</b> — ${p.desc}</div>`
@@ -11246,7 +11246,7 @@ function initNotesSystem() {
       <div class="note-item">
         <div class="note-meta">${n.time} · ${n.page || 'General'}</div>
         <div class="note-text" contenteditable="true" data-idx="${i}">${n.text}</div>
-        <button class="note-del" data-idx="${i}" aria-label="刪除筆記">🗑</button>
+        <button class="note-del" data-idx="${i}" aria-label="刪除筆記">Delete</button>
       </div>
     `).join('') : '<div style="font-size:11px;color:var(--text-muted);">尚無筆記</div>';
 
@@ -11272,8 +11272,8 @@ function initNotesSystem() {
     if (!bmarkList) return;
     bmarkList.innerHTML = marks.length ? marks.map((m, i) => `
       <div class="bookmark-item">
-        <span>⭐ ${m.page} <span style="color:var(--text-muted)">${m.time}</span></span>
-        <button class="note-del" data-bidx="${i}" aria-label="移除書籤">✕</button>
+        <span>Bookmark: ${m.page} <span style="color:var(--text-muted)">${m.time}</span></span>
+        <button class="note-del" data-bidx="${i}" aria-label="移除書籤">×</button>
       </div>
     `).join('') : '<div style="font-size:11px;color:var(--text-muted);">尚無書籤</div>';
 
@@ -11361,8 +11361,8 @@ function showCompletionBanner(passCount, totalCount) {
   const allPass = passCount === totalCount;
   banner.style.display = 'block';
   banner.innerHTML = allPass
-    ? `<span class="confetti-icon">🎉</span> 設計完成！${totalCount} 項規格全部通過。<button class="btn btn-primary btn-sm" style="margin-left:12px;" id="btn-gen-report">生成報告</button>`
-    : `<span style="color:#f59e0b;">⚠</span> ${passCount}/${totalCount} 規格通過。請調整控制器參數。`;
+    ? `設計完成！${totalCount} 項規格全部通過。<button class="btn btn-primary btn-sm" style="margin-left:12px;" id="btn-gen-report">生成報告</button>`
+    : `<span style="color:#f59e0b;">Warning:</span> ${passCount}/${totalCount} 規格通過。請調整控制器參數。`;
   if (allPass) _confetti();
   banner.querySelector('#btn-gen-report')?.addEventListener('click', () => {
     document.getElementById('btn-export-report')?.click();
@@ -11430,7 +11430,7 @@ function _renderHistoryList() {
     const ki = snap?.Ki != null ? `Ki=${fmtNum(snap.Ki, 2)}` : '';
     return `
       <div class="history-item ${isCur ? 'current' : ''}" data-hidx="${idx}" role="button" tabindex="0" title="${isCur ? '目前狀態' : '點擊恢復'}">
-        <span class="history-item-star">${meta.starred ? '⭐' : ''}</span>
+        <span class="history-item-star">${meta.starred ? 'STAR' : ''}</span>
         <div style="flex:1;min-width:0;">
           <div class="history-item-label">${meta.label}${meta.name ? ` <span class="history-name-badge">${meta.name}</span>` : ''}</div>
           <div class="history-item-time">${meta.time} ${[kp, ki].filter(Boolean).join(' ')}</div>
@@ -12093,7 +12093,7 @@ function updateDashboard() {
   const total  = badges.length;
   if (compliEl) {
     compliEl.innerHTML = total
-      ? `<div class="e1-pass-pill">${passed}/${total}</div><div style="font-size:10px;color:var(--text-muted);">${passed === total ? '✓ 全部通過' : '⚠ 有項目未達標'}</div>`
+      ? `<div class="e1-pass-pill">${passed}/${total}</div><div style="font-size:10px;color:var(--text-muted);">${passed === total ? '全部通過' : 'Warning: 有項目未達標'}</div>`
       : '<div style="font-size:11px;color:var(--text-muted);">請先執行分析</div>';
   }
 
@@ -12177,10 +12177,10 @@ function renderScoringMatrix(designs) {
 
   const rows = scores.map(s => {
     const badges = [
-      s === best    ? '<span class="e2-recommend-badge best-all">🏆 綜合最優</span>' : '',
+      s === best    ? '<span class="e2-recommend-badge best-all">綜合最優</span>' : '',
       s === bestRob ? '<span class="e2-recommend-badge best-rob">★ 最佳穩健</span>' : '',
-      s === bestTs  ? '<span class="e2-recommend-badge best-fast">⚡ 最快響應</span>' : '',
-      s === simpl   ? '<span class="e2-recommend-badge best-simp">⚙ 最低複雜</span>' : '',
+      s === bestTs  ? '<span class="e2-recommend-badge best-fast">最快響應</span>' : '',
+      s === simpl   ? '<span class="e2-recommend-badge best-simp">最低複雜</span>' : '',
     ].join('');
     return `<tr>
       <td>${s.name}${badges}</td>
@@ -12416,7 +12416,7 @@ function _renderDecisionLog() {
       <div style="display:flex;align-items:center;gap:4px;">
         <span class="decision-chip">${d.type}</span>
         <span class="decision-time">${d.time}</span>
-        <button class="note-del" data-didx="${i}" title="標記重要" style="font-size:11px;">${d.starred ? '⭐' : '☆'}</button>
+        <button class="note-del" data-didx="${i}" title="標記重要" style="font-size:11px;">${d.starred ? 'STAR' : 'Mark'}</button>
       </div>
       ${d.changes ? `<div class="decision-change">${d.changes}</div>` : ''}
       ${d.effect ? `<div class="decision-effect">效果: ${d.effect}</div>` : ''}
@@ -12690,7 +12690,7 @@ const ONBOARDING_STEPS = [
   { target: null,              title: '歡迎使用 ControlStudio',  body: '這是一個完整的控制系統設計工具。讓我們花 30 秒認識主要區塊。', type: 'welcome' },
   { target: '#nav',            title: '四大設計流程',            body: '左側導覽列引導你完成：建模 → 設計 → 分析 → 輸出的完整工作流程。' },
   { target: '#app-status-bar', title: '系統狀態列',              body: '這裡即時顯示目前的穩定性、相位裕度、增益裕度，以及規格合規狀態。' },
-  { target: '#btn-quickstart', title: '快捷功能入口',            body: '按 ? 可查看所有鍵盤快捷鍵。按 ▶ 範例可快速載入示範系統開始練習。' },
+  { target: '#btn-quickstart', title: '快捷功能入口',            body: '按 ? 可查看所有鍵盤快捷鍵。按「範例」可快速載入示範系統開始練習。' },
   { target: null,              title: '準備好了！',               body: '你可以從範例系統開始，或自行輸入傳遞函數。祝設計順利！', type: 'finish' },
 ];
 
@@ -12777,7 +12777,7 @@ function showTourStep(n) {
 
   if (prevBtn) prevBtn.style.display = n === 0 ? 'none' : '';
   if (nextBtn) {
-    nextBtn.textContent = n === ONBOARDING_STEPS.length - 1 ? '完成 ✓' : '下一步 →';
+    nextBtn.textContent = n === ONBOARDING_STEPS.length - 1 ? '完成' : '下一步 →';
   }
 }
 
@@ -12793,7 +12793,7 @@ function finishTour() {
   localStorage.setItem('cs-visited', '1');
   if (firstVisit) {
     try {
-      notify('可用「▶ 範例」或 Ctrl+/ 開啟 Quick Start。', 'info', { title: 'Onboarding' });
+      notify('可用「範例」或 Ctrl+/ 開啟 Quick Start。', 'info', { title: 'Onboarding' });
     } catch { /* noop */ }
   }
 }
@@ -12947,7 +12947,7 @@ function _renderProjectList() {
       <div class="project-item-meta">${d}</div>
       <div class="project-item-actions">
         <button class="project-action-btn" data-action="export" data-proj-id="${p.id}" title="匯出" aria-label="匯出 ${p.name}">⬇</button>
-        <button class="project-action-btn" data-action="delete" data-proj-id="${p.id}" title="刪除" aria-label="刪除 ${p.name}">✕</button>
+        <button class="project-action-btn" data-action="delete" data-proj-id="${p.id}" title="刪除" aria-label="刪除 ${p.name}">×</button>
       </div>
     </div>`;
   }).join('');
@@ -13153,7 +13153,7 @@ function initSysIDEntry() {
       const fitClass = fit >= 90 ? 'good' : fit >= 75 ? 'warn' : 'poor';
 
       if (fitBadge)   { fitBadge.textContent = `${fit.toFixed(1)}%`; fitBadge.className = `sysid-fit-badge ${fitClass}`; }
-      if (whiteBadge) { whiteBadge.textContent = fit >= 75 ? '白化 ✓' : '白化 ✗'; whiteBadge.className = `sysid-whiteness-badge ${fit >= 75 ? 'pass' : 'fail'}`; }
+      if (whiteBadge) { whiteBadge.textContent = fit >= 75 ? '白化 PASS' : '白化 FAIL'; whiteBadge.className = `sysid-whiteness-badge ${fit >= 75 ? 'pass' : 'fail'}`; }
       if (modelText)  {
         const num = model.num?.map(v => fmtNum(v, 4)).join(', ') ?? '?';
         const den = model.den?.map(v => fmtNum(v, 4)).join(', ') ?? '?';
@@ -13272,7 +13272,7 @@ function _renderExampleCards() {
   }
 
   container.innerHTML = filtered.map(ex => {
-    const stableLabel = ex.stable === 'stable' ? '✓ 穩定' : ex.stable === 'unstable' ? '✗ 不穩' : '~ 臨界';
+    const stableLabel = ex.stable === 'stable' ? 'STABLE' : ex.stable === 'unstable' ? 'UNSTABLE' : '~ 臨界';
     return `<div class="example-card" data-ex-id="${ex.id}">
       <div class="example-card-header" tabindex="0" role="button" aria-expanded="false" aria-label="${ex.name}">
         <span class="example-card-name">${ex.name}</span>
@@ -13285,7 +13285,7 @@ function _renderExampleCards() {
       <div class="example-card-body">
         <div class="example-card-math">${ex.math}</div>
         <div style="font-size:11px;color:var(--text-secondary);margin-bottom:6px;line-height:1.5;">${ex.desc}</div>
-        <div class="example-card-challenge">💡 ${ex.challenge}</div>
+        <div class="example-card-challenge">Challenge: ${ex.challenge}</div>
         <button class="btn btn-primary btn-sm" data-load-ex="${ex.id}" style="width:100%;justify-content:center;font-size:11px;">載入此範例</button>
       </div>
     </div>`;
@@ -13374,7 +13374,7 @@ function computeModelHealth() {
     const poles = (typeof polyroots === 'function') ? polyroots(p.den ?? [1, 1]) : [];
     const rhpCount = poles.filter(pl => (pl.re ?? pl) > 1e-9).length;
     checks.push({
-      icon: rhpCount === 0 ? '✓' : '✗',
+      icon: rhpCount === 0 ? 'OK' : 'FAIL',
       ok:   rhpCount === 0,
       label: '穩定性',
       val:  rhpCount === 0 ? `穩定（RHP 極點 ${rhpCount} 個）` : `不穩定（${rhpCount} 個 RHP 極點）`,
@@ -13395,10 +13395,10 @@ function computeModelHealth() {
     const zeros = (typeof polyroots === 'function') ? polyroots(p.num ?? [1]) : [];
     const rhpZeros = zeros.filter(z => (z.re ?? z) > 1e-9).length;
     checks.push({
-      icon: rhpZeros === 0 ? '✓' : '⚠',
+      icon: rhpZeros === 0 ? 'OK' : 'WARN',
       ok:   rhpZeros === 0,
       label: '最小相位',
-      val:  rhpZeros === 0 ? '✓ 最小相位' : `✗ ${rhpZeros} 個 RHP 零點`,
+      val:  rhpZeros === 0 ? '最小相位' : `FAIL: ${rhpZeros} 個 RHP 零點`,
     });
   } catch {}
 
@@ -13422,8 +13422,8 @@ function computeModelHealth() {
       const Omat = observabilityMatrix(p.A, p.C);
       const rC   = matRank(Cmat);
       const rO   = matRank(Omat);
-      checks.push({ icon: rC === n ? '✓' : '✗', ok: rC === n, label: '可控性', val: `rank=${rC}/${n}` });
-      checks.push({ icon: rO === n ? '✓' : '✗', ok: rO === n, label: '可觀性', val: `rank=${rO}/${n}` });
+      checks.push({ icon: rC === n ? 'OK' : 'FAIL', ok: rC === n, label: '可控性', val: `rank=${rC}/${n}` });
+      checks.push({ icon: rO === n ? 'OK' : 'FAIL', ok: rO === n, label: '可觀性', val: `rank=${rO}/${n}` });
     } catch {}
   }
 
@@ -13447,7 +13447,7 @@ function updateHealthBadge() {
     btn.textContent = '● 健康';
   } else {
     btn.className = 'health-badge-btn warn';
-    btn.textContent = `⚠ ${errorCount} 項警告`;
+    btn.textContent = `Warning: ${errorCount} 項警告`;
   }
   window._lastHealthResult = result;
 }
@@ -13850,7 +13850,7 @@ function initLatexGen() {
       btn.addEventListener('click', () => {
         navigator.clipboard.writeText(btn.dataset.latex || '').then(() => {
           const orig = btn.textContent;
-          btn.textContent = '✓';
+          btn.textContent = 'OK';
           setTimeout(() => { btn.textContent = orig; }, 1200);
         });
       });
@@ -14019,7 +14019,7 @@ function buildResultSummary() {
   if (stab) {
     rows.push({ label: 'Gain Margin (dB)', value: fmt(stab.gainMarginDb ?? stab.gainMargin) });
     rows.push({ label: 'Phase Margin (°)', value: fmt(stab.phaseMargin) });
-    rows.push({ label: 'Stable', value: stab.stable ? '✅ Yes' : '❌ No' });
+    rows.push({ label: 'Stable', value: stab.stable ? 'Yes' : 'No' });
   }
 
   // Step response metrics
@@ -14507,7 +14507,7 @@ function collectDesignWarnings() {
     warnings.push({ level: 'warn', msg: `分析時發生錯誤：${e.message}` });
   }
 
-  if (!warnings.length) warnings.push({ level: 'ok', msg: '✅ 未發現明顯設計問題。' });
+  if (!warnings.length) warnings.push({ level: 'ok', msg: '未發現明顯設計問題。' });
   return warnings;
 }
 
@@ -14517,7 +14517,7 @@ function refreshWarningsPanel() {
   const warnings = collectDesignWarnings();
   outEl.innerHTML = warnings.map(w => `
     <div class="warning-row warning-row-${w.level}">
-      <span class="warn-icon">${w.level === 'error' ? '🔴' : w.level === 'warn' ? '🟡' : w.level === 'ok' ? '🟢' : 'ℹ'}</span>
+      <span class="warn-icon">${w.level === 'error' ? 'ERR' : w.level === 'warn' ? 'WARN' : w.level === 'ok' ? 'OK' : 'INFO'}</span>
       <span class="warn-msg">${escapeHtml(w.msg)}</span>
     </div>`).join('');
   // Update badge on the warnings button
@@ -14645,7 +14645,7 @@ function updateContextBar() {
         specEl.textContent = `${passed}/${total} 規格通過`;
         specEl.className = 'ctx-spec fail';
       } else if (passed > 0) {
-        specEl.textContent = `✓ ${passed}/${total} 規格通過`;
+        specEl.textContent = `${passed}/${total} 規格通過`;
         specEl.className = 'ctx-spec pass';
       } else {
         specEl.textContent = '';

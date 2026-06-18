@@ -433,7 +433,7 @@ export function generateDesignReport(design, opts = {}) {
     design.poles.forEach(([re, im], i) => {
       const stable = re < 0;
       html += `<tr><td>${i + 1}</td><td>${_fmt(re)}</td><td>${_fmt(im)}</td>`;
-      html += `<td>${_badge(stable ? 'ok' : 'fail', stable ? '✓' : '✗')}</td></tr>\n`;
+      html += `<td>${_badge(stable ? 'ok' : 'fail', stable ? 'STABLE' : 'UNSTABLE')}</td></tr>\n`;
     });
     html += `</tbody></table>\n`;
     sects.push('poles');
@@ -518,7 +518,7 @@ export function generateDesignReport(design, opts = {}) {
   if (design.warnings?.length) {
     html += `<h2>Warnings</h2>\n<ul>\n`;
     for (const w of design.warnings) {
-      html += `  <li class="warn">⚠ ${_esc(w)}</li>\n`;
+      html += `  <li class="warn">Warning: ${_esc(w)}</li>\n`;
     }
     html += `</ul>\n`;
     sects.push('warnings');

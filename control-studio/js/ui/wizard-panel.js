@@ -100,7 +100,7 @@ export function renderWizardPanel(spec = {}, opts = {}) {
   if (warnings.length > 0) {
     html += `  <ul class="cs-wizard-panel__warnings" role="list" aria-label="Warnings">\n`;
     for (const w of warnings) {
-      html += `    <li class="cs-wizard-warn" role="alert">⚠ ${esc(w)}</li>\n`;
+      html += `    <li class="cs-wizard-warn" role="alert">Warning: ${esc(w)}</li>\n`;
     }
     html += `  </ul>\n`;
   }

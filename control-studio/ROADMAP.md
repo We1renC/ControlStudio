@@ -1,7 +1,7 @@
 # ControlStudio Development Roadmap
 
 > Last updated: 2026-06-18
-> Current committed baseline: `fix(control): repair discretization comparison`
+> Current committed baseline: `fix(control): enforce UI symbol contract`
 > Scope: this is the canonical execution roadmap for ControlStudio implementation status.
 > Do not use this file for product vision, proof derivations, or handoff notes; see the document workflow below.
 
@@ -110,6 +110,7 @@ Before starting any new functional work that is not already a finished P-phase, 
 | **P63** | **L1-1/L1-2/L1-3 chart measurement tools** | Done | `verify_p63_measure_tools.mjs` |
 | **P64** | **P1-1/P1-2/P1-3 parameter sweep visualization** | Done | `verify_p64_param_sweep.mjs` |
 | **P65** | **Q1-1/Q1-2/Q1-3/Q1-4 share & export enhancement** | Done | `verify_p65_share_export.mjs` |
+| **P66** | **Runtime UI symbol contract: no emoji / pictographic glyphs in visible UI source** | Done | `verify_ui_symbol_contract.mjs` |
 | **P34-01** | **Module split: P62-P65 → js/ui/ sub-modules** | Done | Verify scripts updated to check module files |
 | **J1-3** | **Root Locus geometric annotations (damping lines, ωn arcs, Ku labels)** | Done | `verify_j13_rlocus_geo.mjs` |
 | **H1-4** | **Sidebar Quick Pin (non-emoji section pin, localStorage, max 3, float to top)** | Done | `verify_h14_sidebar_pin.mjs` |
@@ -186,6 +187,8 @@ Per `docs/src/control-studio/functional-roadmap.html`. Tier A-J deterministic ba
 
 **Discretization comparison closure:** P41 D2 comparison now computes single-frequency phase error through explicit continuous/discrete evaluation helpers and plots Bode overlays on a valid shared frequency grid below Nyquist. It no longer calls `bodeData(sys, [w])`, `bodeData(sys, omegas)`, or the old `discreteBodeData(disc, Ts, omegas)` shape, and the table uses `DiscreteTransferFunction.dcGain()` low-frequency limits instead of raw coefficient sums.
 
+**Runtime UI symbol closure:** `index.html`, `js/app.js`, `js/ui/*.js`, and runtime report/status modules now avoid emoji / pictographic glyphs for visible buttons, badges, status messages, command palette icons, generated report cells, warnings, keyboard shortcut labels, and dynamically injected DOM text. `verify_ui_symbol_contract.mjs` scans these runtime UI sources and is part of `run_all_verify.sh`, so banned examples such as check/cross marks, warning pictographs, gear/share/report icons, fullwidth plus / heavy-close glyphs, keyboard glyphs, and emoji-only button labels cannot regress silently.
+
 **DC gain origin-cancellation closure:** continuous TF and ZPK `dcGain()` now cancel removable origin pole-zero factors before evaluating the low-frequency limit. Systems such as `s/s` report finite unity DC gain, extra origin zeros report zero DC gain, and extra origin poles preserve signed infinite gain. This prevents RGA, static decoupler, low-frequency design, and robustness summaries from treating removable integrators as real steady-state singularities.
 
 **Discrete DC gain unit-root closure:** discrete TF `dcGain()` now evaluates the low-frequency limit at `q=z^-1=1` by cancelling removable unit-circle factors. Systems such as `(1-z^-1)/(1-z^-1)` report finite unity DC gain, extra unit-circle zeros report zero DC gain, and extra unit-circle poles report infinite DC gain. This prevents z-domain step final-value checks, C2D DC preservation, and discrete controller comparisons from treating removable unit roots as true steady-state singularities.
@@ -224,7 +227,7 @@ Per `docs/src/control-studio/functional-roadmap.html`. Tier A-J deterministic ba
 | --- | --- | --- |
 | Fixture & API contracts | 2 | 2 |
 | Phase 9/10/11 foundations | 13 | 13 |
-| Phase 14–65 advanced control / UI | 68 | 68 |
+| Phase 14–66 advanced control / UI | 69 | 69 |
 | Math audit fixes | 1 | 1 |
 | Functional Roadmap A-J | 22 | 22 |
 | General math & PID | 4 | 4 |
@@ -261,7 +264,7 @@ The following **P3** items from `UI_UX_PLAN.md` are now implemented through P50:
 - C3-1~4 interactive animation surfaces for pole sensitivity, phase portrait, and Nyquist-style workflows.
 - E1~E4 assessment dashboard, scoring matrix with radar chart, full HTML report output, and decision log/sign-off workflow.
 
-P3+ UI/UX work is implemented through P65 plus J1-3 and H1-4. Remaining UI/product items are only the explicit paused set: Teaching Mode, Electron, Report Template / report automation, and Block Diagram expansion.
+P3+ UI/UX work is implemented through P66 plus J1-3 and H1-4. Remaining UI/product items are only the explicit paused set: Teaching Mode, Electron, Report Template / report automation, and Block Diagram expansion.
 
 ## Package / Dependency Policy
 

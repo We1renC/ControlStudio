@@ -69,7 +69,7 @@ export function badge(variant, label, opts = {}) {
  * @param {boolean} [opts.disabled=false]
  * @param {string}  [opts.ariaLabel]
  * @param {string}  [opts.type='button']
- * @param {string}  [opts.icon]  Optional leading icon character/emoji.
+ * @param {string}  [opts.icon]  Optional leading text marker.
  * @returns {string}
  */
 export function button(label, opts = {}) {
@@ -142,9 +142,9 @@ export function table(headers, rows, opts = {}) {
  * @returns {string}
  */
 export function alert(variant, message, opts = {}) {
-  const icons = { info:'ℹ', success:'✓', warn:'⚠', error:'✗' };
+  const icons = { info:'Info', success:'OK', warn:'Warning', error:'Error' };
   const roles = { info:'status', success:'status', warn:'alert', error:'alert' };
-  const icon  = icons[variant] ?? 'ℹ';
+  const icon  = icons[variant] ?? 'Info';
   const role  = roles[variant] ?? 'status';
   const title = opts.title ? `<strong>${esc(opts.title)}</strong> ` : '';
   const dismiss = opts.dismissible
@@ -480,7 +480,7 @@ export function codeBlock(code, opts = {}) {
 
   const copyBtn = copyable
     ? `<button class="cs-codeblock__copy" type="button" aria-label="Copy code to clipboard" ` +
-      `onclick="navigator.clipboard.writeText(this.closest('.cs-codeblock').querySelector('code').textContent).then(()=>{this.textContent='✓ Copied';setTimeout(()=>this.textContent='Copy',1800)})">Copy</button>`
+      `onclick="navigator.clipboard.writeText(this.closest('.cs-codeblock').querySelector('code').textContent).then(()=>{this.textContent='Copied';setTimeout(()=>this.textContent='Copy',1800)})">Copy</button>`
     : '';
 
   return (

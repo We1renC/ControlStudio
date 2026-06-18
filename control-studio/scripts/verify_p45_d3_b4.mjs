@@ -86,8 +86,8 @@ assert(appJs.includes('hasFPU'),                    'hasFPU flag in platform spe
 assert(appJs.includes('function renderPlatformBadges('), 'renderPlatformBadges() defined');
 assert(appJs.includes('platform-badge'),            'platform-badge class used');
 assert(appJs.includes('platform-badge-tooltip'),    'platform-badge-tooltip for hover');
-assert(appJs.includes('充裕 ✓'),                    'tooltip shows "充裕 ✓"');
-assert(appJs.includes('不足 ✗'),                    'tooltip shows "不足 ✗"');
+assert(appJs.includes('充裕 PASS'),                 'tooltip shows "充裕 PASS"');
+assert(appJs.includes('不足 FAIL'),                 'tooltip shows "不足 FAIL"');
 assert(appJs.includes('d3-platform-badges'),        'd3-platform-badges container');
 
 assert(indexHtml.includes('d3-platform-badges'),   '#d3-platform-badges in HTML');

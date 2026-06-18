@@ -10,7 +10,7 @@
  *   4.  button() disabled sets aria-disabled
  *   5.  table() renders thead + tbody with correct row count
  *   6.  table() has role="table"
- *   7.  alert() contains icon and message
+ *   7.  alert() contains text status and message
  *   8.  alert() dismissible has close button
  *   9.  panel() collapsible has aria-expanded
  *  10.  panel() non-collapsible has no toggle button
@@ -116,7 +116,7 @@ ok('Test 1: esc() escapes &<>"\'' ,
 // Test 7–8
 {
   const a1 = alert('warn', 'Low margin', { title:'Warning' });
-  ok('Test 7: alert contains message', has(a1, 'Low margin') && has(a1, '⚠'));
+  ok('Test 7: alert contains message', has(a1, 'Low margin') && has(a1, 'Warning'));
   const a2 = alert('error', 'Unstable', { dismissible: true });
   ok('Test 8: dismissible alert has close button', has(a2, 'cs-alert__dismiss'));
 }

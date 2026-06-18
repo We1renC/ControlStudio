@@ -110,7 +110,7 @@ export function renderFlowBar(steps) {
   const container = document.getElementById('flow-bar-steps');
   if (!container) return;
   container.innerHTML = steps.map(s => {
-    const icon = s.status === 'done' ? '✓'
+    const icon = s.status === 'done' ? 'OK'
       : s.status === 'warning' ? '!'
       : s.status === 'active' ? String(s.step)
       : String(s.step);

@@ -9,7 +9,7 @@
 - 已建立獨立 git repo，避免被 `/Users/w.rc` 外層 git 混入。
 - 控制系統目前同步基線：
   - Branch: `main`
-  - Latest active line: `fix(control): repair discretization comparison`
+  - Latest active line: `fix(control): enforce UI symbol contract`
   - Full phase audit checkpoints:
     - `7a318b3 fix(control): harden phase 7-9 theory diagnostics`
     - `46e20da fix(control): harden phase 0-6 theory checks`
@@ -53,6 +53,7 @@
   - 2026-06-18 接續完成 continuous-analysis domain hardening：continuous root-locus helpers 與 `stabilityMargins()` 現在會拒絕 finite `sampleTime` 的 discrete transfer function，避免 z-domain coefficient arrays 被誤當 s-domain root locus 或 `G(jω)` gain/phase margin；Root Locus tab 在 z-domain 會 fallback 到 z-plane pole-zero map；regression 已納入 `verify_math_core.mjs` 既有 9/9 guard checks。
   - 2026-06-18 接續完成 continuous frequency / robust domain hardening：`bodeData()`、`nyquistData()`、`nicholsData()`、`nyquistEncirclements()`、`autoFreqRange()` 與 robust `sensitivityAt()` / `sensitivityBode()` / `robustPeaks()` 現在都拒絕 finite `sampleTime` 的 discrete TF，避免 z-domain loop 被誤報為 continuous frequency response 或 `S/T/KS` robustness metric；regression 已納入 `verify_math_core.mjs` 既有 9/9 guard checks。
   - 2026-06-18 接續完成 P41 discretization comparison API-contract repair：D2 comparison 不再使用舊 `bodeData(sys, [w])` / `bodeData(sys, omegas)` / `discreteBodeData(disc, Ts, omegas)` 呼叫形狀；phase error 改用 explicit continuous/discrete single-frequency helpers，Bode overlay 使用 Nyquist 以下 shared grid，DC gain 改用 `DiscreteTransferFunction.dcGain()`；`verify_p41_disc_spec.mjs` 已擴充為 60 checks。
+  - 2026-06-18 接續完成 runtime UI symbol contract enforcement：`index.html`、`js/app.js`、`js/ui/*.js`、runtime report/status modules 已移除可見 UI 中的 emoji / pictographic glyph 狀態標記，改用文字狀態與既有 CSS class；新增 `verify_ui_symbol_contract.mjs` 並納入 `run_all_verify.sh`，full suite 基線升至 111 scripts。
   - 2026-06-17 接續完成 matched-z removable-origin gain normalization hardening：`c2dMatchedZ()` 現在先保留 continuous leading gain，再用 Discrete TF `dcGain()` low-frequency limit 做 DC normalization；`2s/s` 這類 removable origin pole-zero 會映射為 removable `z=1` pair 並保留 DC gain 2，不再因 raw coefficient sums 為 0 而退回 unity gain。
   - 2026-06-17 接續完成 matched-z properness hardening：`c2dMatchedZ()` 現在與 Tustin / ZOH / impulse-invariant 一致拒絕 improper continuous plant；`(s+1)^2/(s+1)` 這類 derivative-like 原始模型不再被靜默映射成看似 stable 的 discrete TF。
   - 2026-06-17 接續完成 impulse-invariant repeated-pole hardening：`c2dImpulseInvariant()` 現在明確拒絕 repeated continuous poles；`1/(s+1)^2` 不再被 residue loop 靜默跳過成 zero DTF，改要求使用 ZOH 或 Tustin。
