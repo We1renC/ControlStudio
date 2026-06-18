@@ -76,7 +76,7 @@ function verifyCase(testCase) {
   const controller = buildController(payload.controller);
   const openLoop = controller ? controller.series(plant) : plant;
   const closedLoop = controller ? openLoop.feedback() : plant;
-  const targetSystem = payload.simulation?.mode === 'open_loop' ? plant : closedLoop;
+  const targetSystem = payload.simulation?.mode === 'open_loop' ? openLoop : closedLoop;
   const response = stepResponse(targetSystem, payload.simulation);
   const info = stepInfo(response.t, response.y);
   const margins = stabilityMargins(openLoop);
@@ -160,6 +160,12 @@ function verifyCase(testCase) {
       throw new Error(`CLI closed-loop formula expected ${expected.cli.closedLoopFormula}, got ${cli.system.closedLoop.formula}`);
     }
   });
+  if (expected.response) {
+    record('CLI response final value', () => {
+      const cliFinal = cli.response?.y?.[cli.response.y.length - 1];
+      assertNear('CLI response final value', cliFinal, expected.response.finalValue, expected.response.tolerance);
+    });
+  }
 
   return {
     id: testCase.id,
@@ -192,4 +198,3 @@ try {
   }
   process.exitCode = 1;
 }
-

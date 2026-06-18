@@ -9,7 +9,7 @@
 - 已建立獨立 git repo，避免被 `/Users/w.rc` 外層 git 混入。
 - 控制系統目前同步基線：
   - Branch: `main`
-  - Latest active line: `fix(control): enforce UI symbol contract`
+  - Latest active line: `fix(control): align open-loop API response`
   - Full phase audit checkpoints:
     - `7a318b3 fix(control): harden phase 7-9 theory diagnostics`
     - `46e20da fix(control): harden phase 0-6 theory checks`
@@ -54,6 +54,7 @@
   - 2026-06-18 接續完成 continuous frequency / robust domain hardening：`bodeData()`、`nyquistData()`、`nicholsData()`、`nyquistEncirclements()`、`autoFreqRange()` 與 robust `sensitivityAt()` / `sensitivityBode()` / `robustPeaks()` 現在都拒絕 finite `sampleTime` 的 discrete TF，避免 z-domain loop 被誤報為 continuous frequency response 或 `S/T/KS` robustness metric；regression 已納入 `verify_math_core.mjs` 既有 9/9 guard checks。
   - 2026-06-18 接續完成 P41 discretization comparison API-contract repair：D2 comparison 不再使用舊 `bodeData(sys, [w])` / `bodeData(sys, omegas)` / `discreteBodeData(disc, Ts, omegas)` 呼叫形狀；phase error 改用 explicit continuous/discrete single-frequency helpers，Bode overlay 使用 Nyquist 以下 shared grid，DC gain 改用 `DiscreteTransferFunction.dcGain()`；`verify_p41_disc_spec.mjs` 已擴充為 60 checks。
   - 2026-06-18 接續完成 runtime UI symbol contract enforcement：`index.html`、`js/app.js`、`js/ui/*.js`、runtime report/status modules 已移除可見 UI 中的 emoji / pictographic glyph 狀態標記，改用文字狀態與既有 CSS class；新增 `verify_ui_symbol_contract.mjs` 並納入 `run_all_verify.sh`，full suite 基線升至 111 scripts。
+  - 2026-06-18 接續完成 API open-loop simulation contract：`control_analysis_cli.mjs` 在 `simulation.mode === "open_loop"` 且存在 controller 時改為模擬 `C(s)G(s)`；`verify_control_cases.mjs` 新增 CLI response final-value assertion，golden fixtures / API contract fixtures 擴充至 6/6 cases。
   - 2026-06-17 接續完成 matched-z removable-origin gain normalization hardening：`c2dMatchedZ()` 現在先保留 continuous leading gain，再用 Discrete TF `dcGain()` low-frequency limit 做 DC normalization；`2s/s` 這類 removable origin pole-zero 會映射為 removable `z=1` pair 並保留 DC gain 2，不再因 raw coefficient sums 為 0 而退回 unity gain。
   - 2026-06-17 接續完成 matched-z properness hardening：`c2dMatchedZ()` 現在與 Tustin / ZOH / impulse-invariant 一致拒絕 improper continuous plant；`(s+1)^2/(s+1)` 這類 derivative-like 原始模型不再被靜默映射成看似 stable 的 discrete TF。
   - 2026-06-17 接續完成 impulse-invariant repeated-pole hardening：`c2dImpulseInvariant()` 現在明確拒絕 repeated continuous poles；`1/(s+1)^2` 不再被 residue loop 靜默跳過成 zero DTF，改要求使用 ZOH 或 Tustin。
@@ -191,7 +192,7 @@
     - 主執行看板：`control-studio/ROADMAP.md`。若 phase status、下一步順序或 dirty worktree 分類改變，先更新 roadmap，再同步 backlog / plan / skills / scenarios / verification cases / continuation。
     - Skill plan：`docs/src/control-studio/skills.md` 已規劃 `control-studio-robust-validator`、`control-studio-system-auditor`、`control-studio-benchmark-author`、`control-studio-mpc-designer`、`control-studio-sysid-planner` 等候選 skill。
   - Block Diagram expansion：Paused
-  - Phase 0 ~ Phase 65 與 Functional Roadmap Tier A-J 已完成文件進度對齊。後續若修改數值核心，至少依 roadmap 對應 phase 重跑 targeted verify、`npm run verify:all`、`node test_control.js`、`node control-studio/scripts/control_regression_dashboard.mjs`；目前 full suite 基線為 **110/110 scripts pass**。
+  - Phase 0 ~ Phase 66 與 Functional Roadmap Tier A-J 已完成文件進度對齊。後續若修改數值核心或 API 分析輸出，至少依 roadmap 對應 phase 重跑 targeted verify、`npm run verify:all`、`node test_control.js`、`node control-studio/scripts/control_regression_dashboard.mjs`；目前 full suite 基線為 **111/111 scripts pass**，fixture/API contract 為 **6/6 cases**。
 - 已建立 symlink：
   - `/Users/w.rc/.config/agents/skills/nvidia-model-selector`
   - 指向 `/Users/w.rc/nvdiaOSsupport/skills/nvidia-model-selector`
@@ -343,7 +344,7 @@ git log --oneline -5
 - 2026-05-24 sidebar IA 已補做結構整理：workflow sidebar 依任務分為 `Core / ID / Reuse`、`Core / Specs / Advanced`、`Sim / Deploy / QA` 等群組；對次要 panel 套用 default collapsed preset，並將 `Controller Tuning`、`Simulation` 兩個最長卡片再拆成 nested subsections。Browser 實測 `Design` tab nav scroll height 約由 `6225` 降到 `2052`，切 workflow / mode / search 後分類標籤仍能正確跟隨可見面板刷新。
 
 ## 後續可做
-1. 目前非暫停的 ControlStudio roadmap 已達 deterministic baseline，且 full suite / doctor 入口已收斂至 110/110；下一步應由實際控制情境或明確研究級 backend 需求驅動。
+1. 目前非暫停的 ControlStudio roadmap 已達 deterministic baseline，且 full suite / doctor 入口已收斂至 111/111；fixture/API contract 已收斂至 6/6 cases；下一步應由實際控制情境或明確研究級 backend 需求驅動。
 2. 可選研究深化：non-normal real Schur refinement、full-order dynamic K fitting、industrial-grade μ synthesis backend、CONTSID。
 3. 使用 `control-studio-system-auditor` 審查下一個控制設計缺口，並用 `control-studio-benchmark-author` 補 benchmark fixture。
 4. Teaching Mode / Electron / Report Template 目前使用者要求擱置，不要開發。

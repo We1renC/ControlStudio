@@ -45,7 +45,7 @@ function main() {
   const closedLoop = controller ? openLoop.feedback() : plant;
   const mode = request.simulation?.mode === 'open_loop' ? 'open_loop' : 'closed_loop';
   const waveform = request.simulation?.inputWaveform ?? 'step';
-  const targetSystem = mode === 'closed_loop' ? closedLoop : plant;
+  const targetSystem = mode === 'closed_loop' ? closedLoop : openLoop;
   const response = selectResponse(targetSystem, waveform, request.simulation);
   const metrics = stepInfo(response.t, response.y);
   const margins = stabilityMargins(openLoop);

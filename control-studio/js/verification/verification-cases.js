@@ -115,4 +115,26 @@ export const CONTROL_VERIFICATION_CASES = [
       cli: { plantFormula: '(1) / (s^2 +3s +2)', closedLoopFormula: '(1) / (s^2 +3s +2)' },
     },
   },
+  {
+    id: 'case-6-open-loop-controller-response',
+    title: 'Open-loop response includes controller cascade',
+    payload: {
+      system: { type: 'transfer_function', num: [1], den: [1, 1] },
+      controller: { type: 'pid', Kp: 2, Ki: 0, Kd: 0, N: 100 },
+      simulation: { mode: 'open_loop', inputWaveform: 'step', duration: 8, sampleCount: 800, amplitude: 1 },
+    },
+    expected: {
+      plant: { num: [1], den: [1, 1], poles: [{ re: -1, im: 0 }], stable: true, dcGain: 1 },
+      closedLoop: {
+        unreducedNum: [2, 200],
+        unreducedDen: [1, 103, 300],
+        stable: true,
+      },
+      response: { finalValue: 2, tolerance: 0.003 },
+      cli: {
+        plantFormula: '(1) / (s +1)',
+        closedLoopFormula: '(2s +200) / (s^2 +103s +300)',
+      },
+    },
+  },
 ];

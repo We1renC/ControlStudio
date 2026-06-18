@@ -87,7 +87,7 @@ del{color:var(--muted)}
 
 <blockquote>
 <p>Last updated: 2026-06-18</p>
-<p>Current committed baseline: <code>fix(control): enforce UI symbol contract</code></p>
+<p>Current committed baseline: <code>fix(control): align open-loop API response</code></p>
 <p>Scope: this is the canonical execution roadmap for ControlStudio implementation status.</p>
 <p>Do not use this file for product vision, proof derivations, or handoff notes; see the document workflow below.</p>
 </blockquote>
@@ -389,6 +389,8 @@ del{color:var(--muted)}
 
 <p><strong>Runtime UI symbol closure:</strong> <code>index.html</code>, <code>js/app.js</code>, <code>js/ui/*.js</code>, and runtime report/status modules now avoid emoji / pictographic glyphs for visible buttons, badges, status messages, command palette icons, generated report cells, warnings, keyboard shortcut labels, and dynamically injected DOM text. <code>verify_ui_symbol_contract.mjs</code> scans these runtime UI sources and is part of <code>run_all_verify.sh</code>, so banned examples such as check/cross marks, warning pictographs, gear/share/report icons, fullwidth plus / heavy-close glyphs, keyboard glyphs, and emoji-only button labels cannot regress silently.</p>
 
+<p><strong>API open-loop simulation closure:</strong> <code>control_analysis_cli.mjs</code> now simulates <code>C(s)G(s)</code> when <code>simulation.mode === "open_loop"</code> and a controller is present, so <code>/api/control/system/response</code> no longer returns plant-only time response while reporting a nontrivial <code>openLoop</code> model. <code>verify_control_cases.mjs</code> now checks CLI response final value against the golden fixture, and the fixture set includes an open-loop controller cascade case whose expected final value proves the controller is in the simulation path. API contract fixtures and the regression dashboard were updated to the 6/6 fixture baseline.</p>
+
 <p><strong>DC gain origin-cancellation closure:</strong> continuous TF and ZPK <code>dcGain()</code> now cancel removable origin pole-zero factors before evaluating the low-frequency limit. Systems such as <code>s/s</code> report finite unity DC gain, extra origin zeros report zero DC gain, and extra origin poles preserve signed infinite gain. This prevents RGA, static decoupler, low-frequency design, and robustness summaries from treating removable integrators as real steady-state singularities.</p>
 
 <p><strong>Discrete DC gain unit-root closure:</strong> discrete TF <code>dcGain()</code> now evaluates the low-frequency limit at <code>q=z^-1=1</code> by cancelling removable unit-circle factors. Systems such as <code>(1-z^-1)/(1-z^-1)</code> report finite unity DC gain, extra unit-circle zeros report zero DC gain, and extra unit-circle poles report infinite DC gain. This prevents z-domain step final-value checks, C2D DC preservation, and discrete controller comparisons from treating removable unit roots as true steady-state singularities.</p>
@@ -419,9 +421,9 @@ del{color:var(--muted)}
 
 <p><strong>Routh-Hurwitz input closure:</strong> <code>routhTable()</code> now validates denominator coefficient arrays before building the table. Non-array, short, non-finite, zero-polynomial, and zero-leading-coefficient inputs fail explicitly instead of being silently classified as stable.</p>
 
-<h2 id="verification-suite-status-2026-06-17">Verification Suite Status (2026-06-17)</h2>
+<h2 id="verification-suite-status-2026-06-18">Verification Suite Status (2026-06-18)</h2>
 
-<p><strong>110/110 scripts pass</strong> — run via <code>bash scripts/run_all_verify.sh</code> or <code>npm run verify:all</code></p>
+<p><strong>111/111 scripts pass</strong> — run via <code>bash scripts/run_all_verify.sh</code> or <code>npm run verify:all</code>. Fixture/API contract coverage is now <strong>6/6 cases</strong>, including open-loop controller cascade response.</p>
 
 <table><thead>
 <tr><th>Group</th><th>Scripts</th><th>Pass</th></tr>

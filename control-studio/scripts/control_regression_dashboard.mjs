@@ -28,13 +28,13 @@ const checks = [
   {
     name: 'Verification fixtures',
     command: ['node', 'control-studio/scripts/verify_control_cases.mjs'],
-    expect: ['Verification fixtures passed: 5/5'],
+    expect: ['Verification fixtures passed: 6/6'],
   },
   {
     name: 'API contract fixtures',
     command: ['node', 'control-studio/scripts/verify_control_api_contract.mjs'],
     env: { CONTROL_STUDIO_API_URL: 'http://127.0.0.1:18770' },
-    expect: ['API contract fixtures passed: 5/5'],
+    expect: ['API contract fixtures passed: 6/6'],
   },
   {
     name: 'Analysis CLI smoke',
