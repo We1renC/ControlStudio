@@ -9073,6 +9073,36 @@ function _backwardEuler(sys, Ts) {
   try { return c2dTustin(sys, Ts); } catch { return null; }
 }
 
+function bodePointAtOmega(sys, omega) {
+  const g = sys.evalAt(new Complex(0, omega));
+  return {
+    mag: g.magnitude,
+    magDB: 20 * Math.log10(Math.max(g.magnitude, 1e-30)),
+    phaseDeg: g.angleDeg,
+  };
+}
+
+function discreteBodePointAtOmega(sys, omega) {
+  const Ts = sys.sampleTime;
+  if (!Number.isFinite(Ts) || Ts <= 0) throw new Error('invalid discrete sample time');
+  const omegaNyquist = Math.PI / Ts;
+  if (!(omega >= 0) || omega > omegaNyquist) throw new Error('discrete frequency must be inside the Nyquist interval');
+  const z = new Complex(Math.cos(omega * Ts), Math.sin(omega * Ts));
+  const g = sys.evalAt(z);
+  return {
+    mag: g.magnitude,
+    magDB: 20 * Math.log10(Math.max(g.magnitude, 1e-30)),
+    phaseDeg: g.angleDeg,
+  };
+}
+
+function angularDifferenceDeg(a, b) {
+  let diff = a - b;
+  while (diff > 180) diff -= 360;
+  while (diff < -180) diff += 360;
+  return Math.abs(diff);
+}
+
 function initDiscretizationTool() {
   const btn = document.getElementById('btn-d2-compare');
   if (!btn) return;
@@ -9125,23 +9155,23 @@ function initDiscretizationTool() {
         try {
           const poles = disc.poles();
           stable = poles.every(p => Math.hypot(p.re, p.im) < 1);
-          const dcNum = disc.num.reduce((s, v) => s + v, 0);
-          const dcDen = disc.den.reduce((s, v) => s + v, 0);
-          dcGain = dcDen !== 0 ? dcNum / dcDen : NaN;
+          dcGain = disc.dcGain();
         } catch (_) {}
         // Phase error at Nyquist/4
         try {
           const wTest = Math.PI / (2 * Ts);
-          const contResp = bodeData(sys, [wTest]);
-          const discResp = discreteBodeData(disc, Ts, [wTest]);
-          phaseErr = Math.abs((discResp.phase?.[0] ?? 0) - (contResp.phase?.[0] ?? 0));
+          const contResp = bodePointAtOmega(sys, wTest);
+          const discResp = discreteBodePointAtOmega(disc, wTest);
+          phaseErr = angularDifferenceDeg(discResp.phaseDeg, contResp.phaseDeg);
         } catch (_) {}
       }
       results.push({ ...m, disc, stable, dcGain, phaseErr });
     }
 
     // Find best: ZOH if stable, else Tustin
-    const bestIdx = results.findIndex(r => r.id === 'zoh' && r.stable) ?? 0;
+    const zohIdx = results.findIndex(r => r.id === 'zoh' && r.stable);
+    const stableIdx = results.findIndex(r => r.disc && r.stable);
+    const bestIdx = zohIdx >= 0 ? zohIdx : (stableIdx >= 0 ? stableIdx : 0);
 
     // Render table
     tableEl.innerHTML = `<tr>
@@ -9159,17 +9189,33 @@ function initDiscretizationTool() {
 
     // Bode comparison plot
     const traces = [];
-    const omegas = autoFreqRange(sys);
-    try {
-      const bd = bodeData(sys, omegas);
-      traces.push({ x: omegas, y: bd.mag.map(m => fmtDB(m)), type: 'scatter', name: 'Continuous', line: { color: getCSS('--color-accent'), width: 2 } });
-    } catch (_) {}
+    const range = autoFreqRange(sys);
+    const omegaNyquist = Math.PI / Ts;
+    const omegaMin = Math.min(Math.max(range.wMin, omegaNyquist * 1e-4), omegaNyquist * 0.5);
+    const samples = 200;
+    let bodeGrid = null;
+    const firstDisc = results.find((r) => r.disc)?.disc;
+    if (firstDisc) {
+      try {
+        const bd = discreteBodeData(firstDisc, { omegaMin, samples });
+        bodeGrid = bd.w;
+      } catch (_) {}
+    }
+    if (bodeGrid && bodeGrid.length) {
+      traces.push({
+        x: bodeGrid,
+        y: bodeGrid.map((omega) => bodePointAtOmega(sys, omega).magDB),
+        type: 'scatter',
+        name: 'Continuous',
+        line: { color: getCSS('--color-accent'), width: 2 },
+      });
+    }
     const colors = ['#4ade80', '#f59e0b', '#f87171', '#c084fc'];
     results.forEach((r, i) => {
       if (!r.disc) return;
       try {
-        const bd = discreteBodeData(r.disc, Ts, omegas);
-        traces.push({ x: omegas, y: bd.mag.map(m => fmtDB(m)), type: 'scatter', name: r.label, line: { color: colors[i], width: 1.5, dash: i > 0 ? 'dot' : 'dash' } });
+        const bd = discreteBodeData(r.disc, { omegaMin, samples });
+        traces.push({ x: bd.w, y: bd.magDB, type: 'scatter', name: r.label, line: { color: colors[i], width: 1.5, dash: i > 0 ? 'dot' : 'dash' } });
       } catch (_) {}
     });
     if (traces.length) {

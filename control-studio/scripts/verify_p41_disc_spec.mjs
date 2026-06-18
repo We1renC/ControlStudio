@@ -47,6 +47,15 @@ assert(appJs.includes('c2dTustin'), 'c2dTustin used');
 assert(appJs.includes('disc-compare-badge'), 'disc-compare-badge class used');
 assert(appJs.includes('recommended'), 'recommended row highlighted');
 assert(appJs.includes('discreteBodeData'), 'discreteBodeData for overlay Bode');
+assert(appJs.includes('bodePointAtOmega'), 'single-frequency continuous Bode helper used');
+assert(appJs.includes('discreteBodePointAtOmega'), 'single-frequency discrete Bode helper used');
+assert(appJs.includes('angularDifferenceDeg'), 'wrapped phase-error helper used');
+assert(!appJs.includes('bodeData(sys, [wTest])'), 'legacy bodeData(sys, [wTest]) call removed');
+assert(!appJs.includes('discreteBodeData(disc, Ts, [wTest])'), 'legacy discreteBodeData(disc, Ts, [wTest]) call removed');
+assert(!appJs.includes('bodeData(sys, omegas)'), 'legacy bodeData(sys, omegas) call removed');
+assert(!appJs.includes('discreteBodeData(r.disc, Ts, omegas)'), 'legacy discreteBodeData(r.disc, Ts, omegas) call removed');
+assert(appJs.includes('disc.dcGain()'), 'discretization table uses DTF low-frequency dcGain()');
+assert(appJs.includes('zohIdx >= 0 ? zohIdx'), 'recommended method handles findIndex -1 fallback');
 
 assert(indexHtml.includes('d2-disc-tool-panel'), '#d2-disc-tool-panel section in HTML');
 assert(indexHtml.includes('btn-d2-compare'), '#btn-d2-compare in HTML');

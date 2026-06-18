@@ -87,7 +87,7 @@ del{color:var(--muted)}
 
 <blockquote>
 <p>Last updated: 2026-06-18</p>
-<p>Current committed baseline: <code>fix(control): guard discrete frequency analysis</code></p>
+<p>Current committed baseline: <code>fix(control): repair discretization comparison</code></p>
 <p>Scope: this is the canonical execution roadmap for ControlStudio implementation status.</p>
 <p>Do not use this file for product vision, proof derivations, or handoff notes; see the document workflow below.</p>
 </blockquote>
@@ -383,6 +383,8 @@ del{color:var(--muted)}
 
 <p><strong>Continuous-analysis domain closure:</strong> continuous Bode / Nyquist / Nichols, continuous auto-frequency range, continuous root-locus helpers (<code>rootLocusData</code>, asymptotes, break points, and jω crossings), <code>stabilityMargins()</code>, and robust sensitivity helpers now reject discrete transfer functions with finite <code>sampleTime</code>. This prevents z-domain coefficient arrays from being interpreted as s-domain characteristic equations, <code>G(jω)</code> frequency scans, or continuous <code>S/T/KS</code> robustness metrics; discrete plants must use z-plane pole analysis and discrete frequency-response tooling. The UI Root Locus tab now falls back to the z-plane pole-zero map for discrete systems instead of calling the continuous solver.</p>
 
+<p><strong>Discretization comparison closure:</strong> P41 D2 comparison now computes single-frequency phase error through explicit continuous/discrete evaluation helpers and plots Bode overlays on a valid shared frequency grid below Nyquist. It no longer calls <code>bodeData(sys, [w])</code>, <code>bodeData(sys, omegas)</code>, or the old <code>discreteBodeData(disc, Ts, omegas)</code> shape, and the table uses <code>DiscreteTransferFunction.dcGain()</code> low-frequency limits instead of raw coefficient sums.</p>
+
 <p><strong>DC gain origin-cancellation closure:</strong> continuous TF and ZPK <code>dcGain()</code> now cancel removable origin pole-zero factors before evaluating the low-frequency limit. Systems such as <code>s/s</code> report finite unity DC gain, extra origin zeros report zero DC gain, and extra origin poles preserve signed infinite gain. This prevents RGA, static decoupler, low-frequency design, and robustness summaries from treating removable integrators as real steady-state singularities.</p>
 
 <p><strong>Discrete DC gain unit-root closure:</strong> discrete TF <code>dcGain()</code> now evaluates the low-frequency limit at <code>q=z^-1=1</code> by cancelling removable unit-circle factors. Systems such as <code>(1-z^-1)/(1-z^-1)</code> report finite unity DC gain, extra unit-circle zeros report zero DC gain, and extra unit-circle poles report infinite DC gain. This prevents z-domain step final-value checks, C2D DC preservation, and discrete controller comparisons from treating removable unit roots as true steady-state singularities.</p>
@@ -572,7 +574,7 @@ del{color:var(--muted)}
 </thead><tbody>
 <tr><td>B3-3 Chart theme toggle</td><td>P40</td><td>Done</td><td><code>initChartThemeToggle</code>, <code>CHART_THEMES</code>, Plotly.restyle</td></tr>
 </thead><tbody>
-<tr><td>D2-1~4 Discretization tool</td><td>P41</td><td>Done</td><td><code>initDiscretizationTool</code>, D2_METHODS, Bode overlay</td></tr>
+<tr><td>D2-1~4 Discretization tool</td><td>P41</td><td>Done</td><td><code>initDiscretizationTool</code>, D2_METHODS, valid single-frequency phase-error helper, shared-grid Bode overlay</td></tr>
 </thead><tbody>
 <tr><td>A2-2 Spec overlay</td><td>P41</td><td>Done</td><td><code>chk-spec-overlay</code> (pre-existing), wired to render</td></tr>
 </thead><tbody>
