@@ -8,7 +8,7 @@ import { PIDController } from '../js/control/pid.js';
 import { leadLagTransferFunction } from '../js/control/compensator.js';
 import { stateSpaceToTransferFunction, controllabilityMatrix, observabilityMatrix } from '../js/control/state-space.js';
 import { bodeData } from '../js/analysis/frequency-response.js';
-import { stepResponse } from '../js/analysis/time-response.js';
+import { impulseResponse, rampResponse, simulateTimeResponse, stepResponse } from '../js/analysis/time-response.js';
 import { stabilityMargins, stepInfo } from '../js/control/stability.js';
 import { polydiv } from '../js/math/polynomial.js';
 import { matRank } from '../js/math/matrix.js';
@@ -64,6 +64,15 @@ function runCli(payload) {
   return JSON.parse(raw);
 }
 
+function selectResponse(system, waveform, config) {
+  if (waveform === 'impulse') return impulseResponse(system, config);
+  if (waveform === 'ramp') return rampResponse(system, config);
+  if (waveform === 'sine' || waveform === 'square' || waveform === 'pulse') {
+    return simulateTimeResponse(system, waveform, config);
+  }
+  return stepResponse(system, config);
+}
+
 function verifyCase(testCase) {
   const checks = [];
   const record = (name, fn) => {
@@ -76,10 +85,12 @@ function verifyCase(testCase) {
   const controller = buildController(payload.controller);
   const openLoop = controller ? controller.series(plant) : plant;
   const closedLoop = controller ? openLoop.feedback() : plant;
+  const waveform = payload.simulation?.inputWaveform ?? 'step';
   const targetSystem = payload.simulation?.mode === 'open_loop' ? openLoop : closedLoop;
-  const response = stepResponse(targetSystem, payload.simulation);
+  const response = selectResponse(targetSystem, waveform, payload.simulation);
   const info = stepInfo(response.t, response.y);
   const margins = stabilityMargins(openLoop);
+  const cli = runCli(payload);
 
   record('plant numerator', () => assertPolyNear('plant numerator', plant.num, expected.plant.num));
   record('plant denominator', () => assertPolyNear('plant denominator', plant.den, expected.plant.den));
@@ -141,6 +152,16 @@ function verifyCase(testCase) {
     record('step overshoot', () => assertNear('overshoot', info.overshoot, expected.stepInfo.overshoot, expected.stepInfo.overshootTolerance));
     record('step settling time', () => assertNear('settling time', info.settlingTime, expected.stepInfo.settlingTime, expected.stepInfo.settlingTolerance));
   }
+  if (expected.metrics) {
+    record('CLI metric validity', () => {
+      if (cli.metrics?.valid !== expected.metrics.valid) {
+        throw new Error(`CLI metrics.valid expected ${expected.metrics.valid}, got ${cli.metrics?.valid}`);
+      }
+      if (expected.metrics.reason && !String(cli.metrics?.reason || '').includes(expected.metrics.reason)) {
+        throw new Error(`CLI metrics.reason expected to include ${expected.metrics.reason}, got ${cli.metrics?.reason}`);
+      }
+    });
+  }
   if (expected.bode) {
     const bode = bodeData(openLoop, 1e-2, 1e2, 300);
     record('bode low-frequency magnitude', () => assertNear('low-frequency magnitude', bode.magDB[0], expected.bode.lowFrequencyMagDB, expected.bode.tolerance));
@@ -149,7 +170,6 @@ function verifyCase(testCase) {
     record('phase margin', () => assertNear('phase margin', margins.phaseMargin, expected.margins.phaseMargin, expected.margins.tolerance));
   }
 
-  const cli = runCli(payload);
   record('CLI plant formula', () => {
     if (cli.system.plant.formula !== expected.cli.plantFormula) {
       throw new Error(`CLI plant formula expected ${expected.cli.plantFormula}, got ${cli.system.plant.formula}`);

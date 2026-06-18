@@ -137,4 +137,18 @@ export const CONTROL_VERIFICATION_CASES = [
       },
     },
   },
+  {
+    id: 'case-7-non-step-metrics-contract',
+    title: 'Non-step waveform does not report step metrics',
+    payload: {
+      system: { type: 'transfer_function', num: [1], den: [1, 1] },
+      simulation: { mode: 'open_loop', inputWaveform: 'impulse', duration: 8, sampleCount: 800, amplitude: 1 },
+    },
+    expected: {
+      plant: { num: [1], den: [1, 1], poles: [{ re: -1, im: 0 }], stable: true, dcGain: 1 },
+      response: { finalValue: 0, tolerance: 0.001 },
+      metrics: { valid: false, reason: 'step metrics require step input' },
+      cli: { plantFormula: '(1) / (s +1)', closedLoopFormula: '(1) / (s +1)' },
+    },
+  },
 ];
