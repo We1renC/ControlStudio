@@ -151,4 +151,18 @@ export const CONTROL_VERIFICATION_CASES = [
       cli: { plantFormula: '(1) / (s +1)', closedLoopFormula: '(1) / (s +1)' },
     },
   },
+  {
+    id: 'case-8-step-amplitude-reference-metrics',
+    title: 'Step metrics use requested amplitude as reference',
+    payload: {
+      system: { type: 'transfer_function', num: [1], den: [1, 1] },
+      simulation: { mode: 'open_loop', inputWaveform: 'step', duration: 8, sampleCount: 800, amplitude: 2 },
+    },
+    expected: {
+      plant: { num: [1], den: [1, 1], poles: [{ re: -1, im: 0 }], stable: true, dcGain: 1 },
+      response: { finalValue: 2, tolerance: 0.003 },
+      metrics: { valid: true, steadyStateError: 0, tolerance: 0.003 },
+      cli: { plantFormula: '(1) / (s +1)', closedLoopFormula: '(1) / (s +1)' },
+    },
+  },
 ];

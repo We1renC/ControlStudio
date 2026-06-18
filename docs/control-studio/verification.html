@@ -85,7 +85,7 @@ del{color:var(--muted)}
 <main>
 <h1 id="control-system-verification-cases">Control System Verification Cases</h1>
 
-<p>此文件定義 ControlStudio 後續回歸測試的五個基準案例。每個案例都必須能以數學推導得到期望結果，再用 <code>control-studio</code> 數值核心、<code>control_analysis_cli.mjs</code> 與 FastAPI API 交叉驗證。</p>
+<p>此文件定義 ControlStudio 後續回歸測試的八個基準案例。每個案例都必須能以數學推導得到期望結果，再用 <code>control-studio</code> 數值核心、<code>control_analysis_cli.mjs</code> 與 FastAPI API 交叉驗證。</p>
 
 <p>驗證原則：</p>
 <ul>
@@ -524,6 +524,148 @@ rank(Qc) = 2</code></pre>
   "simulation": { "mode": "open_loop", "inputWaveform": "step", "duration": 10, "sampleCount": 1000, "amplitude": 1 }
 }</code></pre>
 
+<h2 id="case-6-open-loop-controller-cascade-response">Case 6: Open-Loop Controller Cascade Response</h2>
+
+<h3 id="purpose">Purpose</h3>
+
+<p>驗證 <code>simulation.mode = "open_loop"</code> 且存在 controller 時，Unified API / CLI 的 time response 會模擬 <code>C(s)G(s)</code>，而不是 plant-only <code>G(s)</code>。</p>
+
+<h3 id="model">Model</h3>
+
+<pre><code class="lang-text">G(s) = 1 / (s + 1)
+C(s) = 2
+L(s) = C(s)G(s) = 2 / (s + 1)</code></pre>
+
+<p>目前 PID P-only 內部仍保留 derivative filter cancellation：</p>
+
+<pre><code class="lang-text">C_internal(s) = 2(s + 100)/(s + 100)</code></pre>
+
+<p>因此 closed-loop formula 的未約分內部表示為：</p>
+
+<pre><code class="lang-text">T_internal(s) = (2s + 200) / (s^2 + 103s + 300)</code></pre>
+
+<h3 id="mathematical-derivation">Mathematical Derivation</h3>
+
+<p>Open-loop step response 使用 <code>L(s)</code>：</p>
+
+<pre><code class="lang-text">Y(s) = 2 / (s(s + 1))
+y(t) = 2(1 - e^(-t))
+lim t-&gt;inf y(t) = 2</code></pre>
+
+<p>若 API 錯誤回傳 plant-only response，final value 會接近 <code>1</code>，因此 final-value assertion 可直接抓出錯誤路徑。</p>
+
+<h3 id="expected-assertions">Expected Assertions</h3>
+
+<ul>
+<li>plant poles equal <code>[-1]</code></li>
+<li>plant <code>isStable = true</code></li>
+<li>open-loop response final value <code>~= 2</code></li>
+<li>CLI response final value matches fixture final value</li>
+<li>CLI plant formula equals <code>(1) / (s +1)</code></li>
+<li>CLI closed-loop formula equals <code>(2s +200) / (s^2 +103s +300)</code></li>
+</ul>
+
+<h3 id="suggested-payload">Suggested Payload</h3>
+
+<pre><code class="lang-json">{
+  "system": { "type": "transfer_function", "num": [1], "den": [1, 1] },
+  "controller": { "type": "pid", "Kp": 2, "Ki": 0, "Kd": 0, "N": 100 },
+  "simulation": { "mode": "open_loop", "inputWaveform": "step", "duration": 8, "sampleCount": 800, "amplitude": 1 }
+}</code></pre>
+
+<h2 id="case-7-non-step-waveform-metrics-contract">Case 7: Non-Step Waveform Metrics Contract</h2>
+
+<h3 id="purpose">Purpose</h3>
+
+<p>驗證 impulse / ramp / sine / square / pulse 等非 step response 不會被誤報為有效 step metrics。這些 waveform 可有 time response，但 rise time、settling time、overshoot、steady-state error 的 step 定義不適用。</p>
+
+<h3 id="model">Model</h3>
+
+<pre><code class="lang-text">G(s) = 1 / (s + 1)</code></pre>
+
+<h3 id="mathematical-derivation">Mathematical Derivation</h3>
+
+<p>Impulse response：</p>
+
+<pre><code class="lang-text">Y(s) = G(s) = 1 / (s + 1)
+y(t) = e^(-t)
+lim t-&gt;inf y(t) = 0</code></pre>
+
+<p>但這不是 step response，因此 <code>stepInfo()</code> 不應輸出有效的 step performance metrics。API / CLI 應回傳：</p>
+
+<pre><code class="lang-text">metrics.valid = false
+metrics.reason includes "step metrics require step input"</code></pre>
+
+<h3 id="expected-assertions">Expected Assertions</h3>
+
+<ul>
+<li>response final value <code>~= 0</code></li>
+<li><code>metrics.valid = false</code></li>
+<li><code>metrics.reason</code> clearly states that step metrics require step input</li>
+<li>API metrics matches CLI metrics</li>
+</ul>
+
+<h3 id="suggested-payload">Suggested Payload</h3>
+
+<pre><code class="lang-json">{
+  "system": { "type": "transfer_function", "num": [1], "den": [1, 1] },
+  "simulation": { "mode": "open_loop", "inputWaveform": "impulse", "duration": 8, "sampleCount": 800, "amplitude": 1 }
+}</code></pre>
+
+<h2 id="case-8-step-amplitude-reference-metrics">Case 8: Step Amplitude Reference Metrics</h2>
+
+<h3 id="purpose">Purpose</h3>
+
+<p>驗證非單位 step input 的 performance metrics 以輸入振幅作為 reference，而不是固定對 <code>1</code> 計算 steady-state error。</p>
+
+<h3 id="model">Model</h3>
+
+<pre><code class="lang-text">G(s) = 1 / (s + 1)
+r(t) = 2 * 1(t)</code></pre>
+
+<h3 id="mathematical-derivation">Mathematical Derivation</h3>
+
+<pre><code class="lang-text">Y(s) = G(s) * 2/s
+     = 2 / (s(s + 1))</code></pre>
+
+<p>Partial fraction:</p>
+
+<pre><code class="lang-text">2 / (s(s + 1)) = 2/s - 2/(s + 1)</code></pre>
+
+<p>Time response:</p>
+
+<pre><code class="lang-text">y(t) = 2(1 - e^(-t))
+lim t-&gt;inf y(t) = 2</code></pre>
+
+<p>Step steady-state error must be measured against the requested reference amplitude:</p>
+
+<pre><code class="lang-text">e_ss = |r_inf - y_inf| = |2 - 2| = 0</code></pre>
+
+<p>With finite <code>duration = 8</code>, the numerical final value is approximately:</p>
+
+<pre><code class="lang-text">y(8) = 2(1 - e^-8) ~= 1.99933
+e_ss ~= 0.00067</code></pre>
+
+<p>If <code>stepInfo()</code> uses a hard-coded reference of <code>1</code>, the reported error becomes approximately <code>0.99933</code>, which is mathematically wrong for an amplitude-2 step.</p>
+
+<h3 id="expected-assertions">Expected Assertions</h3>
+
+<ul>
+<li>plant poles equal <code>[-1]</code></li>
+<li>plant <code>isStable = true</code></li>
+<li>response final value <code>~= 2</code></li>
+<li><code>metrics.valid = true</code></li>
+<li><code>metrics.steadyStateError ~= 0</code> within finite-simulation tolerance</li>
+<li>API metrics matches CLI metrics</li>
+</ul>
+
+<h3 id="suggested-payload">Suggested Payload</h3>
+
+<pre><code class="lang-json">{
+  "system": { "type": "transfer_function", "num": [1], "den": [1, 1] },
+  "simulation": { "mode": "open_loop", "inputWaveform": "step", "duration": 8, "sampleCount": 800, "amplitude": 2 }
+}</code></pre>
+
 <h2 id="phase-24-advanced-mpc-verification-addendum">Phase 24 Advanced MPC Verification Addendum</h2>
 
 <p>Phase 24 的 NMPC / EMPC / Tube MPC / Explicit MPC 屬離散時間最佳控制基線，驗證重點不是圖形外觀，而是最佳化問題、約束與閉迴路行為是否符合數學定義。</p>
@@ -578,7 +720,7 @@ u_min + |K|r &lt;= v_k &lt;= u_max - |K|r</code></pre>
 <p>後續 agent 將這些案例自動化時，建議順序如下：</p>
 
 <ol>
-<li>把五個案例整理成 JSON fixtures。</li>
+<li>把八個案例整理成 JSON fixtures。</li>
 <li>在 <code>test_control.js</code> 中新增共用 assertion helper。</li>
 <li>先跑 local JS numerical core。</li>
 <li>再跑 <code>control_analysis_cli.mjs</code>。</li>

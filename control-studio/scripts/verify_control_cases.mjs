@@ -160,6 +160,14 @@ function verifyCase(testCase) {
       if (expected.metrics.reason && !String(cli.metrics?.reason || '').includes(expected.metrics.reason)) {
         throw new Error(`CLI metrics.reason expected to include ${expected.metrics.reason}, got ${cli.metrics?.reason}`);
       }
+      if (typeof expected.metrics.steadyStateError === 'number') {
+        assertNear(
+          'CLI metrics.steadyStateError',
+          cli.metrics?.steadyStateError,
+          expected.metrics.steadyStateError,
+          expected.metrics.tolerance ?? 1e-6,
+        );
+      }
     });
   }
   if (expected.bode) {

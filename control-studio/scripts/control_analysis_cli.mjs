@@ -31,7 +31,12 @@ function selectResponse(system, waveform, config) {
   return stepResponse(system, config);
 }
 
-function responseMetrics(response, waveform) {
+function stepReference(config = {}) {
+  const amplitude = Number(config?.amplitude ?? 1);
+  return Number.isFinite(amplitude) ? amplitude : 1;
+}
+
+function responseMetrics(response, waveform, config = {}) {
   if (waveform !== 'step') {
     return {
       riseTime: null,
@@ -42,7 +47,7 @@ function responseMetrics(response, waveform) {
       reason: `step metrics require step input; got ${waveform}`,
     };
   }
-  return stepInfo(response.t, response.y);
+  return stepInfo(response.t, response.y, null, stepReference(config));
 }
 
 function main() {
@@ -61,7 +66,7 @@ function main() {
   const waveform = request.simulation?.inputWaveform ?? 'step';
   const targetSystem = mode === 'closed_loop' ? closedLoop : openLoop;
   const response = selectResponse(targetSystem, waveform, request.simulation);
-  const metrics = responseMetrics(response, waveform);
+  const metrics = responseMetrics(response, waveform, request.simulation);
   const margins = stabilityMargins(openLoop);
 
   const output = {

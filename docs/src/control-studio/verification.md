@@ -1,6 +1,6 @@
 # Control System Verification Cases
 
-此文件定義 ControlStudio 後續回歸測試的五個基準案例。每個案例都必須能以數學推導得到期望結果，再用 `control-studio` 數值核心、`control_analysis_cli.mjs` 與 FastAPI API 交叉驗證。
+此文件定義 ControlStudio 後續回歸測試的八個基準案例。每個案例都必須能以數學推導得到期望結果，再用 `control-studio` 數值核心、`control_analysis_cli.mjs` 與 FastAPI API 交叉驗證。
 
 驗證原則：
 - 先比對 transfer function 多項式係數，再比對 poles / zeros / DC gain。
@@ -539,6 +539,174 @@ rank(Qo) = 2
 }
 ```
 
+## Case 6: Open-Loop Controller Cascade Response
+
+### Purpose
+
+驗證 `simulation.mode = "open_loop"` 且存在 controller 時，Unified API / CLI 的 time response 會模擬 `C(s)G(s)`，而不是 plant-only `G(s)`。
+
+### Model
+
+```text
+G(s) = 1 / (s + 1)
+C(s) = 2
+L(s) = C(s)G(s) = 2 / (s + 1)
+```
+
+目前 PID P-only 內部仍保留 derivative filter cancellation：
+
+```text
+C_internal(s) = 2(s + 100)/(s + 100)
+```
+
+因此 closed-loop formula 的未約分內部表示為：
+
+```text
+T_internal(s) = (2s + 200) / (s^2 + 103s + 300)
+```
+
+### Mathematical Derivation
+
+Open-loop step response 使用 `L(s)`：
+
+```text
+Y(s) = 2 / (s(s + 1))
+y(t) = 2(1 - e^(-t))
+lim t->inf y(t) = 2
+```
+
+若 API 錯誤回傳 plant-only response，final value 會接近 `1`，因此 final-value assertion 可直接抓出錯誤路徑。
+
+### Expected Assertions
+
+- plant poles equal `[-1]`
+- plant `isStable = true`
+- open-loop response final value `~= 2`
+- CLI response final value matches fixture final value
+- CLI plant formula equals `(1) / (s +1)`
+- CLI closed-loop formula equals `(2s +200) / (s^2 +103s +300)`
+
+### Suggested Payload
+
+```json
+{
+  "system": { "type": "transfer_function", "num": [1], "den": [1, 1] },
+  "controller": { "type": "pid", "Kp": 2, "Ki": 0, "Kd": 0, "N": 100 },
+  "simulation": { "mode": "open_loop", "inputWaveform": "step", "duration": 8, "sampleCount": 800, "amplitude": 1 }
+}
+```
+
+## Case 7: Non-Step Waveform Metrics Contract
+
+### Purpose
+
+驗證 impulse / ramp / sine / square / pulse 等非 step response 不會被誤報為有效 step metrics。這些 waveform 可有 time response，但 rise time、settling time、overshoot、steady-state error 的 step 定義不適用。
+
+### Model
+
+```text
+G(s) = 1 / (s + 1)
+```
+
+### Mathematical Derivation
+
+Impulse response：
+
+```text
+Y(s) = G(s) = 1 / (s + 1)
+y(t) = e^(-t)
+lim t->inf y(t) = 0
+```
+
+但這不是 step response，因此 `stepInfo()` 不應輸出有效的 step performance metrics。API / CLI 應回傳：
+
+```text
+metrics.valid = false
+metrics.reason includes "step metrics require step input"
+```
+
+### Expected Assertions
+
+- response final value `~= 0`
+- `metrics.valid = false`
+- `metrics.reason` clearly states that step metrics require step input
+- API metrics matches CLI metrics
+
+### Suggested Payload
+
+```json
+{
+  "system": { "type": "transfer_function", "num": [1], "den": [1, 1] },
+  "simulation": { "mode": "open_loop", "inputWaveform": "impulse", "duration": 8, "sampleCount": 800, "amplitude": 1 }
+}
+```
+
+## Case 8: Step Amplitude Reference Metrics
+
+### Purpose
+
+驗證非單位 step input 的 performance metrics 以輸入振幅作為 reference，而不是固定對 `1` 計算 steady-state error。
+
+### Model
+
+```text
+G(s) = 1 / (s + 1)
+r(t) = 2 * 1(t)
+```
+
+### Mathematical Derivation
+
+```text
+Y(s) = G(s) * 2/s
+     = 2 / (s(s + 1))
+```
+
+Partial fraction:
+
+```text
+2 / (s(s + 1)) = 2/s - 2/(s + 1)
+```
+
+Time response:
+
+```text
+y(t) = 2(1 - e^(-t))
+lim t->inf y(t) = 2
+```
+
+Step steady-state error must be measured against the requested reference amplitude:
+
+```text
+e_ss = |r_inf - y_inf| = |2 - 2| = 0
+```
+
+With finite `duration = 8`, the numerical final value is approximately:
+
+```text
+y(8) = 2(1 - e^-8) ~= 1.99933
+e_ss ~= 0.00067
+```
+
+If `stepInfo()` uses a hard-coded reference of `1`, the reported error becomes approximately `0.99933`, which is mathematically wrong for an amplitude-2 step.
+
+### Expected Assertions
+
+- plant poles equal `[-1]`
+- plant `isStable = true`
+- response final value `~= 2`
+- `metrics.valid = true`
+- `metrics.steadyStateError ~= 0` within finite-simulation tolerance
+- API metrics matches CLI metrics
+
+### Suggested Payload
+
+```json
+{
+  "system": { "type": "transfer_function", "num": [1], "den": [1, 1] },
+  "simulation": { "mode": "open_loop", "inputWaveform": "step", "duration": 8, "sampleCount": 800, "amplitude": 2 }
+}
+```
+
 ## Phase 24 Advanced MPC Verification Addendum
 
 Phase 24 的 NMPC / EMPC / Tube MPC / Explicit MPC 屬離散時間最佳控制基線，驗證重點不是圖形外觀，而是最佳化問題、約束與閉迴路行為是否符合數學定義。
@@ -600,7 +768,7 @@ u(x) = a_i x + b_i,  x in region_i
 
 後續 agent 將這些案例自動化時，建議順序如下：
 
-1. 把五個案例整理成 JSON fixtures。
+1. 把八個案例整理成 JSON fixtures。
 2. 在 `test_control.js` 中新增共用 assertion helper。
 3. 先跑 local JS numerical core。
 4. 再跑 `control_analysis_cli.mjs`。

@@ -127,9 +127,9 @@ grep -q "Nichols data points" /tmp/nvidia-control-test.txt
 grep -q "Math core verification passed: 9/9" /tmp/nvidia-control-math-core.txt
 grep -q "Phase 10 math core verification passed: 16/16" /tmp/nvidia-control-phase10-math-core.txt
 grep -q "Phase 18 robust validation: all checks passed" /tmp/nvidia-control-p18-robust-validation.txt
-grep -q "Verification fixtures passed: 7/7" /tmp/nvidia-control-verification-cases.txt
-grep -q "API contract fixtures passed: 7/7" /tmp/nvidia-control-api-contract.txt
-grep -q "Verification fixtures passed: 7/7" /tmp/nvidia-control-npm-verify-math.txt
+grep -q "Verification fixtures passed: 8/8" /tmp/nvidia-control-verification-cases.txt
+grep -q "API contract fixtures passed: 8/8" /tmp/nvidia-control-api-contract.txt
+grep -q "Verification fixtures passed: 8/8" /tmp/nvidia-control-npm-verify-math.txt
 grep -q "ControlStudio regression dashboard: PASS" /tmp/nvidia-control-regression-dashboard.txt
 grep -q "\"response\"" /tmp/nvidia-control-api-cli.json
 grep -q "docs/src/agents/continuation.md" "$ROOT_DIR/AGENTS.md"
