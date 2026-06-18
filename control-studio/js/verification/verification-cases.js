@@ -191,4 +191,20 @@ export const CONTROL_VERIFICATION_CASES = [
       cli: { plantFormula: '(s) / (s^2 +2s +2)', closedLoopFormula: '(s) / (s^2 +2s +2)' },
     },
   },
+  {
+    id: 'case-10-unstable-step-metrics-contract',
+    title: 'Divergent unstable step response does not report settled step metrics',
+    payload: {
+      system: { type: 'transfer_function', num: [1], den: [1, -1] },
+      simulation: { mode: 'open_loop', inputWaveform: 'step', duration: 8, sampleCount: 800, amplitude: 1 },
+    },
+    expected: {
+      plant: { num: [1], den: [1, -1], poles: [{ re: 1, im: 0 }], stable: false, dcGain: -1 },
+      metrics: {
+        valid: false,
+        reason: 'settled response tail or an explicit final value',
+      },
+      cli: { plantFormula: '(1) / (s -1)', closedLoopFormula: '(1) / (s -1)' },
+    },
+  },
 ];

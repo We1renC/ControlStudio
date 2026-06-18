@@ -180,6 +180,23 @@ export function stepInfo(tArr, yArr, finalValue = null, reference = null) {
     };
   }
 
+  if (finalValue == null) {
+    const tailCount = Math.min(n, Math.max(5, Math.ceil(n * 0.05)));
+    const tail = yArr.slice(n - tailCount);
+    const tailRange = Math.max(...tail) - Math.min(...tail);
+    const dynamicScale = Math.max(Math.abs(ref - yInit), netAmplitude, excursion, 1e-12);
+    if (tailRange > 0.02 * dynamicScale) {
+      return {
+        riseTime: null,
+        settlingTime: null,
+        overshoot: null,
+        steadyStateError: NaN,
+        valid: false,
+        reason: 'step metrics require a settled response tail or an explicit final value; response is still changing at the end of the simulation window',
+      };
+    }
+  }
+
   const t10Idx = yArr.findIndex(y => amp > 0 ? y >= yInit + 0.1 * amp : y <= yInit + 0.1 * amp);
   const t90Idx = yArr.findIndex(y => amp > 0 ? y >= yInit + 0.9 * amp : y <= yInit + 0.9 * amp);
 

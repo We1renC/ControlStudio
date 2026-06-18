@@ -87,7 +87,7 @@ del{color:var(--muted)}
 
 <blockquote>
 <p>Last updated: 2026-06-18</p>
-<p>Current committed baseline: <code>fix(control): reject zero-final-change step metrics</code></p>
+<p>Current committed baseline: <code>fix(control): reject divergent step metrics</code></p>
 <p>Scope: this is the canonical execution roadmap for ControlStudio implementation status.</p>
 <p>Do not use this file for product vision, proof derivations, or handoff notes; see the document workflow below.</p>
 </blockquote>
@@ -397,6 +397,8 @@ del{color:var(--muted)}
 
 <p><strong>Zero-final-change step metrics closure:</strong> <code>stepInfo()</code> now rejects normalized rise time, settling time, and overshoot metrics when the net final response change is effectively zero relative to the observed transient excursion. Zero-DC-gain or zero-amplitude step responses keep a meaningful <code>steadyStateError</code>, but report <code>valid:false</code> for normalized step metrics instead of producing misleading values such as &gt;400,000% overshoot. The golden fixture set includes <code>G(s)=s/(s^2+2s+2)</code> with a unit step, proving the transient peak exists while final output returns to zero; API contract fixtures and the regression dashboard were updated to the 9/9 fixture baseline.</p>
 
+<p><strong>Divergent step metrics closure:</strong> <code>stepInfo()</code> now requires either an explicit finite final value or a settled response tail before reporting normalized step metrics. Unstable or unfinished responses such as <code>G(s)=1/(s-1)</code> with unit-step output <code>y(t)=e^t-1</code> return <code>valid:false</code> instead of producing plausible-looking rise time, settling time, or overshoot from the last simulated sample. API contract fixtures and the regression dashboard were updated to the 10/10 fixture baseline.</p>
+
 <p><strong>DC gain origin-cancellation closure:</strong> continuous TF and ZPK <code>dcGain()</code> now cancel removable origin pole-zero factors before evaluating the low-frequency limit. Systems such as <code>s/s</code> report finite unity DC gain, extra origin zeros report zero DC gain, and extra origin poles preserve signed infinite gain. This prevents RGA, static decoupler, low-frequency design, and robustness summaries from treating removable integrators as real steady-state singularities.</p>
 
 <p><strong>Discrete DC gain unit-root closure:</strong> discrete TF <code>dcGain()</code> now evaluates the low-frequency limit at <code>q=z^-1=1</code> by cancelling removable unit-circle factors. Systems such as <code>(1-z^-1)/(1-z^-1)</code> report finite unity DC gain, extra unit-circle zeros report zero DC gain, and extra unit-circle poles report infinite DC gain. This prevents z-domain step final-value checks, C2D DC preservation, and discrete controller comparisons from treating removable unit roots as true steady-state singularities.</p>
@@ -423,13 +425,13 @@ del{color:var(--muted)}
 
 <p><strong>Delay margin closure:</strong> Padé delay application and pure-delay phase now reject non-finite or negative delay parameters instead of silently returning the original plant or NaN phase. Delay margin now reports zero additional delay for non-positive phase margin and preserves infinite PM as infinite margin, preventing already-unstable loops from being displayed with negative delay capacity.</p>
 
-<p><strong>Step metrics closure:</strong> <code>stepInfo()</code> now validates response array shape, finite samples, strictly increasing time grids, finite final value, and finite reference before reporting rise time, settling time, overshoot, or steady-state error. Invalid response data returns <code>valid:false</code> with a reason instead of producing plausible-looking metrics from NaN or malformed trajectories.</p>
+<p><strong>Step metrics closure:</strong> <code>stepInfo()</code> now validates response array shape, finite samples, strictly increasing time grids, finite final value, finite reference, nonzero final response change, and settled tail convergence before reporting rise time, settling time, overshoot, or steady-state error. Invalid, zero-net-change, or divergent response data returns <code>valid:false</code> with a reason instead of producing plausible-looking metrics from NaN, malformed, or unfinished trajectories.</p>
 
 <p><strong>Routh-Hurwitz input closure:</strong> <code>routhTable()</code> now validates denominator coefficient arrays before building the table. Non-array, short, non-finite, zero-polynomial, and zero-leading-coefficient inputs fail explicitly instead of being silently classified as stable.</p>
 
 <h2 id="verification-suite-status-2026-06-18">Verification Suite Status (2026-06-18)</h2>
 
-<p><strong>111/111 scripts pass</strong> — run via <code>bash scripts/run_all_verify.sh</code> or <code>npm run verify:all</code>. Fixture/API contract coverage is now <strong>9/9 cases</strong>, including open-loop controller cascade response, non-step waveform metrics gating, non-unit step amplitude reference metrics, and zero-final-change step metrics rejection.</p>
+<p><strong>111/111 scripts pass</strong> — run via <code>bash scripts/run_all_verify.sh</code> or <code>npm run verify:all</code>. Fixture/API contract coverage is now <strong>10/10 cases</strong>, including open-loop controller cascade response, non-step waveform metrics gating, non-unit step amplitude reference metrics, zero-final-change step metrics rejection, and divergent/unfinished step metrics rejection.</p>
 
 <table><thead>
 <tr><th>Group</th><th>Scripts</th><th>Pass</th></tr>

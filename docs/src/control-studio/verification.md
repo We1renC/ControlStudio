@@ -1,6 +1,6 @@
 # Control System Verification Cases
 
-此文件定義 ControlStudio 後續回歸測試的九個基準案例。每個案例都必須能以數學推導得到期望結果，再用 `control-studio` 數值核心、`control_analysis_cli.mjs` 與 FastAPI API 交叉驗證。
+此文件定義 ControlStudio 後續回歸測試的十個基準案例。每個案例都必須能以數學推導得到期望結果，再用 `control-studio` 數值核心、`control_analysis_cli.mjs` 與 FastAPI API 交叉驗證。
 
 驗證原則：
 - 先比對 transfer function 多項式係數，再比對 poles / zeros / DC gain。
@@ -797,6 +797,82 @@ e_ss = |1 - 0| = 1
 }
 ```
 
+## Case 10: Divergent Unstable Step Metrics Contract
+
+### Purpose
+
+驗證 unstable 或 simulation window 內仍未收斂的 step response 不會被誤報為有效 step metrics。這類系統沒有有限 final value，若只用最後一個 sample 當作 final value，會產生看似合理但數學上無效的 rise time、settling time 或 overshoot。
+
+### Model
+
+```text
+G(s) = 1 / (s - 1)
+```
+
+### Mathematical Derivation
+
+Pole:
+
+```text
+s - 1 = 0
+s = +1
+```
+
+因此 plant 為 open-loop unstable。
+
+Unit step input:
+
+```text
+Y(s) = G(s) * 1/s
+     = 1 / (s(s - 1))
+```
+
+Partial fraction:
+
+```text
+1 / (s(s - 1)) = -1/s + 1/(s - 1)
+```
+
+Time response:
+
+```text
+y(t) = e^t - 1
+```
+
+Final value does not exist:
+
+```text
+lim t->inf y(t) = +inf
+```
+
+因此 standard step metrics 中依賴有限 final value 的 rise time、settling time 與 percent overshoot 都不具工程意義。若數值模擬只跑到 `t=8`，最後 sample 約為：
+
+```text
+y(8) = e^8 - 1 ~= 2979.96
+```
+
+這不是系統 final value，只是 simulation window 的最後觀測值。ControlStudio 必須要求 explicit final value 或 settled response tail；否則應回傳 invalid metrics。
+
+### Expected Assertions
+
+- plant pole equals `+1`
+- plant `isStable = false`
+- plant `dcGain = -1`
+- step response is monotonically divergent over the simulated window
+- `metrics.valid = false`
+- `metrics.reason` clearly states that step metrics require a settled response tail or explicit final value
+- rise time, settling time, and overshoot are `null`
+- API metrics matches CLI metrics
+
+### Suggested Payload
+
+```json
+{
+  "system": { "type": "transfer_function", "num": [1], "den": [1, -1] },
+  "simulation": { "mode": "open_loop", "inputWaveform": "step", "duration": 8, "sampleCount": 800, "amplitude": 1 }
+}
+```
+
 ## Phase 24 Advanced MPC Verification Addendum
 
 Phase 24 的 NMPC / EMPC / Tube MPC / Explicit MPC 屬離散時間最佳控制基線，驗證重點不是圖形外觀，而是最佳化問題、約束與閉迴路行為是否符合數學定義。
@@ -858,7 +934,7 @@ u(x) = a_i x + b_i,  x in region_i
 
 後續 agent 將這些案例自動化時，建議順序如下：
 
-1. 把九個案例整理成 JSON fixtures。
+1. 把十個案例整理成 JSON fixtures。
 2. 在 `test_control.js` 中新增共用 assertion helper。
 3. 先跑 local JS numerical core。
 4. 再跑 `control_analysis_cli.mjs`。

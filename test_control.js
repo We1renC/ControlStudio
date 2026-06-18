@@ -886,6 +886,11 @@ try {
   if (invalidLengthInfo.valid !== false || !/same length/i.test(invalidLengthInfo.reason)) {
     throw new Error(`stepInfo should reject mismatched response arrays, got ${JSON.stringify(invalidLengthInfo)}`);
   }
+  const divergentStep = stepResponse(new TransferFunction([1], [1, -1]), { duration: 8, sampleCount: 800, amplitude: 1 });
+  const divergentInfo = stepInfo(divergentStep.t, divergentStep.y, null, 1);
+  if (divergentInfo.valid !== false || !/settled response tail/i.test(divergentInfo.reason)) {
+    throw new Error(`stepInfo should reject divergent/unfinished response tails, got ${JSON.stringify(divergentInfo)}`);
+  }
 
   // (F) Discrete TF: causal pure-delay G(z) = z⁻¹/(1 + 0·z⁻¹) has 1 pole at z=0
   const delayOnly = new DiscreteTransferFunction([0, 1], [1, 0], 0.1);

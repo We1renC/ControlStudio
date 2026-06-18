@@ -85,7 +85,7 @@ del{color:var(--muted)}
 <main>
 <h1 id="control-system-verification-cases">Control System Verification Cases</h1>
 
-<p>此文件定義 ControlStudio 後續回歸測試的九個基準案例。每個案例都必須能以數學推導得到期望結果，再用 <code>control-studio</code> 數值核心、<code>control_analysis_cli.mjs</code> 與 FastAPI API 交叉驗證。</p>
+<p>此文件定義 ControlStudio 後續回歸測試的十個基準案例。每個案例都必須能以數學推導得到期望結果，再用 <code>control-studio</code> 數值核心、<code>control_analysis_cli.mjs</code> 與 FastAPI API 交叉驗證。</p>
 
 <p>驗證原則：</p>
 <ul>
@@ -738,6 +738,68 @@ y(inf) = 0</code></pre>
   "simulation": { "mode": "open_loop", "inputWaveform": "step", "duration": 12, "sampleCount": 1200, "amplitude": 1 }
 }</code></pre>
 
+<h2 id="case-10-divergent-unstable-step-metrics-contract">Case 10: Divergent Unstable Step Metrics Contract</h2>
+
+<h3 id="purpose">Purpose</h3>
+
+<p>驗證 unstable 或 simulation window 內仍未收斂的 step response 不會被誤報為有效 step metrics。這類系統沒有有限 final value，若只用最後一個 sample 當作 final value，會產生看似合理但數學上無效的 rise time、settling time 或 overshoot。</p>
+
+<h3 id="model">Model</h3>
+
+<pre><code class="lang-text">G(s) = 1 / (s - 1)</code></pre>
+
+<h3 id="mathematical-derivation">Mathematical Derivation</h3>
+
+<p>Pole:</p>
+
+<pre><code class="lang-text">s - 1 = 0
+s = +1</code></pre>
+
+<p>因此 plant 為 open-loop unstable。</p>
+
+<p>Unit step input:</p>
+
+<pre><code class="lang-text">Y(s) = G(s) * 1/s
+     = 1 / (s(s - 1))</code></pre>
+
+<p>Partial fraction:</p>
+
+<pre><code class="lang-text">1 / (s(s - 1)) = -1/s + 1/(s - 1)</code></pre>
+
+<p>Time response:</p>
+
+<pre><code class="lang-text">y(t) = e^t - 1</code></pre>
+
+<p>Final value does not exist:</p>
+
+<pre><code class="lang-text">lim t-&gt;inf y(t) = +inf</code></pre>
+
+<p>因此 standard step metrics 中依賴有限 final value 的 rise time、settling time 與 percent overshoot 都不具工程意義。若數值模擬只跑到 <code>t=8</code>，最後 sample 約為：</p>
+
+<pre><code class="lang-text">y(8) = e^8 - 1 ~= 2979.96</code></pre>
+
+<p>這不是系統 final value，只是 simulation window 的最後觀測值。ControlStudio 必須要求 explicit final value 或 settled response tail；否則應回傳 invalid metrics。</p>
+
+<h3 id="expected-assertions">Expected Assertions</h3>
+
+<ul>
+<li>plant pole equals <code>+1</code></li>
+<li>plant <code>isStable = false</code></li>
+<li>plant <code>dcGain = -1</code></li>
+<li>step response is monotonically divergent over the simulated window</li>
+<li><code>metrics.valid = false</code></li>
+<li><code>metrics.reason</code> clearly states that step metrics require a settled response tail or explicit final value</li>
+<li>rise time, settling time, and overshoot are <code>null</code></li>
+<li>API metrics matches CLI metrics</li>
+</ul>
+
+<h3 id="suggested-payload">Suggested Payload</h3>
+
+<pre><code class="lang-json">{
+  "system": { "type": "transfer_function", "num": [1], "den": [1, -1] },
+  "simulation": { "mode": "open_loop", "inputWaveform": "step", "duration": 8, "sampleCount": 800, "amplitude": 1 }
+}</code></pre>
+
 <h2 id="phase-24-advanced-mpc-verification-addendum">Phase 24 Advanced MPC Verification Addendum</h2>
 
 <p>Phase 24 的 NMPC / EMPC / Tube MPC / Explicit MPC 屬離散時間最佳控制基線，驗證重點不是圖形外觀，而是最佳化問題、約束與閉迴路行為是否符合數學定義。</p>
@@ -792,7 +854,7 @@ u_min + |K|r &lt;= v_k &lt;= u_max - |K|r</code></pre>
 <p>後續 agent 將這些案例自動化時，建議順序如下：</p>
 
 <ol>
-<li>把九個案例整理成 JSON fixtures。</li>
+<li>把十個案例整理成 JSON fixtures。</li>
 <li>在 <code>test_control.js</code> 中新增共用 assertion helper。</li>
 <li>先跑 local JS numerical core。</li>
 <li>再跑 <code>control_analysis_cli.mjs</code>。</li>

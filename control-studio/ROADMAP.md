@@ -1,7 +1,7 @@
 # ControlStudio Development Roadmap
 
 > Last updated: 2026-06-18
-> Current committed baseline: `fix(control): reject zero-final-change step metrics`
+> Current committed baseline: `fix(control): reject divergent step metrics`
 > Scope: this is the canonical execution roadmap for ControlStudio implementation status.
 > Do not use this file for product vision, proof derivations, or handoff notes; see the document workflow below.
 
@@ -197,6 +197,8 @@ Per `docs/src/control-studio/functional-roadmap.html`. Tier A-J deterministic ba
 
 **Zero-final-change step metrics closure:** `stepInfo()` now rejects normalized rise time, settling time, and overshoot metrics when the net final response change is effectively zero relative to the observed transient excursion. Zero-DC-gain or zero-amplitude step responses keep a meaningful `steadyStateError`, but report `valid:false` for normalized step metrics instead of producing misleading values such as >400,000% overshoot. The golden fixture set includes `G(s)=s/(s^2+2s+2)` with a unit step, proving the transient peak exists while final output returns to zero; API contract fixtures and the regression dashboard were updated to the 9/9 fixture baseline.
 
+**Divergent step metrics closure:** `stepInfo()` now requires either an explicit finite final value or a settled response tail before reporting normalized step metrics. Unstable or unfinished responses such as `G(s)=1/(s-1)` with unit-step output `y(t)=e^t-1` return `valid:false` instead of producing plausible-looking rise time, settling time, or overshoot from the last simulated sample. API contract fixtures and the regression dashboard were updated to the 10/10 fixture baseline.
+
 **DC gain origin-cancellation closure:** continuous TF and ZPK `dcGain()` now cancel removable origin pole-zero factors before evaluating the low-frequency limit. Systems such as `s/s` report finite unity DC gain, extra origin zeros report zero DC gain, and extra origin poles preserve signed infinite gain. This prevents RGA, static decoupler, low-frequency design, and robustness summaries from treating removable integrators as real steady-state singularities.
 
 **Discrete DC gain unit-root closure:** discrete TF `dcGain()` now evaluates the low-frequency limit at `q=z^-1=1` by cancelling removable unit-circle factors. Systems such as `(1-z^-1)/(1-z^-1)` report finite unity DC gain, extra unit-circle zeros report zero DC gain, and extra unit-circle poles report infinite DC gain. This prevents z-domain step final-value checks, C2D DC preservation, and discrete controller comparisons from treating removable unit roots as true steady-state singularities.
@@ -223,13 +225,13 @@ Per `docs/src/control-studio/functional-roadmap.html`. Tier A-J deterministic ba
 
 **Delay margin closure:** Padé delay application and pure-delay phase now reject non-finite or negative delay parameters instead of silently returning the original plant or NaN phase. Delay margin now reports zero additional delay for non-positive phase margin and preserves infinite PM as infinite margin, preventing already-unstable loops from being displayed with negative delay capacity.
 
-**Step metrics closure:** `stepInfo()` now validates response array shape, finite samples, strictly increasing time grids, finite final value, and finite reference before reporting rise time, settling time, overshoot, or steady-state error. Invalid response data returns `valid:false` with a reason instead of producing plausible-looking metrics from NaN or malformed trajectories.
+**Step metrics closure:** `stepInfo()` now validates response array shape, finite samples, strictly increasing time grids, finite final value, finite reference, nonzero final response change, and settled tail convergence before reporting rise time, settling time, overshoot, or steady-state error. Invalid, zero-net-change, or divergent response data returns `valid:false` with a reason instead of producing plausible-looking metrics from NaN, malformed, or unfinished trajectories.
 
 **Routh-Hurwitz input closure:** `routhTable()` now validates denominator coefficient arrays before building the table. Non-array, short, non-finite, zero-polynomial, and zero-leading-coefficient inputs fail explicitly instead of being silently classified as stable.
 
 ## Verification Suite Status (2026-06-18)
 
-**111/111 scripts pass** — run via `bash scripts/run_all_verify.sh` or `npm run verify:all` (was 82/82 before Functional Roadmap additions). Fixture/API contract coverage is now **9/9 cases**, including open-loop controller cascade response, non-step waveform metrics gating, non-unit step amplitude reference metrics, and zero-final-change step metrics rejection.
+**111/111 scripts pass** — run via `bash scripts/run_all_verify.sh` or `npm run verify:all` (was 82/82 before Functional Roadmap additions). Fixture/API contract coverage is now **10/10 cases**, including open-loop controller cascade response, non-step waveform metrics gating, non-unit step amplitude reference metrics, zero-final-change step metrics rejection, and divergent/unfinished step metrics rejection.
 
 | Group | Scripts | Pass |
 | --- | --- | --- |
