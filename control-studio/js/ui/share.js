@@ -172,8 +172,8 @@ export function buildReportHTML(opts = {}) {
     try {
       if (!state.plant) return {};
       const sys  = state.closedLoop || state.plant;
-      const resp = _ctx.stepResponse(sys, { duration: 20, sampleCount: 300 });
       const amplitude = Number.isFinite(Number(state.simulationConfig?.amplitude)) ? Number(state.simulationConfig.amplitude) : 1;
+      const resp = _ctx.stepResponse(sys, { duration: 20, sampleCount: 300, amplitude });
       return _ctx.stepInfo(resp.t, resp.y, null, amplitude);
     } catch { return {}; }
   })();

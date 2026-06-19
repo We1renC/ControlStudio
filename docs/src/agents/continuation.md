@@ -9,7 +9,7 @@
 - 已建立獨立 git repo，避免被 `/Users/w.rc` 外層 git 混入。
 - 控制系統目前同步基線：
   - Branch: `main`
-  - Latest active line: `fix(ui): route non-step waveform responses`
+  - Latest active line: `fix(ui): align report step amplitude`
   - Full phase audit checkpoints:
     - `7a318b3 fix(control): harden phase 7-9 theory diagnostics`
     - `46e20da fix(control): harden phase 0-6 theory checks`
@@ -60,6 +60,7 @@
   - 2026-06-18 接續完成 zero-final-change step metrics rejection：`stepInfo()` 對 zero-DC-gain 或 zero-amplitude step response 不再輸出 normalized rise/settling/overshoot；保留 SSE 並回傳 `valid:false`。golden fixtures / API contract fixtures 擴充至 9/9 cases，新增 `G(s)=s/(s^2+2s+2)` transient case，避免 >400,000% overshoot 類誤報。
   - 2026-06-18 接續完成 divergent / unfinished step metrics rejection：`stepInfo()` 在沒有 explicit final value 時會要求 response tail 已收斂；`G(s)=1/(s-1)` 的 unit-step `y(t)=e^t-1` 發散案例回傳 `valid:false`，不再從最後一個 sample 偽造 rise/settling/overshoot。golden fixtures / API contract fixtures 擴充至 10/10 cases。
   - 2026-06-18 接續完成 UI waveform response/metrics contract：Local JS UI 的 sine / square / pulse 走 `simulateTimeResponse()`，不再 fallback 成 step；UI / export / sweep / report 的 step metrics 只對 step input 有效，且傳入 configured amplitude 作為 reference。新增 `verify_ui_waveform_contract.mjs` 並納入 `run_all_verify.sh`，full suite 基線升至 112 scripts。
+  - 2026-06-19 接續補上 report step amplitude consistency：PDF/report metrics 不只把 configured amplitude 傳給 `stepInfo()`，也用同一個 amplitude 呼叫 `stepResponse()`；`verify_ui_waveform_contract.mjs` 現在會檢查 report response 與 metrics reference 同源，避免非單位 step 報告用 unit-step trajectory 對 non-unit reference 算 SSE / transient metrics。
   - 2026-06-17 接續完成 matched-z removable-origin gain normalization hardening：`c2dMatchedZ()` 現在先保留 continuous leading gain，再用 Discrete TF `dcGain()` low-frequency limit 做 DC normalization；`2s/s` 這類 removable origin pole-zero 會映射為 removable `z=1` pair 並保留 DC gain 2，不再因 raw coefficient sums 為 0 而退回 unity gain。
   - 2026-06-17 接續完成 matched-z properness hardening：`c2dMatchedZ()` 現在與 Tustin / ZOH / impulse-invariant 一致拒絕 improper continuous plant；`(s+1)^2/(s+1)` 這類 derivative-like 原始模型不再被靜默映射成看似 stable 的 discrete TF。
   - 2026-06-17 接續完成 impulse-invariant repeated-pole hardening：`c2dImpulseInvariant()` 現在明確拒絕 repeated continuous poles；`1/(s+1)^2` 不再被 residue loop 靜默跳過成 zero DTF，改要求使用 ZOH 或 Tustin。

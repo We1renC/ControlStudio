@@ -81,8 +81,8 @@ assertRegex(
 
 assertRegex(
   shareJs,
-  /const amplitude = Number\.isFinite\(Number\(state\.simulationConfig\?\.amplitude\)\)[\s\S]*_ctx\.stepInfo\(resp\.t, resp\.y, null, amplitude\)/,
-  'share/report metrics use configured amplitude as step reference',
+  /const amplitude = Number\.isFinite\(Number\(state\.simulationConfig\?\.amplitude\)\)[\s\S]*_ctx\.stepResponse\(sys,[\s\S]*amplitude[\s\S]*_ctx\.stepInfo\(resp\.t, resp\.y, null, amplitude\)/,
+  'share/report response and metrics use the same configured amplitude',
 );
 
 console.log('');

@@ -1,7 +1,7 @@
 # ControlStudio Development Roadmap
 
-> Last updated: 2026-06-18
-> Current committed baseline: `fix(ui): route non-step waveform responses`
+> Last updated: 2026-06-19
+> Current committed baseline: `fix(ui): align report step amplitude`
 > Scope: this is the canonical execution roadmap for ControlStudio implementation status.
 > Do not use this file for product vision, proof derivations, or handoff notes; see the document workflow below.
 
@@ -200,7 +200,7 @@ Per `docs/src/control-studio/functional-roadmap.html`. Tier A-J deterministic ba
 
 **Divergent step metrics closure:** `stepInfo()` now requires either an explicit finite final value or a settled response tail before reporting normalized step metrics. Unstable or unfinished responses such as `G(s)=1/(s-1)` with unit-step output `y(t)=e^t-1` return `valid:false` instead of producing plausible-looking rise time, settling time, or overshoot from the last simulated sample. API contract fixtures and the regression dashboard were updated to the 10/10 fixture baseline.
 
-**UI waveform response closure:** Local JS UI routing now sends sine, square, and pulse inputs through `simulateTimeResponse()` instead of falling back to `stepResponse()`. UI step metrics are now gated to actual step input only, and local UI/export/sweep metric paths pass the configured step amplitude as the `stepInfo()` reference. This aligns Local JS, UI report/export, and API waveform semantics.
+**UI waveform response closure:** Local JS UI routing now sends sine, square, and pulse inputs through `simulateTimeResponse()` instead of falling back to `stepResponse()`. UI step metrics are now gated to actual step input only, and local UI/export/sweep/report metric paths pass the configured step amplitude as the `stepInfo()` reference. Report generation also simulates the response with the same configured amplitude, so non-unit step reports do not compare a unit-step trajectory against a non-unit reference. This aligns Local JS, UI report/export, and API waveform semantics.
 
 **DC gain origin-cancellation closure:** continuous TF and ZPK `dcGain()` now cancel removable origin pole-zero factors before evaluating the low-frequency limit. Systems such as `s/s` report finite unity DC gain, extra origin zeros report zero DC gain, and extra origin poles preserve signed infinite gain. This prevents RGA, static decoupler, low-frequency design, and robustness summaries from treating removable integrators as real steady-state singularities.
 
