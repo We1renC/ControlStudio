@@ -1,7 +1,7 @@
 # ControlStudio Development Roadmap
 
 > Last updated: 2026-06-19
-> Current committed baseline: `fix(ui): refresh analysis simulation snapshot`
+> Current committed baseline: `fix(ui): harden discrete snapshot refresh`
 > Scope: this is the canonical execution roadmap for ControlStudio implementation status.
 > Do not use this file for product vision, proof derivations, or handoff notes; see the document workflow below.
 
@@ -98,6 +98,7 @@
 | **P68** | **UI stability snapshot contract: canonical GM field + report/flow consistency** | Done | `verify_ui_stability_snapshot_contract.mjs` |
 | **P69** | **UI simulation snapshot contract: active response state + HIL/export consistency** | Done | `verify_ui_simulation_snapshot_contract.mjs` |
 | **P70** | **UI analysis snapshot freshness: non-time plots cannot leave stale HIL/export state** | Done | `verify_ui_simulation_snapshot_contract.mjs` |
+| **P71** | **UI discrete domain switch contract: DTF updates cannot reuse s-domain loop state** | Done | `verify_ui_simulation_snapshot_contract.mjs` |
 | **P34-01** | **Module split: P62-P65 → js/ui/ sub-modules** | Done | Verify scripts updated to check module files |
 | **J1-3** | **Root Locus geometric annotations (damping lines, ωn arcs, Ku labels)** | Done | `verify_j13_rlocus_geo.mjs` |
 | **H1-4** | **Sidebar Quick Pin (non-emoji section pin, localStorage, max 3, float to top)** | Done | `verify_h14_sidebar_pin.mjs` |
@@ -196,6 +197,8 @@ Per `docs/src/control-studio/functional-roadmap.html`. Tier A-J deterministic ba
 
 **UI analysis snapshot freshness closure:** Stability / time-metric refresh now also publishes the current simulation snapshot from the analysis state, with an explicit `allowNonChartSnapshot` gate. This prevents stale HIL CSV, result summary, or warning data when engineers tune plant/controller/simulation parameters while Bode, Nyquist, Nichols, root-locus, or pole-zero plots are active. Plot workspace companion charts still cannot overwrite the canonical active simulation state.
 
+**UI discrete domain switch closure:** DTF/z-domain plant updates now clear incompatible continuous controller, open-loop, closed-loop, 2-DOF, stability, and simulation snapshots before refreshing charts. The DTF update path then runs `updateStabilityPanel()` so z-domain analysis publishes a fresh discrete step snapshot even when Bode or pole-zero plots are active. Discrete step companion charts no longer overwrite the active plot header, so a Bode (DTFT) workspace cannot be mislabeled as a time-response view.
+
 **DC gain origin-cancellation closure:** continuous TF and ZPK `dcGain()` now cancel removable origin pole-zero factors before evaluating the low-frequency limit. Systems such as `s/s` report finite unity DC gain, extra origin zeros report zero DC gain, and extra origin poles preserve signed infinite gain. This prevents RGA, static decoupler, low-frequency design, and robustness summaries from treating removable integrators as real steady-state singularities.
 
 **Discrete DC gain unit-root closure:** discrete TF `dcGain()` now evaluates the low-frequency limit at `q=z^-1=1` by cancelling removable unit-circle factors. Systems such as `(1-z^-1)/(1-z^-1)` report finite unity DC gain, extra unit-circle zeros report zero DC gain, and extra unit-circle poles report infinite DC gain. This prevents z-domain step final-value checks, C2D DC preservation, and discrete controller comparisons from treating removable unit roots as true steady-state singularities.
@@ -228,13 +231,13 @@ Per `docs/src/control-studio/functional-roadmap.html`. Tier A-J deterministic ba
 
 ## Verification Suite Status (2026-06-19)
 
-**114/114 scripts pass** — run via `bash scripts/run_all_verify.sh` or `npm run verify:all`. Fixture/API contract coverage is now **10/10 cases**, including open-loop controller cascade response, non-step waveform metrics gating, non-unit step amplitude reference metrics, zero-final-change step metrics rejection, and divergent/unfinished step metrics rejection. UI waveform routing is covered by `verify_ui_waveform_contract.mjs`; UI stability snapshot and GM-field normalization are covered by `verify_ui_stability_snapshot_contract.mjs`; active simulation state and HIL/export consistency are covered by `verify_ui_simulation_snapshot_contract.mjs`.
+**114/114 scripts pass** — run via `bash scripts/run_all_verify.sh` or `npm run verify:all`. Fixture/API contract coverage is now **10/10 cases**, including open-loop controller cascade response, non-step waveform metrics gating, non-unit step amplitude reference metrics, zero-final-change step metrics rejection, and divergent/unfinished step metrics rejection. UI waveform routing is covered by `verify_ui_waveform_contract.mjs`; UI stability snapshot and GM-field normalization are covered by `verify_ui_stability_snapshot_contract.mjs`; active simulation state, HIL/export consistency, analysis freshness, and discrete domain-switch freshness are covered by `verify_ui_simulation_snapshot_contract.mjs`.
 
 | Group | Scripts | Pass |
 | --- | --- | --- |
 | Fixture & API contracts | 2 | 2 |
 | Phase 9/10/11 foundations | 13 | 13 |
-| Phase 14–70 advanced control / UI | 72 | 72 |
+| Phase 14–71 advanced control / UI | 72 | 72 |
 | Math audit fixes | 1 | 1 |
 | Functional Roadmap A-J | 22 | 22 |
 | General math & PID | 4 | 4 |

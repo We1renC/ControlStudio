@@ -3017,6 +3017,15 @@ function syncSimulationConfigInputs() {
   document.getElementById('sim-initial-state').value = state.simulationConfig.initialState.join(', ');
 }
 
+function clearContinuousLoopStateForDiscretePlant() {
+  state.controller = null;
+  state.openLoop = null;
+  state.closedLoop = null;
+  state.twoDof = null;
+  state._lastStability = null;
+  state._lastSimResult = null;
+}
+
 function saveSessionToStorage() {
   try {
     localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(buildProjectPayload()));
@@ -3174,12 +3183,14 @@ function updateSystem() {
       state.plant = new DiscreteTransferFunction(num, den, Ts);
       state.domain = 'z';
       state.sampleTime = Ts;
+      clearContinuousLoopStateForDiscretePlant();
       clearError();
       updateDomainUI();
       updateSystemSetupCopy();
       saveSessionToStorage();
       historySave();
       refreshAllCharts();
+      updateStabilityPanel();
       updateGlobalStatusBar('Discrete plant updated');
       return;
     }
@@ -3403,10 +3414,12 @@ function renderDiscreteStepChart(targetId = 'chart-active') {
     simulationConfig: { ...state.simulationConfig, amplitude },
     stepInfo: stepInfo(data.t, data.y, null, amplitude),
   });
-  updateActivePlotHeader(
-    'Discrete Step Response',
-    `z-domain · Ts = ${sys.sampleTime}s · ${stable ? 'Stable' : 'Unstable'}`
-  );
+  if (targetId === 'chart-active') {
+    updateActivePlotHeader(
+      'Discrete Step Response',
+      `z-domain · Ts = ${sys.sampleTime}s · ${stable ? 'Stable' : 'Unstable'}`
+    );
+  }
 }
 
 function updateDomainUI() {

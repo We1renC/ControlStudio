@@ -6,6 +6,8 @@
  *   warnings, and HIL CSV export.
  * - Companion charts must not overwrite the active simulation snapshot.
  * - HIL export must receive an explicit input trace, not a stale unit-step fallback.
+ * - Discrete plant updates must clear incompatible continuous loop state and
+ *   refresh the analysis snapshot even when the active plot is not time-domain.
  */
 
 import { readFileSync } from 'node:fs';
@@ -52,6 +54,8 @@ const publisherSection = sectionBetween(appJs, 'function publishSimulationSnapsh
 const stabilitySection = sectionBetween(appJs, 'function updateStabilityPanel', 'function scheduleApiAnalysis');
 const timeResponseSection = sectionBetween(appJs, 'function renderTimeResponse', 'function renderBodePlot');
 const discreteStepSection = sectionBetween(appJs, 'function renderDiscreteStepChart', 'function updateDomainUI');
+const discreteLoopClearSection = sectionBetween(appJs, 'function clearContinuousLoopStateForDiscretePlant', 'function saveSessionToStorage');
+const updateSystemSection = sectionBetween(appJs, 'function updateSystem', 'function setFieldError');
 const hilSection = sectionBetween(appJs, 'function exportHILCSV', 'function initHILExport');
 
 console.log('\n▶ UI simulation snapshot contract');
@@ -123,8 +127,24 @@ assert(
     discreteStepSection.includes("responseType: 'step'") &&
     discreteStepSection.includes("domain: 'z'") &&
     discreteStepSection.includes("mode: 'open_loop'") &&
-    discreteStepSection.includes('stepInfo: stepInfo(data.t, data.y, null, amplitude)'),
-  'discrete step chart publishes active simulation snapshot',
+    discreteStepSection.includes('stepInfo: stepInfo(data.t, data.y, null, amplitude)') &&
+    discreteStepSection.includes("if (targetId === 'chart-active')") &&
+    discreteStepSection.includes("updateActivePlotHeader("),
+  'discrete step chart publishes active simulation snapshot and only active chart updates header',
+);
+
+assert(
+  discreteLoopClearSection.includes('state.controller = null;') &&
+    discreteLoopClearSection.includes('state.openLoop = null;') &&
+    discreteLoopClearSection.includes('state.closedLoop = null;') &&
+    discreteLoopClearSection.includes('state.twoDof = null;') &&
+    discreteLoopClearSection.includes('state._lastStability = null;') &&
+    discreteLoopClearSection.includes('state._lastSimResult = null;') &&
+    updateSystemSection.includes('state.plant = new DiscreteTransferFunction(num, den, Ts);') &&
+    updateSystemSection.includes('clearContinuousLoopStateForDiscretePlant();') &&
+    updateSystemSection.includes('refreshAllCharts();') &&
+    updateSystemSection.includes('updateStabilityPanel();'),
+  'discrete plant updates clear continuous loop state and refresh analysis snapshot',
 );
 
 assert(
