@@ -166,7 +166,7 @@ export function buildReportHTML(opts = {}) {
   const stab    = designState._lastStability ?? state._lastStability ?? {};
   const date    = new Date().toLocaleDateString('zh-TW');
   const pm      = stab.phaseMargin;
-  const gm      = stab.gainMarginDb;
+  const gm      = gainMarginDBFromStability(stab);
   const pid     = state.pidParams ?? {};
   const metrics = (() => {
     try {
@@ -179,7 +179,7 @@ export function buildReportHTML(opts = {}) {
   })();
   const specRows = [
     { spec: 'Phase Margin', target: '> 45°', actual: Number.isFinite(pm) ? pm.toFixed(1) + '°' : 'N/A', pass: Number.isFinite(pm) && pm >= 45 },
-    { spec: 'Gain Margin',  target: '> 6 dB', actual: Number.isFinite(gm) ? gm.toFixed(1) + ' dB' : 'N/A', pass: Number.isFinite(gm) && gm >= 6 },
+    { spec: 'Gain Margin',  target: '> 6 dB', actual: formatGainMarginDB(gm), pass: gainMarginPasses(gm) },
     { spec: 'Overshoot',    target: '< 20%',  actual: Number.isFinite(metrics.overshoot)     ? metrics.overshoot.toFixed(1)     + '%' : 'N/A', pass: Number.isFinite(metrics.overshoot)     && metrics.overshoot < 20 },
     { spec: 'Settling Time',target: '—',      actual: Number.isFinite(metrics.settlingTime)  ? metrics.settlingTime.toFixed(3)  + ' s' : 'N/A', pass: true },
   ];
@@ -207,7 +207,7 @@ img { max-width: 100%; } .no-print { display: none; }
 <tr><td>Ki</td><td>${pid.Ki ?? '—'}</td></tr>
 <tr><td>Kd</td><td>${pid.Kd ?? '—'}</td></tr>
 <tr><td>Phase Margin</td><td>${Number.isFinite(pm) ? pm.toFixed(1) + '°' : 'N/A'}</td></tr>
-<tr><td>Gain Margin</td><td>${Number.isFinite(gm) ? gm.toFixed(1) + ' dB' : 'N/A'}</td></tr>
+<tr><td>Gain Margin</td><td>${formatGainMarginDB(gm)}</td></tr>
 </table>
 <h2>2. 規格合規</h2>
 <table><tr><th>規格</th><th>目標</th><th>實際值</th><th>狀態</th></tr>
@@ -241,6 +241,25 @@ export async function generatePDFReport() {
 
 export function initPDFReport() {
   document.getElementById('btn-pdf-report')?.addEventListener('click', generatePDFReport);
+}
+
+function gainMarginDBFromStability(stab) {
+  if (!stab) return NaN;
+  if (Number.isFinite(stab.gainMarginDB) || stab.gainMarginDB === Infinity || stab.gainMarginDB === -Infinity) return stab.gainMarginDB;
+  if (Number.isFinite(stab.gainMarginDb) || stab.gainMarginDb === Infinity || stab.gainMarginDb === -Infinity) return stab.gainMarginDb;
+  if (stab.gainMargin === Infinity) return Infinity;
+  if (Number.isFinite(stab.gainMargin) && stab.gainMargin > 0) return 20 * Math.log10(stab.gainMargin);
+  return NaN;
+}
+
+function formatGainMarginDB(gm) {
+  if (gm === Infinity) return '∞';
+  if (Number.isFinite(gm)) return gm.toFixed(1) + ' dB';
+  return 'N/A';
+}
+
+function gainMarginPasses(gm) {
+  return gm === Infinity || (Number.isFinite(gm) && gm >= 6);
 }
 
 // ── Q1-4: Chart Quick Copy ────────────────────────────────────────────────────

@@ -9,7 +9,7 @@
 - 已建立獨立 git repo，避免被 `/Users/w.rc` 外層 git 混入。
 - 控制系統目前同步基線：
   - Branch: `main`
-  - Latest active line: `fix(ui): align report step amplitude`
+  - Latest active line: `fix(ui): persist stability snapshot`
   - Full phase audit checkpoints:
     - `7a318b3 fix(control): harden phase 7-9 theory diagnostics`
     - `46e20da fix(control): harden phase 0-6 theory checks`
@@ -61,6 +61,7 @@
   - 2026-06-18 接續完成 divergent / unfinished step metrics rejection：`stepInfo()` 在沒有 explicit final value 時會要求 response tail 已收斂；`G(s)=1/(s-1)` 的 unit-step `y(t)=e^t-1` 發散案例回傳 `valid:false`，不再從最後一個 sample 偽造 rise/settling/overshoot。golden fixtures / API contract fixtures 擴充至 10/10 cases。
   - 2026-06-18 接續完成 UI waveform response/metrics contract：Local JS UI 的 sine / square / pulse 走 `simulateTimeResponse()`，不再 fallback 成 step；UI / export / sweep / report 的 step metrics 只對 step input 有效，且傳入 configured amplitude 作為 reference。新增 `verify_ui_waveform_contract.mjs` 並納入 `run_all_verify.sh`，full suite 基線升至 112 scripts。
   - 2026-06-19 接續補上 report step amplitude consistency：PDF/report metrics 不只把 configured amplitude 傳給 `stepInfo()`，也用同一個 amplitude 呼叫 `stepResponse()`；`verify_ui_waveform_contract.mjs` 現在會檢查 report response 與 metrics reference 同源，避免非單位 step 報告用 unit-step trajectory 對 non-unit reference 算 SSE / transient metrics。
+  - 2026-06-19 接續完成 UI stability snapshot contract：`updateStabilityPanel()` 會發布 canonical `_lastStability`；GM canonical 欄位統一為 `gainMarginDB` 並保留 `gainMarginDb` 相容 alias。Flow-state / smart warning / result summary / report 均透過 helper 正規化 GM，report 對 infinite GM 顯示 `∞` 並判定 PASS。新增 `verify_ui_stability_snapshot_contract.mjs` 並納入 `run_all_verify.sh`，full suite 基線升至 113 scripts；Playwright browser walkthrough 確認 default report 顯示 `Gain Margin ∞` 且規格列 PASS。
   - 2026-06-17 接續完成 matched-z removable-origin gain normalization hardening：`c2dMatchedZ()` 現在先保留 continuous leading gain，再用 Discrete TF `dcGain()` low-frequency limit 做 DC normalization；`2s/s` 這類 removable origin pole-zero 會映射為 removable `z=1` pair 並保留 DC gain 2，不再因 raw coefficient sums 為 0 而退回 unity gain。
   - 2026-06-17 接續完成 matched-z properness hardening：`c2dMatchedZ()` 現在與 Tustin / ZOH / impulse-invariant 一致拒絕 improper continuous plant；`(s+1)^2/(s+1)` 這類 derivative-like 原始模型不再被靜默映射成看似 stable 的 discrete TF。
   - 2026-06-17 接續完成 impulse-invariant repeated-pole hardening：`c2dImpulseInvariant()` 現在明確拒絕 repeated continuous poles；`1/(s+1)^2` 不再被 residue loop 靜默跳過成 zero DTF，改要求使用 ZOH 或 Tustin。
@@ -198,7 +199,7 @@
     - 主執行看板：`control-studio/ROADMAP.md`。若 phase status、下一步順序或 dirty worktree 分類改變，先更新 roadmap，再同步 backlog / plan / skills / scenarios / verification cases / continuation。
     - Skill plan：`docs/src/control-studio/skills.md` 已規劃 `control-studio-robust-validator`、`control-studio-system-auditor`、`control-studio-benchmark-author`、`control-studio-mpc-designer`、`control-studio-sysid-planner` 等候選 skill。
   - Block Diagram expansion：Paused
-  - Phase 0 ~ Phase 67 與 Functional Roadmap Tier A-J 已完成文件進度對齊。後續若修改數值核心或 API 分析輸出，至少依 roadmap 對應 phase 重跑 targeted verify、`npm run verify:all`、`node test_control.js`、`node control-studio/scripts/control_regression_dashboard.mjs`；目前 full suite 基線為 **112/112 scripts pass**，fixture/API contract 為 **10/10 cases**。
+  - Phase 0 ~ Phase 68 與 Functional Roadmap Tier A-J 已完成文件進度對齊。後續若修改數值核心或 API 分析輸出，至少依 roadmap 對應 phase 重跑 targeted verify、`npm run verify:all`、`node test_control.js`、`node control-studio/scripts/control_regression_dashboard.mjs`；目前 full suite 基線為 **113/113 scripts pass**，fixture/API contract 為 **10/10 cases**。
 - 已建立 symlink：
   - `/Users/w.rc/.config/agents/skills/nvidia-model-selector`
   - 指向 `/Users/w.rc/nvdiaOSsupport/skills/nvidia-model-selector`
@@ -350,7 +351,7 @@ git log --oneline -5
 - 2026-05-24 sidebar IA 已補做結構整理：workflow sidebar 依任務分為 `Core / ID / Reuse`、`Core / Specs / Advanced`、`Sim / Deploy / QA` 等群組；對次要 panel 套用 default collapsed preset，並將 `Controller Tuning`、`Simulation` 兩個最長卡片再拆成 nested subsections。Browser 實測 `Design` tab nav scroll height 約由 `6225` 降到 `2052`，切 workflow / mode / search 後分類標籤仍能正確跟隨可見面板刷新。
 
 ## 後續可做
-1. 目前非暫停的 ControlStudio roadmap 已達 deterministic baseline，且 full suite / doctor 入口已收斂至 112/112；fixture/API contract 已收斂至 10/10 cases；下一步應由實際控制情境或明確研究級 backend 需求驅動。
+1. 目前非暫停的 ControlStudio roadmap 已達 deterministic baseline，且 full suite / doctor 入口已收斂至 113/113；fixture/API contract 已收斂至 10/10 cases；下一步應由實際控制情境或明確研究級 backend 需求驅動。
 2. 可選研究深化：non-normal real Schur refinement、full-order dynamic K fitting、industrial-grade μ synthesis backend、CONTSID。
 3. 使用 `control-studio-system-auditor` 審查下一個控制設計缺口，並用 `control-studio-benchmark-author` 補 benchmark fixture。
 4. Teaching Mode / Electron / Report Template 目前使用者要求擱置，不要開發。

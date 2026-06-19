@@ -1,7 +1,7 @@
 # ControlStudio Development Roadmap
 
 > Last updated: 2026-06-19
-> Current committed baseline: `fix(ui): align report step amplitude`
+> Current committed baseline: `fix(ui): persist stability snapshot`
 > Scope: this is the canonical execution roadmap for ControlStudio implementation status.
 > Do not use this file for product vision, proof derivations, or handoff notes; see the document workflow below.
 
@@ -112,6 +112,7 @@ Before starting any new functional work that is not already a finished P-phase, 
 | **P65** | **Q1-1/Q1-2/Q1-3/Q1-4 share & export enhancement** | Done | `verify_p65_share_export.mjs` |
 | **P66** | **Runtime UI symbol contract: no emoji / pictographic glyphs in visible UI source** | Done | `verify_ui_symbol_contract.mjs` |
 | **P67** | **UI waveform response/metrics contract: sine/square/pulse routing + step-only metrics** | Done | `verify_ui_waveform_contract.mjs` |
+| **P68** | **UI stability snapshot contract: canonical GM field + report/flow consistency** | Done | `verify_ui_stability_snapshot_contract.mjs` |
 | **P34-01** | **Module split: P62-P65 → js/ui/ sub-modules** | Done | Verify scripts updated to check module files |
 | **J1-3** | **Root Locus geometric annotations (damping lines, ωn arcs, Ku labels)** | Done | `verify_j13_rlocus_geo.mjs` |
 | **H1-4** | **Sidebar Quick Pin (non-emoji section pin, localStorage, max 3, float to top)** | Done | `verify_h14_sidebar_pin.mjs` |
@@ -202,6 +203,8 @@ Per `docs/src/control-studio/functional-roadmap.html`. Tier A-J deterministic ba
 
 **UI waveform response closure:** Local JS UI routing now sends sine, square, and pulse inputs through `simulateTimeResponse()` instead of falling back to `stepResponse()`. UI step metrics are now gated to actual step input only, and local UI/export/sweep/report metric paths pass the configured step amplitude as the `stepInfo()` reference. Report generation also simulates the response with the same configured amplitude, so non-unit step reports do not compare a unit-step trajectory against a non-unit reference. This aligns Local JS, UI report/export, and API waveform semantics.
 
+**UI stability snapshot closure:** The UI now publishes a canonical `_lastStability` snapshot whenever the stability panel recomputes margins and pole status. The canonical gain-margin field is `gainMarginDB`; `gainMarginDb` is retained only as a compatibility alias. Flow-state checks, smart warnings, result summaries, and report generation now normalize GM through helper functions. Infinite GM is displayed as `∞` and treated as passing the `> 6 dB` report criterion instead of being shown as N/A.
+
 **DC gain origin-cancellation closure:** continuous TF and ZPK `dcGain()` now cancel removable origin pole-zero factors before evaluating the low-frequency limit. Systems such as `s/s` report finite unity DC gain, extra origin zeros report zero DC gain, and extra origin poles preserve signed infinite gain. This prevents RGA, static decoupler, low-frequency design, and robustness summaries from treating removable integrators as real steady-state singularities.
 
 **Discrete DC gain unit-root closure:** discrete TF `dcGain()` now evaluates the low-frequency limit at `q=z^-1=1` by cancelling removable unit-circle factors. Systems such as `(1-z^-1)/(1-z^-1)` report finite unity DC gain, extra unit-circle zeros report zero DC gain, and extra unit-circle poles report infinite DC gain. This prevents z-domain step final-value checks, C2D DC preservation, and discrete controller comparisons from treating removable unit roots as true steady-state singularities.
@@ -232,15 +235,15 @@ Per `docs/src/control-studio/functional-roadmap.html`. Tier A-J deterministic ba
 
 **Routh-Hurwitz input closure:** `routhTable()` now validates denominator coefficient arrays before building the table. Non-array, short, non-finite, zero-polynomial, and zero-leading-coefficient inputs fail explicitly instead of being silently classified as stable.
 
-## Verification Suite Status (2026-06-18)
+## Verification Suite Status (2026-06-19)
 
-**112/112 scripts pass** — run via `bash scripts/run_all_verify.sh` or `npm run verify:all` (was 82/82 before Functional Roadmap additions). Fixture/API contract coverage is now **10/10 cases**, including open-loop controller cascade response, non-step waveform metrics gating, non-unit step amplitude reference metrics, zero-final-change step metrics rejection, and divergent/unfinished step metrics rejection. UI waveform routing is covered by `verify_ui_waveform_contract.mjs`.
+**113/113 scripts pass** — run via `bash scripts/run_all_verify.sh` or `npm run verify:all` (was 82/82 before Functional Roadmap additions). Fixture/API contract coverage is now **10/10 cases**, including open-loop controller cascade response, non-step waveform metrics gating, non-unit step amplitude reference metrics, zero-final-change step metrics rejection, and divergent/unfinished step metrics rejection. UI waveform routing is covered by `verify_ui_waveform_contract.mjs`; UI stability snapshot and GM-field normalization are covered by `verify_ui_stability_snapshot_contract.mjs`.
 
 | Group | Scripts | Pass |
 | --- | --- | --- |
 | Fixture & API contracts | 2 | 2 |
 | Phase 9/10/11 foundations | 13 | 13 |
-| Phase 14–67 advanced control / UI | 70 | 70 |
+| Phase 14–68 advanced control / UI | 71 | 71 |
 | Math audit fixes | 1 | 1 |
 | Functional Roadmap A-J | 22 | 22 |
 | General math & PID | 4 | 4 |
@@ -528,4 +531,4 @@ Three fixes applied after full math-core read audit:
 | A2 | `js/math/matrix.js` — `matDet()` | Added `_matDetLU()` O(n³) LU fallback for n > 6; Sarrus closed-form for n=3. Eliminates O(n!) cofactor recursion for large matrices. |
 | A3 | `js/analysis/root-locus.js` — `sortRootLocusBranches()` | Replaced greedy nearest-neighbor with **Jonker-Volgenant O(n³) Hungarian** optimal bipartite assignment (`_hungarianAssign`). Eliminates branch-swap artefacts at real-axis crossings. |
 
-Verify baseline: **112/112** (`run_all_verify.sh` / `npm run verify:all`). Immediate non-paused control roadmap items are complete at the deterministic baseline level; future work should be scenario-driven or target explicit research-grade backend replacements.
+Verify baseline: **113/113** (`run_all_verify.sh` / `npm run verify:all`). Immediate non-paused control roadmap items are complete at the deterministic baseline level; future work should be scenario-driven or target explicit research-grade backend replacements.

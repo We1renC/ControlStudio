@@ -95,6 +95,7 @@ const state = {
   comparisonSnapshots: [],
   analysisSource: 'auto',
   apiAnalysis: { status: 'idle', message: '', lastResult: null, diff: null },
+  _lastStability: null,
   theme: 'dark',
   view: 'dashboard',
   editor: null,
@@ -1242,7 +1243,7 @@ function updateTabBadges() {
 function _countAnalysisTabBadges() {
   let n = 0;
   if (state._lastStability?.status === 'unstable') n++;
-  const gm = state._lastStability?.gainMarginDb;
+  const gm = stabilityGainMarginDB(state._lastStability);
   if (isFinite(gm) && gm < 6) n++;
   const pm = state._lastStability?.phaseMargin;
   if (isFinite(pm) && pm < 30) n++;
@@ -1269,9 +1270,9 @@ const _SMART_WARNINGS = [
   },
   {
     id: 'low-gm', priority: 2,
-    condition: () => { const gm = state._lastStability?.gainMarginDb; return isFinite(gm) && gm < 6; },
+    condition: () => { const gm = stabilityGainMarginDB(state._lastStability); return isFinite(gm) && gm < 6; },
     level: 'warning',
-    message: () => `Warning: GM = ${state._lastStability.gainMarginDb.toFixed(1)} dB（建議 > 6 dB）`,
+    message: () => `Warning: GM = ${stabilityGainMarginDB(state._lastStability).toFixed(1)} dB（建議 > 6 dB）`,
     suggestion: '降低 Kp 可提升 GM；或加入 Lead 補償器。',
     action: { label: '前往設計', fn: () => switchWorkflowTab('design') },
   },
@@ -3451,6 +3452,27 @@ function currentStepInfo(response) {
   return stepInfo(response.t, response.y, null, stepMetricReference());
 }
 
+function stabilityGainMarginDB(stab) {
+  if (!stab) return NaN;
+  if (Number.isFinite(stab.gainMarginDB) || stab.gainMarginDB === Infinity || stab.gainMarginDB === -Infinity) return stab.gainMarginDB;
+  if (Number.isFinite(stab.gainMarginDb) || stab.gainMarginDb === Infinity || stab.gainMarginDb === -Infinity) return stab.gainMarginDb;
+  if (stab.gainMargin === Infinity) return Infinity;
+  if (Number.isFinite(stab.gainMargin) && stab.gainMargin > 0) return 20 * Math.log10(stab.gainMargin);
+  return NaN;
+}
+
+function buildLastStabilitySnapshot(stability, margins) {
+  const gainMarginDB = stabilityGainMarginDB(margins);
+  return {
+    ...(stability || {}),
+    ...(margins || {}),
+    gainMarginDB,
+    gainMarginDb: gainMarginDB,
+    stable: stability?.status === 'stable',
+    updatedAt: new Date().toISOString(),
+  };
+}
+
 function updateActivePlotHeader(title, subtitle) {
   const titleEl = document.getElementById('active-plot-title');
   const subtitleEl = document.getElementById('active-plot-subtitle');
@@ -3533,6 +3555,7 @@ function updateStabilityPanel() {
 
     // 2. Determine Stability (Strict Pole Check)
     const stability = analyzeStability(sys, { domain: state.domain, margins });
+    state._lastStability = buildLastStabilitySnapshot(stability, margins);
     let status = stability.status === 'unknown' ? 'marginal' : stability.status;
     let label = status.toUpperCase();
 
@@ -14044,7 +14067,7 @@ function buildResultSummary() {
   // Stability margins from last computed stability
   const stab = state._lastStability;
   if (stab) {
-    rows.push({ label: 'Gain Margin (dB)', value: fmt(stab.gainMarginDb ?? stab.gainMargin) });
+    rows.push({ label: 'Gain Margin (dB)', value: fmt(stabilityGainMarginDB(stab)) });
     rows.push({ label: 'Phase Margin (°)', value: fmt(stab.phaseMargin) });
     rows.push({ label: 'Stable', value: stab.stable ? 'Yes' : 'No' });
   }
@@ -14514,7 +14537,7 @@ function collectDesignWarnings() {
         if (pm < 20) warnings.push({ level: 'error',  msg: `相位裕度 PM = ${pm.toFixed(1)}° 過低 (< 20°)，系統接近不穩定。` });
         else if (pm < 45) warnings.push({ level: 'warn', msg: `相位裕度 PM = ${pm.toFixed(1)}° 偏低 (< 45°)，瞬態響應可能過振盪。` });
       }
-      const gm = stab.gainMarginDb ?? stab.gainMargin;
+      const gm = stabilityGainMarginDB(stab);
       if (typeof gm === 'number' && isFinite(gm) && gm < 6) {
         warnings.push({ level: 'warn', msg: `增益裕度 GM = ${gm.toFixed(1)} dB 偏低 (< 6 dB)，對增益變化敏感。` });
       }

@@ -36,11 +36,20 @@ export function allSpecsReasonable() {
   return true;
 }
 
+function gainMarginDBFromStability(stab) {
+  if (!stab) return NaN;
+  if (Number.isFinite(stab.gainMarginDB) || stab.gainMarginDB === Infinity || stab.gainMarginDB === -Infinity) return stab.gainMarginDB;
+  if (Number.isFinite(stab.gainMarginDb) || stab.gainMarginDb === Infinity || stab.gainMarginDb === -Infinity) return stab.gainMarginDb;
+  if (stab.gainMargin === Infinity) return Infinity;
+  if (Number.isFinite(stab.gainMargin) && stab.gainMargin > 0) return 20 * Math.log10(stab.gainMargin);
+  return NaN;
+}
+
 export function allSpecsPassing() {
   const stab = _ctx.state._lastStability;
   if (!stab || stab.status === 'unstable') return false;
   const pm = stab.phaseMargin;
-  const gm = stab.gainMarginDb;
+  const gm = gainMarginDBFromStability(stab);
   const pmOk = !Number.isFinite(pm) || pm >= 30;
   const gmOk = !Number.isFinite(gm) || gm >= 6;
   return pmOk && gmOk;

@@ -72,8 +72,8 @@ assert(src.includes('function allSpecsReasonable()'),     'allSpecsReasonable() 
 assert(src.includes('function allSpecsPassing()'),        'allSpecsPassing() defined');
 assert(src.includes('hasPlant'),                          'hasPlant condition checked');
 assert(src.includes('hasController'),                     'hasController condition checked');
-assert(src.includes('phaseMargin') && src.includes('gainMarginDb'),
-                                                          'PM/GM checked in allSpecsPassing');
+assert(src.includes('phaseMargin') && src.includes('gainMarginDBFromStability'),
+                                                          'PM/GM checked in allSpecsPassing through canonical GM helper');
 
 // ── K1-4: Kp Recommendation ───────────────────────────────────────────────────
 console.log('\n▶ K1-4 Kp Quick Recommendation');
