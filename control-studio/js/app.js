@@ -1512,7 +1512,7 @@ function _renderMiniStepAtK(targetId = 'chart-rlocus') {
 }
 
 function renderPlotWorkspaceChart(kind, targetId, sys) {
-  const plotSys = sys || (state.showClosedLoop ? (state.closedLoop || state.plant) : state.plant);
+  const plotSys = sys || effectiveLoopSystem();
   const loopSys = state.openLoop || state.plant;
   if (!state.plant) return;
 
@@ -1572,7 +1572,7 @@ function switchPlot(plotName) {
     applyMIMOChannel();
   }
   if (!state.plant) return;
-  const sys = state.showClosedLoop ? (state.closedLoop || state.plant) : state.plant;
+  const sys = effectiveLoopSystem();
   renderActivePlot(sys);
   renderPlotWorkspaceCompanions(sys);
   document.dispatchEvent(new CustomEvent('cs:plot-changed', { detail: { plot: plotName } }));
@@ -1652,7 +1652,7 @@ function waveformLabel(type) {
   return labels[type] || type;
 }
 
-function formatPolyText(coeffs) {
+function formatPolyText(coeffs, variable = 's') {
   if (!coeffs || coeffs.length === 0) return '0';
   const deg = coeffs.length - 1;
   const terms = [];
@@ -1664,8 +1664,8 @@ function formatPolyText(coeffs) {
     const coeffText = Number.isInteger(absCoeff) ? String(absCoeff) : String(parseFloat(absCoeff.toFixed(4)));
     let body = '';
     if (power === 0) body = coeffText;
-    else if (power === 1) body = absCoeff === 1 ? 's' : `${coeffText}s`;
-    else body = absCoeff === 1 ? `s^${power}` : `${coeffText}s^${power}`;
+    else if (power === 1) body = absCoeff === 1 ? variable : `${coeffText}${variable}`;
+    else body = absCoeff === 1 ? `${variable}^${power}` : `${coeffText}${variable}^${power}`;
 
     if (terms.length === 0) {
       terms.push(coeff < 0 ? `-${body}` : body);
@@ -1676,7 +1676,47 @@ function formatPolyText(coeffs) {
   return terms.length > 0 ? terms.join('') : '0';
 }
 
-function renderTransferFunctionEquation(symbol, tf, note = '') {
+function formatDelayPolyText(coeffs) {
+  if (!coeffs || coeffs.length === 0) return '0';
+  const terms = [];
+  coeffs.forEach((coeff, idx) => {
+    if (Math.abs(coeff) < 1e-12) return;
+    const absCoeff = Math.abs(coeff);
+    const coeffText = Number.isInteger(absCoeff) ? String(absCoeff) : String(parseFloat(absCoeff.toFixed(4)));
+    const delayPower = idx === 0 ? '' : (idx === 1 ? 'z^-1' : `z^-${idx}`);
+    const body = idx === 0
+      ? coeffText
+      : (absCoeff === 1 ? delayPower : `${coeffText}${delayPower}`);
+    if (terms.length === 0) {
+      terms.push(coeff < 0 ? `-${body}` : body);
+    } else {
+      terms.push(`${coeff < 0 ? ' - ' : ' + '}${body}`);
+    }
+  });
+  return terms.length > 0 ? terms.join('') : '0';
+}
+
+function delayPolyToLatexText(coeffs) {
+  if (!coeffs || coeffs.length === 0) return '0';
+  const terms = [];
+  coeffs.forEach((coeff, idx) => {
+    if (Math.abs(coeff) < 1e-12) return;
+    const absCoeff = Math.abs(coeff);
+    const coeffText = Number.isInteger(absCoeff) ? String(absCoeff) : String(parseFloat(absCoeff.toFixed(4)));
+    const delayPower = idx === 0 ? '' : (idx === 1 ? 'z^{-1}' : `z^{-${idx}}`);
+    const body = idx === 0
+      ? coeffText
+      : (absCoeff === 1 ? delayPower : `${coeffText}${delayPower}`);
+    if (terms.length === 0) {
+      terms.push(coeff < 0 ? `-${body}` : body);
+    } else {
+      terms.push(`${coeff < 0 ? ' - ' : ' + '}${body}`);
+    }
+  });
+  return terms.length > 0 ? terms.join('') : '0';
+}
+
+function renderTransferFunctionEquation(symbol, tf, note = '', variable = 's') {
   if (!tf) {
     return `
       <div class="equation-stack">
@@ -1687,10 +1727,14 @@ function renderTransferFunctionEquation(symbol, tf, note = '') {
       </div>
     `;
   }
-  const numEsc = escapeHtml(formatPolyText(tf.num));
-  const denEsc = escapeHtml(formatPolyText(tf.den));
-  const numTex = polyToLatex(tf.num, 's').replaceAll('"', '&quot;');
-  const denTex = polyToLatex(tf.den, 's').replaceAll('"', '&quot;');
+  const isDelayForm = tf instanceof DiscreteTransferFunction || variable === 'z^-1';
+  const displayVariable = variable === 'z^-1' ? 'z' : variable;
+  const numText = isDelayForm ? formatDelayPolyText(tf.num) : formatPolyText(tf.num, displayVariable);
+  const denText = isDelayForm ? formatDelayPolyText(tf.den) : formatPolyText(tf.den, displayVariable);
+  const numEsc = escapeHtml(numText);
+  const denEsc = escapeHtml(denText);
+  const numTex = (isDelayForm ? delayPolyToLatexText(tf.num) : polyToLatex(tf.num, displayVariable)).replaceAll('"', '&quot;');
+  const denTex = (isDelayForm ? delayPolyToLatexText(tf.den) : polyToLatex(tf.den, displayVariable)).replaceAll('"', '&quot;');
   const symbolEsc = escapeHtml(symbol);
   return `
     <div class="equation-stack">
@@ -3026,6 +3070,18 @@ function clearContinuousLoopStateForDiscretePlant() {
   state._lastSimResult = null;
 }
 
+function hasEffectiveClosedLoop() {
+  return Boolean(state.showClosedLoop && state.closedLoop);
+}
+
+function effectiveLoopMode() {
+  return hasEffectiveClosedLoop() ? 'closed_loop' : 'open_loop';
+}
+
+function effectiveLoopSystem() {
+  return hasEffectiveClosedLoop() ? state.closedLoop : state.plant;
+}
+
 function saveSessionToStorage() {
   try {
     localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(buildProjectPayload()));
@@ -3071,7 +3127,7 @@ function buildCodegenPayload() {
     domain: state.domain || 's',
     Ts: state.domain === 'z' ? (tf?.Ts ?? 0.1) : null,
     responseType: state.responseType || 'step',
-    closedLoop: !!state.showClosedLoop,
+    closedLoop: effectiveLoopMode() === 'closed_loop',
   };
 }
 
@@ -3111,6 +3167,9 @@ function updateSystemSetupCopy() {
 
   const controllerTf = state.controller?.toTransferFunction?.();
   const plantTf = state.plant;
+  const isDiscretePlant = state.domain === 'z' || plantTf instanceof DiscreteTransferFunction;
+  const plantVariable = isDiscretePlant ? 'z^-1' : 's';
+  const symbolVariable = isDiscretePlant ? 'z' : 's';
 
   if (state.systemType === 'ss') {
     let matrices = null;
@@ -3129,16 +3188,21 @@ function updateSystemSetupCopy() {
       : '<div class="equation-note">請完成 A / B / C / D 矩陣後顯示狀態方程。</div>';
     modelCopy.textContent = '直接輸入 A / B / C / D 矩陣；下方會同步顯示狀態方程與矩陣內容。';
   } else {
-    systemEquation.innerHTML = renderTransferFunctionEquation('G(s) =', plantTf, 'Plant transfer function');
+    systemEquation.innerHTML = renderTransferFunctionEquation(
+      `G(${symbolVariable}) =`,
+      plantTf,
+      isDiscretePlant ? 'Discrete plant transfer function in z^-1 form' : 'Plant transfer function',
+      plantVariable,
+    );
     modelCopy.textContent = '直接輸入 plant 的分子與分母係數；下方會同步更新成具體傳遞函數。';
   }
 
   // Update inline G(s) chip in Plant tab
   const chip = document.getElementById('plant-formula-chip');
   if (chip && plantTf) {
-    const numStr = formatPolyText(plantTf.num);
-    const denStr = formatPolyText(plantTf.den);
-    const varName = state.domain === 'z' ? 'z' : 's';
+    const numStr = isDiscretePlant ? formatDelayPolyText(plantTf.num) : formatPolyText(plantTf.num, symbolVariable);
+    const denStr = isDiscretePlant ? formatDelayPolyText(plantTf.den) : formatPolyText(plantTf.den, symbolVariable);
+    const varName = isDiscretePlant ? 'z' : 's';
     chip.textContent = `G(${varName}) = ( ${numStr} ) / ( ${denStr} )`;
     chip.style.display = 'block';
   } else if (chip) {
@@ -3152,13 +3216,13 @@ function updateSystemSetupCopy() {
     ? notchFilterDescription(state.notch.wn, state.notch.zetaZ, state.notch.zetaP)
     : compensatorDescription(state.compensator);
   controllerEquation.innerHTML = [
-    renderTransferFunctionEquation('C(s) =', controllerTf, `PID: Kp=${state.pidParams.Kp.toFixed(2)}, Ki=${state.pidParams.Ki.toFixed(2)}, Kd=${state.pidParams.Kd.toFixed(2)}`),
-    renderTransferFunctionEquation('Cc(s) =', compTfForDisplay, compDescForDisplay),
+    renderTransferFunctionEquation('C(s) =', controllerTf, `PID: Kp=${state.pidParams.Kp.toFixed(2)}, Ki=${state.pidParams.Ki.toFixed(2)}, Kd=${state.pidParams.Kd.toFixed(2)}`, 's'),
+    renderTransferFunctionEquation('Cc(s) =', compTfForDisplay, compDescForDisplay, 's'),
   ].join('');
 
   const loopParts = [
-    renderTransferFunctionEquation('L(s) =', state.openLoop, 'Open-loop transfer function'),
-    renderTransferFunctionEquation('T(s) =', state.closedLoop, state.showClosedLoop ? 'Active view: closed-loop response' : 'Active view: plant / open-loop analysis'),
+    renderTransferFunctionEquation(`L(${symbolVariable}) =`, state.openLoop, 'Open-loop transfer function', plantVariable),
+    renderTransferFunctionEquation(`T(${symbolVariable}) =`, state.closedLoop, effectiveLoopMode() === 'closed_loop' ? 'Active view: closed-loop response' : 'Active view: plant / open-loop analysis', plantVariable),
   ];
   loopEquation.innerHTML = loopParts.join('');
   // P14-03: render LaTeX fractions if KaTeX is loaded
@@ -3369,7 +3433,7 @@ function refreshAllCharts() {
     return;
   }
 
-  const sys = state.showClosedLoop ? (state.closedLoop || state.plant) : state.plant;
+  const sys = effectiveLoopSystem();
   renderActivePlot(sys);
   renderPlotWorkspaceCompanions(sys);
   renderComparisonChart();
@@ -3397,6 +3461,8 @@ function renderDiscreteStepChart(targetId = 'chart-active') {
   const layout = PLOTLY_LAYOUT_BASE();
   layout.xaxis = { ...layout.xaxis, title: 'Time (s)' };
   layout.yaxis = { ...layout.yaxis, title: 'Amplitude' };
+  layout.showlegend = targetId === 'chart-active';
+  if (layout.showlegend) layout.legend = compactLegend();
   const trace = {
     x: data.t,
     y: data.y,
@@ -3543,7 +3609,7 @@ function buildSimulationSnapshot(response, info, sys, targetId, options = {}) {
   return {
     source: options.source ?? 'local-js',
     responseType,
-    mode: options.mode ?? (state.showClosedLoop ? 'closed_loop' : 'open_loop'),
+    mode: options.mode ?? effectiveLoopMode(),
     domain: options.domain ?? state.domain,
     targetId,
     plant: sys?.toString?.() ?? '',
@@ -3608,7 +3674,7 @@ function updateActivePlotHeader(title, subtitle) {
 // STABILITY ADVISOR (CRITICAL FIX)
 // ============================================================
 function updateStabilityPanel() {
-  const sys = state.showClosedLoop ? (state.closedLoop || state.plant) : state.plant;
+  const sys = effectiveLoopSystem();
   const ol = state.openLoop || state.plant;
 
   const gmEl = document.getElementById('gm-value');
@@ -3683,7 +3749,7 @@ function updateStabilityPanel() {
       source: 'stability-panel',
       responseType: isDiscrete ? 'step' : state.responseType,
       domain: isDiscrete ? 'z' : state.domain,
-      mode: state.showClosedLoop ? 'closed_loop' : 'open_loop',
+      mode: effectiveLoopMode(),
       simulationConfig: isDiscrete
         ? {
           ...state.simulationConfig,
@@ -3804,7 +3870,7 @@ function updateStabilityPanel() {
 
 function buildAnalysisRequestPayload() {
   const simulation = {
-    mode: state.showClosedLoop ? 'closed_loop' : 'open_loop',
+    mode: effectiveLoopMode(),
     inputWaveform: state.responseType,
     ...state.simulationConfig,
   };
@@ -4074,7 +4140,7 @@ function renderTimeResponse(sys, targetId = 'chart-active') {
     y: resp.y,
     type: 'scatter',
     mode: 'lines',
-    name: state.showClosedLoop ? 'Closed-loop response' : 'Plant response',
+    name: effectiveLoopMode() === 'closed_loop' ? 'Closed-loop response' : 'Plant response',
     line: { color: getCSS('--color-accent'), width: 2 },
     fill: 'tozeroy',
     fillcolor: 'rgba(99, 102, 241, 0.05)',
@@ -4082,7 +4148,7 @@ function renderTimeResponse(sys, targetId = 'chart-active') {
 
   // Anti-windup overlay: only when step response and saturation is enabled
   const satEnabled = document.getElementById('enable-saturation')?.checked;
-  if (satEnabled && state.responseType === 'step' && state.plant && state.pidParams && state.showClosedLoop) {
+  if (satEnabled && state.responseType === 'step' && state.plant && state.pidParams && hasEffectiveClosedLoop()) {
     try {
       const uMin = parseFloat(document.getElementById('sat-umin')?.value ?? '-1');
       const uMax = parseFloat(document.getElementById('sat-umax')?.value ?? '1');
@@ -4113,7 +4179,7 @@ function renderTimeResponse(sys, targetId = 'chart-active') {
 
   // G: Derivative kick comparison — 1-DOF vs 2-DOF when enabled
   const dkickEnabled = document.getElementById('chk-dkick-compare')?.checked;
-  if (dkickEnabled && state.twoDof && state.responseType === 'step' && state.showClosedLoop && state.plant) {
+  if (dkickEnabled && state.twoDof && state.responseType === 'step' && hasEffectiveClosedLoop() && state.plant) {
     try {
       const p = state.pidParams;
       const ctrl1dof = new PIDController(p.Kp, p.Ki, p.Kd, p.N);
@@ -5161,7 +5227,7 @@ function renderComparisonChart() {
   });
 
   if (state.plant && state.comparisonSnapshots.length > 0) {
-    const sys = state.showClosedLoop ? (state.closedLoop || state.plant) : state.plant;
+    const sys = effectiveLoopSystem();
     const response = currentResponseData(sys);
     traces.push({
       x: response.t,
@@ -5284,7 +5350,7 @@ async function requestAIAdvice() {
   textDiv.innerHTML = '';
   btn.disabled = true;
 
-  const sys = state.showClosedLoop && state.closedLoop ? state.closedLoop : state.plant;
+  const sys = effectiveLoopSystem();
   const margins = stabilityMargins(state.openLoop || state.plant);
   const resp = currentResponseData(sys);
   const info = currentStepInfo(resp);
@@ -5310,7 +5376,8 @@ async function requestAIAdvice() {
       ...state.simulationConfig,
       inputWaveform: state.responseType,
       disturbanceWaveform: state.simulationConfig.disturbanceType,
-      closedLoop: state.showClosedLoop,
+      mode: effectiveLoopMode(),
+      closedLoop: effectiveLoopMode() === 'closed_loop',
     },
     metrics: {
       riseTime: fmtTime(info.riseTime),
@@ -5387,7 +5454,7 @@ function saveComparisonSnapshot() {
   // Both panels now read from the same code path; any residual discrepancy
   // can only come from the snapshot being taken with a different
   // simulationConfig (duration / sampleCount) than the current live one.
-  const sys = state.showClosedLoop ? (state.closedLoop || state.plant) : state.plant;
+  const sys = effectiveLoopSystem();
   const response = currentResponseData(sys);
   const info = currentStepInfo(response);
   const margins = stabilityMargins(state.openLoop || state.plant);
@@ -5395,7 +5462,7 @@ function saveComparisonSnapshot() {
     id: `snap-${Date.now()}`,
     name: `${waveformLabel(state.responseType)} | Kp ${state.pidParams.Kp.toFixed(2)} / Ki ${state.pidParams.Ki.toFixed(2)} / Kd ${state.pidParams.Kd.toFixed(2)} / ${state.compensator.mode}`,
     responseType: state.responseType,
-    mode: state.showClosedLoop ? 'closed_loop' : 'open_loop',
+    mode: effectiveLoopMode(),
     controller: { ...state.pidParams },
     controllerDesign: { ...state.controllerDesign },
     compensator: { ...state.compensator },
@@ -5689,7 +5756,7 @@ function applyProjectPayload(data) {
 
 function buildCurrentAnalysisExport() {
   if (!state.plant) return;
-  const sys = state.showClosedLoop ? (state.closedLoop || state.plant) : state.plant;
+  const sys = effectiveLoopSystem();
   const isDiscrete = state.domain === 'z' || sys instanceof DiscreteTransferFunction;
   const response = isDiscrete
     ? discreteStepResponse(sys, {
@@ -5709,7 +5776,7 @@ function buildCurrentAnalysisExport() {
     systemType: state.systemType,
     domain: state.domain,
     responseType: state.responseType,
-    mode: state.showClosedLoop ? 'closed_loop' : 'open_loop',
+    mode: effectiveLoopMode(),
     transferFunction: {
       numerator: state.plant.num,
       denominator: state.plant.den,
@@ -6848,7 +6915,7 @@ function _realPart(value) {
 
 function currentStabilityLabel() {
   if (!state.plant) return 'Pending';
-  const sys = state.showClosedLoop ? (state.closedLoop || state.plant) : state.plant;
+  const sys = effectiveLoopSystem();
   try {
     const poles = typeof sys?.poles === 'function' ? sys.poles() : [];
     if (!poles.length) return 'Unknown';
@@ -6883,7 +6950,7 @@ function updateGlobalStatusBar(message = 'Ready') {
     : `${(state.systemType || 'tf').toUpperCase()} · ${state.domain || 's'}-domain`;
   _statusSet('status-mode', String(state.systemMode || 'siso').toUpperCase());
   _statusSet('status-plant-type', plantKind);
-  _statusSet('status-loop-mode', state.showClosedLoop ? 'Closed loop' : 'Open loop');
+  _statusSet('status-loop-mode', effectiveLoopMode() === 'closed_loop' ? 'Closed loop' : 'Open loop');
   _statusSet('status-stability', currentStabilityLabel());
   _statusSet('status-theme', state.theme ? state.theme[0].toUpperCase() + state.theme.slice(1) : 'Dark');
   const live = document.getElementById('global-live-region');
@@ -6997,13 +7064,14 @@ function plotDiagnostics(id) {
 
 function controlStudioSmokeState() {
   const errorEl = document.getElementById('error-msg');
-  const sys = state.showClosedLoop ? (state.closedLoop || state.plant) : state.plant;
+  const sys = effectiveLoopSystem();
   const response = sys ? currentResponseData(sys) : null;
   return {
     systemType: state.systemType,
     responseType: state.responseType,
     activePlot: state.activePlot,
     showClosedLoop: state.showClosedLoop,
+    effectiveLoopMode: effectiveLoopMode(),
     plantFormula: state.plant?.toString?.() || null,
     closedLoopFormula: state.closedLoop?.toString?.() || null,
     controllerFormula: state.controller?.toTransferFunction?.().toString?.() || null,
@@ -7034,7 +7102,7 @@ function runControlStudioSmoke() {
   const diagnostics = controlStudioSmokeState();
   const failures = [];
   if (!diagnostics.plantFormula) failures.push('missing plant formula');
-  if (!diagnostics.closedLoopFormula) failures.push('missing closed-loop formula');
+  if (diagnostics.effectiveLoopMode === 'closed_loop' && !diagnostics.closedLoopFormula) failures.push('missing closed-loop formula');
   if (diagnostics.responseLength < 10) failures.push('response data has too few samples');
   requiredPlots.forEach((key) => {
     const plot = diagnostics.plots[key];
@@ -7042,9 +7110,9 @@ function runControlStudioSmoke() {
     if (plot.traces < 1) failures.push(`${key} plot has no traces`);
   });
   if (!diagnostics.plots.active.legend) failures.push('active plot legend is disabled');
-  if (!diagnostics.equationText.system.includes('G(s)')) failures.push('system equation is not rendered');
+  if (!/G\((s|z)\)/.test(diagnostics.equationText.system)) failures.push('system equation is not rendered');
   if (!diagnostics.equationText.controller.includes('C(s)')) failures.push('controller equation is not rendered');
-  if (!diagnostics.equationText.loop.includes('T(s)')) failures.push('closed-loop equation is not rendered');
+  if (!/T\((s|z)\)/.test(diagnostics.equationText.loop)) failures.push('closed-loop equation is not rendered');
   return { ok: failures.length === 0, failures, diagnostics };
 }
 

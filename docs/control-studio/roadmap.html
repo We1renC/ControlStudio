@@ -87,7 +87,7 @@ del{color:var(--muted)}
 
 <blockquote>
 <p>Last updated: 2026-06-19</p>
-<p>Current committed baseline: <code>fix(ui): harden discrete snapshot refresh</code></p>
+<p>Current committed baseline: <code>fix(ui): harden effective loop and DTF formulas</code></p>
 <p>Scope: this is the canonical execution roadmap for ControlStudio implementation status.</p>
 <p>Do not use this file for product vision, proof derivations, or handoff notes; see the document workflow below.</p>
 </blockquote>
@@ -258,6 +258,8 @@ del{color:var(--muted)}
 </thead><tbody>
 <tr><td><strong>P71</strong></td><td><strong>UI discrete domain switch contract: DTF updates cannot reuse s-domain loop state</strong></td><td>Done</td><td><code>verify_ui_simulation_snapshot_contract.mjs</code></td></tr>
 </thead><tbody>
+<tr><td><strong>P72</strong></td><td><strong>UI effective loop + DTF formula contract: runtime mode and z^-1 display cannot drift</strong></td><td>Done</td><td><code>verify_ui_simulation_snapshot_contract.mjs</code>, <code>verify_ui_formula_contract.mjs</code></td></tr>
+</thead><tbody>
 <tr><td><strong>P34-01</strong></td><td><strong>Module split: P62-P65 → js/ui/ sub-modules</strong></td><td>Done</td><td>Verify scripts updated to check module files</td></tr>
 </thead><tbody>
 <tr><td><strong>J1-3</strong></td><td><strong>Root Locus geometric annotations (damping lines, ωn arcs, Ku labels)</strong></td><td>Done</td><td><code>verify_j13_rlocus_geo.mjs</code></td></tr>
@@ -419,6 +421,8 @@ del{color:var(--muted)}
 
 <p><strong>UI discrete domain switch closure:</strong> DTF/z-domain plant updates now clear incompatible continuous controller, open-loop, closed-loop, 2-DOF, stability, and simulation snapshots before refreshing charts. The DTF update path then runs <code>updateStabilityPanel()</code> so z-domain analysis publishes a fresh discrete step snapshot even when Bode or pole-zero plots are active. Discrete step companion charts no longer overwrite the active plot header, so a Bode (DTFT) workspace cannot be mislabeled as a time-response view.</p>
 
+<p><strong>UI effective loop / DTF formula closure:</strong> Runtime UI state now distinguishes the closed-loop toggle preference from the effective model actually available. Status bar, simulation snapshots, codegen payloads, API analysis payloads, comparison/export paths, AI Advisor requests, and smoke diagnostics report <code>closed_loop</code> only when an actual <code>state.closedLoop</code> model exists; DTF/z-domain updates therefore remain <code>open_loop</code> after clearing incompatible continuous loop state. DTF formula rendering now respects the <code>DiscreteTransferFunction</code> <code>z^-1</code> convention: Plant and loop equations display <code>G(z)</code>, <code>L(z)</code>, and <code>T(z)</code> with delay-polynomial terms such as <code>1 - 0.75z^-1</code> instead of mislabeling them as <code>G(s)</code> or high-order <code>z</code> polynomials. Active discrete step plots also show their legend, and smoke diagnostics no longer require a closed-loop formula in effective open-loop mode.</p>
+
 <p><strong>DC gain origin-cancellation closure:</strong> continuous TF and ZPK <code>dcGain()</code> now cancel removable origin pole-zero factors before evaluating the low-frequency limit. Systems such as <code>s/s</code> report finite unity DC gain, extra origin zeros report zero DC gain, and extra origin poles preserve signed infinite gain. This prevents RGA, static decoupler, low-frequency design, and robustness summaries from treating removable integrators as real steady-state singularities.</p>
 
 <p><strong>Discrete DC gain unit-root closure:</strong> discrete TF <code>dcGain()</code> now evaluates the low-frequency limit at <code>q=z^-1=1</code> by cancelling removable unit-circle factors. Systems such as <code>(1-z^-1)/(1-z^-1)</code> report finite unity DC gain, extra unit-circle zeros report zero DC gain, and extra unit-circle poles report infinite DC gain. This prevents z-domain step final-value checks, C2D DC preservation, and discrete controller comparisons from treating removable unit roots as true steady-state singularities.</p>
@@ -451,7 +455,7 @@ del{color:var(--muted)}
 
 <h2 id="verification-suite-status-2026-06-19">Verification Suite Status (2026-06-19)</h2>
 
-<p><strong>114/114 scripts pass</strong> — run via <code>bash scripts/run_all_verify.sh</code> or <code>npm run verify:all</code>. Fixture/API contract coverage is now <strong>10/10 cases</strong>, including open-loop controller cascade response, non-step waveform metrics gating, non-unit step amplitude reference metrics, zero-final-change step metrics rejection, and divergent/unfinished step metrics rejection. UI waveform routing is covered by <code>verify_ui_waveform_contract.mjs</code>; UI stability snapshot and GM-field normalization are covered by <code>verify_ui_stability_snapshot_contract.mjs</code>; active simulation state, HIL/export consistency, analysis freshness, and discrete domain-switch freshness are covered by <code>verify_ui_simulation_snapshot_contract.mjs</code>.</p>
+<p><strong>115/115 scripts pass</strong> — run via <code>bash scripts/run_all_verify.sh</code> or <code>npm run verify:all</code>. Fixture/API contract coverage is now <strong>10/10 cases</strong>, including open-loop controller cascade response, non-step waveform metrics gating, non-unit step amplitude reference metrics, zero-final-change step metrics rejection, and divergent/unfinished step metrics rejection. UI waveform routing is covered by <code>verify_ui_waveform_contract.mjs</code>; UI stability snapshot and GM-field normalization are covered by <code>verify_ui_stability_snapshot_contract.mjs</code>; active simulation state, HIL/export consistency, analysis freshness, discrete domain-switch freshness, and effective loop-mode routing are covered by <code>verify_ui_simulation_snapshot_contract.mjs</code>; DTF <code>z^-1</code> formula display, active discrete legend, and smoke equation labels are covered by <code>verify_ui_formula_contract.mjs</code>.</p>
 
 <table><thead>
 <tr><th>Group</th><th>Scripts</th><th>Pass</th></tr>
@@ -460,7 +464,7 @@ del{color:var(--muted)}
 </thead><tbody>
 <tr><td>Phase 9/10/11 foundations</td><td>13</td><td>13</td></tr>
 </thead><tbody>
-<tr><td>Phase 14–71 advanced control / UI</td><td>72</td><td>72</td></tr>
+<tr><td>Phase 14–72 advanced control / UI</td><td>73</td><td>73</td></tr>
 </thead><tbody>
 <tr><td>Math audit fixes</td><td>1</td><td>1</td></tr>
 </thead><tbody>

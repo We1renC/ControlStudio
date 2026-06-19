@@ -8,6 +8,7 @@
  * - HIL export must receive an explicit input trace, not a stale unit-step fallback.
  * - Discrete plant updates must clear incompatible continuous loop state and
  *   refresh the analysis snapshot even when the active plot is not time-domain.
+ * - Runtime mode labels must describe the effective model, not only the closed-loop toggle.
  */
 
 import { readFileSync } from 'node:fs';
@@ -55,7 +56,14 @@ const stabilitySection = sectionBetween(appJs, 'function updateStabilityPanel', 
 const timeResponseSection = sectionBetween(appJs, 'function renderTimeResponse', 'function renderBodePlot');
 const discreteStepSection = sectionBetween(appJs, 'function renderDiscreteStepChart', 'function updateDomainUI');
 const discreteLoopClearSection = sectionBetween(appJs, 'function clearContinuousLoopStateForDiscretePlant', 'function saveSessionToStorage');
+const effectiveLoopModeSection = sectionBetween(appJs, 'function hasEffectiveClosedLoop', 'function saveSessionToStorage');
 const updateSystemSection = sectionBetween(appJs, 'function updateSystem', 'function setFieldError');
+const codegenSection = sectionBetween(appJs, 'function buildCodegenPayload', 'function renderAllLatexFractions');
+const apiPayloadSection = sectionBetween(appJs, 'function buildAnalysisRequestPayload', 'function scheduleApiAnalysis');
+const comparisonSnapshotSection = sectionBetween(appJs, 'function saveComparisonSnapshot', 'function clearSnapshots');
+const analysisExportSection = sectionBetween(appJs, 'function buildCurrentAnalysisExport', 'function exportCurrentResult');
+const aiAdvisorSection = sectionBetween(appJs, 'async function requestAIAdvice', 'function renderMarkdown');
+const statusSection = sectionBetween(appJs, 'function updateGlobalStatusBar', 'function _identityMatrixText');
 const hilSection = sectionBetween(appJs, 'function exportHILCSV', 'function initHILExport');
 
 console.log('\n▶ UI simulation snapshot contract');
@@ -96,6 +104,13 @@ assert(
 );
 
 assert(
+  effectiveLoopModeSection.includes('return Boolean(state.showClosedLoop && state.closedLoop);') &&
+    effectiveLoopModeSection.includes("return hasEffectiveClosedLoop() ? 'closed_loop' : 'open_loop';") &&
+    effectiveLoopModeSection.includes('return hasEffectiveClosedLoop() ? state.closedLoop : state.plant;'),
+  'effective loop helpers require an actual closed-loop model before reporting closed_loop',
+);
+
+assert(
   publisherSection.includes("if (targetId !== 'chart-active' && options.allowNonChartSnapshot !== true) return;") &&
     publisherSection.includes('state._lastSimResult = buildSimulationSnapshot(response, info, sys, targetId, options);') &&
     publisherSection.includes("document.dispatchEvent(new CustomEvent('simulation:done', { detail: state._lastSimResult }));"),
@@ -109,15 +124,18 @@ assert(
     stabilitySection.includes("source: 'stability-panel'") &&
     stabilitySection.includes("responseType: isDiscrete ? 'step' : state.responseType") &&
     stabilitySection.includes("domain: isDiscrete ? 'z' : state.domain") &&
+    stabilitySection.includes('mode: effectiveLoopMode()') &&
     stabilitySection.includes('stepInfo: info'),
   'stability/metrics refresh publishes current simulation snapshot for non-time active plots',
 );
 
 assert(
   timeResponseSection.includes('const resp = currentResponseData(sys);') &&
+    timeResponseSection.includes("name: effectiveLoopMode() === 'closed_loop' ? 'Closed-loop response' : 'Plant response'") &&
+    timeResponseSection.includes('hasEffectiveClosedLoop()') &&
     timeResponseSection.includes('Plotly.react(targetId, traces, layout, { responsive: true, displayModeBar: false });') &&
     timeResponseSection.includes('publishSimulationSnapshot(resp, targetId, sys);'),
-  'continuous active time-response publishes plotted response snapshot',
+  'continuous active time-response publishes plotted response snapshot with effective loop labels',
 );
 
 assert(
@@ -145,6 +163,21 @@ assert(
     updateSystemSection.includes('refreshAllCharts();') &&
     updateSystemSection.includes('updateStabilityPanel();'),
   'discrete plant updates clear continuous loop state and refresh analysis snapshot',
+);
+
+assert(
+  snapshotSection.includes('mode: options.mode ?? effectiveLoopMode()') &&
+    codegenSection.includes("closedLoop: effectiveLoopMode() === 'closed_loop'") &&
+    apiPayloadSection.includes('mode: effectiveLoopMode()') &&
+    comparisonSnapshotSection.includes('const sys = effectiveLoopSystem();') &&
+    comparisonSnapshotSection.includes('mode: effectiveLoopMode()') &&
+    analysisExportSection.includes('const sys = effectiveLoopSystem();') &&
+    analysisExportSection.includes('mode: effectiveLoopMode()') &&
+    aiAdvisorSection.includes('const sys = effectiveLoopSystem();') &&
+    aiAdvisorSection.includes('mode: effectiveLoopMode()') &&
+    aiAdvisorSection.includes("closedLoop: effectiveLoopMode() === 'closed_loop'") &&
+    statusSection.includes("effectiveLoopMode() === 'closed_loop' ? 'Closed loop' : 'Open loop'"),
+  'runtime exports, API payloads, advisor requests, snapshots, and status bar use effective loop mode',
 );
 
 assert(

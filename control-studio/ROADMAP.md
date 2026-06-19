@@ -1,7 +1,7 @@
 # ControlStudio Development Roadmap
 
 > Last updated: 2026-06-19
-> Current committed baseline: `fix(ui): harden discrete snapshot refresh`
+> Current committed baseline: `fix(ui): harden effective loop and DTF formulas`
 > Scope: this is the canonical execution roadmap for ControlStudio implementation status.
 > Do not use this file for product vision, proof derivations, or handoff notes; see the document workflow below.
 
@@ -116,6 +116,7 @@ Before starting any new functional work that is not already a finished P-phase, 
 | **P69** | **UI simulation snapshot contract: active response state + HIL/export consistency** | Done | `verify_ui_simulation_snapshot_contract.mjs` |
 | **P70** | **UI analysis snapshot freshness: non-time plots cannot leave stale HIL/export state** | Done | `verify_ui_simulation_snapshot_contract.mjs` |
 | **P71** | **UI discrete domain switch contract: DTF updates cannot reuse s-domain loop state** | Done | `verify_ui_simulation_snapshot_contract.mjs` |
+| **P72** | **UI effective loop + DTF formula contract: runtime mode and z^-1 display cannot drift** | Done | `verify_ui_simulation_snapshot_contract.mjs`, `verify_ui_formula_contract.mjs` |
 | **P34-01** | **Module split: P62-P65 → js/ui/ sub-modules** | Done | Verify scripts updated to check module files |
 | **J1-3** | **Root Locus geometric annotations (damping lines, ωn arcs, Ku labels)** | Done | `verify_j13_rlocus_geo.mjs` |
 | **H1-4** | **Sidebar Quick Pin (non-emoji section pin, localStorage, max 3, float to top)** | Done | `verify_h14_sidebar_pin.mjs` |
@@ -214,6 +215,8 @@ Per `docs/src/control-studio/functional-roadmap.html`. Tier A-J deterministic ba
 
 **UI discrete domain switch closure:** DTF/z-domain plant updates now clear incompatible continuous controller, open-loop, closed-loop, 2-DOF, stability, and simulation snapshots before refreshing charts. The DTF update path then runs `updateStabilityPanel()` so z-domain analysis publishes a fresh discrete step snapshot even when Bode or pole-zero plots are active. Discrete step companion charts no longer overwrite the active plot header, so a Bode (DTFT) workspace cannot be mislabeled as a time-response view.
 
+**UI effective loop / DTF formula closure:** Runtime UI state now distinguishes the closed-loop toggle preference from the effective model actually available. Status bar, simulation snapshots, codegen payloads, API analysis payloads, comparison/export paths, AI Advisor requests, and smoke diagnostics report `closed_loop` only when an actual `state.closedLoop` model exists; DTF/z-domain updates therefore remain `open_loop` after clearing incompatible continuous loop state. DTF formula rendering now respects the `DiscreteTransferFunction` `z^-1` convention: Plant and loop equations display `G(z)`, `L(z)`, and `T(z)` with delay-polynomial terms such as `1 - 0.75z^-1` instead of mislabeling them as `G(s)` or high-order `z` polynomials. Active discrete step plots also show their legend, and smoke diagnostics no longer require a closed-loop formula in effective open-loop mode.
+
 **DC gain origin-cancellation closure:** continuous TF and ZPK `dcGain()` now cancel removable origin pole-zero factors before evaluating the low-frequency limit. Systems such as `s/s` report finite unity DC gain, extra origin zeros report zero DC gain, and extra origin poles preserve signed infinite gain. This prevents RGA, static decoupler, low-frequency design, and robustness summaries from treating removable integrators as real steady-state singularities.
 
 **Discrete DC gain unit-root closure:** discrete TF `dcGain()` now evaluates the low-frequency limit at `q=z^-1=1` by cancelling removable unit-circle factors. Systems such as `(1-z^-1)/(1-z^-1)` report finite unity DC gain, extra unit-circle zeros report zero DC gain, and extra unit-circle poles report infinite DC gain. This prevents z-domain step final-value checks, C2D DC preservation, and discrete controller comparisons from treating removable unit roots as true steady-state singularities.
@@ -246,13 +249,13 @@ Per `docs/src/control-studio/functional-roadmap.html`. Tier A-J deterministic ba
 
 ## Verification Suite Status (2026-06-19)
 
-**114/114 scripts pass** — run via `bash scripts/run_all_verify.sh` or `npm run verify:all` (was 82/82 before Functional Roadmap additions). Fixture/API contract coverage is now **10/10 cases**, including open-loop controller cascade response, non-step waveform metrics gating, non-unit step amplitude reference metrics, zero-final-change step metrics rejection, and divergent/unfinished step metrics rejection. UI waveform routing is covered by `verify_ui_waveform_contract.mjs`; UI stability snapshot and GM-field normalization are covered by `verify_ui_stability_snapshot_contract.mjs`; active simulation state, HIL/export consistency, analysis freshness, and discrete domain-switch freshness are covered by `verify_ui_simulation_snapshot_contract.mjs`.
+**115/115 scripts pass** — run via `bash scripts/run_all_verify.sh` or `npm run verify:all` (was 82/82 before Functional Roadmap additions). Fixture/API contract coverage is now **10/10 cases**, including open-loop controller cascade response, non-step waveform metrics gating, non-unit step amplitude reference metrics, zero-final-change step metrics rejection, and divergent/unfinished step metrics rejection. UI waveform routing is covered by `verify_ui_waveform_contract.mjs`; UI stability snapshot and GM-field normalization are covered by `verify_ui_stability_snapshot_contract.mjs`; active simulation state, HIL/export consistency, analysis freshness, discrete domain-switch freshness, and effective loop-mode routing are covered by `verify_ui_simulation_snapshot_contract.mjs`; DTF `z^-1` formula display, active discrete legend, and smoke equation labels are covered by `verify_ui_formula_contract.mjs`.
 
 | Group | Scripts | Pass |
 | --- | --- | --- |
 | Fixture & API contracts | 2 | 2 |
 | Phase 9/10/11 foundations | 13 | 13 |
-| Phase 14–71 advanced control / UI | 72 | 72 |
+| Phase 14–72 advanced control / UI | 73 | 73 |
 | Math audit fixes | 1 | 1 |
 | Functional Roadmap A-J | 22 | 22 |
 | General math & PID | 4 | 4 |
@@ -540,4 +543,4 @@ Three fixes applied after full math-core read audit:
 | A2 | `js/math/matrix.js` — `matDet()` | Added `_matDetLU()` O(n³) LU fallback for n > 6; Sarrus closed-form for n=3. Eliminates O(n!) cofactor recursion for large matrices. |
 | A3 | `js/analysis/root-locus.js` — `sortRootLocusBranches()` | Replaced greedy nearest-neighbor with **Jonker-Volgenant O(n³) Hungarian** optimal bipartite assignment (`_hungarianAssign`). Eliminates branch-swap artefacts at real-axis crossings. |
 
-Verify baseline: **114/114** (`run_all_verify.sh` / `npm run verify:all`). Immediate non-paused control roadmap items are complete at the deterministic baseline level; future work should be scenario-driven or target explicit research-grade backend replacements.
+Verify baseline: **115/115** (`run_all_verify.sh` / `npm run verify:all`). Immediate non-paused control roadmap items are complete at the deterministic baseline level; future work should be scenario-driven or target explicit research-grade backend replacements.
