@@ -2,6 +2,51 @@
 
 此文件記錄用 ControlStudio 進行實際控制情境設計的案例。後續 agent 可用這些案例檢查產品流程、數學核心與 UI/CLI 改善方向。
 
+## Scenario 7: Discrete Plant Sample-Time Export And Project Persistence
+
+Date: 2026-06-19
+
+### Control Situation
+
+驗證 z-domain plant 的 sample time 是否在實際 UI 工作流中被視為控制模型的一部分，而不是只存在於輸入欄位或圖表標題。此情境特別針對 code generation、analysis export、autosave 與 local multi-project save/load，避免非預設 sample time 被靜默退回 `Ts=0.1`。
+
+### Model
+
+```text
+G(z) = (0.25 + 0.1z^-1) / (1 - 1.2z^-1 + 0.35z^-2)
+Ts = 0.25 s
+```
+
+### ControlStudio Workflow
+
+1. 開啟 `http://127.0.0.1:8765`。
+2. 切換到 `Discrete TF G(z)`。
+3. 輸入：
+   - Numerator: `0.25, 0.1`
+   - Denominator: `1, -1.2, 0.35`
+   - Sample Time: `0.25`
+4. 點擊 `Update Plant`。
+5. 檢查 MATLAB code preview。
+6. 儲存 local project，切回 continuous TF，再載入剛儲存的 project。
+7. 再次檢查 plant formula 與 MATLAB code preview。
+
+### Expected Assertions
+
+- UI state remains `systemType = dtf` after update and reload.
+- Autosave/project payload includes `domain = z` and `sampleTime = 0.25`.
+- `discreteTransferFunction.sampleTime = "0.25"` is preserved.
+- MATLAB preview contains `Ts = 0.25;`.
+- MATLAB preview does not contain `Ts = 0.1;`.
+- Reloaded project still displays:
+
+```text
+(0.25 + 0.1z^-1) / (1 - 1.2z^-1 + 0.35z^-2)
+```
+
+### Observed Result
+
+Browser walkthrough passed. The local multi-project manager now serializes through the canonical project payload and reloads through `applyProjectPayload()`, so DTF models reload as proper `DiscreteTransferFunction` runtime state instead of plain JSON objects.
+
 ## Scenario 1: Precision Servo Stage Position Control
 
 Date: 2026-05-17

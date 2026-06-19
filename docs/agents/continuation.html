@@ -96,7 +96,7 @@ del{color:var(--muted)}
 <li>控制系統目前同步基線：</li>
 <ul>
 <li>Branch: <code>main</code></li>
-<li>Latest active line: <code>fix(ui): harden effective loop and DTF formulas</code></li>
+<li>Latest active line: <code>fix(ui): preserve DTF sample time in exports</code></li>
 <li>Full phase audit checkpoints:</li>
 <ul>
 <li><code>7a318b3 fix(control): harden phase 7-9 theory diagnostics</code></li>
@@ -155,6 +155,7 @@ del{color:var(--muted)}
 <li>2026-06-19 接續完成 UI analysis snapshot freshness contract：<code>updateStabilityPanel()</code> / time-metric refresh 也會以 explicit <code>allowNonChartSnapshot</code> 發布目前 response snapshot；使用者停在 Bode / Nyquist / Nichols / Root Locus / Pole-Zero 等非時域圖時調整 plant、controller 或 simulation config，不會讓 HIL CSV、Result Summary 或 Warnings Panel 沿用舊 <code>_lastSimResult</code>。<code>verify_ui_simulation_snapshot_contract.mjs</code> 已擴充檢查 stability-panel non-chart source gate。</li>
 <li>2026-06-19 接續完成 UI discrete domain-switch snapshot/header contract：DTF/z-domain plant update 會清除不相容的 continuous controller / open-loop / closed-loop / 2-DOF / stability / simulation state，並在 refresh 後跑 <code>updateStabilityPanel()</code> 發布新的離散 step snapshot；Bode / Pole-Zero active 時 HIL CSV 不再沿用舊 s-domain response；companion discrete step chart 不會把 active header 從 Bode (DTFT) 誤改成 Discrete Step Response。browser walkthrough 已驗證 continuous Bode → DTF Bode 後 HIL rows 1000→500、final y 約 1→4、header/status 維持 Bode (DTFT)。</li>
 <li>2026-06-19 接續完成 UI effective loop-mode / DTF formula display contract：status bar、simulation snapshots、codegen payload、API analysis payload、comparison/export、AI Advisor 與 smoke state 只有在實際存在 <code>state.closedLoop</code> 時才回報 <code>closed_loop</code>，避免 closed-loop toggle preference 被誤當有效閉迴路模型；DTF/z-domain 公式顯示改為 <code>G(z)</code> / <code>L(z)</code> / <code>T(z)</code> 與 <code>z^-1</code> delay-polynomial convention，active discrete step plot 顯示 legend，open-loop smoke 不再要求 closed-loop formula。新增 <code>verify_ui_formula_contract.mjs</code> 並納入 <code>run_all_verify.sh</code>；browser walkthrough 已驗證 DTF <code>G(z) = ( 1 ) / ( 1 - 0.75z^-1 )</code>、toggle checked 但 status/smoke 為 <code>open_loop</code>、active legend 為 true。</li>
+<li>2026-06-19 接續完成 UI DTF sample-time codegen/export/project persistence contract：<code>buildCodegenPayload()</code> 改讀 <code>DiscreteTransferFunction.sampleTime</code>，MATLAB/Python preview/export 不再因讀不存在的 <code>tf.Ts</code> 而把非預設離散 plant 靜默輸出成 <code>Ts=0.1</code>；analysis JSON / Markdown export、autosave/project file 與 local multi-project save/load 皆保留 <code>systemType=dtf</code>、<code>domain=z</code>、DTF numerator/denominator 與 sample time。project manager 現在走 canonical <code>buildProjectPayload()</code> / <code>applyProjectPayload()</code>，並將舊版 plain <code>{num, den, sampleTime}</code> project 轉回 canonical payload。<code>verify_ui_formula_contract.mjs</code> 已擴充 coverage；browser walkthrough 已驗證 DTF <code>Ts=0.25</code> code preview/autosave/local project save-load 都維持 <code>Ts = 0.25</code>。</li>
 <li>2026-06-17 接續完成 matched-z removable-origin gain normalization hardening：<code>c2dMatchedZ()</code> 現在先保留 continuous leading gain，再用 Discrete TF <code>dcGain()</code> low-frequency limit 做 DC normalization；<code>2s/s</code> 這類 removable origin pole-zero 會映射為 removable <code>z=1</code> pair 並保留 DC gain 2，不再因 raw coefficient sums 為 0 而退回 unity gain。</li>
 <li>2026-06-17 接續完成 matched-z properness hardening：<code>c2dMatchedZ()</code> 現在與 Tustin / ZOH / impulse-invariant 一致拒絕 improper continuous plant；<code>(s+1)^2/(s+1)</code> 這類 derivative-like 原始模型不再被靜默映射成看似 stable 的 discrete TF。</li>
 <li>2026-06-17 接續完成 impulse-invariant repeated-pole hardening：<code>c2dImpulseInvariant()</code> 現在明確拒絕 repeated continuous poles；<code>1/(s+1)^2</code> 不再被 residue loop 靜默跳過成 zero DTF，改要求使用 ZOH 或 Tustin。</li>
@@ -322,7 +323,7 @@ del{color:var(--muted)}
 <li>Skill plan：<code>docs/src/control-studio/skills.md</code> 已規劃 <code>control-studio-robust-validator</code>、<code>control-studio-system-auditor</code>、<code>control-studio-benchmark-author</code>、<code>control-studio-mpc-designer</code>、<code>control-studio-sysid-planner</code> 等候選 skill。</li>
 </ul>
 <li>Block Diagram expansion：Paused</li>
-<li>Phase 0 ~ Phase 72 與 Functional Roadmap Tier A-J 已完成文件進度對齊。後續若修改數值核心、API 分析輸出或 UI runtime state contract，至少依 roadmap 對應 phase 重跑 targeted verify、<code>npm run verify:all</code>、<code>node test_control.js</code>、<code>node control-studio/scripts/control_regression_dashboard.mjs</code>；目前 full suite 基線為 <strong>115/115 scripts pass</strong>，fixture/API contract 為 <strong>10/10 cases</strong>。</li>
+<li>Phase 0 ~ Phase 73 與 Functional Roadmap Tier A-J 已完成文件進度對齊。後續若修改數值核心、API 分析輸出或 UI runtime state contract，至少依 roadmap 對應 phase 重跑 targeted verify、<code>npm run verify:all</code>、<code>node test_control.js</code>、<code>node control-studio/scripts/control_regression_dashboard.mjs</code>；目前 full suite 基線為 <strong>115/115 scripts pass</strong>，fixture/API contract 為 <strong>10/10 cases</strong>。</li>
 </ul>
 <li>已建立 symlink：</li>
 <ul>

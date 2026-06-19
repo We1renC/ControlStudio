@@ -3082,6 +3082,11 @@ function effectiveLoopSystem() {
   return hasEffectiveClosedLoop() ? state.closedLoop : state.plant;
 }
 
+function currentDiscreteSampleTime(tf = state.plant) {
+  const sampleTime = Number(tf?.sampleTime ?? state.sampleTime);
+  return Number.isFinite(sampleTime) && sampleTime > 0 ? sampleTime : null;
+}
+
 function saveSessionToStorage() {
   try {
     localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(buildProjectPayload()));
@@ -3115,8 +3120,9 @@ function buildCodegenPayload() {
   const tf = state.plant;
   const num = tf?.num ? Array.from(tf.num).map((v) => Number(v.toFixed(6))) : null;
   const den = tf?.den ? Array.from(tf.den).map((v) => Number(v.toFixed(6))) : null;
+  const Ts = state.domain === 'z' ? currentDiscreteSampleTime(tf) : null;
   return {
-    plant: tf ? { num, den } : null,
+    plant: tf ? { num, den, sampleTime: Ts } : null,
     controller: {
       Kp: state.pidParams.Kp,
       Ki: state.pidParams.Ki,
@@ -3125,7 +3131,7 @@ function buildCodegenPayload() {
     },
     delay: state.plantDelay ? { T: state.plantDelay.T, order: state.plantDelay.order } : null,
     domain: state.domain || 's',
-    Ts: state.domain === 'z' ? (tf?.Ts ?? 0.1) : null,
+    Ts,
     responseType: state.responseType || 'step',
     closedLoop: effectiveLoopMode() === 'closed_loop',
   };
@@ -5637,10 +5643,13 @@ async function loadProjectFile(event) {
 
 function buildProjectPayload() {
   captureStateSpaceInputs();
+  const dtfSampleTime = state.domain === 'z' ? currentDiscreteSampleTime(state.plant) : null;
   return {
-    version: 1,
+    version: 2,
     savedAt: new Date().toISOString(),
     systemType: state.systemType,
+    domain: state.domain,
+    sampleTime: dtfSampleTime,
     responseType: state.responseType,
     showClosedLoop: state.showClosedLoop,
     activePlot: state.activePlot,
@@ -5648,6 +5657,11 @@ function buildProjectPayload() {
     transferFunction: {
       numerator: document.getElementById('tf-num')?.value ?? '',
       denominator: document.getElementById('tf-den')?.value ?? '',
+    },
+    discreteTransferFunction: {
+      numerator: document.getElementById('dtf-num')?.value ?? '',
+      denominator: document.getElementById('dtf-den')?.value ?? '',
+      sampleTime: document.getElementById('dtf-ts')?.value ?? (dtfSampleTime ?? state.sampleTime),
     },
     stateSpace: { ...state.ssModel },
     controller: { ...state.pidParams },
@@ -5664,7 +5678,7 @@ function buildProjectPayload() {
 function applyProjectPayload(data) {
   if (!data || typeof data !== 'object') throw new Error('專案格式無效');
 
-  state.systemType = data.systemType === 'ss' ? 'ss' : 'tf';
+  state.systemType = data.systemType === 'ss' ? 'ss' : (data.systemType === 'dtf' || data.domain === 'z' ? 'dtf' : 'tf');
   state.responseType = data.responseType || 'step';
   state.showClosedLoop = Boolean(data.showClosedLoop);
   state.analysisSource = data.analysisSource || 'auto';
@@ -5673,6 +5687,7 @@ function applyProjectPayload(data) {
   state.view = data.view || 'dashboard';
 
   const tf = data.transferFunction || {};
+  const dtf = data.discreteTransferFunction || {};
   const ss = data.stateSpace || {};
   const controller = data.controller || {};
   const controllerDesign = data.controllerDesign || {};
@@ -5681,6 +5696,9 @@ function applyProjectPayload(data) {
 
   document.getElementById('tf-num').value = tf.numerator || '1';
   document.getElementById('tf-den').value = tf.denominator || '1, 3, 2';
+  document.getElementById('dtf-num').value = dtf.numerator || (state.systemType === 'dtf' ? (tf.numerator || '0.1') : '0.1');
+  document.getElementById('dtf-den').value = dtf.denominator || (state.systemType === 'dtf' ? (tf.denominator || '1, -0.9') : '1, -0.9');
+  document.getElementById('dtf-ts').value = dtf.sampleTime ?? data.sampleTime ?? data.Ts ?? state.sampleTime;
   document.getElementById('ss-a').value = ss.A || state.ssModel.A;
   document.getElementById('ss-b').value = ss.B || state.ssModel.B;
   document.getElementById('ss-c').value = ss.C || state.ssModel.C;
@@ -5758,6 +5776,8 @@ function buildCurrentAnalysisExport() {
   if (!state.plant) return;
   const sys = effectiveLoopSystem();
   const isDiscrete = state.domain === 'z' || sys instanceof DiscreteTransferFunction;
+  const plantSampleTime = state.domain === 'z' ? currentDiscreteSampleTime(state.plant) : null;
+  const effectiveSampleTime = isDiscrete ? currentDiscreteSampleTime(sys) : null;
   const response = isDiscrete
     ? discreteStepResponse(sys, {
       sampleCount: Math.min(state.simulationConfig.sampleCount || 200, 500),
@@ -5775,12 +5795,14 @@ function buildCurrentAnalysisExport() {
     exportedAt: new Date().toISOString(),
     systemType: state.systemType,
     domain: state.domain,
+    sampleTime: effectiveSampleTime,
     responseType: state.responseType,
     mode: effectiveLoopMode(),
     transferFunction: {
       numerator: state.plant.num,
       denominator: state.plant.den,
       formula: state.plant.toString(),
+      sampleTime: plantSampleTime,
     },
     controller: { ...state.pidParams, compensator: { ...state.compensator } },
     controllerDesign: { ...state.controllerDesign },
@@ -5832,6 +5854,7 @@ function renderMarkdownReport(payload) {
     '',
     `- Domain: ${payload.domain}-domain`,
     `- System type: ${payload.systemType}`,
+    ...(payload.sampleTime ? [`- Sample time: ${payload.sampleTime}s`] : []),
     `- Mode: ${payload.mode}`,
     `- Plant: ${payload.transferFunction?.formula || 'n/a'}`,
     `- Controller: Kp=${fmtNum(payload.controller?.Kp, 4)}, Ki=${fmtNum(payload.controller?.Ki, 4)}, Kd=${fmtNum(payload.controller?.Kd, 4)}`,
@@ -13093,15 +13116,11 @@ const PROJECTS_KEY = 'cs-projects';
 
 function _serializeProject() {
   return {
-    version:    '1.0',
-    created:    new Date().toISOString(),
-    plant:      state.plant      ?? null,
-    controller: state.controller ?? null,
-    specs:      state.specs      ?? null,
-    notes:      JSON.parse(localStorage.getItem('cs-notes') ?? '[]'),
-    history:    (_history?.stack ?? []).slice(-10),
-    lang:       state.lang ?? 'zh-TW',
-    theme:      state.theme ?? 'dark',
+    ...buildProjectPayload(),
+    projectManagerVersion: 2,
+    notes: JSON.parse(localStorage.getItem('cs-notes') ?? '[]'),
+    history: (_history?.stack ?? []).slice(-10),
+    lang: state.lang ?? 'zh-TW',
   };
 }
 
@@ -13137,15 +13156,43 @@ function loadProject(id) {
   const proj = list.find(p => p.id === id);
   if (!proj) return;
   const d = proj.data;
-  if (d.plant)      state.plant      = d.plant;
-  if (d.controller) state.controller = d.controller;
-  if (d.specs)      state.specs      = d.specs;
-  if (d.lang)       state.lang       = d.lang;
-  if (d.theme)      { state.theme = d.theme; document.documentElement.setAttribute('data-theme', d.theme); updateThemeIcon?.(); }
-  if (d.notes)      localStorage.setItem('cs-notes', JSON.stringify(d.notes));
+  if (d.transferFunction || d.discreteTransferFunction || d.stateSpace) {
+    applyProjectPayload(d);
+  } else if (Array.isArray(d.plant?.num) && Array.isArray(d.plant?.den)) {
+    const legacyDiscrete = Number.isFinite(Number(d.plant.sampleTime)) && Number(d.plant.sampleTime) > 0;
+    applyProjectPayload({
+      version: 2,
+      systemType: legacyDiscrete ? 'dtf' : 'tf',
+      domain: legacyDiscrete ? 'z' : 's',
+      responseType: d.responseType || state.responseType,
+      showClosedLoop: state.showClosedLoop,
+      activePlot: state.activePlot,
+      view: state.view,
+      transferFunction: {
+        numerator: d.plant.num.join(', '),
+        denominator: d.plant.den.join(', '),
+      },
+      discreteTransferFunction: {
+        numerator: d.plant.num.join(', '),
+        denominator: d.plant.den.join(', '),
+        sampleTime: legacyDiscrete ? d.plant.sampleTime : state.sampleTime,
+      },
+      controller: { ...state.pidParams, ...(d.controller || {}) },
+      compensator: { ...state.compensator },
+      simulationConfig: { ...state.simulationConfig },
+      stateSpace: { ...state.ssModel },
+    });
+  } else {
+    if (d.plant)      state.plant      = d.plant;
+    if (d.controller) state.controller = d.controller;
+    if (d.specs)      state.specs      = d.specs;
+    if (d.theme)      { state.theme = d.theme; document.documentElement.setAttribute('data-theme', d.theme); updateThemeIcon?.(); }
+    if (state.plant) refreshAllCharts?.();
+  }
+  if (d.lang)  state.lang = d.lang;
+  if (d.notes) localStorage.setItem('cs-notes', JSON.stringify(d.notes));
   notify(`已載入專案「${proj.name}」`, 'success', { title: 'G9 專案' });
   document.getElementById('project-manager-panel')?.classList.remove('open');
-  if (state.plant) refreshAllCharts?.();
 }
 
 function deleteProject(id) {

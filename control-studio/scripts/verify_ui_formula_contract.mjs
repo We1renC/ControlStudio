@@ -6,6 +6,7 @@
  * - Continuous transfer functions use s-polynomial notation.
  * - Discrete transfer functions use z^-1 delay-polynomial notation.
  * - DTF system and loop labels render as G(z), L(z), and T(z).
+ * - DTF sample time is preserved in codegen, project persistence, and exports.
  * - Smoke diagnostics must not require a closed-loop model when the effective
  *   runtime mode is open_loop.
  */
@@ -47,6 +48,14 @@ const appJs = readFileSync(path.join(ROOT, 'js/app.js'), 'utf8');
 const formatPolySection = sectionBetween(appJs, 'function formatPolyText', 'function renderStateSpaceEquationBlock');
 const setupCopySection = sectionBetween(appJs, 'function updateSystemSetupCopy', 'function updateSystem');
 const discreteStepSection = sectionBetween(appJs, 'function renderDiscreteStepChart', 'function updateDomainUI');
+const sampleTimeSection = sectionBetween(appJs, 'function currentDiscreteSampleTime', 'function saveSessionToStorage');
+const codegenPayloadSection = sectionBetween(appJs, 'function buildCodegenPayload', 'function renderAllLatexFractions');
+const projectPayloadSection = sectionBetween(appJs, 'function buildProjectPayload', 'function applyProjectPayload');
+const projectApplySection = sectionBetween(appJs, 'function applyProjectPayload', 'function buildCurrentAnalysisExport');
+const analysisExportSection = sectionBetween(appJs, 'function buildCurrentAnalysisExport', 'function exportCurrentResult');
+const markdownReportSection = sectionBetween(appJs, 'function renderMarkdownReport', 'function downloadFile');
+const projectManagerSerializeSection = sectionBetween(appJs, 'function _serializeProject', 'function _loadProjectList');
+const projectManagerLoadSection = sectionBetween(appJs, 'function loadProject', 'function deleteProject');
 const smokeSection = sectionBetween(appJs, 'function runControlStudioSmoke', 'function writeSmokeDiagnostics');
 
 console.log('\n▶ UI formula contract');
@@ -83,6 +92,55 @@ assert(
     discreteStepSection.includes('if (layout.showlegend) layout.legend = compactLegend();') &&
     discreteStepSection.includes("name: 'Discrete Step'"),
   'active discrete step plot exposes a visible legend entry',
+);
+
+assert(
+  sampleTimeSection.includes('function currentDiscreteSampleTime(tf = state.plant)') &&
+    sampleTimeSection.includes('const sampleTime = Number(tf?.sampleTime ?? state.sampleTime);') &&
+    sampleTimeSection.includes('return Number.isFinite(sampleTime) && sampleTime > 0 ? sampleTime : null;'),
+  'DTF sample-time helper reads DiscreteTransferFunction.sampleTime with a validated state fallback',
+);
+
+assert(
+  !appJs.includes('tf?.Ts ?? 0.1') &&
+    codegenPayloadSection.includes("const Ts = state.domain === 'z' ? currentDiscreteSampleTime(tf) : null;") &&
+    codegenPayloadSection.includes('plant: tf ? { num, den, sampleTime: Ts } : null') &&
+    codegenPayloadSection.includes('Ts,'),
+  'codegen payload preserves the active DTF sample time instead of defaulting to 0.1s',
+);
+
+assert(
+  projectPayloadSection.includes('version: 2') &&
+    projectPayloadSection.includes('domain: state.domain') &&
+    projectPayloadSection.includes('sampleTime: dtfSampleTime') &&
+    projectPayloadSection.includes('discreteTransferFunction:') &&
+    projectPayloadSection.includes("document.getElementById('dtf-ts')?.value") &&
+    projectApplySection.includes("data.systemType === 'dtf' || data.domain === 'z'") &&
+    projectApplySection.includes("document.getElementById('dtf-num').value") &&
+    projectApplySection.includes("document.getElementById('dtf-den').value") &&
+    projectApplySection.includes("document.getElementById('dtf-ts').value = dtf.sampleTime ?? data.sampleTime ?? data.Ts ?? state.sampleTime;"),
+  'project persistence round-trips DTF numerator, denominator, sample time, and system type',
+);
+
+assert(
+  projectManagerSerializeSection.includes('...buildProjectPayload()') &&
+    projectManagerSerializeSection.includes('projectManagerVersion: 2') &&
+    !projectManagerSerializeSection.includes('plant:') &&
+    projectManagerLoadSection.includes('if (d.transferFunction || d.discreteTransferFunction || d.stateSpace)') &&
+    projectManagerLoadSection.includes('applyProjectPayload(d);') &&
+    projectManagerLoadSection.includes('Array.isArray(d.plant?.num) && Array.isArray(d.plant?.den)') &&
+    projectManagerLoadSection.includes("systemType: legacyDiscrete ? 'dtf' : 'tf'") &&
+    projectManagerLoadSection.includes('sampleTime: legacyDiscrete ? d.plant.sampleTime : state.sampleTime'),
+  'local multi-project manager reuses canonical project payload instead of serializing TF class instances',
+);
+
+assert(
+  analysisExportSection.includes("const plantSampleTime = state.domain === 'z' ? currentDiscreteSampleTime(state.plant) : null;") &&
+    analysisExportSection.includes('const effectiveSampleTime = isDiscrete ? currentDiscreteSampleTime(sys) : null;') &&
+    analysisExportSection.includes('sampleTime: effectiveSampleTime') &&
+    analysisExportSection.includes('sampleTime: plantSampleTime') &&
+    markdownReportSection.includes('`- Sample time: ${payload.sampleTime}s`'),
+  'analysis JSON and markdown exports retain DTF sample-time metadata',
 );
 
 assert(

@@ -87,6 +87,53 @@ del{color:var(--muted)}
 
 <p>此文件記錄用 ControlStudio 進行實際控制情境設計的案例。後續 agent 可用這些案例檢查產品流程、數學核心與 UI/CLI 改善方向。</p>
 
+<h2 id="scenario-7-discrete-plant-sample-time-export-and-project-persistence">Scenario 7: Discrete Plant Sample-Time Export And Project Persistence</h2>
+
+<p>Date: 2026-06-19</p>
+
+<h3 id="control-situation">Control Situation</h3>
+
+<p>驗證 z-domain plant 的 sample time 是否在實際 UI 工作流中被視為控制模型的一部分，而不是只存在於輸入欄位或圖表標題。此情境特別針對 code generation、analysis export、autosave 與 local multi-project save/load，避免非預設 sample time 被靜默退回 <code>Ts=0.1</code>。</p>
+
+<h3 id="model">Model</h3>
+
+<pre><code class="lang-text">G(z) = (0.25 + 0.1z^-1) / (1 - 1.2z^-1 + 0.35z^-2)
+Ts = 0.25 s</code></pre>
+
+<h3 id="controlstudio-workflow">ControlStudio Workflow</h3>
+
+<ol>
+<li>開啟 <code>http://127.0.0.1:8765</code>。</li>
+<li>切換到 <code>Discrete TF G(z)</code>。</li>
+<li>輸入：</li>
+<ul>
+<li>Numerator: <code>0.25, 0.1</code></li>
+<li>Denominator: <code>1, -1.2, 0.35</code></li>
+<li>Sample Time: <code>0.25</code></li>
+</ul>
+<li>點擊 <code>Update Plant</code>。</li>
+<li>檢查 MATLAB code preview。</li>
+<li>儲存 local project，切回 continuous TF，再載入剛儲存的 project。</li>
+<li>再次檢查 plant formula 與 MATLAB code preview。</li>
+</ol>
+
+<h3 id="expected-assertions">Expected Assertions</h3>
+
+<ul>
+<li>UI state remains <code>systemType = dtf</code> after update and reload.</li>
+<li>Autosave/project payload includes <code>domain = z</code> and <code>sampleTime = 0.25</code>.</li>
+<li><code>discreteTransferFunction.sampleTime = "0.25"</code> is preserved.</li>
+<li>MATLAB preview contains <code>Ts = 0.25;</code>.</li>
+<li>MATLAB preview does not contain <code>Ts = 0.1;</code>.</li>
+<li>Reloaded project still displays:</li>
+</ul>
+
+<pre><code class="lang-text">(0.25 + 0.1z^-1) / (1 - 1.2z^-1 + 0.35z^-2)</code></pre>
+
+<h3 id="observed-result">Observed Result</h3>
+
+<p>Browser walkthrough passed. The local multi-project manager now serializes through the canonical project payload and reloads through <code>applyProjectPayload()</code>, so DTF models reload as proper <code>DiscreteTransferFunction</code> runtime state instead of plain JSON objects.</p>
+
 <h2 id="scenario-1-precision-servo-stage-position-control">Scenario 1: Precision Servo Stage Position Control</h2>
 
 <p>Date: 2026-05-17</p>

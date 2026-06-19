@@ -9,7 +9,7 @@
 - 已建立獨立 git repo，避免被 `/Users/w.rc` 外層 git 混入。
 - 控制系統目前同步基線：
   - Branch: `main`
-  - Latest active line: `fix(ui): harden effective loop and DTF formulas`
+  - Latest active line: `fix(ui): preserve DTF sample time in exports`
   - Full phase audit checkpoints:
     - `7a318b3 fix(control): harden phase 7-9 theory diagnostics`
     - `46e20da fix(control): harden phase 0-6 theory checks`
@@ -66,6 +66,7 @@
   - 2026-06-19 接續完成 UI analysis snapshot freshness contract：`updateStabilityPanel()` / time-metric refresh 也會以 explicit `allowNonChartSnapshot` 發布目前 response snapshot；使用者停在 Bode / Nyquist / Nichols / Root Locus / Pole-Zero 等非時域圖時調整 plant、controller 或 simulation config，不會讓 HIL CSV、Result Summary 或 Warnings Panel 沿用舊 `_lastSimResult`。`verify_ui_simulation_snapshot_contract.mjs` 已擴充檢查 stability-panel non-chart source gate。
   - 2026-06-19 接續完成 UI discrete domain-switch snapshot/header contract：DTF/z-domain plant update 會清除不相容的 continuous controller / open-loop / closed-loop / 2-DOF / stability / simulation state，並在 refresh 後跑 `updateStabilityPanel()` 發布新的離散 step snapshot；Bode / Pole-Zero active 時 HIL CSV 不再沿用舊 s-domain response；companion discrete step chart 不會把 active header 從 Bode (DTFT) 誤改成 Discrete Step Response。browser walkthrough 已驗證 continuous Bode → DTF Bode 後 HIL rows 1000→500、final y 約 1→4、header/status 維持 Bode (DTFT)。
   - 2026-06-19 接續完成 UI effective loop-mode / DTF formula display contract：status bar、simulation snapshots、codegen payload、API analysis payload、comparison/export、AI Advisor 與 smoke state 只有在實際存在 `state.closedLoop` 時才回報 `closed_loop`，避免 closed-loop toggle preference 被誤當有效閉迴路模型；DTF/z-domain 公式顯示改為 `G(z)` / `L(z)` / `T(z)` 與 `z^-1` delay-polynomial convention，active discrete step plot 顯示 legend，open-loop smoke 不再要求 closed-loop formula。新增 `verify_ui_formula_contract.mjs` 並納入 `run_all_verify.sh`；browser walkthrough 已驗證 DTF `G(z) = ( 1 ) / ( 1 - 0.75z^-1 )`、toggle checked 但 status/smoke 為 `open_loop`、active legend 為 true。
+  - 2026-06-19 接續完成 UI DTF sample-time codegen/export/project persistence contract：`buildCodegenPayload()` 改讀 `DiscreteTransferFunction.sampleTime`，MATLAB/Python preview/export 不再因讀不存在的 `tf.Ts` 而把非預設離散 plant 靜默輸出成 `Ts=0.1`；analysis JSON / Markdown export、autosave/project file 與 local multi-project save/load 皆保留 `systemType=dtf`、`domain=z`、DTF numerator/denominator 與 sample time。project manager 現在走 canonical `buildProjectPayload()` / `applyProjectPayload()`，並將舊版 plain `{num, den, sampleTime}` project 轉回 canonical payload。`verify_ui_formula_contract.mjs` 已擴充 coverage；browser walkthrough 已驗證 DTF `Ts=0.25` code preview/autosave/local project save-load 都維持 `Ts = 0.25`。
   - 2026-06-17 接續完成 matched-z removable-origin gain normalization hardening：`c2dMatchedZ()` 現在先保留 continuous leading gain，再用 Discrete TF `dcGain()` low-frequency limit 做 DC normalization；`2s/s` 這類 removable origin pole-zero 會映射為 removable `z=1` pair 並保留 DC gain 2，不再因 raw coefficient sums 為 0 而退回 unity gain。
   - 2026-06-17 接續完成 matched-z properness hardening：`c2dMatchedZ()` 現在與 Tustin / ZOH / impulse-invariant 一致拒絕 improper continuous plant；`(s+1)^2/(s+1)` 這類 derivative-like 原始模型不再被靜默映射成看似 stable 的 discrete TF。
   - 2026-06-17 接續完成 impulse-invariant repeated-pole hardening：`c2dImpulseInvariant()` 現在明確拒絕 repeated continuous poles；`1/(s+1)^2` 不再被 residue loop 靜默跳過成 zero DTF，改要求使用 ZOH 或 Tustin。
@@ -203,7 +204,7 @@
     - 主執行看板：`control-studio/ROADMAP.md`。若 phase status、下一步順序或 dirty worktree 分類改變，先更新 roadmap，再同步 backlog / plan / skills / scenarios / verification cases / continuation。
     - Skill plan：`docs/src/control-studio/skills.md` 已規劃 `control-studio-robust-validator`、`control-studio-system-auditor`、`control-studio-benchmark-author`、`control-studio-mpc-designer`、`control-studio-sysid-planner` 等候選 skill。
   - Block Diagram expansion：Paused
-  - Phase 0 ~ Phase 72 與 Functional Roadmap Tier A-J 已完成文件進度對齊。後續若修改數值核心、API 分析輸出或 UI runtime state contract，至少依 roadmap 對應 phase 重跑 targeted verify、`npm run verify:all`、`node test_control.js`、`node control-studio/scripts/control_regression_dashboard.mjs`；目前 full suite 基線為 **115/115 scripts pass**，fixture/API contract 為 **10/10 cases**。
+  - Phase 0 ~ Phase 73 與 Functional Roadmap Tier A-J 已完成文件進度對齊。後續若修改數值核心、API 分析輸出或 UI runtime state contract，至少依 roadmap 對應 phase 重跑 targeted verify、`npm run verify:all`、`node test_control.js`、`node control-studio/scripts/control_regression_dashboard.mjs`；目前 full suite 基線為 **115/115 scripts pass**，fixture/API contract 為 **10/10 cases**。
 - 已建立 symlink：
   - `/Users/w.rc/.config/agents/skills/nvidia-model-selector`
   - 指向 `/Users/w.rc/nvdiaOSsupport/skills/nvidia-model-selector`
