@@ -95,6 +95,7 @@ const state = {
   comparisonSnapshots: [],
   analysisSource: 'auto',
   apiAnalysis: { status: 'idle', message: '', lastResult: null, diff: null },
+  _lastSimResult: null,
   _lastStability: null,
   theme: 'dark',
   view: 'dashboard',
@@ -3395,6 +3396,13 @@ function renderDiscreteStepChart(targetId = 'chart-active') {
     marker: { size: 3 },
   };
   Plotly.react(targetId, [trace], layout, { responsive: true, displayModeBar: false });
+  publishSimulationSnapshot(data, targetId, sys, {
+    responseType: 'step',
+    domain: 'z',
+    mode: 'open_loop',
+    simulationConfig: { ...state.simulationConfig, amplitude },
+    stepInfo: stepInfo(data.t, data.y, null, amplitude),
+  });
   updateActivePlotHeader(
     'Discrete Step Response',
     `z-domain · Ts = ${sys.sampleTime}s · ${stable ? 'Stable' : 'Unstable'}`
@@ -3434,6 +3442,11 @@ function stepMetricReference() {
   return Number.isFinite(amplitude) ? amplitude : 1;
 }
 
+function stepMetricReferenceFromConfig(config = state.simulationConfig) {
+  const amplitude = Number(config?.amplitude ?? 1);
+  return Number.isFinite(amplitude) ? amplitude : 1;
+}
+
 function currentResponseSupportsStepMetrics() {
   return state.responseType === 'step';
 }
@@ -3450,6 +3463,102 @@ function currentStepInfo(response) {
     };
   }
   return stepInfo(response.t, response.y, null, stepMetricReference());
+}
+
+function simulationInputValue(type, t, config = state.simulationConfig) {
+  const amplitude = Number.isFinite(Number(config?.amplitude)) ? Number(config.amplitude) : 1;
+  const frequency = Number.isFinite(Number(config?.frequency)) && Number(config.frequency) > 0 ? Number(config.frequency) : 1;
+  const pulseWidth = Number.isFinite(Number(config?.pulseWidth)) && Number(config.pulseWidth) > 0 ? Number(config.pulseWidth) : 1;
+  if (type === 'ramp') return amplitude * t;
+  if (type === 'sine') return amplitude * Math.sin(2 * Math.PI * frequency * t);
+  if (type === 'square') return amplitude * Math.sign(Math.sin(2 * Math.PI * frequency * t) || 1);
+  if (type === 'pulse') return t <= pulseWidth ? amplitude : 0;
+  return type === 'step' ? amplitude : 0;
+}
+
+function simulationDisturbanceValue(t, config = state.simulationConfig) {
+  const disturbanceType = config?.disturbanceType ?? 'none';
+  const disturbanceAmplitude = Number(config?.disturbanceAmplitude ?? 0);
+  const disturbanceStart = Number(config?.disturbanceStart ?? 0);
+  if (
+    disturbanceType === 'none' ||
+    !Number.isFinite(disturbanceAmplitude) ||
+    Math.abs(disturbanceAmplitude) <= 1e-12 ||
+    !Number.isFinite(disturbanceStart) ||
+    t < disturbanceStart
+  ) {
+    return 0;
+  }
+  return simulationInputValue(disturbanceType, t - disturbanceStart, {
+    ...config,
+    amplitude: disturbanceAmplitude,
+  });
+}
+
+function buildSimulationInputTrace(response, responseType = state.responseType, config = state.simulationConfig) {
+  const ts = Array.isArray(response?.t) ? response.t : [];
+  const commandInput = ts.map((t) => simulationInputValue(responseType, t, config));
+  if (responseType === 'impulse' && commandInput.length > 0) {
+    const dt = ts.length > 1 ? ts[1] - ts[0] : 1;
+    const amplitude = stepMetricReferenceFromConfig(config);
+    commandInput[0] = Number.isFinite(dt) && dt > 0 ? amplitude / dt : amplitude;
+  }
+  const disturbanceInput = ts.map((t) => simulationDisturbanceValue(t, config));
+  const u = commandInput.map((value, idx) => value + disturbanceInput[idx]);
+  return { commandInput, disturbanceInput, u };
+}
+
+function simulationStepInfo(response, responseType = state.responseType, config = state.simulationConfig) {
+  if (responseType !== 'step') {
+    return {
+      riseTime: null,
+      settlingTime: null,
+      overshoot: null,
+      steadyStateError: null,
+      valid: false,
+      reason: `step metrics require step input; got ${responseType}`,
+    };
+  }
+  return stepInfo(response.t, response.y, null, stepMetricReferenceFromConfig(config));
+}
+
+function buildSimulationSnapshot(response, info, sys, targetId, options = {}) {
+  const responseType = options.responseType ?? state.responseType;
+  const config = options.simulationConfig ?? state.simulationConfig;
+  const inputTrace = options.inputTrace ?? buildSimulationInputTrace(response, responseType, config);
+  const y = Array.isArray(response?.y) ? [...response.y] : [];
+  return {
+    source: options.source ?? 'local-js',
+    responseType,
+    mode: options.mode ?? (state.showClosedLoop ? 'closed_loop' : 'open_loop'),
+    domain: options.domain ?? state.domain,
+    targetId,
+    plant: sys?.toString?.() ?? '',
+    t: Array.isArray(response?.t) ? [...response.t] : [],
+    y,
+    u: [...inputTrace.u],
+    commandInput: [...inputTrace.commandInput],
+    disturbanceInput: [...inputTrace.disturbanceInput],
+    riseTime: info?.riseTime ?? null,
+    settleTime: info?.settlingTime ?? null,
+    settlingTime: info?.settlingTime ?? null,
+    overshoot: info?.overshoot ?? null,
+    steadyState: y.length ? y[y.length - 1] : null,
+    steadyStateError: info?.steadyStateError ?? null,
+    validMetrics: info?.valid !== false,
+    metricReason: info?.reason ?? null,
+    updatedAt: new Date().toISOString(),
+  };
+}
+
+function publishSimulationSnapshot(response, targetId = 'chart-active', sys = null, options = {}) {
+  if (targetId !== 'chart-active') return;
+  if (!response || !Array.isArray(response.t) || !Array.isArray(response.y)) return;
+  const responseType = options.responseType ?? state.responseType;
+  const config = options.simulationConfig ?? state.simulationConfig;
+  const info = options.stepInfo ?? simulationStepInfo(response, responseType, config);
+  state._lastSimResult = buildSimulationSnapshot(response, info, sys, targetId, options);
+  document.dispatchEvent(new CustomEvent('simulation:done', { detail: state._lastSimResult }));
 }
 
 function stabilityGainMarginDB(stab) {
@@ -4061,6 +4170,7 @@ function renderTimeResponse(sys, targetId = 'chart-active') {
   }
 
   Plotly.react(targetId, traces, layout, { responsive: true, displayModeBar: false });
+  publishSimulationSnapshot(resp, targetId, sys);
 }
 
 function renderBodePlot(sys, targetId = 'chart-active') {
@@ -14332,11 +14442,11 @@ function initCodeDiff() {
 }
 
 // ── P57 — D4-3: HIL CSV Export ────────────────────────────────────────────────
-// Exports step response data in a Hardware-In-the-Loop compatible CSV with metadata header.
+// Exports active time-response data in a Hardware-In-the-Loop compatible CSV with metadata header.
 function exportHILCSV() {
   const simResult = state._lastSimResult;
   if (!simResult || !simResult.t || !simResult.y) {
-    notify('先執行步階模擬再匯出 HIL CSV', 'warn');
+    notify('先執行時域模擬再匯出 HIL CSV', 'warn');
     return;
   }
   const ts  = simResult.t;

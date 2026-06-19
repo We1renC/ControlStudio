@@ -142,6 +142,7 @@ run_script "P64 P1-1/P1-2/P1-3 parameter sweep visualization"       "node script
 run_script "P65 Q1-1/Q1-2/Q1-3/Q1-4 share & export enhancement"    "node scripts/verify_p65_share_export.mjs"
 run_script "UI waveform response/metrics contract"                   "node scripts/verify_ui_waveform_contract.mjs"
 run_script "UI stability snapshot contract"                           "node scripts/verify_ui_stability_snapshot_contract.mjs"
+run_script "UI simulation snapshot contract"                          "node scripts/verify_ui_simulation_snapshot_contract.mjs"
 run_script "UI symbol contract"                                      "node scripts/verify_ui_symbol_contract.mjs"
 run_script "J1-3 Root Locus geometric annotations"                  "node scripts/verify_j13_rlocus_geo.mjs"
 run_script "H1-4 Sidebar Quick Pin"                                  "node scripts/verify_h14_sidebar_pin.mjs"
