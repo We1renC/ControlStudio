@@ -3121,14 +3121,15 @@ function buildCodegenPayload() {
   const num = tf?.num ? Array.from(tf.num).map((v) => Number(v.toFixed(6))) : null;
   const den = tf?.den ? Array.from(tf.den).map((v) => Number(v.toFixed(6))) : null;
   const Ts = state.domain === 'z' ? currentDiscreteSampleTime(tf) : null;
+  const compatibleController = state.domain === 's' && state.controller;
   return {
     plant: tf ? { num, den, sampleTime: Ts } : null,
-    controller: {
+    controller: compatibleController ? {
       Kp: state.pidParams.Kp,
       Ki: state.pidParams.Ki,
       Kd: state.pidParams.Kd,
       N: state.pidParams.N,
-    },
+    } : null,
     delay: state.plantDelay ? { T: state.plantDelay.T, order: state.plantDelay.order } : null,
     domain: state.domain || 's',
     Ts,

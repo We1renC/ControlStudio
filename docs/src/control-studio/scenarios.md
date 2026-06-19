@@ -47,6 +47,58 @@ Ts = 0.25 s
 
 Browser walkthrough passed. The local multi-project manager now serializes through the canonical project payload and reloads through `applyProjectPayload()`, so DTF models reload as proper `DiscreteTransferFunction` runtime state instead of plain JSON objects.
 
+## Scenario 8: MATLAB / Python Codegen Runtime-Mode Contract
+
+Date: 2026-06-19
+
+### Control Situation
+
+驗證 ControlStudio 的 MATLAB / Python script export 是否忠實反映目前 runtime mode 與 plant domain。此情境避免兩類部署破口：
+
+- open-loop export 引用未定義的 closed-loop `T`
+- z-domain plant export 混入 continuous PID `C(s)` / `L=C*G`
+
+### Continuous Open-Loop Workflow
+
+1. 開啟 `http://127.0.0.1:8765`。
+2. 使用 continuous TF：
+
+```text
+G(s) = 1 / (s + 1)
+```
+
+3. 關閉 closed-loop toggle。
+4. 更新 plant 並刷新 MATLAB code preview。
+
+Expected assertions:
+
+- Preview contains `L = series(C, G);` for Bode / margin analysis.
+- Preview does not contain `T = feedback(L, 1);`.
+- Preview contains `step(G);`.
+- Preview does not contain `step(T);`.
+- Preview title is `Plant response`.
+
+### Discrete Domain Workflow
+
+1. 切換到 `Discrete TF G(z)`。
+2. 輸入：
+   - Numerator: `0.25, 0.1`
+   - Denominator: `1, -1.2, 0.35`
+   - Sample Time: `0.25`
+3. 更新 plant 並刷新 MATLAB code preview。
+
+Expected assertions:
+
+- Preview contains `Ts = 0.25;`.
+- Preview contains `step(G);`.
+- Preview does not contain `C = pid`.
+- Preview does not contain `L = series(C, G);`.
+- Deterministic verifier also checks Python output for no JavaScript `true` / `false` syntax and no `T if (...) else G` expression.
+
+### Observed Result
+
+Browser walkthrough passed. Continuous open-loop preview uses `G` as the time-response target while keeping `L` for frequency-domain analysis. DTF preview preserves `Ts=0.25` and omits continuous PID / loop generation. `verify_codegen_export_contract.mjs` locks the same behavior for both MATLAB and Python generators.
+
 ## Scenario 1: Precision Servo Stage Position Control
 
 Date: 2026-05-17

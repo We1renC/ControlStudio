@@ -1,7 +1,7 @@
 # ControlStudio Development Roadmap
 
 > Last updated: 2026-06-19
-> Current committed baseline: `fix(ui): preserve DTF sample time in exports`
+> Current committed baseline: `fix(codegen): harden export runtime contracts`
 > Scope: this is the canonical execution roadmap for ControlStudio implementation status.
 > Do not use this file for product vision, proof derivations, or handoff notes; see the document workflow below.
 
@@ -101,6 +101,7 @@
 | **P71** | **UI discrete domain switch contract: DTF updates cannot reuse s-domain loop state** | Done | `verify_ui_simulation_snapshot_contract.mjs` |
 | **P72** | **UI effective loop + DTF formula contract: runtime mode and z^-1 display cannot drift** | Done | `verify_ui_simulation_snapshot_contract.mjs`, `verify_ui_formula_contract.mjs` |
 | **P73** | **UI DTF sample-time export + project persistence contract** | Done | `verify_ui_formula_contract.mjs`, browser DTF codegen/project walkthrough |
+| **P74** | **Codegen runtime-mode + domain compatibility contract** | Done | `verify_codegen_export_contract.mjs`, browser code preview walkthrough |
 | **P34-01** | **Module split: P62-P65 → js/ui/ sub-modules** | Done | Verify scripts updated to check module files |
 | **J1-3** | **Root Locus geometric annotations (damping lines, ωn arcs, Ku labels)** | Done | `verify_j13_rlocus_geo.mjs` |
 | **H1-4** | **Sidebar Quick Pin (non-emoji section pin, localStorage, max 3, float to top)** | Done | `verify_h14_sidebar_pin.mjs` |
@@ -205,6 +206,8 @@ Per `docs/src/control-studio/functional-roadmap.html`. Tier A-J deterministic ba
 
 **UI DTF sample-time export / persistence closure:** DTF sample time now flows through the same canonical runtime contract as the plant coefficients. `buildCodegenPayload()` reads `DiscreteTransferFunction.sampleTime` instead of the nonexistent `tf.Ts` field, so MATLAB/Python code preview and script export no longer silently fall back to `Ts = 0.1` for non-default z-domain plants. Analysis JSON and Markdown exports include `sampleTime`, project save/load payloads now preserve `systemType=dtf`, `domain=z`, DTF numerator/denominator, and sample time, and the local multi-project manager reuses `buildProjectPayload()` / `applyProjectPayload()` rather than serializing TF class instances into plain objects. Browser walkthrough verified a DTF plant with `Ts=0.25` keeps `Ts = 0.25` in code preview, autosave, local project save, and reload.
 
+**Codegen runtime-mode / domain compatibility closure:** MATLAB/Python exports now align with the effective runtime mode and plant domain. Continuous open-loop exports still define `L = C*G` for Bode/margin analysis, but time-response code plots `G` and does not reference an undefined closed-loop `T`. Closed-loop exports explicitly define and plot `T`. Python exports no longer emit JavaScript boolean syntax such as `true` / `false` in generated expressions. z-domain exports preserve `Ts` while skipping continuous PID generation unless a discrete controller is explicitly available, so generated scripts do not mix `pid()` / continuous `C(s)` with `G(z)`.
+
 **DC gain origin-cancellation closure:** continuous TF and ZPK `dcGain()` now cancel removable origin pole-zero factors before evaluating the low-frequency limit. Systems such as `s/s` report finite unity DC gain, extra origin zeros report zero DC gain, and extra origin poles preserve signed infinite gain. This prevents RGA, static decoupler, low-frequency design, and robustness summaries from treating removable integrators as real steady-state singularities.
 
 **Discrete DC gain unit-root closure:** discrete TF `dcGain()` now evaluates the low-frequency limit at `q=z^-1=1` by cancelling removable unit-circle factors. Systems such as `(1-z^-1)/(1-z^-1)` report finite unity DC gain, extra unit-circle zeros report zero DC gain, and extra unit-circle poles report infinite DC gain. This prevents z-domain step final-value checks, C2D DC preservation, and discrete controller comparisons from treating removable unit roots as true steady-state singularities.
@@ -237,7 +240,7 @@ Per `docs/src/control-studio/functional-roadmap.html`. Tier A-J deterministic ba
 
 ## Verification Suite Status (2026-06-19)
 
-**115/115 scripts pass** — run via `bash scripts/run_all_verify.sh` or `npm run verify:all`. Fixture/API contract coverage is now **10/10 cases**, including open-loop controller cascade response, non-step waveform metrics gating, non-unit step amplitude reference metrics, zero-final-change step metrics rejection, and divergent/unfinished step metrics rejection. UI waveform routing is covered by `verify_ui_waveform_contract.mjs`; UI stability snapshot and GM-field normalization are covered by `verify_ui_stability_snapshot_contract.mjs`; active simulation state, HIL/export consistency, analysis freshness, discrete domain-switch freshness, and effective loop-mode routing are covered by `verify_ui_simulation_snapshot_contract.mjs`; DTF `z^-1` formula display, active discrete legend, smoke equation labels, DTF sample-time codegen/export, and project persistence are covered by `verify_ui_formula_contract.mjs`.
+**116/116 scripts pass** — run via `bash scripts/run_all_verify.sh` or `npm run verify:all`. Fixture/API contract coverage is now **10/10 cases**, including open-loop controller cascade response, non-step waveform metrics gating, non-unit step amplitude reference metrics, zero-final-change step metrics rejection, and divergent/unfinished step metrics rejection. UI waveform routing is covered by `verify_ui_waveform_contract.mjs`; UI stability snapshot and GM-field normalization are covered by `verify_ui_stability_snapshot_contract.mjs`; active simulation state, HIL/export consistency, analysis freshness, discrete domain-switch freshness, and effective loop-mode routing are covered by `verify_ui_simulation_snapshot_contract.mjs`; DTF `z^-1` formula display, active discrete legend, smoke equation labels, DTF sample-time codegen/export, and project persistence are covered by `verify_ui_formula_contract.mjs`; MATLAB/Python runtime-mode and domain-compatible script generation is covered by `verify_codegen_export_contract.mjs`.
 
 | Group | Scripts | Pass |
 | --- | --- | --- |

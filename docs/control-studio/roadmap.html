@@ -87,7 +87,7 @@ del{color:var(--muted)}
 
 <blockquote>
 <p>Last updated: 2026-06-19</p>
-<p>Current committed baseline: <code>fix(ui): preserve DTF sample time in exports</code></p>
+<p>Current committed baseline: <code>fix(codegen): harden export runtime contracts</code></p>
 <p>Scope: this is the canonical execution roadmap for ControlStudio implementation status.</p>
 <p>Do not use this file for product vision, proof derivations, or handoff notes; see the document workflow below.</p>
 </blockquote>
@@ -262,6 +262,8 @@ del{color:var(--muted)}
 </thead><tbody>
 <tr><td><strong>P73</strong></td><td><strong>UI DTF sample-time export + project persistence contract</strong></td><td>Done</td><td><code>verify_ui_formula_contract.mjs</code>, browser DTF codegen/project walkthrough</td></tr>
 </thead><tbody>
+<tr><td><strong>P74</strong></td><td><strong>Codegen runtime-mode + domain compatibility contract</strong></td><td>Done</td><td><code>verify_codegen_export_contract.mjs</code>, browser code preview walkthrough</td></tr>
+</thead><tbody>
 <tr><td><strong>P34-01</strong></td><td><strong>Module split: P62-P65 → js/ui/ sub-modules</strong></td><td>Done</td><td>Verify scripts updated to check module files</td></tr>
 </thead><tbody>
 <tr><td><strong>J1-3</strong></td><td><strong>Root Locus geometric annotations (damping lines, ωn arcs, Ku labels)</strong></td><td>Done</td><td><code>verify_j13_rlocus_geo.mjs</code></td></tr>
@@ -427,6 +429,8 @@ del{color:var(--muted)}
 
 <p><strong>UI DTF sample-time export / persistence closure:</strong> DTF sample time now flows through the same canonical runtime contract as the plant coefficients. <code>buildCodegenPayload()</code> reads <code>DiscreteTransferFunction.sampleTime</code> instead of the nonexistent <code>tf.Ts</code> field, so MATLAB/Python code preview and script export no longer silently fall back to <code>Ts = 0.1</code> for non-default z-domain plants. Analysis JSON and Markdown exports include <code>sampleTime</code>, project save/load payloads now preserve <code>systemType=dtf</code>, <code>domain=z</code>, DTF numerator/denominator, and sample time, and the local multi-project manager reuses <code>buildProjectPayload()</code> / <code>applyProjectPayload()</code> rather than serializing TF class instances into plain objects. Browser walkthrough verified a DTF plant with <code>Ts=0.25</code> keeps <code>Ts = 0.25</code> in code preview, autosave, local project save, and reload.</p>
 
+<p><strong>Codegen runtime-mode / domain compatibility closure:</strong> MATLAB/Python exports now align with the effective runtime mode and plant domain. Continuous open-loop exports still define <code>L = C*G</code> for Bode/margin analysis, but time-response code plots <code>G</code> and does not reference an undefined closed-loop <code>T</code>. Closed-loop exports explicitly define and plot <code>T</code>. Python exports no longer emit JavaScript boolean syntax such as <code>true</code> / <code>false</code> in generated expressions. z-domain exports preserve <code>Ts</code> while skipping continuous PID generation unless a discrete controller is explicitly available, so generated scripts do not mix <code>pid()</code> / continuous <code>C(s)</code> with <code>G(z)</code>.</p>
+
 <p><strong>DC gain origin-cancellation closure:</strong> continuous TF and ZPK <code>dcGain()</code> now cancel removable origin pole-zero factors before evaluating the low-frequency limit. Systems such as <code>s/s</code> report finite unity DC gain, extra origin zeros report zero DC gain, and extra origin poles preserve signed infinite gain. This prevents RGA, static decoupler, low-frequency design, and robustness summaries from treating removable integrators as real steady-state singularities.</p>
 
 <p><strong>Discrete DC gain unit-root closure:</strong> discrete TF <code>dcGain()</code> now evaluates the low-frequency limit at <code>q=z^-1=1</code> by cancelling removable unit-circle factors. Systems such as <code>(1-z^-1)/(1-z^-1)</code> report finite unity DC gain, extra unit-circle zeros report zero DC gain, and extra unit-circle poles report infinite DC gain. This prevents z-domain step final-value checks, C2D DC preservation, and discrete controller comparisons from treating removable unit roots as true steady-state singularities.</p>
@@ -459,7 +463,7 @@ del{color:var(--muted)}
 
 <h2 id="verification-suite-status-2026-06-19">Verification Suite Status (2026-06-19)</h2>
 
-<p><strong>115/115 scripts pass</strong> — run via <code>bash scripts/run_all_verify.sh</code> or <code>npm run verify:all</code>. Fixture/API contract coverage is now <strong>10/10 cases</strong>, including open-loop controller cascade response, non-step waveform metrics gating, non-unit step amplitude reference metrics, zero-final-change step metrics rejection, and divergent/unfinished step metrics rejection. UI waveform routing is covered by <code>verify_ui_waveform_contract.mjs</code>; UI stability snapshot and GM-field normalization are covered by <code>verify_ui_stability_snapshot_contract.mjs</code>; active simulation state, HIL/export consistency, analysis freshness, discrete domain-switch freshness, and effective loop-mode routing are covered by <code>verify_ui_simulation_snapshot_contract.mjs</code>; DTF <code>z^-1</code> formula display, active discrete legend, smoke equation labels, DTF sample-time codegen/export, and project persistence are covered by <code>verify_ui_formula_contract.mjs</code>.</p>
+<p><strong>116/116 scripts pass</strong> — run via <code>bash scripts/run_all_verify.sh</code> or <code>npm run verify:all</code>. Fixture/API contract coverage is now <strong>10/10 cases</strong>, including open-loop controller cascade response, non-step waveform metrics gating, non-unit step amplitude reference metrics, zero-final-change step metrics rejection, and divergent/unfinished step metrics rejection. UI waveform routing is covered by <code>verify_ui_waveform_contract.mjs</code>; UI stability snapshot and GM-field normalization are covered by <code>verify_ui_stability_snapshot_contract.mjs</code>; active simulation state, HIL/export consistency, analysis freshness, discrete domain-switch freshness, and effective loop-mode routing are covered by <code>verify_ui_simulation_snapshot_contract.mjs</code>; DTF <code>z^-1</code> formula display, active discrete legend, smoke equation labels, DTF sample-time codegen/export, and project persistence are covered by <code>verify_ui_formula_contract.mjs</code>; MATLAB/Python runtime-mode and domain-compatible script generation is covered by <code>verify_codegen_export_contract.mjs</code>.</p>
 
 <table><thead>
 <tr><th>Group</th><th>Scripts</th><th>Pass</th></tr>

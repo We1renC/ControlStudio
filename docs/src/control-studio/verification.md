@@ -10,6 +10,7 @@
 - Discrete `z^-1` coefficient arrays must trim trailing structural zeros without removing leading numerator delay zeros；`num=[1,0,0], den=[1,0]` is the same static gain as `num=[1], den=[1]`, while denominator leading-zero forms such as `den=[0,1]` must be rejected as invalid non-causal/advance representations.
 - Discrete interconnections must add `z^-1` delay polynomials by coefficient index, not by high-degree polynomial alignment；mixed-order `parallel()` and `feedback()` must preserve dynamic poles, and feedback paths must reject sample-time mismatches.
 - Discrete sample time is part of the mathematical model, not display-only metadata；code generation, analysis export, autosave, project files, and local project-manager save/load must preserve `DiscreteTransferFunction.sampleTime` exactly for non-default values such as `Ts=0.25`.
+- Generated MATLAB / Python scripts are verification artifacts；they must not reference undefined closed-loop variables, must use language-native syntax, and must not mix continuous PID controllers with z-domain plants unless an explicit discrete controller model is present.
 - Matched-Z C2D gain normalization 必須先保留 continuous leading gain，再使用 discrete low-frequency limit；遇到 removable origin pole-zero 映射為 `z=1` pair 時，不可因 raw coefficient sums 為 0 而退回 unity gain。
 - C2D 方法必須一致拒絕 improper continuous plant；不可把 derivative-like 或不可實現的原始模型離散成看似 stable 的 DTF。
 - Impulse-invariant C2D 目前為 simple-pole baseline；repeated poles 必須明確回報 unsupported，不可靜默跳過 residue 或輸出 zero/mis-scaled DTF。

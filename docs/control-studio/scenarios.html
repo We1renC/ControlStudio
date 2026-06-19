@@ -134,6 +134,70 @@ Ts = 0.25 s</code></pre>
 
 <p>Browser walkthrough passed. The local multi-project manager now serializes through the canonical project payload and reloads through <code>applyProjectPayload()</code>, so DTF models reload as proper <code>DiscreteTransferFunction</code> runtime state instead of plain JSON objects.</p>
 
+<h2 id="scenario-8-matlab-python-codegen-runtime-mode-contract">Scenario 8: MATLAB / Python Codegen Runtime-Mode Contract</h2>
+
+<p>Date: 2026-06-19</p>
+
+<h3 id="control-situation">Control Situation</h3>
+
+<p>驗證 ControlStudio 的 MATLAB / Python script export 是否忠實反映目前 runtime mode 與 plant domain。此情境避免兩類部署破口：</p>
+
+<ul>
+<li>open-loop export 引用未定義的 closed-loop <code>T</code></li>
+<li>z-domain plant export 混入 continuous PID <code>C(s)</code> / <code>L=C*G</code></li>
+</ul>
+
+<h3 id="continuous-open-loop-workflow">Continuous Open-Loop Workflow</h3>
+
+<ol>
+<li>開啟 <code>http://127.0.0.1:8765</code>。</li>
+<li>使用 continuous TF：</li>
+</ol>
+
+<pre><code class="lang-text">G(s) = 1 / (s + 1)</code></pre>
+
+<ol>
+<li>關閉 closed-loop toggle。</li>
+<li>更新 plant 並刷新 MATLAB code preview。</li>
+</ol>
+
+<p>Expected assertions:</p>
+
+<ul>
+<li>Preview contains <code>L = series(C, G);</code> for Bode / margin analysis.</li>
+<li>Preview does not contain <code>T = feedback(L, 1);</code>.</li>
+<li>Preview contains <code>step(G);</code>.</li>
+<li>Preview does not contain <code>step(T);</code>.</li>
+<li>Preview title is <code>Plant response</code>.</li>
+</ul>
+
+<h3 id="discrete-domain-workflow">Discrete Domain Workflow</h3>
+
+<ol>
+<li>切換到 <code>Discrete TF G(z)</code>。</li>
+<li>輸入：</li>
+<ul>
+<li>Numerator: <code>0.25, 0.1</code></li>
+<li>Denominator: <code>1, -1.2, 0.35</code></li>
+<li>Sample Time: <code>0.25</code></li>
+</ul>
+<li>更新 plant 並刷新 MATLAB code preview。</li>
+</ol>
+
+<p>Expected assertions:</p>
+
+<ul>
+<li>Preview contains <code>Ts = 0.25;</code>.</li>
+<li>Preview contains <code>step(G);</code>.</li>
+<li>Preview does not contain <code>C = pid</code>.</li>
+<li>Preview does not contain <code>L = series(C, G);</code>.</li>
+<li>Deterministic verifier also checks Python output for no JavaScript <code>true</code> / <code>false</code> syntax and no <code>T if (...) else G</code> expression.</li>
+</ul>
+
+<h3 id="observed-result">Observed Result</h3>
+
+<p>Browser walkthrough passed. Continuous open-loop preview uses <code>G</code> as the time-response target while keeping <code>L</code> for frequency-domain analysis. DTF preview preserves <code>Ts=0.25</code> and omits continuous PID / loop generation. <code>verify_codegen_export_contract.mjs</code> locks the same behavior for both MATLAB and Python generators.</p>
+
 <h2 id="scenario-1-precision-servo-stage-position-control">Scenario 1: Precision Servo Stage Position Control</h2>
 
 <p>Date: 2026-05-17</p>
