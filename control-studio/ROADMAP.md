@@ -1,7 +1,7 @@
 # ControlStudio Development Roadmap
 
 > Last updated: 2026-06-19
-> Current committed baseline: `fix(codegen): harden export runtime contracts`
+> Current committed baseline: `feat(zero-flaw): passivity / LQG-LTR / flatness / ν-gap / DeePC / dq / event-trig / SDE / multi-rate / tol registry`
 > Scope: this is the canonical execution roadmap for ControlStudio implementation status.
 > Do not use this file for product vision, proof derivations, or handoff notes; see the document workflow below.
 
@@ -119,6 +119,16 @@ Before starting any new functional work that is not already a finished P-phase, 
 | **P72** | **UI effective loop + DTF formula contract: runtime mode and z^-1 display cannot drift** | Done | `verify_ui_simulation_snapshot_contract.mjs`, `verify_ui_formula_contract.mjs` |
 | **P73** | **UI DTF sample-time export + project persistence contract** | Done | `verify_ui_formula_contract.mjs`, browser DTF codegen/project walkthrough |
 | **P74** | **Codegen runtime-mode + domain compatibility contract** | Done | `verify_codegen_export_contract.mjs`, browser code preview walkthrough |
+| **P75** | **Discrete analysis export response-type contract** | Done | `verify_discrete_export_response_contract.mjs`, browser JSON export walkthrough |
+| **ZF1** | **Zero-Flaw Loop 1: Passivity/KYP/PCH/IDA-PBC + LQG-LTR + Differential Flatness** | Done | `verify_passivity_kyp.mjs` (15), `verify_lqg_ltr.mjs` (10), `verify_flatness.mjs` (18) |
+| **ZF2** | **Zero-Flaw Loop 2: ν-gap + DeePC + Clarke/Park/dq + Event-Triggered** | Done | `verify_loop2_modules.mjs` (17) |
+| **ZF3** | **Zero-Flaw Loop 3: Itô SDE (EM/Milstein) + Multi-rate lifting + Centralised tolerance registry** | Done | `verify_loop3_modules.mjs` (16) |
+| **ZF4** | **Zero-Flaw Loop 4: DOB + Repetitive Control + Generic Anti-windup + Bumpless transfer + VRFT + Funnel control** | Done | `verify_loop4_modules.mjs` (18) |
+| **ZF5** | **Zero-Flaw Loop 5: Manipulator dynamics + Computed-torque + Spectral factorisation + IFT** | Done | `verify_loop5_modules.mjs` (8) |
+| **ZF6** | **Zero-Flaw Loop 6: HJI 1-D reach-avoid PDE + Youla parameterisation (Bezout identity)** | Done | `verify_loop6_modules.mjs` (9) |
+| **ZF7** | **Zero-Flaw Loop 7: SOS Lyapunov ROA + SMO/HGO + Nash+Stackelberg LQ games + ZN/Cohen-Coon/Tyreus-Luyben/AMIGO autotune** | Done | `verify_loop7_modules.mjs` (18) |
+| **ZF8** | **Zero-Flaw Loop 8: Multiple Lyapunov Functions (Branicky) + 1-D heat boundary control (Krstic) + Slotine-Li adaptive SMC** | Done | `verify_loop8_modules.mjs` (10) |
+| **ZF9** | **Zero-Flaw Loop 9: LaSalle invariance certificate + MUSIC/ESPRIT spectral subspace + Carleman linearisation** | Done | `verify_loop9_modules.mjs` (7) |
 | **P34-01** | **Module split: P62-P65 → js/ui/ sub-modules** | Done | Verify scripts updated to check module files |
 | **J1-3** | **Root Locus geometric annotations (damping lines, ωn arcs, Ku labels)** | Done | `verify_j13_rlocus_geo.mjs` |
 | **H1-4** | **Sidebar Quick Pin (non-emoji section pin, localStorage, max 3, float to top)** | Done | `verify_h14_sidebar_pin.mjs` |
@@ -223,6 +233,8 @@ Per `docs/src/control-studio/functional-roadmap.html`. Tier A-J deterministic ba
 
 **Codegen runtime-mode / domain compatibility closure:** MATLAB/Python exports now align with the effective runtime mode and plant domain. Continuous open-loop exports still define `L = C*G` for Bode/margin analysis, but time-response code plots `G` and does not reference an undefined closed-loop `T`. Closed-loop exports explicitly define and plot `T`. Python exports no longer emit JavaScript boolean syntax such as `true` / `false` in generated expressions. z-domain exports preserve `Ts` while skipping continuous PID generation unless a discrete controller is explicitly available, so generated scripts do not mix `pid()` / continuous `C(s)` with `G(z)`.
 
+**Discrete analysis export response-type closure:** z-domain analysis exports now distinguish requested UI waveform from the actual supported discrete response. Discrete export supports `step` and `impulse`; unsupported requested waveforms normalize to `step` and are preserved as `requestedResponseType` for traceability. `buildCurrentAnalysisExport()` now routes discrete impulse through `discreteImpulseResponse()` instead of always exporting `discreteStepResponse()`, so JSON/CSV/Markdown artifacts cannot label step samples as impulse/ramp/sine data. Discrete non-step exports also invalidate step metrics instead of reporting rise/settling/overshoot on impulse data. Browser walkthrough verified `G(z)=0.5/(1-0.5z^-1)`, `Ts=0.2`, amplitude 2 impulse export yields `y=[1,0.5,0.25,0.125]` with `responseType=impulse`.
+
 **DC gain origin-cancellation closure:** continuous TF and ZPK `dcGain()` now cancel removable origin pole-zero factors before evaluating the low-frequency limit. Systems such as `s/s` report finite unity DC gain, extra origin zeros report zero DC gain, and extra origin poles preserve signed infinite gain. This prevents RGA, static decoupler, low-frequency design, and robustness summaries from treating removable integrators as real steady-state singularities.
 
 **Discrete DC gain unit-root closure:** discrete TF `dcGain()` now evaluates the low-frequency limit at `q=z^-1=1` by cancelling removable unit-circle factors. Systems such as `(1-z^-1)/(1-z^-1)` report finite unity DC gain, extra unit-circle zeros report zero DC gain, and extra unit-circle poles report infinite DC gain. This prevents z-domain step final-value checks, C2D DC preservation, and discrete controller comparisons from treating removable unit roots as true steady-state singularities.
@@ -255,7 +267,7 @@ Per `docs/src/control-studio/functional-roadmap.html`. Tier A-J deterministic ba
 
 ## Verification Suite Status (2026-06-19)
 
-**116/116 scripts pass** — run via `bash scripts/run_all_verify.sh` or `npm run verify:all` (was 82/82 before Functional Roadmap additions). Fixture/API contract coverage is now **10/10 cases**, including open-loop controller cascade response, non-step waveform metrics gating, non-unit step amplitude reference metrics, zero-final-change step metrics rejection, and divergent/unfinished step metrics rejection. UI waveform routing is covered by `verify_ui_waveform_contract.mjs`; UI stability snapshot and GM-field normalization are covered by `verify_ui_stability_snapshot_contract.mjs`; active simulation state, HIL/export consistency, analysis freshness, discrete domain-switch freshness, and effective loop-mode routing are covered by `verify_ui_simulation_snapshot_contract.mjs`; DTF `z^-1` formula display, active discrete legend, smoke equation labels, DTF sample-time codegen/export, and project persistence are covered by `verify_ui_formula_contract.mjs`; MATLAB/Python runtime-mode and domain-compatible script generation is covered by `verify_codegen_export_contract.mjs`.
+**117/117 scripts pass** — run via `bash scripts/run_all_verify.sh` or `npm run verify:all` (was 82/82 before Functional Roadmap additions). Fixture/API contract coverage is now **10/10 cases**, including open-loop controller cascade response, non-step waveform metrics gating, non-unit step amplitude reference metrics, zero-final-change step metrics rejection, and divergent/unfinished step metrics rejection. UI waveform routing is covered by `verify_ui_waveform_contract.mjs`; UI stability snapshot and GM-field normalization are covered by `verify_ui_stability_snapshot_contract.mjs`; active simulation state, HIL/export consistency, analysis freshness, discrete domain-switch freshness, and effective loop-mode routing are covered by `verify_ui_simulation_snapshot_contract.mjs`; DTF `z^-1` formula display, active discrete legend, smoke equation labels, DTF sample-time codegen/export, and project persistence are covered by `verify_ui_formula_contract.mjs`; MATLAB/Python runtime-mode and domain-compatible script generation is covered by `verify_codegen_export_contract.mjs`; z-domain export response-type normalization and impulse routing are covered by `verify_discrete_export_response_contract.mjs`.
 
 | Group | Scripts | Pass |
 | --- | --- | --- |
