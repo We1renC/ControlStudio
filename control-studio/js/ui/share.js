@@ -173,7 +173,8 @@ export function buildReportHTML(opts = {}) {
       if (!state.plant) return {};
       const sys  = state.closedLoop || state.plant;
       const resp = _ctx.stepResponse(sys, { duration: 20, sampleCount: 300 });
-      return _ctx.stepInfo(resp.t, resp.y);
+      const amplitude = Number.isFinite(Number(state.simulationConfig?.amplitude)) ? Number(state.simulationConfig.amplitude) : 1;
+      return _ctx.stepInfo(resp.t, resp.y, null, amplitude);
     } catch { return {}; }
   })();
   const specRows = [

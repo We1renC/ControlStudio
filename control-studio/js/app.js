@@ -4,7 +4,7 @@ import { parseMatrixInput, stateSpaceToTransferFunction, controllabilityMatrix, 
 import { matRank } from './math/matrix.js?v=p5';
 import { PIDController, TwoDOFPIDController } from './control/pid.js';
 import { compensatorDescription, designLagCompensator, designLeadCompensator, designLeadLagCompensator, leadLagTransferFunction, normalizeCompensatorConfig, notchFilter, notchFilterDescription } from './control/compensator.js?v=pid-p1';
-import { impulseResponse, rampResponse, simulatePIDAntiWindup, stepResponse } from './analysis/time-response.js';
+import { impulseResponse, rampResponse, simulatePIDAntiWindup, simulateTimeResponse, stepResponse } from './analysis/time-response.js';
 import { discreteStepResponse } from './analysis/discrete-response.js';
 import { bodeData, nyquistData, autoFreqRange, nicholsData, nyquistEncirclements } from './analysis/frequency-response.js';
 import { discreteBodeData } from './analysis/discrete-frequency-response.js?v=p5';
@@ -2142,7 +2142,7 @@ function formatPoleListHtml(poles, domain = 's') {
 
 function computePreviewMetrics(tf) {
   const response = stepResponse(tf, state.simulationConfig);
-  const info = stepInfo(response.t, response.y);
+  const info = stepInfo(response.t, response.y, null, stepMetricReference());
   return { response, info };
 }
 
@@ -3422,7 +3422,33 @@ function setComparisonVisibility() {
 function currentResponseData(sys) {
   if (state.responseType === 'impulse') return impulseResponse(sys, state.simulationConfig);
   if (state.responseType === 'ramp') return rampResponse(sys, state.simulationConfig);
+  if (state.responseType === 'sine' || state.responseType === 'square' || state.responseType === 'pulse') {
+    return simulateTimeResponse(sys, state.responseType, state.simulationConfig);
+  }
   return stepResponse(sys, state.simulationConfig);
+}
+
+function stepMetricReference() {
+  const amplitude = Number(state.simulationConfig?.amplitude ?? 1);
+  return Number.isFinite(amplitude) ? amplitude : 1;
+}
+
+function currentResponseSupportsStepMetrics() {
+  return state.responseType === 'step';
+}
+
+function currentStepInfo(response) {
+  if (!currentResponseSupportsStepMetrics()) {
+    return {
+      riseTime: null,
+      settlingTime: null,
+      overshoot: null,
+      steadyStateError: null,
+      valid: false,
+      reason: `step metrics require step input; got ${state.responseType}`,
+    };
+  }
+  return stepInfo(response.t, response.y, null, stepMetricReference());
 }
 
 function updateActivePlotHeader(title, subtitle) {
@@ -3497,8 +3523,8 @@ function updateStabilityPanel() {
         amplitude: state.simulationConfig.amplitude || 1,
       })
       : currentResponseData(sys);
-    const info = stepInfo(resp.t, resp.y);
-    const timeMetricSupported = !['sine', 'square'].includes(state.responseType);
+    const info = isDiscrete ? stepInfo(resp.t, resp.y, null, stepMetricReference()) : currentStepInfo(resp);
+    const timeMetricSupported = isDiscrete || (currentResponseSupportsStepMetrics() && info.valid !== false);
 
     if (riseEl) riseEl.textContent = timeMetricSupported ? fmtTime(info.riseTime) : '—';
     if (settleEl) settleEl.textContent = timeMetricSupported ? fmtTime(info.settlingTime) : '—';
@@ -4004,7 +4030,7 @@ function renderTimeResponse(sys, targetId = 'chart-active') {
   // J1-1: Step response engineering annotations (Tr, OS, Ts, ess)
   if (state.responseType === 'step' && resp.y.length > 10) {
     try {
-      const info = stepInfo(resp.t, resp.y);
+      const info = currentStepInfo(resp);
       const { annotations: stepAnnots, shapes: stepShapes } = buildStepAnnotations(resp, info);
       if (stepAnnots.length) layout.annotations = [...(layout.annotations || []), ...stepAnnots];
       if (stepShapes.length) layout.shapes = [...(layout.shapes || []), ...stepShapes];
@@ -5100,7 +5126,7 @@ async function requestAIAdvice() {
   const sys = state.showClosedLoop && state.closedLoop ? state.closedLoop : state.plant;
   const margins = stabilityMargins(state.openLoop || state.plant);
   const resp = currentResponseData(sys);
-  const info = stepInfo(resp.t, resp.y);
+  const info = currentStepInfo(resp);
 
   const payload = {
     request: `請針對 ${waveformLabel(state.responseType)} 響應提供控制建議`,
@@ -5202,7 +5228,7 @@ function saveComparisonSnapshot() {
   // simulationConfig (duration / sampleCount) than the current live one.
   const sys = state.showClosedLoop ? (state.closedLoop || state.plant) : state.plant;
   const response = currentResponseData(sys);
-  const info = stepInfo(response.t, response.y);
+  const info = currentStepInfo(response);
   const margins = stabilityMargins(state.openLoop || state.plant);
   const snapshot = {
     id: `snap-${Date.now()}`,
@@ -5514,7 +5540,7 @@ function buildCurrentAnalysisExport() {
     gainMarginDB: Infinity,
     phaseMargin: NaN,
   } : stabilityMargins(state.openLoop || state.plant);
-  const info = stepInfo(response.t, response.y);
+  const info = isDiscrete ? stepInfo(response.t, response.y, null, stepMetricReference()) : currentStepInfo(response);
   const stability = analyzeStability(sys, { domain: state.domain, margins });
   return {
     version: 2,
@@ -11827,7 +11853,7 @@ function initSensitivityScan() {
         const ctrl   = new PIDController(state.pidParams.Kp, state.pidParams.Ki, state.pidParams.Kd, state.pidParams.N);
         const cl     = ctrl.tf().mul ? ctrl.tf() : state.plant; // simplified
         const resp   = window.stepResponse ? stepResponse(state.plant, state.pidParams, { tEnd: 10 }) : null;
-        const info   = resp ? stepInfo(resp.t, resp.y) : null;
+        const info   = resp ? stepInfo(resp.t, resp.y, null, stepMetricReference()) : null;
         const marg   = stabilityMargins ? stabilityMargins(state.plant.mul(ctrl.tf())) : null;
         osArr.push(info?.overshoot ?? NaN);
         tsArr.push(info?.settlingTime ?? NaN);
@@ -13595,7 +13621,8 @@ document.addEventListener('DOMContentLoaded', () => {
 document.addEventListener('DOMContentLoaded', () => {
   initShareModule({
     state, updateGlobalStatusBar, buildCodegenPayload, toPythonScript,
-    stepResponse, stepInfo, TransferFunction, applyDesignPayload,
+    stepResponse, stepInfo, TransferFunction,
+    applyDesignPayload: typeof applyDesignPayload === 'function' ? applyDesignPayload : null,
   });
   initShareExport();
   // Q1-1: Restore from URL hash on page load

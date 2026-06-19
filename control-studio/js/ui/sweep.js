@@ -52,8 +52,9 @@ export async function runParameterSweep(param, minVal, maxVal, n, scale) {
       const pid  = new PIDController(ctrl.Kp, ctrl.Ki, ctrl.Kd, ctrl.N ?? 100);
       const loop = pid.toTransferFunction().series(state.plant);
       const cl   = loop.feedback();
-      const resp = stepResponse(cl, { duration: state.simulationConfig?.duration ?? 20, sampleCount: 200 });
-      const met  = stepInfo(resp.t, resp.y);
+      const amplitude = Number.isFinite(Number(state.simulationConfig?.amplitude)) ? Number(state.simulationConfig.amplitude) : 1;
+      const resp = stepResponse(cl, { duration: state.simulationConfig?.duration ?? 20, sampleCount: 200, amplitude });
+      const met  = stepInfo(resp.t, resp.y, null, amplitude);
       const t    = i / Math.max(n - 1, 1);
       traces.push({
         x: resp.t, y: resp.y,
