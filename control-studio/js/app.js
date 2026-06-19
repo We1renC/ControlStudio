@@ -3552,7 +3552,7 @@ function buildSimulationSnapshot(response, info, sys, targetId, options = {}) {
 }
 
 function publishSimulationSnapshot(response, targetId = 'chart-active', sys = null, options = {}) {
-  if (targetId !== 'chart-active') return;
+  if (targetId !== 'chart-active' && options.allowNonChartSnapshot !== true) return;
   if (!response || !Array.isArray(response.t) || !Array.isArray(response.y)) return;
   const responseType = options.responseType ?? state.responseType;
   const config = options.simulationConfig ?? state.simulationConfig;
@@ -3665,6 +3665,21 @@ function updateStabilityPanel() {
     // 2. Determine Stability (Strict Pole Check)
     const stability = analyzeStability(sys, { domain: state.domain, margins });
     state._lastStability = buildLastStabilitySnapshot(stability, margins);
+    publishSimulationSnapshot(resp, 'analysis-state', sys, {
+      allowNonChartSnapshot: true,
+      source: 'stability-panel',
+      responseType: isDiscrete ? 'step' : state.responseType,
+      domain: isDiscrete ? 'z' : state.domain,
+      mode: state.showClosedLoop ? 'closed_loop' : 'open_loop',
+      simulationConfig: isDiscrete
+        ? {
+          ...state.simulationConfig,
+          sampleCount: Math.min(state.simulationConfig.sampleCount || 200, 500),
+          amplitude: state.simulationConfig.amplitude || 1,
+        }
+        : state.simulationConfig,
+      stepInfo: info,
+    });
     let status = stability.status === 'unknown' ? 'marginal' : stability.status;
     let label = status.toUpperCase();
 

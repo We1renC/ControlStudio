@@ -9,7 +9,7 @@
 - 已建立獨立 git repo，避免被 `/Users/w.rc` 外層 git 混入。
 - 控制系統目前同步基線：
   - Branch: `main`
-  - Latest active line: `fix(ui): publish simulation snapshot`
+  - Latest active line: `fix(ui): refresh analysis simulation snapshot`
   - Full phase audit checkpoints:
     - `7a318b3 fix(control): harden phase 7-9 theory diagnostics`
     - `46e20da fix(control): harden phase 0-6 theory checks`
@@ -63,6 +63,7 @@
   - 2026-06-19 接續補上 report step amplitude consistency：PDF/report metrics 不只把 configured amplitude 傳給 `stepInfo()`，也用同一個 amplitude 呼叫 `stepResponse()`；`verify_ui_waveform_contract.mjs` 現在會檢查 report response 與 metrics reference 同源，避免非單位 step 報告用 unit-step trajectory 對 non-unit reference 算 SSE / transient metrics。
   - 2026-06-19 接續完成 UI stability snapshot contract：`updateStabilityPanel()` 會發布 canonical `_lastStability`；GM canonical 欄位統一為 `gainMarginDB` 並保留 `gainMarginDb` 相容 alias。Flow-state / smart warning / result summary / report 均透過 helper 正規化 GM，report 對 infinite GM 顯示 `∞` 並判定 PASS。新增 `verify_ui_stability_snapshot_contract.mjs` 並納入 `run_all_verify.sh`，full suite 基線升至 113 scripts；Playwright browser walkthrough 確認 default report 顯示 `Gain Margin ∞` 且規格列 PASS。
   - 2026-06-19 接續完成 UI simulation snapshot contract：active time-domain plot 會發布 `_lastSimResult` 並 emit `simulation:done`；Result Summary / Warnings Panel / HIL CSV export 讀取同一份已繪製 response；companion charts 不會覆寫主圖快照；snapshot 保留 `t/y/u`、command input、disturbance input、waveform、domain、loop mode 與 metrics，discrete step chart 也走同一契約。新增 `verify_ui_simulation_snapshot_contract.mjs` 並納入 `run_all_verify.sh`，full suite 基線升至 114 scripts。
+  - 2026-06-19 接續完成 UI analysis snapshot freshness contract：`updateStabilityPanel()` / time-metric refresh 也會以 explicit `allowNonChartSnapshot` 發布目前 response snapshot；使用者停在 Bode / Nyquist / Nichols / Root Locus / Pole-Zero 等非時域圖時調整 plant、controller 或 simulation config，不會讓 HIL CSV、Result Summary 或 Warnings Panel 沿用舊 `_lastSimResult`。`verify_ui_simulation_snapshot_contract.mjs` 已擴充檢查 stability-panel non-chart source gate，full suite 仍為 114 scripts。
   - 2026-06-17 接續完成 matched-z removable-origin gain normalization hardening：`c2dMatchedZ()` 現在先保留 continuous leading gain，再用 Discrete TF `dcGain()` low-frequency limit 做 DC normalization；`2s/s` 這類 removable origin pole-zero 會映射為 removable `z=1` pair 並保留 DC gain 2，不再因 raw coefficient sums 為 0 而退回 unity gain。
   - 2026-06-17 接續完成 matched-z properness hardening：`c2dMatchedZ()` 現在與 Tustin / ZOH / impulse-invariant 一致拒絕 improper continuous plant；`(s+1)^2/(s+1)` 這類 derivative-like 原始模型不再被靜默映射成看似 stable 的 discrete TF。
   - 2026-06-17 接續完成 impulse-invariant repeated-pole hardening：`c2dImpulseInvariant()` 現在明確拒絕 repeated continuous poles；`1/(s+1)^2` 不再被 residue loop 靜默跳過成 zero DTF，改要求使用 ZOH 或 Tustin。
@@ -200,7 +201,7 @@
     - 主執行看板：`control-studio/ROADMAP.md`。若 phase status、下一步順序或 dirty worktree 分類改變，先更新 roadmap，再同步 backlog / plan / skills / scenarios / verification cases / continuation。
     - Skill plan：`docs/src/control-studio/skills.md` 已規劃 `control-studio-robust-validator`、`control-studio-system-auditor`、`control-studio-benchmark-author`、`control-studio-mpc-designer`、`control-studio-sysid-planner` 等候選 skill。
   - Block Diagram expansion：Paused
-  - Phase 0 ~ Phase 69 與 Functional Roadmap Tier A-J 已完成文件進度對齊。後續若修改數值核心、API 分析輸出或 UI runtime state contract，至少依 roadmap 對應 phase 重跑 targeted verify、`npm run verify:all`、`node test_control.js`、`node control-studio/scripts/control_regression_dashboard.mjs`；目前 full suite 基線為 **114/114 scripts pass**，fixture/API contract 為 **10/10 cases**。
+  - Phase 0 ~ Phase 70 與 Functional Roadmap Tier A-J 已完成文件進度對齊。後續若修改數值核心、API 分析輸出或 UI runtime state contract，至少依 roadmap 對應 phase 重跑 targeted verify、`npm run verify:all`、`node test_control.js`、`node control-studio/scripts/control_regression_dashboard.mjs`；目前 full suite 基線為 **114/114 scripts pass**，fixture/API contract 為 **10/10 cases**。
 - 已建立 symlink：
   - `/Users/w.rc/.config/agents/skills/nvidia-model-selector`
   - 指向 `/Users/w.rc/nvdiaOSsupport/skills/nvidia-model-selector`
@@ -271,7 +272,7 @@ git log --oneline -5
 - `docs/src/control-studio/plan.md` 已整理控制系統盤點、MVP 範圍與後續 roadmap。
 - `docs/src/control-studio/verification.md` 已定義五個具數學推導的控制系統驗證案例，涵蓋一階、二階欠阻尼、初始不穩定/pole-zero/低 PM、RHP zero、State-Space 等價。
 - `control-studio/ROADMAP.md` 已整併為 ControlStudio 主執行看板，記錄 P23~P28 進度、dirty worktree 分類、文件工作流與下一步順序；P24 advanced MPC 已完成。
-- `docs/src/control-studio/backlog.md` 已改為 detailed task ledger；目前 Phase 0~69 與 Functional Roadmap Tier A-J 均已完成 deterministic baseline。
+- `docs/src/control-studio/backlog.md` 已改為 detailed task ledger；目前 Phase 0~70 與 Functional Roadmap Tier A-J 均已完成 deterministic baseline。
 - `docs/src/control-studio/skills.md` 已新增 Phase 18+ skill candidates，且 `control-studio-robust-validator`、`control-studio-system-auditor`、`control-studio-benchmark-author`、`control-studio-mpc-designer`、`control-studio-sysid-planner`、`control-studio-ui-verifier` baseline 已建立。
 - `control-studio` 已補上 State Space（SISO）輸入、Step/Impulse/Ramp 切換、Nyquist Plot、project save/load 與 JSON/CSV 匯出。
 - `control-studio` UI 已改成 sidebar workspace tabs（Model / Sim / Advisor / Compare），並支援 comparison snapshots 疊圖比較。

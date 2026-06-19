@@ -49,6 +49,7 @@ const appJs = readFileSync(path.join(ROOT, 'js/app.js'), 'utf8');
 const inputTraceSection = sectionBetween(appJs, 'function buildSimulationInputTrace', 'function simulationStepInfo');
 const snapshotSection = sectionBetween(appJs, 'function buildSimulationSnapshot', 'function publishSimulationSnapshot');
 const publisherSection = sectionBetween(appJs, 'function publishSimulationSnapshot', 'function stabilityGainMarginDB');
+const stabilitySection = sectionBetween(appJs, 'function updateStabilityPanel', 'function scheduleApiAnalysis');
 const timeResponseSection = sectionBetween(appJs, 'function renderTimeResponse', 'function renderBodePlot');
 const discreteStepSection = sectionBetween(appJs, 'function renderDiscreteStepChart', 'function updateDomainUI');
 const hilSection = sectionBetween(appJs, 'function exportHILCSV', 'function initHILExport');
@@ -91,10 +92,21 @@ assert(
 );
 
 assert(
-  publisherSection.includes("if (targetId !== 'chart-active') return;") &&
+  publisherSection.includes("if (targetId !== 'chart-active' && options.allowNonChartSnapshot !== true) return;") &&
     publisherSection.includes('state._lastSimResult = buildSimulationSnapshot(response, info, sys, targetId, options);') &&
     publisherSection.includes("document.dispatchEvent(new CustomEvent('simulation:done', { detail: state._lastSimResult }));"),
-  'publisher updates _lastSimResult and emits simulation:done only for active chart',
+  'publisher updates _lastSimResult and gates non-chart snapshot sources explicitly',
+);
+
+assert(
+  stabilitySection.includes('state._lastStability = buildLastStabilitySnapshot(stability, margins);') &&
+    stabilitySection.includes("publishSimulationSnapshot(resp, 'analysis-state', sys,") &&
+    stabilitySection.includes('allowNonChartSnapshot: true') &&
+    stabilitySection.includes("source: 'stability-panel'") &&
+    stabilitySection.includes("responseType: isDiscrete ? 'step' : state.responseType") &&
+    stabilitySection.includes("domain: isDiscrete ? 'z' : state.domain") &&
+    stabilitySection.includes('stepInfo: info'),
+  'stability/metrics refresh publishes current simulation snapshot for non-time active plots',
 );
 
 assert(

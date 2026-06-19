@@ -87,7 +87,7 @@ del{color:var(--muted)}
 
 <blockquote>
 <p>Last updated: 2026-06-19</p>
-<p>Current committed baseline: <code>fix(ui): publish simulation snapshot</code></p>
+<p>Current committed baseline: <code>fix(ui): refresh analysis simulation snapshot</code></p>
 <p>Scope: this is the canonical execution roadmap for ControlStudio implementation status.</p>
 <p>Do not use this file for product vision, proof derivations, or handoff notes; see the document workflow below.</p>
 </blockquote>
@@ -254,6 +254,8 @@ del{color:var(--muted)}
 </thead><tbody>
 <tr><td><strong>P69</strong></td><td><strong>UI simulation snapshot contract: active response state + HIL/export consistency</strong></td><td>Done</td><td><code>verify_ui_simulation_snapshot_contract.mjs</code></td></tr>
 </thead><tbody>
+<tr><td><strong>P70</strong></td><td><strong>UI analysis snapshot freshness: non-time plots cannot leave stale HIL/export state</strong></td><td>Done</td><td><code>verify_ui_simulation_snapshot_contract.mjs</code></td></tr>
+</thead><tbody>
 <tr><td><strong>P34-01</strong></td><td><strong>Module split: P62-P65 → js/ui/ sub-modules</strong></td><td>Done</td><td>Verify scripts updated to check module files</td></tr>
 </thead><tbody>
 <tr><td><strong>J1-3</strong></td><td><strong>Root Locus geometric annotations (damping lines, ωn arcs, Ku labels)</strong></td><td>Done</td><td><code>verify_j13_rlocus_geo.mjs</code></td></tr>
@@ -411,6 +413,8 @@ del{color:var(--muted)}
 
 <p><strong>UI simulation snapshot closure:</strong> Active time-domain plots now publish the plotted response into <code>_lastSimResult</code> and emit <code>simulation:done</code>, so result summary, warning panel, and HIL CSV export all consume the same simulation state. Companion charts are guarded from overwriting the active snapshot. The snapshot records <code>t</code>, <code>y</code>, net <code>u</code>, command input, disturbance input, waveform type, domain, loop mode, metrics, and provenance; discrete step charts publish the same contract for z-domain exports.</p>
 
+<p><strong>UI analysis snapshot freshness closure:</strong> Stability / time-metric refresh now also publishes the current simulation snapshot from the analysis state, with an explicit <code>allowNonChartSnapshot</code> gate. This prevents stale HIL CSV, result summary, or warning data when engineers tune plant/controller/simulation parameters while Bode, Nyquist, Nichols, root-locus, or pole-zero plots are active. Plot workspace companion charts still cannot overwrite the canonical active simulation state.</p>
+
 <p><strong>DC gain origin-cancellation closure:</strong> continuous TF and ZPK <code>dcGain()</code> now cancel removable origin pole-zero factors before evaluating the low-frequency limit. Systems such as <code>s/s</code> report finite unity DC gain, extra origin zeros report zero DC gain, and extra origin poles preserve signed infinite gain. This prevents RGA, static decoupler, low-frequency design, and robustness summaries from treating removable integrators as real steady-state singularities.</p>
 
 <p><strong>Discrete DC gain unit-root closure:</strong> discrete TF <code>dcGain()</code> now evaluates the low-frequency limit at <code>q=z^-1=1</code> by cancelling removable unit-circle factors. Systems such as <code>(1-z^-1)/(1-z^-1)</code> report finite unity DC gain, extra unit-circle zeros report zero DC gain, and extra unit-circle poles report infinite DC gain. This prevents z-domain step final-value checks, C2D DC preservation, and discrete controller comparisons from treating removable unit roots as true steady-state singularities.</p>
@@ -452,7 +456,7 @@ del{color:var(--muted)}
 </thead><tbody>
 <tr><td>Phase 9/10/11 foundations</td><td>13</td><td>13</td></tr>
 </thead><tbody>
-<tr><td>Phase 14–69 advanced control / UI</td><td>72</td><td>72</td></tr>
+<tr><td>Phase 14–70 advanced control / UI</td><td>72</td><td>72</td></tr>
 </thead><tbody>
 <tr><td>Math audit fixes</td><td>1</td><td>1</td></tr>
 </thead><tbody>
