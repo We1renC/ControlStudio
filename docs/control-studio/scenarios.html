@@ -198,6 +198,62 @@ Ts = 0.25 s</code></pre>
 
 <p>Browser walkthrough passed. Continuous open-loop preview uses <code>G</code> as the time-response target while keeping <code>L</code> for frequency-domain analysis. DTF preview preserves <code>Ts=0.25</code> and omits continuous PID / loop generation. <code>verify_codegen_export_contract.mjs</code> locks the same behavior for both MATLAB and Python generators.</p>
 
+<h2 id="scenario-9-discrete-impulse-export-response-type-contract">Scenario 9: Discrete Impulse Export Response-Type Contract</h2>
+
+<p>Date: 2026-06-19</p>
+
+<h3 id="control-situation">Control Situation</h3>
+
+<p>驗證 z-domain analysis export 是否忠實反映目前選擇的 discrete response，而不是把 step response samples 標成 impulse 或其他 waveform。此情境直接檢查 browser JSON export artifact，因為 HIL、CSV、Markdown 與後續 agent validation 都會使用這些匯出資料。</p>
+
+<h3 id="model">Model</h3>
+
+<pre><code class="lang-text">G(z) = 0.5 / (1 - 0.5z^-1)
+Ts = 0.2 s
+Amplitude = 2
+Response = impulse</code></pre>
+
+<h3 id="controlstudio-workflow">ControlStudio Workflow</h3>
+
+<ol>
+<li>開啟 <code>http://127.0.0.1:8765</code>。</li>
+<li>切換到 <code>Discrete TF G(z)</code>。</li>
+<li>輸入：</li>
+<ul>
+<li>Numerator: <code>0.5</code></li>
+<li>Denominator: <code>1, -0.5</code></li>
+<li>Sample Time: <code>0.2</code></li>
+</ul>
+<li>Simulation input 選 <code>Impulse</code>。</li>
+<li>Amplitude 設為 <code>2</code>，sample count 設為 <code>5</code>。</li>
+<li>點擊 <code>Update Plant</code>。</li>
+<li>點擊 <code>Export JSON</code>，攔截下載內容並檢查 payload。</li>
+</ol>
+
+<h3 id="expected-assertions">Expected Assertions</h3>
+
+<ul>
+<li><code>responseType = "impulse"</code></li>
+<li><code>requestedResponseType = "impulse"</code></li>
+<li><code>sampleTime = 0.2</code></li>
+<li><code>y[0..3] = [1, 0.5, 0.25, 0.125]</code></li>
+<li><code>t[0..3] = [0, 0.2, 0.4, 0.6]</code></li>
+<li><code>metrics.gainMarginDB = null</code> with <code>gainMarginDBStatus = "positive_infinity"</code></li>
+<li><code>metrics.phaseMargin = null</code> with <code>phaseMarginStatus = "undefined"</code></li>
+<li><code>metrics.stepMetricsValid = false</code></li>
+<li><code>metrics.stepMetricsReason = "step metrics require step input; got impulse"</code></li>
+<li>step response metrics are null for impulse export</li>
+<li>export does not contain the step sequence <code>[1, 1.5, 1.75, ...]</code></li>
+</ul>
+
+<h3 id="observed-result">Observed Result</h3>
+
+<p>Browser walkthrough passed. <code>buildCurrentAnalysisExport()</code> now routes DTF impulse export through <code>discreteImpulseResponse()</code> and records the effective <code>responseType</code> separately from the UI request. Unsupported discrete export waveforms normalize to <code>step</code> while keeping <code>requestedResponseType</code> for traceability. Non-finite margins are serialized as JSON-safe <code>null</code> values plus explicit status fields so <code>∞</code> gain margin and undefined phase margin are not both misread as generic missing data.</p>
+
+<h3 id="engineering-decision">Engineering Decision</h3>
+
+<p>Export artifacts are now treated as control verification inputs, not just UI conveniences. Any future discrete waveform support must add both the actual response engine and an export contract fixture; otherwise the export layer must normalize unsupported requests explicitly.</p>
+
 <h2 id="scenario-1-precision-servo-stage-position-control">Scenario 1: Precision Servo Stage Position Control</h2>
 
 <p>Date: 2026-05-17</p>

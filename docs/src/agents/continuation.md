@@ -9,7 +9,7 @@
 - 已建立獨立 git repo，避免被 `/Users/w.rc` 外層 git 混入。
 - 控制系統目前同步基線：
   - Branch: `main`
-  - Latest active line: `fix(codegen): harden export runtime contracts`
+  - Latest active line: `fix(zero-flaw): close discrete export and loop10 verification gaps`
   - Full phase audit checkpoints:
     - `7a318b3 fix(control): harden phase 7-9 theory diagnostics`
     - `46e20da fix(control): harden phase 0-6 theory checks`
@@ -68,6 +68,7 @@
   - 2026-06-19 接續完成 UI effective loop-mode / DTF formula display contract：status bar、simulation snapshots、codegen payload、API analysis payload、comparison/export、AI Advisor 與 smoke state 只有在實際存在 `state.closedLoop` 時才回報 `closed_loop`，避免 closed-loop toggle preference 被誤當有效閉迴路模型；DTF/z-domain 公式顯示改為 `G(z)` / `L(z)` / `T(z)` 與 `z^-1` delay-polynomial convention，active discrete step plot 顯示 legend，open-loop smoke 不再要求 closed-loop formula。新增 `verify_ui_formula_contract.mjs` 並納入 `run_all_verify.sh`；browser walkthrough 已驗證 DTF `G(z) = ( 1 ) / ( 1 - 0.75z^-1 )`、toggle checked 但 status/smoke 為 `open_loop`、active legend 為 true。
   - 2026-06-19 接續完成 UI DTF sample-time codegen/export/project persistence contract：`buildCodegenPayload()` 改讀 `DiscreteTransferFunction.sampleTime`，MATLAB/Python preview/export 不再因讀不存在的 `tf.Ts` 而把非預設離散 plant 靜默輸出成 `Ts=0.1`；analysis JSON / Markdown export、autosave/project file 與 local multi-project save/load 皆保留 `systemType=dtf`、`domain=z`、DTF numerator/denominator 與 sample time。project manager 現在走 canonical `buildProjectPayload()` / `applyProjectPayload()`，並將舊版 plain `{num, den, sampleTime}` project 轉回 canonical payload。`verify_ui_formula_contract.mjs` 已擴充 coverage；browser walkthrough 已驗證 DTF `Ts=0.25` code preview/autosave/local project save-load 都維持 `Ts = 0.25`。
   - 2026-06-19 接續完成 MATLAB/Python codegen runtime-mode/domain compatibility contract：continuous open-loop export 保留 `L=C*G` 用於 Bode/margin，但 time response 改 plot `G`，不再引用未定義的 closed-loop `T`；closed-loop export 才建立/plot `T`。Python export 不再輸出 JavaScript `true/false` 或 `T if (...) else G`；z-domain export 保留 `Ts` 並跳過 continuous PID/L generation，避免 continuous `C(s)` 混入 discrete `G(z)`。新增 `verify_codegen_export_contract.mjs` 並納入 `run_all_verify.sh`；browser walkthrough 已驗證 continuous open-loop preview 為 `step(G)`、DTF `Ts=0.25` preview 不含 `C = pid` / `L = series(C, G)`。
+  - 2026-06-19 接續完成 discrete analysis export response-type contract：z-domain analysis export 現在區分 effective `responseType` 與 `requestedResponseType`；step/impulse 分別走 `discreteStepResponse()` / `discreteImpulseResponse()`，unsupported waveform 正規化為 step；DTF impulse export 不再把 step samples 標成 impulse，非 step export 不再回報有效 step metrics。第二輪 browser audit 又補上 JSON non-finite margin status：`Infinity` / `NaN` 會以 numeric `null` 搭配 `gainMarginDBStatus` / `phaseMarginStatus` 保留語意，並輸出 `stepMetricsValid` / `stepMetricsReason`。新增 `verify_discrete_export_response_contract.mjs` 並納入 `run_all_verify.sh`；browser walkthrough 已驗證 `G(z)=0.5/(1-0.5z^-1)`、`Ts=0.2`、amplitude 2 impulse JSON 輸出 `y=[1,0.5,0.25,0.125]`。
   - 2026-06-19 Zero-Flaw Loop（QA+DE 雙角色迭代）三輪補強，補上 10 個過去缺席的理論主題：
     - **ZF1**（理論基礎）：`js/control/passivity.js`（KYP lemma feasibility / 線性 Port-Hamiltonian / Energy balance / IDA-PBC / passivity index）、`js/control/lqg_ltr.js`（一站式 LQG 合成 + Doyle-Stein Loop Transfer Recovery 迴圈增益恢復）、`js/control/flatness.js`（Fliess-Lévine-Martin-Rouchon SISO 平坦性認證 + Brunovsky chain + polynomial 軌跡規劃）。verify 43 checks 全綠。
     - **ZF2**（現代 / 應用）：`js/control/nu_gap.js`（Vinnicombe ν-gap metric + 穩定球）、`js/control/deepc.js`（Willems' fundamental lemma 持續激勵 + Hankel-based DeePC KKT）、`js/control/dq_transforms.js`（Clarke / Park / dq + SRF-PLL，amplitude / power 兩變體）、`js/control/event_triggered.js`（Tabuada relative trigger + 最小 inter-event time τ_min 證明）。verify 17 checks 全綠。
@@ -85,6 +86,10 @@
     - **ZF9**（LaSalle / 譜分析 / Carleman）：`js/verification/lasalle.js`（LaSalle 不變集數值認證，含 RK4 forward simulation 檢測 E 留存）、`js/identification/spectral_subspace.js`（MUSIC 偽譜 + ESPRIT 旋轉不變子空間頻率估測；50/120 Hz 雙音定位至 49.9/120.2 Hz）、`js/control/carleman.js`（標量多項式系統 Carleman 升維線性化 + 截斷誤差驗證；N=3→N=6 誤差 4.19e-5→2.19e-6）。verify 7 checks 全綠。
     - 後三輪共 3 個新 verify script、35/35 checks 全綠，全部納入 `scripts/run_all_verify.sh`。新增涵蓋的文獻範圍：Parrilo/Papachristodoulou-Prajna/Henrion-Lasserre（SOS）、Edwards-Spurgeon/Khalil/Slotine-Li（SMO/HGO）、Basar-Olsder/Engwerda（differential games）、Ziegler-Nichols/Tyreus-Luyben/Cohen-Coon/Åström-Hägglund（autotune）、Branicky/Liberzon（switched MLF）、Krstic-Smyshlyaev/Lions（PDE boundary control）、Slotine-Li/Krstic-Kanellakopoulos（adaptive SMC）、LaSalle/Khalil（invariance principle）、Schmidt/Roy-Kailath/Stoica-Moses（MUSIC/ESPRIT）、Carleman/Rugh/Krener（Carleman/Volterra）。
     - 累計九輪共 **11 個 verify script、146/146 checks 全綠**；涵蓋的文獻領域已跨越 PBC、LQG-LTR、flatness、ν-gap、DeePC、dq-frame、event-triggered、SDE、multi-rate、DOB、RC、AW/bumpless、VRFT、funnel、manipulator、spectral factorisation、IFT、HJI、Youla、SOS、SMO/HGO、Nash/Stackelberg、autotune、MLF、PDE、adaptive SMC、LaSalle、MUSIC/ESPRIT、Carleman——**幾乎涵蓋現代控制理論主流光譜**。
+  - 2026-06-19 Zero-Flaw Loop 第四輪迭代（Loop 10），補上三項：
+    - **ZF10**（RL-for-control / DRO / FDI）：`js/control/adp_lqr.js`（Bradtke 1994 policy iteration LQR + LSTD-Q；policy iteration 對齊 DARE/LQR optimum，`max|ΔK|=8.02e-13`，LSTD-Q 使用 deterministic off-policy excitation 並對齊 analytic Q-function `H`，`max|ΔH|=2.69e-8`）、`js/control/distributionally_robust.js`（Mohajerin Esfahani-Kuhn 2018 Wasserstein DRO；deterministic samples，worst-case 加 ε² 罰項精確）、`js/estimation/unknown_input_observer.js`（Darouach-Zasadzinski-Xu 1994 全階 UIO；T·E = 0 完全擾動解耦、F = diag(−5,−5) 自動 Hurwitz）。verify 20/20 checks 全綠。
+    - 新文獻覆蓋：Bradtke/Tsitsiklis-Van Roy/Sutton-Barto/Lewis-Vamvoudakis（ADP）、Mohajerin Esfahani-Kuhn/Boskos-Cherukuri-Cortés（Wasserstein DRO）、Darouach-Zasadzinski-Xu/Chen-Patton（UIO + FDI）。
+    - 累計十輪共 **12 個 verify script、166/166 checks 全綠**。
   - 2026-06-17 接續完成 matched-z removable-origin gain normalization hardening：`c2dMatchedZ()` 現在先保留 continuous leading gain，再用 Discrete TF `dcGain()` low-frequency limit 做 DC normalization；`2s/s` 這類 removable origin pole-zero 會映射為 removable `z=1` pair 並保留 DC gain 2，不再因 raw coefficient sums 為 0 而退回 unity gain。
   - 2026-06-17 接續完成 matched-z properness hardening：`c2dMatchedZ()` 現在與 Tustin / ZOH / impulse-invariant 一致拒絕 improper continuous plant；`(s+1)^2/(s+1)` 這類 derivative-like 原始模型不再被靜默映射成看似 stable 的 discrete TF。
   - 2026-06-17 接續完成 impulse-invariant repeated-pole hardening：`c2dImpulseInvariant()` 現在明確拒絕 repeated continuous poles；`1/(s+1)^2` 不再被 residue loop 靜默跳過成 zero DTF，改要求使用 ZOH 或 Tustin。
@@ -222,7 +227,7 @@
     - 主執行看板：`control-studio/ROADMAP.md`。若 phase status、下一步順序或 dirty worktree 分類改變，先更新 roadmap，再同步 backlog / plan / skills / scenarios / verification cases / continuation。
     - Skill plan：`docs/src/control-studio/skills.md` 已規劃 `control-studio-robust-validator`、`control-studio-system-auditor`、`control-studio-benchmark-author`、`control-studio-mpc-designer`、`control-studio-sysid-planner` 等候選 skill。
   - Block Diagram expansion：Paused
-  - Phase 0 ~ Phase 74 與 Functional Roadmap Tier A-J 已完成文件進度對齊。後續若修改數值核心、API 分析輸出、codegen output 或 UI runtime state contract，至少依 roadmap 對應 phase 重跑 targeted verify、`npm run verify:all`、`node test_control.js`、`node control-studio/scripts/control_regression_dashboard.mjs`；目前 full suite 基線為 **116/116 scripts pass**，fixture/API contract 為 **10/10 cases**。
+  - Phase 0 ~ Phase 75、Zero-Flaw Loop 1~10 與 Functional Roadmap Tier A-J 已完成文件進度對齊。後續若修改數值核心、API 分析輸出、codegen output 或 UI runtime state contract，至少依 roadmap 對應 phase 重跑 targeted verify、`npm run verify:all`、`node test_control.js`、`node control-studio/scripts/control_regression_dashboard.mjs`；目前 full suite 基線為 **129/129 scripts pass**，fixture/API contract 為 **10/10 cases**。
 - 已建立 symlink：
   - `/Users/w.rc/.config/agents/skills/nvidia-model-selector`
   - 指向 `/Users/w.rc/nvdiaOSsupport/skills/nvidia-model-selector`
@@ -374,7 +379,7 @@ git log --oneline -5
 - 2026-05-24 sidebar IA 已補做結構整理：workflow sidebar 依任務分為 `Core / ID / Reuse`、`Core / Specs / Advanced`、`Sim / Deploy / QA` 等群組；對次要 panel 套用 default collapsed preset，並將 `Controller Tuning`、`Simulation` 兩個最長卡片再拆成 nested subsections。Browser 實測 `Design` tab nav scroll height 約由 `6225` 降到 `2052`，切 workflow / mode / search 後分類標籤仍能正確跟隨可見面板刷新。
 
 ## 後續可做
-1. 目前非暫停的 ControlStudio roadmap 已達 deterministic baseline，且 full suite / doctor 入口已收斂至 115/115；fixture/API contract 已收斂至 10/10 cases；下一步應由實際控制情境或明確研究級 backend 需求驅動。
+1. 目前非暫停的 ControlStudio roadmap 已達 deterministic baseline，且 full suite / doctor 入口已收斂至 129/129；fixture/API contract 已收斂至 10/10 cases；下一步應由實際控制情境或明確研究級 backend 需求驅動。
 2. 可選研究深化：non-normal real Schur refinement、full-order dynamic K fitting、industrial-grade μ synthesis backend、CONTSID。
 3. 使用 `control-studio-system-auditor` 審查下一個控制設計缺口，並用 `control-studio-benchmark-author` 補 benchmark fixture。
 4. Teaching Mode / Electron / Report Template 目前使用者要求擱置，不要開發。

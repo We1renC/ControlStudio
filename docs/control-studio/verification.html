@@ -85,7 +85,7 @@ del{color:var(--muted)}
 <main>
 <h1 id="control-system-verification-cases">Control System Verification Cases</h1>
 
-<p>此文件定義 ControlStudio 後續回歸測試的十個基準案例。每個案例都必須能以數學推導得到期望結果，再用 <code>control-studio</code> 數值核心、<code>control_analysis_cli.mjs</code> 與 FastAPI API 交叉驗證。</p>
+<p>此文件定義 ControlStudio 後續回歸測試的十一個基準案例。每個案例都必須能以數學推導得到期望結果，再用 <code>control-studio</code> 數值核心、<code>control_analysis_cli.mjs</code> 與 FastAPI API 交叉驗證。</p>
 
 <p>驗證原則：</p>
 <ul>
@@ -96,6 +96,7 @@ del{color:var(--muted)}
 <li>Discrete <code>z^-1</code> coefficient arrays must trim trailing structural zeros without removing leading numerator delay zeros；<code>num=[1,0,0], den=[1,0]</code> is the same static gain as <code>num=[1], den=[1]</code>, while denominator leading-zero forms such as <code>den=[0,1]</code> must be rejected as invalid non-causal/advance representations.</li>
 <li>Discrete interconnections must add <code>z^-1</code> delay polynomials by coefficient index, not by high-degree polynomial alignment；mixed-order <code>parallel()</code> and <code>feedback()</code> must preserve dynamic poles, and feedback paths must reject sample-time mismatches.</li>
 <li>Discrete sample time is part of the mathematical model, not display-only metadata；code generation, analysis export, autosave, project files, and local project-manager save/load must preserve <code>DiscreteTransferFunction.sampleTime</code> exactly for non-default values such as <code>Ts=0.25</code>.</li>
+<li>z-domain analysis export payloads must report the effective discrete response type；if a requested waveform is unsupported, export must normalize it explicitly and preserve the original request separately as traceability metadata. JSON export must also preserve non-finite margin semantics with explicit status fields, because <code>Infinity</code> / <code>NaN</code> would otherwise collapse to <code>null</code>.</li>
 <li>Generated MATLAB / Python scripts are verification artifacts；they must not reference undefined closed-loop variables, must use language-native syntax, and must not mix continuous PID controllers with z-domain plants unless an explicit discrete controller model is present.</li>
 <li>Matched-Z C2D gain normalization 必須先保留 continuous leading gain，再使用 discrete low-frequency limit；遇到 removable origin pole-zero 映射為 <code>z=1</code> pair 時，不可因 raw coefficient sums 為 0 而退回 unity gain。</li>
 <li>C2D 方法必須一致拒絕 improper continuous plant；不可把 derivative-like 或不可實現的原始模型離散成看似 stable 的 DTF。</li>
@@ -800,6 +801,85 @@ s = +1</code></pre>
 <pre><code class="lang-json">{
   "system": { "type": "transfer_function", "num": [1], "den": [1, -1] },
   "simulation": { "mode": "open_loop", "inputWaveform": "step", "duration": 8, "sampleCount": 800, "amplitude": 1 }
+}</code></pre>
+
+<h2 id="case-11-discrete-impulse-export-response-type-contract">Case 11: Discrete Impulse Export Response-Type Contract</h2>
+
+<h3 id="purpose">Purpose</h3>
+
+<p>驗證 z-domain analysis export 不會把 discrete step response samples 誤標成 impulse / ramp / sine / square / pulse。此案例鎖定 export artifact 的語意：<code>responseType</code> 必須表示實際輸出的離散響應，<code>requestedResponseType</code> 才表示使用者原始選擇。</p>
+
+<h3 id="model">Model</h3>
+
+<pre><code class="lang-text">G(z) = 0.5 / (1 - 0.5z^-1)
+Ts = 0.2 s</code></pre>
+
+<p>使用振幅：</p>
+
+<pre><code class="lang-text">A = 2</code></pre>
+
+<h3 id="mathematical-derivation">Mathematical Derivation</h3>
+
+<p>差分方程：</p>
+
+<pre><code class="lang-text">y[k] - 0.5y[k-1] = 0.5u[k]</code></pre>
+
+<p>Impulse input in ControlStudio discrete response engine uses:</p>
+
+<pre><code class="lang-text">u[0] = A = 2
+u[k&gt;0] = 0</code></pre>
+
+<p>Assume zero initial condition:</p>
+
+<pre><code class="lang-text">y[0] = 0.5 * 2 = 1
+y[1] = 0.5y[0] = 0.5
+y[2] = 0.5y[1] = 0.25
+y[3] = 0.5y[2] = 0.125</code></pre>
+
+<p>因此 impulse export 的前四個 samples 必須是：</p>
+
+<pre><code class="lang-text">[1, 0.5, 0.25, 0.125]</code></pre>
+
+<p>對照 step input：</p>
+
+<pre><code class="lang-text">u[k] = 2 for all k
+y[0] = 1
+y[1] = 0.5y[0] + 1 = 1.5
+y[2] = 0.5y[1] + 1 = 1.75</code></pre>
+
+<p>若 impulse export 出現 <code>[1, 1.5, 1.75, ...]</code>，代表實際匯出的是 step response，屬於錯誤。</p>
+
+<h3 id="expected-assertions">Expected Assertions</h3>
+
+<ul>
+<li><code>sampleTime = 0.2</code></li>
+<li><code>responseType = "impulse"</code></li>
+<li><code>requestedResponseType = "impulse"</code></li>
+<li><code>t[0..3] = [0, 0.2, 0.4, 0.6]</code></li>
+<li><code>y[0..3] = [1, 0.5, 0.25, 0.125]</code></li>
+<li>response must not equal step sequence <code>[1, 1.5, 1.75, ...]</code></li>
+<li><code>metrics.gainMarginDB = null</code>, <code>metrics.gainMarginDBStatus = "positive_infinity"</code></li>
+<li><code>metrics.phaseMargin = null</code>, <code>metrics.phaseMarginStatus = "undefined"</code></li>
+<li><code>metrics.stepMetricsValid = false</code></li>
+<li><code>metrics.stepMetricsReason = "step metrics require step input; got impulse"</code></li>
+<li>step response metrics must remain null for impulse export</li>
+</ul>
+
+<h3 id="suggested-payload">Suggested Payload</h3>
+
+<pre><code class="lang-json">{
+  "system": {
+    "type": "discrete_transfer_function",
+    "num": [0.5],
+    "den": [1, -0.5],
+    "sampleTime": 0.2
+  },
+  "simulation": {
+    "mode": "open_loop",
+    "inputWaveform": "impulse",
+    "sampleCount": 5,
+    "amplitude": 2
+  }
 }</code></pre>
 
 <h2 id="phase-24-advanced-mpc-verification-addendum">Phase 24 Advanced MPC Verification Addendum</h2>

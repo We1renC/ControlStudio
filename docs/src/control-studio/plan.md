@@ -38,6 +38,8 @@
   - `control-studio/js/control/reset_control.js`
   - `control-studio/js/control/reference_governor.js`
   - `control-studio/js/control/closedloop_id.js`
+  - `control-studio/js/control/adp_lqr.js`
+  - `control-studio/js/control/distributionally_robust.js`
   - `control-studio/js/identification/gp.js`
   - `control-studio/js/identification/hammerstein_wiener.js`
   - `control-studio/js/identification/freq_mimo.js`
@@ -46,6 +48,7 @@
   - `control-studio/js/estimation/particle_filter.js`
   - `control-studio/js/estimation/dual_ekf.js`
   - `control-studio/js/estimation/smoother.js`
+  - `control-studio/js/estimation/unknown_input_observer.js`
   - `control-studio/js/optimization/admm_qp.js`
   - `control-studio/js/optimization/sqp.js`
   - `control-studio/js/optimization/milp.js`
@@ -142,6 +145,9 @@
 - Runtime architecture Tier I baseline：WASM adapter、async compute worker facade、LRU memoization、streaming computation、cross-method check table
 - Hardware / HIL integration Tier J baseline：WebSocket HIL protocol、Serial codecs、OPC UA / Modbus / MQTT facades、InfluxDB / Prometheus query normalization
 - Dynamic D-K baseline：frequency-dependent D profile、log-linear `D(jω)` fit、dynamic D-K wrapper、mu-bound non-worsening fixture
+- ADP / reinforcement-learning-for-control baseline：discrete LQR policy iteration and LSTD-Q verification against the DARE-derived optimum
+- Distributionally robust optimization baseline：Wasserstein ambiguity upper bound and deterministic scalar quadratic DRO fixtures
+- Unknown Input Observer baseline：Darouach full-order UIO with disturbance decoupling, rank condition, and Hurwitz error dynamics verification
 - Project-local agent skills：MPC designer、SysID planner、UI verifier workflow packages
 - Step Response
 - Impulse / Ramp / Sine / Square / Pulse response
@@ -251,6 +257,8 @@
 - UI formula display audit：DTF/z-domain 公式顯示遵守 `DiscreteTransferFunction` 的 `z^-1` convention，plant 與 loop equations 使用 `G(z)` / `L(z)` / `T(z)`，並以 `1 - 0.75z^-1` 這類 delay-polynomial 顯示係數；continuous PID / lead-lag helper 仍維持 `C(s)` / `Cc(s)`，避免把 continuous compensator 誤標為 discrete controller。Active discrete step plot 顯示 legend，smoke diagnostics 在 effective open-loop 模式不再要求 closed-loop formula。
 - UI DTF sample-time persistence audit：DTF sample time 會由 `DiscreteTransferFunction.sampleTime` 進入 codegen payload、MATLAB/Python preview/export、analysis JSON/Markdown export、autosave/project file 與 local multi-project save/load；project manager 不再 JSON 化 TF class instance，而是統一使用 `buildProjectPayload()` / `applyProjectPayload()`，避免離散模型載入後退化成 plain object 或回到錯誤 `Ts=0.1`。
 - Codegen runtime contract audit：MATLAB / Python export 會依 effective runtime mode 選擇 response target；open-loop 腳本 plot `G` 並保留 `L=C*G` 作 Bode/margin analysis，不再引用未定義的 `T`；closed-loop 腳本才建立並 plot `T`。Python export 不再輸出 JavaScript `true/false` 條件式。z-domain export 會保留 `Ts`，但跳過 continuous PID/L generation，避免將 continuous `C(s)` 與 discrete `G(z)` 混合成不可部署腳本。
+- Discrete export response audit：z-domain analysis export 會把 effective `responseType` 與使用者要求的 `requestedResponseType` 分開；目前 discrete export 支援 step / impulse，unsupported waveform 會正規化為 step，避免把 step samples 標成 ramp / sine / pulse。DTF impulse export 會走 `discreteImpulseResponse()`，非 step export 不再輸出有效 rise / settling / overshoot 指標；non-finite margin 會以 JSON-safe `null` 搭配 `gainMarginDBStatus` / `phaseMarginStatus` 保留語意，避免 `Infinity` / `NaN` 被靜默折疊成一般缺值。
+- Zero-Flaw Loop 10 audit：新增 ADP-PI / LSTD-Q、Wasserstein DRO、Unknown Input Observer 三個理論缺口的 deterministic baseline。ADP policy iteration 會對照 DARE/LQR optimum，LSTD-Q 使用 deterministic off-policy excitation 比對 analytic Q-function matrix，DRO 不再使用 random fixture，UIO 驗證 `rank(C E)=q`、`T E≈0` 與 Hurwitz error dynamics。
 - Real Schur symmetric fast path：對 symmetric real matrices 使用 Jacobi orthogonal Schur，修復 3x3 stable real-spectrum reconstruction regression。
 - Nonlinear equilibrium classification：`classifyEquilibrium()` 對 n>2 Jacobian 改用 Faddeev-LeVerrier characteristic polynomial + `polyroots()`，避免舊 `trace(A)/n` placeholder 隱藏 saddle / unstable modes。
 - Frontend analysis API migration：新 session 預設 `Auto API Fallback`，FastAPI 成功時使用 Unified API metrics，不可用或 z-domain 時明確 fallback Local JS；root `package.json` 已提供 `npm run verify:*` 入口。
@@ -258,7 +266,7 @@
 
 ### 尚未完成能力
 - Functional Roadmap Tier A-J 已完成 deterministic baseline。
-- Full verification suite 已納入 control verification fixtures、FastAPI contract fixtures、runtime UI waveform contract、runtime UI stability snapshot contract、runtime UI simulation snapshot / freshness / discrete-domain / effective-loop contract、runtime UI formula display contract、runtime UI symbol contract 與 n-dimensional equilibrium classification regression；目前基線為 `115/115 scripts pass`，fixture/API contract 為 `10/10 cases pass`。
+- Full verification suite 已納入 control verification fixtures、FastAPI contract fixtures、runtime UI waveform contract、runtime UI stability snapshot contract、runtime UI simulation snapshot / freshness / discrete-domain / effective-loop contract、runtime UI formula display contract、discrete export response contract、runtime UI symbol contract、n-dimensional equilibrium classification regression 與 Zero-Flaw Loop 1~10；目前基線為 `129/129 scripts pass`，fixture/API contract 為 `10/10 cases pass`。
 - Phase 23 ~ Phase 28 舊缺口已同步收斂：continuous-time ID / Hankel norm / LPV synthesis / dynamic D-K / JSDoc API docs 均已有驗證基線。
 - CONTSID、full-order dynamic K fitting、industrial-grade μ synthesis backend 仍可作後續研究擴充，但不再列為目前阻塞項。
 - 自動產生報告 / 報告模板、Electron packaging、教學模式與 Block Diagram expansion 仍依使用者要求擱置。
@@ -571,7 +579,7 @@
 1. 先讀本文件，再動手修改控制系統相關檔案。
 2. 若修改數值核心、API 分析輸出或穩定性指標，需對照 `docs/src/control-studio/verification.md` 的案例與數學推導。
 3. 後續開發順序以 `control-studio/ROADMAP.md` 為準；詳細 task ledger 再對照 `docs/src/control-studio/backlog.md`。
-4. 目前非 paused roadmap 已到 115/115 verification baseline，fixture/API contract 已到 10/10；若啟動下一階段，先更新 `control-studio/ROADMAP.md`，再同步 `docs/src/control-studio/backlog.md` 與 `docs/src/control-studio/skills.md` 的範圍、技能邊界與驗證基線。
+4. 目前非 paused roadmap 已到 129/129 verification baseline，fixture/API contract 已到 10/10；若啟動下一階段，先更新 `control-studio/ROADMAP.md`，再同步 `docs/src/control-studio/backlog.md` 與 `docs/src/control-studio/skills.md` 的範圍、技能邊界與驗證基線。
 5. 若新增控制系統分析功能，必須補：
    - 文件
    - 至少一個 smoke test 或驗證流程

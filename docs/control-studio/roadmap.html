@@ -87,7 +87,7 @@ del{color:var(--muted)}
 
 <blockquote>
 <p>Last updated: 2026-06-19</p>
-<p>Current committed baseline: <code>fix(codegen): harden export runtime contracts</code></p>
+<p>Current committed baseline: <code>fix(zero-flaw): close discrete export and loop10 verification gaps</code></p>
 <p>Scope: this is the canonical execution roadmap for ControlStudio implementation status.</p>
 <p>Do not use this file for product vision, proof derivations, or handoff notes; see the document workflow below.</p>
 </blockquote>
@@ -264,6 +264,10 @@ del{color:var(--muted)}
 </thead><tbody>
 <tr><td><strong>P74</strong></td><td><strong>Codegen runtime-mode + domain compatibility contract</strong></td><td>Done</td><td><code>verify_codegen_export_contract.mjs</code>, browser code preview walkthrough</td></tr>
 </thead><tbody>
+<tr><td><strong>P75</strong></td><td><strong>Discrete analysis export response-type contract</strong></td><td>Done</td><td><code>verify_discrete_export_response_contract.mjs</code>, browser JSON export walkthrough</td></tr>
+</thead><tbody>
+<tr><td><strong>ZF10</strong></td><td><strong>Zero-Flaw Loop 10: ADP-PI / LSTD-Q + Wasserstein DRO + Unknown Input Observer</strong></td><td>Done</td><td><code>verify_loop10_modules.mjs</code> (20)</td></tr>
+</thead><tbody>
 <tr><td><strong>P34-01</strong></td><td><strong>Module split: P62-P65 → js/ui/ sub-modules</strong></td><td>Done</td><td>Verify scripts updated to check module files</td></tr>
 </thead><tbody>
 <tr><td><strong>J1-3</strong></td><td><strong>Root Locus geometric annotations (damping lines, ωn arcs, Ku labels)</strong></td><td>Done</td><td><code>verify_j13_rlocus_geo.mjs</code></td></tr>
@@ -431,6 +435,10 @@ del{color:var(--muted)}
 
 <p><strong>Codegen runtime-mode / domain compatibility closure:</strong> MATLAB/Python exports now align with the effective runtime mode and plant domain. Continuous open-loop exports still define <code>L = C*G</code> for Bode/margin analysis, but time-response code plots <code>G</code> and does not reference an undefined closed-loop <code>T</code>. Closed-loop exports explicitly define and plot <code>T</code>. Python exports no longer emit JavaScript boolean syntax such as <code>true</code> / <code>false</code> in generated expressions. z-domain exports preserve <code>Ts</code> while skipping continuous PID generation unless a discrete controller is explicitly available, so generated scripts do not mix <code>pid()</code> / continuous <code>C(s)</code> with <code>G(z)</code>.</p>
 
+<p><strong>Discrete analysis export response-type closure:</strong> z-domain analysis exports now distinguish requested UI waveform from the actual supported discrete response. Discrete export supports <code>step</code> and <code>impulse</code>; unsupported requested waveforms normalize to <code>step</code> and are preserved as <code>requestedResponseType</code> for traceability. <code>buildCurrentAnalysisExport()</code> now routes discrete impulse through <code>discreteImpulseResponse()</code> instead of always exporting <code>discreteStepResponse()</code>, so JSON/CSV/Markdown artifacts cannot label step samples as impulse/ramp/sine data. Discrete non-step exports also invalidate step metrics instead of reporting rise/settling/overshoot on impulse data. JSON export now serializes non-finite margins as <code>null</code> plus explicit status fields (<code>positive_infinity</code>, <code>undefined</code>, etc.) so infinite gain margin and undefined phase margin are not collapsed into generic missing data. Browser walkthrough verified <code>G(z)=0.5/(1-0.5z^-1)</code>, <code>Ts=0.2</code>, amplitude 2 impulse export yields <code>y=[1,0.5,0.25,0.125]</code> with <code>responseType=impulse</code>.</p>
+
+<p><strong>Zero-Flaw Loop 10 closure:</strong> added deterministic ADP / DRO / FDI coverage. ADP policy iteration is checked against the Hamiltonian-sign DARE solution for a discrete double integrator (<code>max|ΔK|=8.02e-13</code>, DARE residual 0). LSTD-Q now uses deterministic off-policy excitation and compares the recovered Q-function matrix to the analytic DARE-derived <code>H</code> (<code>max|ΔH|=2.69e-8</code>), avoiding rank-deficient on-policy evidence and non-reproducible random fixtures. Wasserstein DRO uses deterministic sample paths, and UIO verification proves <code>rank(C E)=q</code>, <code>T E≈0</code>, and Hurwitz decoupled error dynamics.</p>
+
 <p><strong>DC gain origin-cancellation closure:</strong> continuous TF and ZPK <code>dcGain()</code> now cancel removable origin pole-zero factors before evaluating the low-frequency limit. Systems such as <code>s/s</code> report finite unity DC gain, extra origin zeros report zero DC gain, and extra origin poles preserve signed infinite gain. This prevents RGA, static decoupler, low-frequency design, and robustness summaries from treating removable integrators as real steady-state singularities.</p>
 
 <p><strong>Discrete DC gain unit-root closure:</strong> discrete TF <code>dcGain()</code> now evaluates the low-frequency limit at <code>q=z^-1=1</code> by cancelling removable unit-circle factors. Systems such as <code>(1-z^-1)/(1-z^-1)</code> report finite unity DC gain, extra unit-circle zeros report zero DC gain, and extra unit-circle poles report infinite DC gain. This prevents z-domain step final-value checks, C2D DC preservation, and discrete controller comparisons from treating removable unit roots as true steady-state singularities.</p>
@@ -463,7 +471,7 @@ del{color:var(--muted)}
 
 <h2 id="verification-suite-status-2026-06-19">Verification Suite Status (2026-06-19)</h2>
 
-<p><strong>116/116 scripts pass</strong> — run via <code>bash scripts/run_all_verify.sh</code> or <code>npm run verify:all</code>. Fixture/API contract coverage is now <strong>10/10 cases</strong>, including open-loop controller cascade response, non-step waveform metrics gating, non-unit step amplitude reference metrics, zero-final-change step metrics rejection, and divergent/unfinished step metrics rejection. UI waveform routing is covered by <code>verify_ui_waveform_contract.mjs</code>; UI stability snapshot and GM-field normalization are covered by <code>verify_ui_stability_snapshot_contract.mjs</code>; active simulation state, HIL/export consistency, analysis freshness, discrete domain-switch freshness, and effective loop-mode routing are covered by <code>verify_ui_simulation_snapshot_contract.mjs</code>; DTF <code>z^-1</code> formula display, active discrete legend, smoke equation labels, DTF sample-time codegen/export, and project persistence are covered by <code>verify_ui_formula_contract.mjs</code>; MATLAB/Python runtime-mode and domain-compatible script generation is covered by <code>verify_codegen_export_contract.mjs</code>.</p>
+<p><strong>129/129 scripts pass</strong> — run via <code>bash scripts/run_all_verify.sh</code> or <code>npm run verify:all</code>. Fixture/API contract coverage is now <strong>10/10 cases</strong>, including open-loop controller cascade response, non-step waveform metrics gating, non-unit step amplitude reference metrics, zero-final-change step metrics rejection, and divergent/unfinished step metrics rejection. UI waveform routing is covered by <code>verify_ui_waveform_contract.mjs</code>; UI stability snapshot and GM-field normalization are covered by <code>verify_ui_stability_snapshot_contract.mjs</code>; active simulation state, HIL/export consistency, analysis freshness, discrete domain-switch freshness, and effective loop-mode routing are covered by <code>verify_ui_simulation_snapshot_contract.mjs</code>; DTF <code>z^-1</code> formula display, active discrete legend, smoke equation labels, DTF sample-time codegen/export, and project persistence are covered by <code>verify_ui_formula_contract.mjs</code>; MATLAB/Python runtime-mode and domain-compatible script generation is covered by <code>verify_codegen_export_contract.mjs</code>; z-domain export response-type normalization and impulse routing are covered by <code>verify_discrete_export_response_contract.mjs</code>; Zero-Flaw Loop additions are covered through <code>verify_passivity_kyp.mjs</code>, <code>verify_lqg_ltr.mjs</code>, <code>verify_flatness.mjs</code>, and <code>verify_loop2_modules.mjs</code> through <code>verify_loop10_modules.mjs</code>.</p>
 
 <table><thead>
 <tr><th>Group</th><th>Scripts</th><th>Pass</th></tr>
@@ -472,13 +480,15 @@ del{color:var(--muted)}
 </thead><tbody>
 <tr><td>Phase 9/10/11 foundations</td><td>13</td><td>13</td></tr>
 </thead><tbody>
-<tr><td>Phase 14–72 advanced control / UI</td><td>73</td><td>73</td></tr>
+<tr><td>Phase 14–72 advanced control / UI</td><td>75</td><td>75</td></tr>
 </thead><tbody>
 <tr><td>Math audit fixes</td><td>1</td><td>1</td></tr>
 </thead><tbody>
 <tr><td>Functional Roadmap A-J</td><td>22</td><td>22</td></tr>
 </thead><tbody>
 <tr><td>General math &amp; PID</td><td>4</td><td>4</td></tr>
+</thead><tbody>
+<tr><td>Zero-Flaw Loop additions</td><td>12</td><td>12</td></tr>
 </tbody></table>
 
 <h2 id="p1-p2-ui-ux-completion-summary">P1/P2 UI/UX Completion Summary</h2>

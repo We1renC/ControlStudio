@@ -1,6 +1,6 @@
 # Control System Verification Cases
 
-此文件定義 ControlStudio 後續回歸測試的十個基準案例。每個案例都必須能以數學推導得到期望結果，再用 `control-studio` 數值核心、`control_analysis_cli.mjs` 與 FastAPI API 交叉驗證。
+此文件定義 ControlStudio 後續回歸測試的十一個基準案例。每個案例都必須能以數學推導得到期望結果，再用 `control-studio` 數值核心、`control_analysis_cli.mjs` 與 FastAPI API 交叉驗證。
 
 驗證原則：
 - 先比對 transfer function 多項式係數，再比對 poles / zeros / DC gain。
@@ -10,6 +10,7 @@
 - Discrete `z^-1` coefficient arrays must trim trailing structural zeros without removing leading numerator delay zeros；`num=[1,0,0], den=[1,0]` is the same static gain as `num=[1], den=[1]`, while denominator leading-zero forms such as `den=[0,1]` must be rejected as invalid non-causal/advance representations.
 - Discrete interconnections must add `z^-1` delay polynomials by coefficient index, not by high-degree polynomial alignment；mixed-order `parallel()` and `feedback()` must preserve dynamic poles, and feedback paths must reject sample-time mismatches.
 - Discrete sample time is part of the mathematical model, not display-only metadata；code generation, analysis export, autosave, project files, and local project-manager save/load must preserve `DiscreteTransferFunction.sampleTime` exactly for non-default values such as `Ts=0.25`.
+- z-domain analysis export payloads must report the effective discrete response type；if a requested waveform is unsupported, export must normalize it explicitly and preserve the original request separately as traceability metadata. JSON export must also preserve non-finite margin semantics with explicit status fields, because `Infinity` / `NaN` would otherwise collapse to `null`.
 - Generated MATLAB / Python scripts are verification artifacts；they must not reference undefined closed-loop variables, must use language-native syntax, and must not mix continuous PID controllers with z-domain plants unless an explicit discrete controller model is present.
 - Matched-Z C2D gain normalization 必須先保留 continuous leading gain，再使用 discrete low-frequency limit；遇到 removable origin pole-zero 映射為 `z=1` pair 時，不可因 raw coefficient sums 為 0 而退回 unity gain。
 - C2D 方法必須一致拒絕 improper continuous plant；不可把 derivative-like 或不可實現的原始模型離散成看似 stable 的 DTF。
@@ -872,6 +873,99 @@ y(8) = e^8 - 1 ~= 2979.96
 {
   "system": { "type": "transfer_function", "num": [1], "den": [1, -1] },
   "simulation": { "mode": "open_loop", "inputWaveform": "step", "duration": 8, "sampleCount": 800, "amplitude": 1 }
+}
+```
+
+## Case 11: Discrete Impulse Export Response-Type Contract
+
+### Purpose
+
+驗證 z-domain analysis export 不會把 discrete step response samples 誤標成 impulse / ramp / sine / square / pulse。此案例鎖定 export artifact 的語意：`responseType` 必須表示實際輸出的離散響應，`requestedResponseType` 才表示使用者原始選擇。
+
+### Model
+
+```text
+G(z) = 0.5 / (1 - 0.5z^-1)
+Ts = 0.2 s
+```
+
+使用振幅：
+
+```text
+A = 2
+```
+
+### Mathematical Derivation
+
+差分方程：
+
+```text
+y[k] - 0.5y[k-1] = 0.5u[k]
+```
+
+Impulse input in ControlStudio discrete response engine uses:
+
+```text
+u[0] = A = 2
+u[k>0] = 0
+```
+
+Assume zero initial condition:
+
+```text
+y[0] = 0.5 * 2 = 1
+y[1] = 0.5y[0] = 0.5
+y[2] = 0.5y[1] = 0.25
+y[3] = 0.5y[2] = 0.125
+```
+
+因此 impulse export 的前四個 samples 必須是：
+
+```text
+[1, 0.5, 0.25, 0.125]
+```
+
+對照 step input：
+
+```text
+u[k] = 2 for all k
+y[0] = 1
+y[1] = 0.5y[0] + 1 = 1.5
+y[2] = 0.5y[1] + 1 = 1.75
+```
+
+若 impulse export 出現 `[1, 1.5, 1.75, ...]`，代表實際匯出的是 step response，屬於錯誤。
+
+### Expected Assertions
+
+- `sampleTime = 0.2`
+- `responseType = "impulse"`
+- `requestedResponseType = "impulse"`
+- `t[0..3] = [0, 0.2, 0.4, 0.6]`
+- `y[0..3] = [1, 0.5, 0.25, 0.125]`
+- response must not equal step sequence `[1, 1.5, 1.75, ...]`
+- `metrics.gainMarginDB = null`, `metrics.gainMarginDBStatus = "positive_infinity"`
+- `metrics.phaseMargin = null`, `metrics.phaseMarginStatus = "undefined"`
+- `metrics.stepMetricsValid = false`
+- `metrics.stepMetricsReason = "step metrics require step input; got impulse"`
+- step response metrics must remain null for impulse export
+
+### Suggested Payload
+
+```json
+{
+  "system": {
+    "type": "discrete_transfer_function",
+    "num": [0.5],
+    "den": [1, -0.5],
+    "sampleTime": 0.2
+  },
+  "simulation": {
+    "mode": "open_loop",
+    "inputWaveform": "impulse",
+    "sampleCount": 5,
+    "amplitude": 2
+  }
 }
 ```
 

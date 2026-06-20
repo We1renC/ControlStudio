@@ -99,6 +99,58 @@ Expected assertions:
 
 Browser walkthrough passed. Continuous open-loop preview uses `G` as the time-response target while keeping `L` for frequency-domain analysis. DTF preview preserves `Ts=0.25` and omits continuous PID / loop generation. `verify_codegen_export_contract.mjs` locks the same behavior for both MATLAB and Python generators.
 
+## Scenario 9: Discrete Impulse Export Response-Type Contract
+
+Date: 2026-06-19
+
+### Control Situation
+
+驗證 z-domain analysis export 是否忠實反映目前選擇的 discrete response，而不是把 step response samples 標成 impulse 或其他 waveform。此情境直接檢查 browser JSON export artifact，因為 HIL、CSV、Markdown 與後續 agent validation 都會使用這些匯出資料。
+
+### Model
+
+```text
+G(z) = 0.5 / (1 - 0.5z^-1)
+Ts = 0.2 s
+Amplitude = 2
+Response = impulse
+```
+
+### ControlStudio Workflow
+
+1. 開啟 `http://127.0.0.1:8765`。
+2. 切換到 `Discrete TF G(z)`。
+3. 輸入：
+   - Numerator: `0.5`
+   - Denominator: `1, -0.5`
+   - Sample Time: `0.2`
+4. Simulation input 選 `Impulse`。
+5. Amplitude 設為 `2`，sample count 設為 `5`。
+6. 點擊 `Update Plant`。
+7. 點擊 `Export JSON`，攔截下載內容並檢查 payload。
+
+### Expected Assertions
+
+- `responseType = "impulse"`
+- `requestedResponseType = "impulse"`
+- `sampleTime = 0.2`
+- `y[0..3] = [1, 0.5, 0.25, 0.125]`
+- `t[0..3] = [0, 0.2, 0.4, 0.6]`
+- `metrics.gainMarginDB = null` with `gainMarginDBStatus = "positive_infinity"`
+- `metrics.phaseMargin = null` with `phaseMarginStatus = "undefined"`
+- `metrics.stepMetricsValid = false`
+- `metrics.stepMetricsReason = "step metrics require step input; got impulse"`
+- step response metrics are null for impulse export
+- export does not contain the step sequence `[1, 1.5, 1.75, ...]`
+
+### Observed Result
+
+Browser walkthrough passed. `buildCurrentAnalysisExport()` now routes DTF impulse export through `discreteImpulseResponse()` and records the effective `responseType` separately from the UI request. Unsupported discrete export waveforms normalize to `step` while keeping `requestedResponseType` for traceability. Non-finite margins are serialized as JSON-safe `null` values plus explicit status fields so `∞` gain margin and undefined phase margin are not both misread as generic missing data.
+
+### Engineering Decision
+
+Export artifacts are now treated as control verification inputs, not just UI conveniences. Any future discrete waveform support must add both the actual response engine and an export contract fixture; otherwise the export layer must normalize unsupported requests explicitly.
+
 ## Scenario 1: Precision Servo Stage Position Control
 
 Date: 2026-05-17

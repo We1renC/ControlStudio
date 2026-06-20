@@ -5,7 +5,7 @@ import { matRank } from './math/matrix.js?v=p5';
 import { PIDController, TwoDOFPIDController } from './control/pid.js';
 import { compensatorDescription, designLagCompensator, designLeadCompensator, designLeadLagCompensator, leadLagTransferFunction, normalizeCompensatorConfig, notchFilter, notchFilterDescription } from './control/compensator.js?v=pid-p1';
 import { impulseResponse, rampResponse, simulatePIDAntiWindup, simulateTimeResponse, stepResponse } from './analysis/time-response.js';
-import { discreteStepResponse } from './analysis/discrete-response.js';
+import { discreteImpulseResponse, discreteStepResponse } from './analysis/discrete-response.js';
 import { bodeData, nyquistData, autoFreqRange, nicholsData, nyquistEncirclements } from './analysis/frequency-response.js';
 import { discreteBodeData } from './analysis/discrete-frequency-response.js?v=p5';
 import { rootLocusData, rootLocusAsymptotes, rootLocusBreakPoints, rootLocusJwCrossings, sortRootLocusBranches } from './analysis/root-locus.js?v=p4';
@@ -3523,6 +3523,21 @@ function currentResponseData(sys) {
   return stepResponse(sys, state.simulationConfig);
 }
 
+function discreteAnalysisResponseType(responseType = state.responseType) {
+  return responseType === 'impulse' ? 'impulse' : 'step';
+}
+
+function currentDiscreteResponseData(sys, responseType = state.responseType, config = state.simulationConfig) {
+  const effectiveType = discreteAnalysisResponseType(responseType);
+  const sampleCount = Math.min(config.sampleCount || 200, 500);
+  const amplitude = config.amplitude || 1;
+  const options = { sampleCount, amplitude };
+  const response = effectiveType === 'impulse'
+    ? discreteImpulseResponse(sys, options)
+    : discreteStepResponse(sys, options);
+  return { response, responseType: effectiveType, options };
+}
+
 function stepMetricReference() {
   const amplitude = Number(state.simulationConfig?.amplitude ?? 1);
   return Number.isFinite(amplitude) ? amplitude : 1;
@@ -5773,23 +5788,48 @@ function applyProjectPayload(data) {
   switchView(state.view);
 }
 
+function exportFiniteNumber(value) {
+  return Number.isFinite(value) ? value : null;
+}
+
+function exportNumberStatus(value) {
+  if (Number.isFinite(value)) return 'finite';
+  if (value === Infinity) return 'positive_infinity';
+  if (value === -Infinity) return 'negative_infinity';
+  if (Number.isNaN(value)) return 'undefined';
+  return 'unavailable';
+}
+
+function formatExportNumber(value, status, formatter, fallback = 'n/a') {
+  if (Number.isFinite(value)) return formatter(value);
+  if (status === 'positive_infinity') return 'infinity';
+  if (status === 'negative_infinity') return '-infinity';
+  return fallback;
+}
+
 function buildCurrentAnalysisExport() {
   if (!state.plant) return;
   const sys = effectiveLoopSystem();
   const isDiscrete = state.domain === 'z' || sys instanceof DiscreteTransferFunction;
   const plantSampleTime = state.domain === 'z' ? currentDiscreteSampleTime(state.plant) : null;
   const effectiveSampleTime = isDiscrete ? currentDiscreteSampleTime(sys) : null;
-  const response = isDiscrete
-    ? discreteStepResponse(sys, {
-      sampleCount: Math.min(state.simulationConfig.sampleCount || 200, 500),
-      amplitude: state.simulationConfig.amplitude || 1,
-    })
-    : currentResponseData(sys);
+  const discreteAnalysis = isDiscrete ? currentDiscreteResponseData(sys) : null;
+  const responseType = isDiscrete ? discreteAnalysis.responseType : state.responseType;
+  const response = isDiscrete ? discreteAnalysis.response : currentResponseData(sys);
   const margins = isDiscrete ? {
     gainMarginDB: Infinity,
     phaseMargin: NaN,
   } : stabilityMargins(state.openLoop || state.plant);
-  const info = isDiscrete ? stepInfo(response.t, response.y, null, stepMetricReference()) : currentStepInfo(response);
+  const info = isDiscrete && responseType !== 'step'
+    ? {
+      riseTime: null,
+      settlingTime: null,
+      overshoot: null,
+      steadyStateError: null,
+      valid: false,
+      reason: `step metrics require step input; got ${responseType}`,
+    }
+    : (isDiscrete ? stepInfo(response.t, response.y, null, stepMetricReference()) : currentStepInfo(response));
   const stability = analyzeStability(sys, { domain: state.domain, margins });
   return {
     version: 2,
@@ -5797,7 +5837,8 @@ function buildCurrentAnalysisExport() {
     systemType: state.systemType,
     domain: state.domain,
     sampleTime: effectiveSampleTime,
-    responseType: state.responseType,
+    responseType,
+    requestedResponseType: state.responseType,
     mode: effectiveLoopMode(),
     transferFunction: {
       numerator: state.plant.num,
@@ -5809,12 +5850,16 @@ function buildCurrentAnalysisExport() {
     controllerDesign: { ...state.controllerDesign },
     simulationConfig: { ...state.simulationConfig },
     metrics: {
-      gainMarginDB: margins.gainMarginDB,
-      phaseMargin: margins.phaseMargin,
+      gainMarginDB: exportFiniteNumber(margins.gainMarginDB),
+      gainMarginDBStatus: exportNumberStatus(margins.gainMarginDB),
+      phaseMargin: exportFiniteNumber(margins.phaseMargin),
+      phaseMarginStatus: exportNumberStatus(margins.phaseMargin),
       riseTime: info.riseTime,
       settlingTime: info.settlingTime,
       overshoot: info.overshoot,
       steadyStateError: info.steadyStateError ?? null,
+      stepMetricsValid: info.valid !== false,
+      stepMetricsReason: info.reason || null,
     },
     stability,
     apiAnalysis: { ...state.apiAnalysis, lastResult: undefined },
@@ -5863,8 +5908,8 @@ function renderMarkdownReport(payload) {
     '',
     '## Metrics',
     '',
-    `- Gain margin: ${metrics.gainMarginDB === Infinity ? 'infinity' : fmtDB(metrics.gainMarginDB)}`,
-    `- Phase margin: ${Number.isFinite(metrics.phaseMargin) ? fmtDeg(metrics.phaseMargin) : 'n/a'}`,
+    `- Gain margin: ${formatExportNumber(metrics.gainMarginDB, metrics.gainMarginDBStatus, fmtDB)}`,
+    `- Phase margin: ${formatExportNumber(metrics.phaseMargin, metrics.phaseMarginStatus, fmtDeg)}`,
     `- Rise time: ${fmtTime(metrics.riseTime)}`,
     `- Settling time: ${fmtTime(metrics.settlingTime)}`,
     `- Overshoot: ${fmtPercent(metrics.overshoot)}`,

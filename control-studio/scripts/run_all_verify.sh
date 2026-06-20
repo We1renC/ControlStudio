@@ -208,6 +208,7 @@ run_script "ZF6 HJI reach-avoid / Youla parameterisation" "node scripts/verify_l
 run_script "ZF7 SOS Lyap / SMO+HGO / Nash+Stackelberg / autotune" "node scripts/verify_loop7_modules.mjs"
 run_script "ZF8 MLF / PDE boundary / adaptive SMC"      "node scripts/verify_loop8_modules.mjs"
 run_script "ZF9 LaSalle / MUSIC+ESPRIT / Carleman"       "node scripts/verify_loop9_modules.mjs"
+run_script "ZF10 ADP-PI / Wasserstein DRO / UIO"         "node scripts/verify_loop10_modules.mjs"
 echo ""
 
 # ── Python cross-tool (optional) ─────────────────────────────────────────────
