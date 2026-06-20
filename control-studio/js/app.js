@@ -4025,8 +4025,8 @@ function applyApiMetricDisplay(metrics) {
   if (settleEl) settleEl.textContent = fmtTime(metrics.settlingTime);
   if (overEl) overEl.textContent = fmtPercent(metrics.overshoot);
   if (essEl) essEl.textContent = Number.isFinite(metrics.steadyStateError) ? metrics.steadyStateError.toPrecision(3) : '—';
-  if (gmEl) gmEl.textContent = metrics.gainMarginDB === Infinity ? '∞' : fmtDB(metrics.gainMarginDB);
-  if (pmEl) pmEl.textContent = isNaN(metrics.phaseMargin) ? '—' : fmtDeg(metrics.phaseMargin);
+  if (gmEl) gmEl.textContent = formatExportNumber(metrics.gainMarginDB, metrics.gainMarginDBStatus, fmtDB, '—', '∞', '-∞');
+  if (pmEl) pmEl.textContent = formatExportNumber(metrics.phaseMargin, metrics.phaseMarginStatus, fmtDeg, '—', '∞', '-∞');
 }
 
 function renderApiAnalysisStatus() {
@@ -5800,10 +5800,10 @@ function exportNumberStatus(value) {
   return 'unavailable';
 }
 
-function formatExportNumber(value, status, formatter, fallback = 'n/a') {
+function formatExportNumber(value, status, formatter, fallback = 'n/a', positiveInfinityLabel = 'infinity', negativeInfinityLabel = '-infinity') {
   if (Number.isFinite(value)) return formatter(value);
-  if (status === 'positive_infinity') return 'infinity';
-  if (status === 'negative_infinity') return '-infinity';
+  if (status === 'positive_infinity') return positiveInfinityLabel;
+  if (status === 'negative_infinity') return negativeInfinityLabel;
   return fallback;
 }
 

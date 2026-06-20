@@ -113,6 +113,13 @@ function compareSystem(prefix, apiSystem, cliSystem) {
 function compareMetrics(prefix, apiMetrics, cliMetrics) {
   const keys = ['riseTime', 'settlingTime', 'overshoot', 'steadyStateError', 'gainMarginDB', 'phaseMargin'];
   keys.forEach((key) => assertNear(`${prefix} metrics.${key}`, apiMetrics[key], cliMetrics[key], 1e-9));
+  const statusKeys = ['gainMarginDBStatus', 'phaseMarginStatus'];
+  statusKeys.forEach((key) => assertEqual(`${prefix} metrics.${key}`, apiMetrics[key], cliMetrics[key]));
+  statusKeys.forEach((key) => {
+    if (apiMetrics[key.replace('Status', '')] === null && !apiMetrics[key]) {
+      throw new Error(`${prefix} metrics.${key}: missing status for non-finite metric`);
+    }
+  });
 }
 
 function compareResponse(apiResponse, cliResponse) {

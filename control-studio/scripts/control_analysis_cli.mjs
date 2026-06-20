@@ -50,6 +50,18 @@ function responseMetrics(response, waveform, config = {}) {
   return stepInfo(response.t, response.y, null, stepReference(config));
 }
 
+function exportFiniteNumber(value) {
+  return Number.isFinite(value) ? value : null;
+}
+
+function exportNumberStatus(value) {
+  if (Number.isFinite(value)) return 'finite';
+  if (value === Infinity) return 'positive_infinity';
+  if (value === -Infinity) return 'negative_infinity';
+  if (Number.isNaN(value)) return 'undefined';
+  return 'unavailable';
+}
+
 function main() {
   const raw = process.argv[2];
   if (!raw) {
@@ -78,8 +90,10 @@ function main() {
     response,
     metrics: {
       ...metrics,
-      gainMarginDB: margins.gainMarginDB,
-      phaseMargin: margins.phaseMargin,
+      gainMarginDB: exportFiniteNumber(margins.gainMarginDB),
+      gainMarginDBStatus: exportNumberStatus(margins.gainMarginDB),
+      phaseMargin: exportFiniteNumber(margins.phaseMargin),
+      phaseMarginStatus: exportNumberStatus(margins.phaseMargin),
     },
     bode: bodeData(openLoop),
     nyquist: nyquistData(openLoop),
