@@ -189,3 +189,4 @@ Skill 必須遵守：
 2. `control-studio-robust-validator`、`control-studio-system-auditor`、`control-studio-benchmark-author` baseline 已建立，應持續用於 robust validation、設計審查與 benchmark 建立。
 3. Phase 20 / 21 已有核心能力，且 `control-studio-mpc-designer`、`control-studio-sysid-planner` 已補 project-local examples / references；後續只在實際使用案例出現新缺口時擴充。
 4. Phase 24 advanced MPC 已正式化 EMPC、Tube MPC、Explicit MPC；後續若把此流程產品化，應擴充 `control-studio-mpc-designer` 的 examples / references，涵蓋 economic objective、tube tightening 與 scalar explicit policy lookup。
+5. Phase 76 已新增 `assessDeploymentReadiness()` 作為 codegen / HIL / timing / fixed-point / safety gate；若後續反覆進行部署審查，可建立 `control-studio-deployment-reviewer` skill，將輸入清單、必要證據與 required actions 格式固定化。

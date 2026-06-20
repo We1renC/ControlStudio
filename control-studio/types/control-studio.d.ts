@@ -991,3 +991,93 @@ export function applyDelay(G: TransferFunction, delaySeconds: number, order?: nu
 export function delayPhase(omega: number, delaySeconds: number): number;
 export function delayMargin(phaseMarginDeg: number, gainCrossoverOmega: number): number;
 export function smithPredictor(controllerTf: TransferFunction, plantModelGm: TransferFunction): TransferFunction;
+
+// ============================================================================
+// js/control/productization.js  (codegen/report/interop/deployment readiness)
+// ============================================================================
+
+export interface DeploymentReadinessCheck {
+  id: string;
+  category: string;
+  status: 'pass' | 'warn' | 'fail';
+  severity: 'info' | 'minor' | 'major' | 'critical';
+  message: string;
+  evidence: Record<string, unknown>;
+}
+
+export interface DeploymentReadinessConfig {
+  target?: 'c' | 'rust' | 'plc' | 'autosar' | 'freertos' | 'hil' | string;
+  sampleTime?: number;
+  dt?: number;
+  controller?: Record<string, unknown> & { Ts?: number };
+  plant?: { nStates?: number; nInputs?: number; states?: number; inputs?: number };
+  codegen?: {
+    files?: Record<string, string>;
+    artifacts?: Record<string, string>;
+    code?: string;
+    warnings?: string[];
+    metadata?: Record<string, unknown>;
+    artifactId?: string;
+    revision?: string;
+    commit?: string;
+    target?: string;
+  };
+  timing?: {
+    wcetMs?: number;
+    worstCaseMs?: number;
+    computeMs?: number;
+    deadlineMs?: number;
+    deadline?: number;
+    jitterMs?: number;
+    maxJitterMs?: number;
+  };
+  numeric?: {
+    fixedPoint?: boolean;
+    qFormat?: string;
+    wordLength?: number;
+    fractionBits?: number;
+    maxAbsSignal?: number;
+    maxAbsValue?: number;
+  };
+  safety?: {
+    critical?: boolean;
+    crc?: string | boolean | null;
+    checksum?: string | boolean | null;
+    watchdog?: boolean;
+    redundancy?: number;
+  };
+  safetyCritical?: boolean;
+  requireHIL?: boolean;
+  hil?: {
+    required?: boolean;
+    protocol?: string;
+    stateChannels?: number;
+    controlChannels?: number;
+    nStates?: number;
+    nInputs?: number;
+    sampleTime?: number;
+    Ts?: number;
+    latencyMs?: number;
+    maxLatencyMs?: number;
+    frameSchema?: string[];
+    roundTrip?: boolean;
+  };
+}
+
+export interface DeploymentReadinessResult {
+  status: 'pass' | 'warn' | 'fail';
+  deploymentClass: 'ready' | 'conditional' | 'blocked';
+  score: number;
+  checks: DeploymentReadinessCheck[];
+  requiredActions: string[];
+  summary: {
+    target: string;
+    sampleTime: number | null;
+    samplePeriodMs: number | null;
+    failed: number;
+    warnings: number;
+    totalChecks: number;
+  };
+}
+
+export function assessDeploymentReadiness(config?: DeploymentReadinessConfig): DeploymentReadinessResult;

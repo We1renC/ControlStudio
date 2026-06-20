@@ -206,9 +206,10 @@ const navItems = Object.keys(groups).sort().map(g =>
 
 const mainSections = Object.entries(groups).sort(([a],[b]) => a.localeCompare(b)).map(([g, mods]) => {
   const gid = g.replace(/[^a-z0-9]/gi, '-');
+  const sections = mods.map(moduleSection).join('');
   return `<div class="group" id="${esc(gid)}">
   <h2 class="group-title">${esc(g)}</h2>
-  ${mods.map(moduleSection).join('')}
+${sections}
 </div>`;
 }).join('\n\n');
 

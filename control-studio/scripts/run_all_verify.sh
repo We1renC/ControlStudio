@@ -140,6 +140,7 @@ run_script "P62 K1-1/K1-2/K1-4 design flow state machine"           "node script
 run_script "P63 L1-1/L1-2/L1-3 chart measurement tools"             "node scripts/verify_p63_measure_tools.mjs"
 run_script "P64 P1-1/P1-2/P1-3 parameter sweep visualization"       "node scripts/verify_p64_param_sweep.mjs"
 run_script "P65 Q1-1/Q1-2/Q1-3/Q1-4 share & export enhancement"    "node scripts/verify_p65_share_export.mjs"
+run_script "P76 deployment readiness gate"                          "node scripts/verify_p76_deployment_readiness.mjs"
 run_script "UI waveform response/metrics contract"                   "node scripts/verify_ui_waveform_contract.mjs"
 run_script "UI stability snapshot contract"                           "node scripts/verify_ui_stability_snapshot_contract.mjs"
 run_script "UI simulation snapshot contract"                          "node scripts/verify_ui_simulation_snapshot_contract.mjs"

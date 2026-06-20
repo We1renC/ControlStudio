@@ -144,6 +144,7 @@
 - Embedded deployment Tier H baseline：C/C++、Rust、Structured Text、AUTOSAR、FreeRTOS、CRC/watchdog safety wrapper templates
 - Runtime architecture Tier I baseline：WASM adapter、async compute worker facade、LRU memoization、streaming computation、cross-method check table
 - Hardware / HIL integration Tier J baseline：WebSocket HIL protocol、Serial codecs、OPC UA / Modbus / MQTT facades、InfluxDB / Prometheus query normalization
+- Deployment readiness gate：`assessDeploymentReadiness()` 將 codegen / HIL handoff 轉成明確 pass/warn/fail 工程判定，覆蓋 sample time、target artifacts、traceability、WCET/deadline、jitter、fixed-point headroom、safety wrapper 與 HIL schema
 - Dynamic D-K baseline：frequency-dependent D profile、log-linear `D(jω)` fit、dynamic D-K wrapper、mu-bound non-worsening fixture
 - ADP / reinforcement-learning-for-control baseline：discrete LQR policy iteration and LSTD-Q verification against the DARE-derived optimum
 - Distributionally robust optimization baseline：Wasserstein ambiguity upper bound and deterministic scalar quadratic DRO fixtures
@@ -266,7 +267,7 @@
 
 ### 尚未完成能力
 - Functional Roadmap Tier A-J 已完成 deterministic baseline。
-- Full verification suite 已納入 control verification fixtures、FastAPI contract fixtures、runtime UI waveform contract、runtime UI stability snapshot contract、runtime UI simulation snapshot / freshness / discrete-domain / effective-loop contract、runtime UI formula display contract、discrete export response contract、runtime UI symbol contract、n-dimensional equilibrium classification regression 與 Zero-Flaw Loop 1~10；目前基線為 `129/129 scripts pass`，fixture/API contract 為 `10/10 cases pass`。
+- Full verification suite 已納入 control verification fixtures、FastAPI contract fixtures、runtime UI waveform contract、runtime UI stability snapshot contract、runtime UI simulation snapshot / freshness / discrete-domain / effective-loop contract、runtime UI formula display contract、discrete export response contract、deployment readiness gate、runtime UI symbol contract、n-dimensional equilibrium classification regression 與 Zero-Flaw Loop 1~10；目前基線為 `130/130 scripts pass`，fixture/API contract 為 `10/10 cases pass`。
 - Phase 23 ~ Phase 28 舊缺口已同步收斂：continuous-time ID / Hankel norm / LPV synthesis / dynamic D-K / JSDoc API docs 均已有驗證基線。
 - CONTSID、full-order dynamic K fitting、industrial-grade μ synthesis backend 仍可作後續研究擴充，但不再列為目前阻塞項。
 - 自動產生報告 / 報告模板、Electron packaging、教學模式與 Block Diagram expansion 仍依使用者要求擱置。
@@ -555,12 +556,14 @@
 - Done：Phase 26 nonlinear control — gain-scheduled PID、sliding mode control、LPV synthesis 已提交。
 - Done：Phase 27 H∞ design extensions — MIMO H∞ verification、loop-shaping H∞、static/dynamic D-K baseline 已提交。
 - Done：Phase 28 infrastructure quality — TypeScript definitions、benchmark script、JSDoc API docs 已提交。
+- Done：Phase 76 deployment readiness productization — `assessDeploymentReadiness()` 以 sample time、target artifacts、WCET/deadline、jitter、fixed-point headroom、safety wrapper 與 HIL schema 產生 ready / conditional / blocked 判定，詳見 `verify_p76_deployment_readiness.mjs`。
 - Done：Math-core audit round 2 — 三項修正：(A1) `stabilityMargins()` 改為收集所有增益/相位交越點，回傳最壞情況 PM/GM，修正非最小相位系統只回傳第一個交越的問題；(A2) `matDet()` 加入 `_matDetLU()` fallback，n>6 改用 O(n³) LU 消去而非 O(n!) 餘因子遞迴，並補 n=3 Sarrus 閉合公式；(A3) `sortRootLocusBranches()` 改用 Jonker-Volgenant O(n³) Hungarian 最優分配，取代 greedy nearest-neighbor，消除根軌跡分支在實軸附近交越時的視覺錯位。verify baseline 升至 82/82。
 - Execution roadmap：詳細執行看板與文件工作流以 `control-studio/ROADMAP.md` 為準；本文件保留產品/架構層級摘要。
 
 ### Stage 4: Productization
 - Paused：Electron desktop packaging
 - Done：Cloud deployment baseline（GitHub Pages workflow `deploy.yml` 發布 `control-studio/` 靜態工作台）
+- Done：Deployment readiness gate（codegen + HIL + timing + fixed-point + safety audit）
 - Paused：Teaching mode
 - Paused：Report generation / report template
 
@@ -579,7 +582,7 @@
 1. 先讀本文件，再動手修改控制系統相關檔案。
 2. 若修改數值核心、API 分析輸出或穩定性指標，需對照 `docs/src/control-studio/verification.md` 的案例與數學推導。
 3. 後續開發順序以 `control-studio/ROADMAP.md` 為準；詳細 task ledger 再對照 `docs/src/control-studio/backlog.md`。
-4. 目前非 paused roadmap 已到 129/129 verification baseline，fixture/API contract 已到 10/10；若啟動下一階段，先更新 `control-studio/ROADMAP.md`，再同步 `docs/src/control-studio/backlog.md` 與 `docs/src/control-studio/skills.md` 的範圍、技能邊界與驗證基線。
+4. 目前非 paused roadmap 已到 130/130 verification baseline，fixture/API contract 已到 10/10；若啟動下一階段，先更新 `control-studio/ROADMAP.md`，再同步 `docs/src/control-studio/backlog.md` 與 `docs/src/control-studio/skills.md` 的範圍、技能邊界與驗證基線。
 5. 若新增控制系統分析功能，必須補：
    - 文件
    - 至少一個 smoke test 或驗證流程

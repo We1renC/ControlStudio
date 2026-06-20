@@ -7,6 +7,7 @@
  *   P33-03: toPythonControl /
  *            fromPythonControl    — JSON interchange with python-control
  *   P33-04: designWizard          — spec → workflow recommender
+ *   P76-01: assessDeploymentReadiness — deployment gate for codegen + HIL
  */
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -912,4 +913,370 @@ export function designWizard(spec = {}) {
     warnings,
     alternatives,
   };
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// P76-01: Deployment Readiness Gate
+// ══════════════════════════════════════════════════════════════════════════════
+
+/**
+ * Assess whether a generated controller package is ready for embedded/HIL use.
+ *
+ * This gate is intentionally stricter than "code was generated". It checks the
+ * engineering constraints that usually block handoff to a firmware, PLC, or HIL
+ * developer: explicit sample time, scheduler budget, jitter/latency, fixed-point
+ * headroom, required target artifacts, safety wrapper hooks, and HIL schema.
+ *
+ * @param {object} cfg
+ * @param {string} [cfg.target='c']  c | rust | plc | autosar | freertos | hil
+ * @param {number} [cfg.sampleTime]  Controller sample time in seconds.
+ * @param {object} [cfg.controller]  Controller descriptor, may include Ts.
+ * @param {object} [cfg.plant]       Plant metadata, e.g. { nStates, nInputs }.
+ * @param {object} [cfg.codegen]     { files, code, warnings, metadata, artifactId }.
+ * @param {object} [cfg.timing]      { wcetMs, deadlineMs, jitterMs }.
+ * @param {object} [cfg.numeric]     { fixedPoint, wordLength, fractionBits, maxAbsSignal }.
+ * @param {object} [cfg.safety]      { critical, crc, watchdog, redundancy }.
+ * @param {object} [cfg.hil]         { required, protocol, stateChannels, controlChannels, sampleTime, latencyMs, frameSchema, roundTrip }.
+ * @returns {{
+ *   status: 'pass'|'warn'|'fail',
+ *   deploymentClass: 'ready'|'conditional'|'blocked',
+ *   score: number,
+ *   checks: { id:string, category:string, status:string, severity:string, message:string, evidence:object }[],
+ *   requiredActions: string[],
+ *   summary: object,
+ * }}
+ */
+export function assessDeploymentReadiness(cfg = {}) {
+  const checks = [];
+  const target = _deploymentTarget(cfg.target ?? cfg.codegen?.target ?? 'c');
+  const controller = cfg.controller ?? {};
+  const sampleTime = _finiteNumber(cfg.sampleTime ?? controller.Ts ?? controller.Ts_ ?? cfg.dt);
+  const samplePeriodMs = sampleTime !== null ? sampleTime * 1000 : null;
+  const codegen = cfg.codegen ?? {};
+  const files = _deploymentFiles(codegen);
+  const artifactText = _deploymentArtifactText(files, codegen.code);
+  const timing = cfg.timing ?? {};
+  const numeric = cfg.numeric ?? {};
+  const safety = cfg.safety ?? {};
+  const hil = cfg.hil ?? {};
+  const plant = cfg.plant ?? {};
+  const safetyCritical = Boolean(cfg.safetyCritical ?? safety.critical);
+
+  const add = (id, category, status, severity, message, evidence = {}) => {
+    checks.push({ id, category, status, severity, message, evidence });
+  };
+
+  // Sample-time contract.
+  if (sampleTime !== null && sampleTime > 0) {
+    add('sample-time.present', 'timing', 'pass', 'info', 'Finite positive sample time is specified.', {
+      sampleTime,
+      samplePeriodMs,
+    });
+  } else {
+    add('sample-time.present', 'timing', 'fail', 'critical', 'Embedded deployment requires a finite positive sample time.', {
+      sampleTime: cfg.sampleTime ?? controller.Ts ?? null,
+    });
+  }
+
+  // Target artifact contract.
+  const artifactReqs = _deploymentArtifactRequirements(target);
+  for (const req of artifactReqs) {
+    const ok = req.kind === 'file'
+      ? Object.prototype.hasOwnProperty.call(files, req.name)
+      : artifactText.includes(req.includes);
+    add(
+      `artifact.${req.id}`,
+      'codegen',
+      ok ? 'pass' : 'fail',
+      ok ? 'info' : 'critical',
+      ok ? `${req.label} artifact is present.` : `${req.label} artifact is missing.`,
+      req.kind === 'file' ? { file: req.name } : { includes: req.includes },
+    );
+  }
+
+  if (Array.isArray(codegen.warnings) && codegen.warnings.length > 0) {
+    add('codegen.warnings', 'codegen', 'warn', 'major', 'Code generation emitted warnings that must be reviewed before deployment.', {
+      warnings: codegen.warnings.slice(),
+    });
+  } else {
+    add('codegen.warnings', 'codegen', 'pass', 'info', 'Code generation warnings are clear.', {});
+  }
+
+  if (codegen.artifactId || codegen.revision || codegen.commit) {
+    add('artifact.traceability', 'codegen', 'pass', 'info', 'Artifact traceability metadata is present.', {
+      artifactId: codegen.artifactId ?? null,
+      revision: codegen.revision ?? codegen.commit ?? null,
+    });
+  } else {
+    add('artifact.traceability', 'codegen', 'warn', 'minor', 'Artifact traceability metadata is missing.', {});
+  }
+
+  // Scheduler budget contract.
+  const wcetMs = _finiteNumber(timing.wcetMs ?? timing.worstCaseMs ?? timing.computeMs);
+  const deadlineMs = _finiteNumber(timing.deadlineMs ?? timing.deadline ?? samplePeriodMs);
+  if (wcetMs === null || deadlineMs === null || deadlineMs <= 0 || samplePeriodMs === null) {
+    add('timing.wcet', 'timing', 'warn', 'major', 'WCET/deadline budget is incomplete.', {
+      wcetMs,
+      deadlineMs,
+      samplePeriodMs,
+    });
+  } else {
+    const budgetMs = Math.min(deadlineMs, samplePeriodMs);
+    const utilization = wcetMs / budgetMs;
+    const status = utilization <= 0.75 ? 'pass' : utilization <= 1 ? 'warn' : 'fail';
+    add(
+      'timing.wcet',
+      'timing',
+      status,
+      status === 'fail' ? 'critical' : status === 'warn' ? 'major' : 'info',
+      status === 'pass'
+        ? 'Worst-case compute time fits scheduler budget with margin.'
+        : status === 'warn'
+          ? 'Worst-case compute time is close to the scheduler budget.'
+          : 'Worst-case compute time exceeds the scheduler budget.',
+      { wcetMs, deadlineMs, samplePeriodMs, budgetMs, utilization },
+    );
+  }
+
+  const jitterMs = _finiteNumber(timing.jitterMs ?? timing.maxJitterMs);
+  if (jitterMs !== null && samplePeriodMs !== null) {
+    const jitterRatio = jitterMs / samplePeriodMs;
+    const status = jitterRatio <= 0.1 ? 'pass' : jitterRatio <= 0.25 ? 'warn' : 'fail';
+    add(
+      'timing.jitter',
+      'timing',
+      status,
+      status === 'fail' ? 'critical' : status === 'warn' ? 'major' : 'info',
+      status === 'pass'
+        ? 'Sampling jitter is inside the deployment budget.'
+        : status === 'warn'
+          ? 'Sampling jitter is high and should be reduced.'
+          : 'Sampling jitter is too high for this sample period.',
+      { jitterMs, samplePeriodMs, jitterRatio },
+    );
+  } else {
+    add('timing.jitter', 'timing', 'warn', 'minor', 'Sampling jitter budget is not specified.', {
+      jitterMs,
+      samplePeriodMs,
+    });
+  }
+
+  // Fixed-point and numeric range contract.
+  const fixedPoint = Boolean(numeric.fixedPoint ?? codegen.metadata?.fixedPoint);
+  if (fixedPoint) {
+    const wordLength = Number(numeric.wordLength ?? 16);
+    const fractionBits = Number(numeric.fractionBits ?? (numeric.qFormat === 'Q31' ? 31 : 15));
+    const maxAbsSignal = _finiteNumber(numeric.maxAbsSignal ?? numeric.maxAbsValue);
+    const validFormat = Number.isInteger(wordLength) && Number.isInteger(fractionBits) &&
+      wordLength >= 2 && fractionBits >= 0 && fractionBits < wordLength - 1;
+    if (!validFormat || maxAbsSignal === null || maxAbsSignal <= 0) {
+      add('numeric.fixed-point-range', 'numeric', 'fail', 'critical', 'Fixed-point range audit requires valid word length, fraction bits, and maxAbsSignal.', {
+        wordLength,
+        fractionBits,
+        maxAbsSignal,
+      });
+    } else {
+      const range = Math.pow(2, wordLength - fractionBits - 1) - Math.pow(2, -fractionBits);
+      const headroom = range / maxAbsSignal;
+      const status = headroom >= 2 ? 'pass' : headroom >= 1 ? 'warn' : 'fail';
+      add(
+        'numeric.fixed-point-range',
+        'numeric',
+        status,
+        status === 'fail' ? 'critical' : status === 'warn' ? 'major' : 'info',
+        status === 'pass'
+          ? 'Fixed-point signal headroom is sufficient.'
+          : status === 'warn'
+            ? 'Fixed-point headroom is low; consider scaling or wider format.'
+            : 'Fixed-point range can overflow for the provided signal bound.',
+        { wordLength, fractionBits, range, maxAbsSignal, headroom },
+      );
+    }
+  } else if (_isEmbeddedTarget(target)) {
+    add('numeric.fixed-point-range', 'numeric', 'warn', 'minor', 'Fixed-point range audit was skipped for an embedded target.', {
+      fixedPoint,
+    });
+  }
+
+  // Safety wrapper contract.
+  const crcPresent = Boolean(safety.crc ?? safety.checksum ?? artifactText.includes('CS_CODE_CRC'));
+  const watchdogPresent = Boolean(safety.watchdog ?? artifactText.includes('cs_watchdog_kick'));
+  const redundancy = Number(safety.redundancy ?? (artifactText.includes('CS_REDUNDANCY') ? 2 : 1));
+  if (safetyCritical) {
+    add(
+      'safety.wrapper',
+      'safety',
+      crcPresent && watchdogPresent && redundancy >= 2 ? 'pass' : 'fail',
+      crcPresent && watchdogPresent && redundancy >= 2 ? 'info' : 'critical',
+      crcPresent && watchdogPresent && redundancy >= 2
+        ? 'Safety-critical wrapper contains CRC, watchdog, and redundancy.'
+        : 'Safety-critical deployment requires CRC, watchdog, and redundancy >= 2.',
+      { crcPresent, watchdogPresent, redundancy },
+    );
+  } else {
+    add(
+      'safety.wrapper',
+      'safety',
+      crcPresent || watchdogPresent ? 'pass' : 'warn',
+      crcPresent || watchdogPresent ? 'info' : 'minor',
+      crcPresent || watchdogPresent
+        ? 'Safety wrapper metadata is present.'
+        : 'No safety wrapper metadata was provided for this non-critical deployment.',
+      { crcPresent, watchdogPresent, redundancy },
+    );
+  }
+
+  // HIL contract.
+  const hilRequired = Boolean(cfg.requireHIL ?? hil.required);
+  if (hilRequired || Object.keys(hil).length > 0) {
+    const protocolOk = typeof hil.protocol === 'string' && hil.protocol.length > 0;
+    add(
+      'hil.protocol',
+      'hil',
+      protocolOk ? 'pass' : (hilRequired ? 'fail' : 'warn'),
+      protocolOk ? 'info' : (hilRequired ? 'critical' : 'major'),
+      protocolOk ? 'HIL protocol is specified.' : 'HIL protocol is missing.',
+      { protocol: hil.protocol ?? null },
+    );
+
+    const stateChannels = Number(hil.stateChannels ?? hil.nStates ?? 0);
+    const controlChannels = Number(hil.controlChannels ?? hil.nInputs ?? 0);
+    const expectedStates = Number(plant.nStates ?? plant.states ?? stateChannels);
+    const expectedInputs = Number(plant.nInputs ?? plant.inputs ?? controlChannels);
+    const channelsOk = stateChannels > 0 && controlChannels > 0 &&
+      stateChannels === expectedStates && controlChannels === expectedInputs;
+    add(
+      'hil.channels',
+      'hil',
+      channelsOk ? 'pass' : 'fail',
+      channelsOk ? 'info' : 'critical',
+      channelsOk ? 'HIL channel counts match plant metadata.' : 'HIL state/control channel counts do not match plant metadata.',
+      { stateChannels, controlChannels, expectedStates, expectedInputs },
+    );
+
+    const hilTs = _finiteNumber(hil.sampleTime ?? hil.Ts);
+    const hilTsOk = hilTs !== null && sampleTime !== null && Math.abs(hilTs - sampleTime) <= Math.max(1e-12, sampleTime * 1e-9);
+    add(
+      'hil.sample-time',
+      'hil',
+      hilTsOk ? 'pass' : 'fail',
+      hilTsOk ? 'info' : 'critical',
+      hilTsOk ? 'HIL sample time matches controller sample time.' : 'HIL sample time must match controller sample time.',
+      { hilSampleTime: hilTs, controllerSampleTime: sampleTime },
+    );
+
+    const latencyMs = _finiteNumber(hil.latencyMs ?? hil.maxLatencyMs);
+    if (latencyMs !== null && samplePeriodMs !== null) {
+      const latencyRatio = latencyMs / samplePeriodMs;
+      const status = latencyRatio <= 0.5 ? 'pass' : latencyRatio <= 1 ? 'warn' : 'fail';
+      add(
+        'hil.latency',
+        'hil',
+        status,
+        status === 'fail' ? 'critical' : status === 'warn' ? 'major' : 'info',
+        status === 'pass'
+          ? 'HIL round-trip latency is inside the half-period budget.'
+          : status === 'warn'
+            ? 'HIL round-trip latency consumes most of the sample period.'
+            : 'HIL round-trip latency exceeds the sample period.',
+        { latencyMs, samplePeriodMs, latencyRatio },
+      );
+    } else {
+      add('hil.latency', 'hil', hilRequired ? 'fail' : 'warn', hilRequired ? 'critical' : 'major', 'HIL latency budget is not specified.', {
+        latencyMs,
+        samplePeriodMs,
+      });
+    }
+
+    const schema = Array.isArray(hil.frameSchema) ? hil.frameSchema : [];
+    const schemaOk = Boolean(hil.roundTrip) || ['type', 'time', 'state', 'input'].every((key) => schema.includes(key));
+    add(
+      'hil.schema',
+      'hil',
+      schemaOk ? 'pass' : 'fail',
+      schemaOk ? 'info' : 'critical',
+      schemaOk ? 'HIL frame schema covers time, state, and input round-trip data.' : 'HIL frame schema is incomplete.',
+      { frameSchema: schema, roundTrip: Boolean(hil.roundTrip) },
+    );
+  }
+
+  const failed = checks.filter((check) => check.status === 'fail');
+  const warned = checks.filter((check) => check.status === 'warn');
+  const rawScore = checks.length
+    ? checks.reduce((sum, check) => sum + (check.status === 'pass' ? 1 : check.status === 'warn' ? 0.5 : 0), 0) / checks.length
+    : 0;
+  const status = failed.length > 0 ? 'fail' : warned.length > 0 ? 'warn' : 'pass';
+  const cappedScore = status === 'fail' ? Math.min(rawScore * 100, 59) : status === 'warn' ? Math.min(rawScore * 100, 89) : rawScore * 100;
+  return {
+    status,
+    deploymentClass: status === 'pass' ? 'ready' : status === 'warn' ? 'conditional' : 'blocked',
+    score: Math.round(cappedScore),
+    checks,
+    requiredActions: checks
+      .filter((check) => check.status !== 'pass')
+      .map((check) => `${check.id}: ${check.message}`),
+    summary: {
+      target,
+      sampleTime,
+      samplePeriodMs,
+      failed: failed.length,
+      warnings: warned.length,
+      totalChecks: checks.length,
+    },
+  };
+}
+
+function _deploymentTarget(target) {
+  const t = String(target ?? 'c').toLowerCase().replace(/_/g, '-');
+  if (['embedded-c', 'c99', 'c++', 'cpp'].includes(t)) return 'c';
+  if (['structured-text', 'st', 'iec-61131-3'].includes(t)) return 'plc';
+  if (['free-rtos'].includes(t)) return 'freertos';
+  return t;
+}
+
+function _deploymentArtifactRequirements(target) {
+  if (target === 'rust') {
+    return [
+      { id: 'rust-source', kind: 'file', name: 'src/controller.rs', label: 'Rust controller source' },
+      { id: 'cargo', kind: 'file', name: 'Cargo.toml', label: 'Cargo manifest' },
+    ];
+  }
+  if (target === 'plc') {
+    return [{ id: 'structured-text', kind: 'text', includes: 'FUNCTION_BLOCK', label: 'IEC 61131-3 Structured Text' }];
+  }
+  if (target === 'autosar') {
+    return [{ id: 'arxml', kind: 'file', name: 'controller.arxml', label: 'AUTOSAR ARXML' }];
+  }
+  if (target === 'freertos') {
+    return [{ id: 'task', kind: 'text', includes: 'xTaskCreate', label: 'FreeRTOS task wrapper' }];
+  }
+  if (target === 'hil') {
+    return [];
+  }
+  return [
+    { id: 'c-header', kind: 'file', name: 'controller.h', label: 'C controller header' },
+    { id: 'c-source', kind: 'file', name: 'controller.c', label: 'C controller source' },
+  ];
+}
+
+function _deploymentFiles(codegen = {}) {
+  if (codegen.files && typeof codegen.files === 'object') return codegen.files;
+  if (codegen.artifacts && typeof codegen.artifacts === 'object') return codegen.artifacts;
+  return {};
+}
+
+function _deploymentArtifactText(files, code = '') {
+  const fileText = Object.values(files ?? {})
+    .filter((value) => typeof value === 'string')
+    .join('\n');
+  return [fileText, typeof code === 'string' ? code : ''].filter(Boolean).join('\n');
+}
+
+function _finiteNumber(value) {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : null;
+}
+
+function _isEmbeddedTarget(target) {
+  return ['c', 'rust', 'plc', 'autosar', 'freertos'].includes(target);
 }
