@@ -6,6 +6,7 @@
  *   - new sessions default to Auto API Fallback
  *   - API success applies FastAPI metrics in auto/api modes
  *   - API failures and unsupported z-domain cases fall back to Local JS in auto
+ *   - non-finite margin comparison uses explicit status fields
  *   - manual Local JS / FastAPI / Compare Local/API modes remain available
  */
 
@@ -55,6 +56,13 @@ ok('Test 8: fallback and not-applicable statuses use warning tone',
   app.includes("current.status === 'fallback' || current.status === 'not_applicable'"));
 ok('Test 9: auto success message identifies Unified API active',
   app.includes('Unified API active; FastAPI matches local metrics.'));
+ok('Test 10: compareApiMetrics checks non-finite margin status fields',
+  app.includes('apiMetrics.phaseMarginStatus') &&
+  app.includes('apiMetrics.gainMarginDBStatus') &&
+  app.includes('return { maxAbs: Infinity, rows }'));
+ok('Test 11: API metric display renders non-finite status labels',
+  app.includes("formatExportNumber(metrics.gainMarginDB, metrics.gainMarginDBStatus") &&
+  app.includes("formatExportNumber(metrics.phaseMargin, metrics.phaseMarginStatus"));
 
 console.log(`\n${'─'.repeat(55)}`);
 console.log(`API auto fallback: ${passed} passed, ${failed} failed`);

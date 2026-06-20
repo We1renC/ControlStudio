@@ -3996,20 +3996,32 @@ async function runApiAnalysis(local) {
 }
 
 function compareApiMetrics(local, apiMetrics) {
+  const metricStatus = (value, explicitStatus = null) => {
+    if (explicitStatus) return explicitStatus;
+    return exportNumberStatus(value);
+  };
+  const metricAbsDiff = (a, b, aStatus = null, bStatus = null) => {
+    if (Number.isFinite(a) && Number.isFinite(b)) return Math.abs(a - b);
+    if (a === b) return 0;
+    const statusA = metricStatus(a, aStatus);
+    const statusB = metricStatus(b, bStatus);
+    return statusA === statusB ? 0 : Infinity;
+  };
   const pairs = [
     ['riseTime', local.info?.riseTime, apiMetrics.riseTime],
     ['settlingTime', local.info?.settlingTime, apiMetrics.settlingTime],
     ['overshoot', local.info?.overshoot, apiMetrics.overshoot],
     ['steadyStateError', local.info?.steadyStateError, apiMetrics.steadyStateError],
-    ['phaseMargin', local.margins?.phaseMargin, apiMetrics.phaseMargin],
-    ['gainMarginDB', local.margins?.gainMarginDB, apiMetrics.gainMarginDB],
+    ['phaseMargin', local.margins?.phaseMargin, apiMetrics.phaseMargin, metricStatus(local.margins?.phaseMargin), apiMetrics.phaseMarginStatus],
+    ['gainMarginDB', local.margins?.gainMarginDB, apiMetrics.gainMarginDB, metricStatus(local.margins?.gainMarginDB), apiMetrics.gainMarginDBStatus],
   ];
-  const rows = pairs.map(([name, a, b]) => ({
+  const rows = pairs.map(([name, a, b, aStatus, bStatus]) => ({
     name,
     local: a,
     api: b,
-    abs: Number.isFinite(a) && Number.isFinite(b) ? Math.abs(a - b) : (a === b ? 0 : NaN),
+    abs: metricAbsDiff(a, b, aStatus, bStatus),
   }));
+  if (rows.some((row) => row.abs === Infinity)) return { maxAbs: Infinity, rows };
   const finite = rows.map((row) => row.abs).filter(Number.isFinite);
   return { maxAbs: finite.length ? Math.max(...finite) : 0, rows };
 }
