@@ -1,0 +1,3 @@
+display_name: ControlStudio Deployment Reviewer
+short_description: Review codegen and HIL deployment readiness.
+default_prompt: Review a ControlStudio generated controller package for deployment readiness using sample time, artifacts, traceability, timing, numeric range, safety wrapper, and HIL evidence.

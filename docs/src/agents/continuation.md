@@ -70,6 +70,7 @@
   - 2026-06-19 接續完成 MATLAB/Python codegen runtime-mode/domain compatibility contract：continuous open-loop export 保留 `L=C*G` 用於 Bode/margin，但 time response 改 plot `G`，不再引用未定義的 closed-loop `T`；closed-loop export 才建立/plot `T`。Python export 不再輸出 JavaScript `true/false` 或 `T if (...) else G`；z-domain export 保留 `Ts` 並跳過 continuous PID/L generation，避免 continuous `C(s)` 混入 discrete `G(z)`。新增 `verify_codegen_export_contract.mjs` 並納入 `run_all_verify.sh`；browser walkthrough 已驗證 continuous open-loop preview 為 `step(G)`、DTF `Ts=0.25` preview 不含 `C = pid` / `L = series(C, G)`。
   - 2026-06-19 接續完成 discrete analysis export response-type contract：z-domain analysis export 現在區分 effective `responseType` 與 `requestedResponseType`；step/impulse 分別走 `discreteStepResponse()` / `discreteImpulseResponse()`，unsupported waveform 正規化為 step；DTF impulse export 不再把 step samples 標成 impulse，非 step export 不再回報有效 step metrics。第二輪 browser audit 補上 UI JSON non-finite margin status 與 `stepMetricsValid` / `stepMetricsReason`；第三輪再把同一 margin-status contract 推到 `control_analysis_cli.mjs` 與 FastAPI response：`Infinity` / `NaN` 會以 numeric `null` 搭配 `gainMarginDBStatus` / `phaseMarginStatus` 保留語意。第四輪補上 frontend consumer path：Local/API compare 會用 status 欄位比較非有限 margin，status mismatch 會被視為真差異。新增 `verify_discrete_export_response_contract.mjs`，並擴充 `verify_control_api_contract.mjs` / `verify_api_auto_fallback.mjs`；browser walkthrough 已驗證 `G(z)=0.5/(1-0.5z^-1)`、`Ts=0.2`、amplitude 2 impulse JSON 輸出 `y=[1,0.5,0.25,0.125]`。
   - 2026-06-21 接續完成 P76 deployment readiness gate：`js/control/productization.js` 新增 `assessDeploymentReadiness()`，把 codegen / HIL handoff 轉成 pass/warn/fail 工程 gate，覆蓋 finite sample time、target artifacts、codegen warnings、artifact traceability、WCET/deadline utilization、jitter、fixed-point overflow headroom、safety-critical CRC/watchdog/redundancy，以及 HIL protocol/channel/sample-time/latency/schema；新增 `verify_p76_deployment_readiness.mjs` 並納入 `run_all_verify.sh`，full suite 基線升至 130 scripts。
+  - 2026-06-21 接續完成 P77 deployment reviewer skill：新增 `skills/control-studio-deployment-reviewer/`，將 P76 codegen / HIL deployment readiness review 固定為 agent 可重用 workflow，包含 sample time、target artifacts、traceability、WCET/deadline、jitter、fixed-point headroom、safety wrapper、HIL schema、ready / conditional / blocked 判定與 required actions；新增 `verify_p77_deployment_skill.mjs` 並納入 `run_all_verify.sh`，full suite 基線升至 131 scripts。
   - 2026-06-19 Zero-Flaw Loop（QA+DE 雙角色迭代）三輪補強，補上 10 個過去缺席的理論主題：
     - **ZF1**（理論基礎）：`js/control/passivity.js`（KYP lemma feasibility / 線性 Port-Hamiltonian / Energy balance / IDA-PBC / passivity index）、`js/control/lqg_ltr.js`（一站式 LQG 合成 + Doyle-Stein Loop Transfer Recovery 迴圈增益恢復）、`js/control/flatness.js`（Fliess-Lévine-Martin-Rouchon SISO 平坦性認證 + Brunovsky chain + polynomial 軌跡規劃）。verify 43 checks 全綠。
     - **ZF2**（現代 / 應用）：`js/control/nu_gap.js`（Vinnicombe ν-gap metric + 穩定球）、`js/control/deepc.js`（Willems' fundamental lemma 持續激勵 + Hankel-based DeePC KKT）、`js/control/dq_transforms.js`（Clarke / Park / dq + SRF-PLL，amplitude / power 兩變體）、`js/control/event_triggered.js`（Tabuada relative trigger + 最小 inter-event time τ_min 證明）。verify 17 checks 全綠。
@@ -214,6 +215,7 @@
     - Done：`control-studio/scripts/verify_p18_robust_validation.mjs` 與 `npm run verify:p18`。
     - Done：`skills/control-studio-robust-validator/` skill baseline。
     - Done：`skills/control-studio-system-auditor/` 與 `skills/control-studio-benchmark-author/` skill baseline。
+    - Done：`skills/control-studio-deployment-reviewer/` skill baseline，對應 codegen / HIL release evidence review。
     - Done：Robust Validation UI panel，接上 Phase 18 core；Playwright/Chrome walkthrough 已確認 button/output/chart。
     - Done：Phase 19 H∞ Riccati synthesis baseline；dynamic D-scaling fit 與 dynamic D-K wrapper 已補齊目前 P27 gap。
     - Done：Phase 20 MIMO MPC engineering workflow，含 offset-free tracking、move suppression、constraints、feasibility diagnostics。
@@ -228,7 +230,7 @@
     - 主執行看板：`control-studio/ROADMAP.md`。若 phase status、下一步順序或 dirty worktree 分類改變，先更新 roadmap，再同步 backlog / plan / skills / scenarios / verification cases / continuation。
     - Skill plan：`docs/src/control-studio/skills.md` 已規劃 `control-studio-robust-validator`、`control-studio-system-auditor`、`control-studio-benchmark-author`、`control-studio-mpc-designer`、`control-studio-sysid-planner` 等候選 skill。
   - Block Diagram expansion：Paused
-  - Phase 0 ~ Phase 76、Zero-Flaw Loop 1~10 與 Functional Roadmap Tier A-J 已完成文件進度對齊。後續若修改數值核心、API 分析輸出、codegen output、deployment readiness 或 UI runtime state contract，至少依 roadmap 對應 phase 重跑 targeted verify、`npm run verify:all`、`node test_control.js`、`node control-studio/scripts/control_regression_dashboard.mjs`；目前 full suite 基線為 **130/130 scripts pass**，fixture/API contract 為 **10/10 cases**。
+  - Phase 0 ~ Phase 77、Zero-Flaw Loop 1~10 與 Functional Roadmap Tier A-J 已完成文件進度對齊。後續若修改數值核心、API 分析輸出、codegen output、deployment readiness、deployment reviewer skill 或 UI runtime state contract，至少依 roadmap 對應 phase 重跑 targeted verify、`npm run verify:all`、`node test_control.js`、`node control-studio/scripts/control_regression_dashboard.mjs`；目前 full suite 基線為 **131/131 scripts pass**，fixture/API contract 為 **10/10 cases**。
 - 已建立 symlink：
   - `/Users/w.rc/.config/agents/skills/nvidia-model-selector`
   - 指向 `/Users/w.rc/nvdiaOSsupport/skills/nvidia-model-selector`
@@ -380,7 +382,7 @@ git log --oneline -5
 - 2026-05-24 sidebar IA 已補做結構整理：workflow sidebar 依任務分為 `Core / ID / Reuse`、`Core / Specs / Advanced`、`Sim / Deploy / QA` 等群組；對次要 panel 套用 default collapsed preset，並將 `Controller Tuning`、`Simulation` 兩個最長卡片再拆成 nested subsections。Browser 實測 `Design` tab nav scroll height 約由 `6225` 降到 `2052`，切 workflow / mode / search 後分類標籤仍能正確跟隨可見面板刷新。
 
 ## 後續可做
-1. 目前非暫停的 ControlStudio roadmap 已達 deterministic baseline，且 full suite / doctor 入口已收斂至 130/130；fixture/API contract 已收斂至 10/10 cases；下一步應由實際控制情境或明確研究級 backend 需求驅動。
+1. 目前非暫停的 ControlStudio roadmap 已達 deterministic baseline，且 full suite / doctor 入口已收斂至 131/131；fixture/API contract 已收斂至 10/10 cases；下一步應由實際控制情境或明確研究級 backend 需求驅動。
 2. 可選研究深化：non-normal real Schur refinement、full-order dynamic K fitting、industrial-grade μ synthesis backend、CONTSID。
 3. 使用 `control-studio-system-auditor` 審查下一個控制設計缺口，並用 `control-studio-benchmark-author` 補 benchmark fixture。
 4. Teaching Mode / Electron / Report Template 目前使用者要求擱置，不要開發。

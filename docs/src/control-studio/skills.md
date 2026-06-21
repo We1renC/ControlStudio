@@ -27,6 +27,8 @@
 | Phase 21 | P2 | Done | Research-grade system identification | 已擴展 ARMAX/OE/BJ/subspace ID、experiment signals 與 uncertainty export | `verify_p21_sysid_advanced.mjs` |
 | Phase 22 | P1 | Done | Benchmark + cross-tool validation | 已建立 CI、cross-tool comparison、full verification runner 與 benchmark script | `run_all_verify.sh`、`compare_python_control.py`、CI |
 | Phase 23 | P1 | Done | Agentic design review / SysID gap closure | structured review skills、FRF/MISO/model-order、SRIVC baseline 與 project-local UI verifier skill 已提交 | `verify_p23_*.mjs`、`verify_b3_srivc.mjs`、`control-studio/ROADMAP.md` |
+| Phase 76 | P1 | Done | Deployment readiness gate | codegen / HIL / timing / fixed-point / safety audit 已轉成 `assessDeploymentReadiness()` | `verify_p76_deployment_readiness.mjs` |
+| Phase 77 | P1 | Done | Deployment reviewer skill | 已建立 project-local skill，固定 release evidence workflow、required actions 與 sample input/output | `verify_p77_deployment_skill.mjs`、`quick_validate.py` |
 
 ## Phase Details
 
@@ -149,6 +151,7 @@ Exit criteria：
 | `control-studio-sysid-planner` | P2 | 設計識別實驗與模型選型流程 | experiment goal、sample time、data columns | experiment signal、candidate models、validation plan | Phase 15 / 21；project-local package done |
 | `control-studio-benchmark-author` | P1 | 為新控制案例建立數學推導與 regression fixture | scenario description、plant、controller target | markdown derivation、fixture skeleton、tolerances | `docs/src/control-studio/verification.md` |
 | `control-studio-codegen-reviewer` | P2 | 審查 MATLAB / Python / embedded codegen 是否與模型一致 | generated code、model config | mismatch report、runtime caveats | Phase 15 |
+| `control-studio-deployment-reviewer` | P1 | 審查 codegen / HIL deployment package 是否具備 release evidence | target、sample time、artifacts、timing、numeric、safety、HIL evidence | ready / conditional / blocked decision、checks、required actions | Phase 76 / 77；project-local package done |
 | `control-studio-ui-verifier` | P2 | 用 browser 閉環檢查 SISO/MIMO/Robust/MPC UI 流程 | local URL、workflow checklist | UI issue list、screenshots、regression notes | `control_regression_dashboard.mjs`；project-local package done |
 
 ## Skill Implementation Contract
@@ -189,4 +192,4 @@ Skill 必須遵守：
 2. `control-studio-robust-validator`、`control-studio-system-auditor`、`control-studio-benchmark-author` baseline 已建立，應持續用於 robust validation、設計審查與 benchmark 建立。
 3. Phase 20 / 21 已有核心能力，且 `control-studio-mpc-designer`、`control-studio-sysid-planner` 已補 project-local examples / references；後續只在實際使用案例出現新缺口時擴充。
 4. Phase 24 advanced MPC 已正式化 EMPC、Tube MPC、Explicit MPC；後續若把此流程產品化，應擴充 `control-studio-mpc-designer` 的 examples / references，涵蓋 economic objective、tube tightening 與 scalar explicit policy lookup。
-5. Phase 76 已新增 `assessDeploymentReadiness()` 作為 codegen / HIL / timing / fixed-point / safety gate；若後續反覆進行部署審查，可建立 `control-studio-deployment-reviewer` skill，將輸入清單、必要證據與 required actions 格式固定化。
+5. Phase 77 已建立 `control-studio-deployment-reviewer` skill，將 Phase 76 `assessDeploymentReadiness()` 的輸入清單、必要證據、ready / conditional / blocked 判定與 required actions 格式固定化。

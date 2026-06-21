@@ -1,0 +1,54 @@
+{
+  "target": "c",
+  "sampleTime": 0.01,
+  "controller": {
+    "type": "pid",
+    "Kp": 2,
+    "Ki": 0.4,
+    "Kd": 0.05,
+    "Ts": 0.01
+  },
+  "plant": {
+    "nStates": 2,
+    "nInputs": 1,
+    "nOutputs": 1
+  },
+  "codegen": {
+    "files": {
+      "controller.c": "double cs_pid_step(double e){ return e; }",
+      "controller.h": "double cs_pid_step(double e);",
+      "CMakeLists.txt": "add_library(controller controller.c)"
+    },
+    "warnings": [],
+    "artifactId": "motor-pid-v1",
+    "revision": "fixture",
+    "commit": "local"
+  },
+  "timing": {
+    "wcetMs": 1.2,
+    "deadlineMs": 5,
+    "jitterMs": 0.2
+  },
+  "numeric": {
+    "fixedPoint": true,
+    "wordLength": 16,
+    "fractionBits": 8,
+    "maxAbsSignal": 20
+  },
+  "safety": {
+    "critical": true,
+    "crc": "crc32:fixture",
+    "watchdog": true,
+    "redundancy": 2
+  },
+  "hil": {
+    "required": true,
+    "protocol": "websocket-json",
+    "stateChannels": 2,
+    "controlChannels": 1,
+    "sampleTime": 0.01,
+    "latencyMs": 1.5,
+    "frameSchema": ["type", "time", "state", "input"],
+    "roundTrip": true
+  }
+}

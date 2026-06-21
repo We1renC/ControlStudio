@@ -87,7 +87,7 @@ del{color:var(--muted)}
 
 <blockquote>
 <p>Last updated: 2026-06-21</p>
-<p>Current committed baseline: <code>feat(p76): add deployment readiness gate</code></p>
+<p>Current committed baseline: <code>feat(p77): add deployment reviewer skill</code></p>
 <p>Scope: this is the canonical execution roadmap for ControlStudio implementation status.</p>
 <p>Do not use this file for product vision, proof derivations, or handoff notes; see the document workflow below.</p>
 </blockquote>
@@ -268,6 +268,8 @@ del{color:var(--muted)}
 </thead><tbody>
 <tr><td><strong>P76</strong></td><td><strong>Deployment readiness gate: codegen + HIL + timing + fixed-point + safety audit</strong></td><td>Done</td><td><code>verify_p76_deployment_readiness.mjs</code></td></tr>
 </thead><tbody>
+<tr><td><strong>P77</strong></td><td><strong>Deployment reviewer skill: codegen + HIL release evidence workflow</strong></td><td>Done</td><td><code>verify_p77_deployment_skill.mjs</code>, <code>quick_validate.py</code></td></tr>
+</thead><tbody>
 <tr><td><strong>ZF10</strong></td><td><strong>Zero-Flaw Loop 10: ADP-PI / LSTD-Q + Wasserstein DRO + Unknown Input Observer</strong></td><td>Done</td><td><code>verify_loop10_modules.mjs</code> (20)</td></tr>
 </thead><tbody>
 <tr><td><strong>P34-01</strong></td><td><strong>Module split: P62-P65 → js/ui/ sub-modules</strong></td><td>Done</td><td>Verify scripts updated to check module files</td></tr>
@@ -441,6 +443,8 @@ del{color:var(--muted)}
 
 <p><strong>Deployment readiness closure:</strong> <code>assessDeploymentReadiness()</code> now turns codegen / HIL handoff from template generation into an explicit engineering gate. It checks finite sample time, target-specific code artifacts, codegen warnings, artifact traceability, WCET/deadline utilization, sampling jitter, fixed-point overflow headroom, CRC/watchdog/redundancy for safety-critical deployments, and HIL protocol/channel/sample-time/latency/schema consistency. <code>verify_p76_deployment_readiness.mjs</code> covers ready, conditional, and blocked outcomes, including WCET overrun, fixed-point overflow, missing C artifacts, missing safety wrapper, HIL channel mismatch, and Rust target-specific artifact checks.</p>
 
+<p><strong>Deployment reviewer skill closure:</strong> <code>skills/control-studio-deployment-reviewer/</code> now formalizes the P76 deployment review workflow for future agents. The skill defines required inputs, target-specific evidence, timing/numeric/safety/HIL checks, blocked/conditional/ready classification, sample request/output shape, and verification commands. <code>verify_p77_deployment_skill.mjs</code> locks the skill package, sample JSON, checklist coverage, paused-scope boundary, and <code>assessDeploymentReadiness()</code> linkage.</p>
+
 <p><strong>Zero-Flaw Loop 10 closure:</strong> added deterministic ADP / DRO / FDI coverage. ADP policy iteration is checked against the Hamiltonian-sign DARE solution for a discrete double integrator (<code>max|ΔK|=8.02e-13</code>, DARE residual 0). LSTD-Q now uses deterministic off-policy excitation and compares the recovered Q-function matrix to the analytic DARE-derived <code>H</code> (<code>max|ΔH|=2.69e-8</code>), avoiding rank-deficient on-policy evidence and non-reproducible random fixtures. Wasserstein DRO uses deterministic sample paths, and UIO verification proves <code>rank(C E)=q</code>, <code>T E≈0</code>, and Hurwitz decoupled error dynamics.</p>
 
 <p><strong>DC gain origin-cancellation closure:</strong> continuous TF and ZPK <code>dcGain()</code> now cancel removable origin pole-zero factors before evaluating the low-frequency limit. Systems such as <code>s/s</code> report finite unity DC gain, extra origin zeros report zero DC gain, and extra origin poles preserve signed infinite gain. This prevents RGA, static decoupler, low-frequency design, and robustness summaries from treating removable integrators as real steady-state singularities.</p>
@@ -473,9 +477,9 @@ del{color:var(--muted)}
 
 <p><strong>Routh-Hurwitz input closure:</strong> <code>routhTable()</code> now validates denominator coefficient arrays before building the table. Non-array, short, non-finite, zero-polynomial, and zero-leading-coefficient inputs fail explicitly instead of being silently classified as stable.</p>
 
-<h2 id="verification-suite-status-2026-06-19">Verification Suite Status (2026-06-19)</h2>
+<h2 id="verification-suite-status-2026-06-21">Verification Suite Status (2026-06-21)</h2>
 
-<p><strong>130/130 scripts pass</strong> — run via <code>bash scripts/run_all_verify.sh</code> or <code>npm run verify:all</code>. Fixture/API contract coverage is now <strong>10/10 cases</strong>, including open-loop controller cascade response, non-step waveform metrics gating, non-unit step amplitude reference metrics, zero-final-change step metrics rejection, and divergent/unfinished step metrics rejection. UI waveform routing is covered by <code>verify_ui_waveform_contract.mjs</code>; UI stability snapshot and GM-field normalization are covered by <code>verify_ui_stability_snapshot_contract.mjs</code>; active simulation state, HIL/export consistency, analysis freshness, discrete domain-switch freshness, and effective loop-mode routing are covered by <code>verify_ui_simulation_snapshot_contract.mjs</code>; DTF <code>z^-1</code> formula display, active discrete legend, smoke equation labels, DTF sample-time codegen/export, and project persistence are covered by <code>verify_ui_formula_contract.mjs</code>; MATLAB/Python runtime-mode and domain-compatible script generation is covered by <code>verify_codegen_export_contract.mjs</code>; z-domain export response-type normalization and impulse routing are covered by <code>verify_discrete_export_response_contract.mjs</code>; deployment readiness is covered by <code>verify_p76_deployment_readiness.mjs</code>; Zero-Flaw Loop additions are covered through <code>verify_passivity_kyp.mjs</code>, <code>verify_lqg_ltr.mjs</code>, <code>verify_flatness.mjs</code>, and <code>verify_loop2_modules.mjs</code> through <code>verify_loop10_modules.mjs</code>.</p>
+<p><strong>131/131 scripts pass</strong> — run via <code>bash scripts/run_all_verify.sh</code> or <code>npm run verify:all</code>. Fixture/API contract coverage is now <strong>10/10 cases</strong>, including open-loop controller cascade response, non-step waveform metrics gating, non-unit step amplitude reference metrics, zero-final-change step metrics rejection, and divergent/unfinished step metrics rejection. UI waveform routing is covered by <code>verify_ui_waveform_contract.mjs</code>; UI stability snapshot and GM-field normalization are covered by <code>verify_ui_stability_snapshot_contract.mjs</code>; active simulation state, HIL/export consistency, analysis freshness, discrete domain-switch freshness, and effective loop-mode routing are covered by <code>verify_ui_simulation_snapshot_contract.mjs</code>; DTF <code>z^-1</code> formula display, active discrete legend, smoke equation labels, DTF sample-time codegen/export, and project persistence are covered by <code>verify_ui_formula_contract.mjs</code>; MATLAB/Python runtime-mode and domain-compatible script generation is covered by <code>verify_codegen_export_contract.mjs</code>; z-domain export response-type normalization and impulse routing is covered by <code>verify_discrete_export_response_contract.mjs</code>; deployment readiness is covered by <code>verify_p76_deployment_readiness.mjs</code>; deployment reviewer skill packaging is covered by <code>verify_p77_deployment_skill.mjs</code>; Zero-Flaw Loop additions are covered through <code>verify_passivity_kyp.mjs</code>, <code>verify_lqg_ltr.mjs</code>, <code>verify_flatness.mjs</code>, and <code>verify_loop2_modules.mjs</code> through <code>verify_loop10_modules.mjs</code>.</p>
 
 <table><thead>
 <tr><th>Group</th><th>Scripts</th><th>Pass</th></tr>
@@ -484,7 +488,7 @@ del{color:var(--muted)}
 </thead><tbody>
 <tr><td>Phase 9/10/11 foundations</td><td>13</td><td>13</td></tr>
 </thead><tbody>
-<tr><td>Phase 14–76 advanced control / UI / deployment</td><td>76</td><td>76</td></tr>
+<tr><td>Phase 14–77 advanced control / UI / deployment</td><td>77</td><td>77</td></tr>
 </thead><tbody>
 <tr><td>Math audit fixes</td><td>1</td><td>1</td></tr>
 </thead><tbody>
