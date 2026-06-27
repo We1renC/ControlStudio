@@ -13,7 +13,7 @@
 
 import {
   matClone, matInverse, matSolve, matIdentity, matCreate, matScale,
-  SingularMatrixError,
+  matEigenvaluesSymmetric, SingularMatrixError,
 } from './matrix.js';
 
 export const CONDITION_WARN_THRESHOLD = 1e6;
@@ -48,6 +48,9 @@ function validateMatrix(A) {
   for (const row of A) {
     if (!Array.isArray(row) || row.length !== cols) {
       throw new Error('estimateCondition: matrix must be rectangular (consistent row lengths)');
+    }
+    if (row.some((value) => !Number.isFinite(value))) {
+      throw new Error('estimateCondition: matrix entries must be finite');
     }
   }
 }
@@ -92,6 +95,39 @@ export function conditionSeverity(kappa) {
   if (kappa > CONDITION_SEVERE_THRESHOLD) return 'severe';
   if (kappa > CONDITION_WARN_THRESHOLD) return 'caution';
   return 'ok';
+}
+
+/**
+ * Classify definiteness only when the concept is mathematically defined.
+ *
+ * @param {number[][]} A
+ * @param {number} tolerance relative symmetry/eigenvalue tolerance
+ * @returns {'positive-definite'|'positive-semidefinite'|'indefinite'|'non-symmetric'|'non-square'}
+ */
+export function classifySymmetricDefiniteness(A, tolerance = 1e-10) {
+  validateMatrix(A);
+  if (!Number.isFinite(tolerance) || tolerance <= 0) {
+    throw new Error('classifySymmetricDefiniteness: tolerance must be finite and positive');
+  }
+  const n = A.length;
+  if (n !== A[0].length) return 'non-square';
+
+  let scale = 0;
+  for (const row of A) {
+    for (const value of row) scale = Math.max(scale, Math.abs(value));
+  }
+  const threshold = tolerance * Math.max(1, scale);
+  for (let i = 0; i < n; i++) {
+    for (let j = i + 1; j < n; j++) {
+      if (Math.abs(A[i][j] - A[j][i]) > threshold) return 'non-symmetric';
+    }
+  }
+
+  const eigenvalues = matEigenvaluesSymmetric(A, threshold);
+  const minEigenvalue = Math.min(...eigenvalues);
+  if (minEigenvalue > threshold) return 'positive-definite';
+  if (minEigenvalue >= -threshold) return 'positive-semidefinite';
+  return 'indefinite';
 }
 
 /**

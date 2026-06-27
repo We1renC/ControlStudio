@@ -25,6 +25,7 @@ import { sensitivityBode, robustPeaks, uncertaintyEnvelope, hInfNorm, additiveUn
 import { applyDelay, padeApprox, delayMargin, smithPredictor } from './control/delay.js';
 import { polyToLatex, tfToLatex, renderLatex, pidToLatex } from './utils/latex.js';
 import { setSeed, getSeed, resetSeed } from './math/rng.js';
+import { classifySymmetricDefiniteness, estimateCondition } from './math/conditioning.js';
 import { identifyARMAX, identifyARX, autoARXOrder } from './control/sysid.js';
 import { toMatlabScript, toPythonScript, downloadScript } from './utils/codegen.js';
 import { mixedSensitivityCost, tunePIDForMixedSensitivity, defaultMixedSensitivityWeights } from './control/hinf_synth.js';
@@ -3254,6 +3255,7 @@ function updateSystem() {
       state.plant = new DiscreteTransferFunction(num, den, Ts);
       state.domain = 'z';
       state.sampleTime = Ts;
+      window._currentSS = null;
       clearContinuousLoopStateForDiscretePlant();
       clearError();
       updateDomainUI();
@@ -3284,8 +3286,10 @@ function updateSystem() {
         else if (err.message.includes('D ')) setFieldError('ss-d', err.message);
         throw err;
       }
+      window._currentSS = { A, B, C, D };
       syncTransferFunctionInputs();
     } else if (state.systemType === 'zpk') {
+      window._currentSS = null;
       const zerosStr = document.getElementById('zpk-zeros')?.value || '';
       const polesStr = document.getElementById('zpk-poles')?.value || '';
       const gainStr = document.getElementById('zpk-gain')?.value || '1';
@@ -3307,6 +3311,7 @@ function updateSystem() {
       state.plant = zpkToTransferFunction(zeros, poles, gain);
       syncTransferFunctionInputs();
     } else {
+      window._currentSS = null;
       const numInput = document.getElementById('tf-num');
       const denInput = document.getElementById('tf-den');
       if (!numInput || !denInput) return;
@@ -9945,14 +9950,30 @@ function initSystemInputWizard() {
     try {
       const sys = buildSystem();
       const name = document.getElementById('syswin-name')?.value.trim() || 'Plant-1';
-      // Set as current plant (reuses existing updateSystem pathway)
+
       if (_sysType === 'tf') {
         document.getElementById('tf-num').value = sys.num.join(' ');
         document.getElementById('tf-den').value = sys.den.join(' ');
-        document.getElementById('input-type')?.dispatchEvent(new Event('change'));
-        document.getElementById('tf-num')?.dispatchEvent(new Event('input'));
+      } else if (_sysType === 'ss') {
+        document.getElementById('ss-a').value = document.getElementById('syswin-ss-A').value;
+        document.getElementById('ss-b').value = document.getElementById('syswin-ss-B').value;
+        document.getElementById('ss-c').value = document.getElementById('syswin-ss-C').value;
+        document.getElementById('ss-d').value = document.getElementById('syswin-ss-D').value;
+      } else {
+        document.getElementById('zpk-zeros').value = document.getElementById('syswin-zpk-z').value;
+        document.getElementById('zpk-poles').value = document.getElementById('syswin-zpk-p').value;
+        document.getElementById('zpk-gain').value = document.getElementById('syswin-zpk-k').value;
       }
-      if (typeof window.updateSystem === 'function') window.updateSystem();
+
+      state.systemType = _sysType;
+      state.domain = 's';
+      document.querySelectorAll('.sys-tab').forEach((tab) => {
+        tab.classList.toggle('active', tab.dataset.type === _sysType);
+      });
+      document.querySelectorAll('.sys-input-section').forEach((section) => {
+        section.style.display = section.id === `sys-${_sysType}` ? 'block' : 'none';
+      });
+      updateSystem();
       notify(`系統「${name}」已加入工作區`, 'success');
       closeWizard();
     } catch (err) {
@@ -10709,20 +10730,12 @@ document.addEventListener('DOMContentLoaded', () => {
 // ── Shared numerics ───────────────────────────────────────────────────────────
 
 /**
- * Estimate condition number κ(M) ≈ max|eigenvalue| / min|eigenvalue|
- * for a square matrix (simple approximation using row norms).
+ * Compute the 1-norm condition number for a square matrix.
  * @param {number[][]} M
  * @returns {number}
  */
 function computeConditionNumber(M) {
-  if (!M || !M.length) return Infinity;
-  const n = M.length;
-  // Frobenius row-norm approximation
-  const rowNorms = M.map(row => Math.sqrt(row.reduce((s, v) => s + v * v, 0)));
-  const maxN = Math.max(...rowNorms);
-  const minN = Math.min(...rowNorms.filter(v => v > 0));
-  if (!minN) return Infinity;
-  return maxN / minN;
+  return estimateCondition(M);
 }
 
 /**
@@ -10750,14 +10763,10 @@ function _matDetSmall(M) {
 }
 
 /**
- * Check if matrix is positive definite (all diagonal > 0 heuristic).
- * Returns 'pd' | 'spd' | 'npd'
+ * Classify a symmetric matrix by its eigenvalues.
  */
 function _pdClass(M) {
-  const diag = M.map((row, i) => row[i]);
-  if (diag.every(v => v > 0))  return 'pd';
-  if (diag.every(v => v >= 0)) return 'spd';
-  return 'npd';
+  return classifySymmetricDefiniteness(M);
 }
 
 // ── B5-3: Condition number / precision warnings ───────────────────────────────
@@ -10968,17 +10977,28 @@ function initIntermediateTooltip() {
 function renderMatrixGrid(M, name = '', digits = 4) {
   if (!M || !M.length) return '<em style="color:var(--text-muted)">—</em>';
   const n = M.length, m = M[0].length;
-  const kappa = computeConditionNumber(M);
-  const kappaClass = _kappaClass(kappa);
-  const det = n === m ? _matDetSmall(M) : NaN;
-  const pdCls = n === m ? _pdClass(M) : null;
-  const pdLabel = { pd: '正定 PASS', spd: '半正定 WARN', npd: '非正定 FAIL' };
+  const isSquare = n === m;
+  const kappa = isSquare ? computeConditionNumber(M) : null;
+  const kappaClass = kappa == null ? null : _kappaClass(kappa);
+  const det = isSquare ? _matDetSmall(M) : NaN;
+  const pdCls = _pdClass(M);
+  const pdMeta = {
+    'positive-definite': { css: 'pd', label: '正定 PASS' },
+    'positive-semidefinite': { css: 'spd', label: '半正定 WARN' },
+    indefinite: { css: 'npd', label: '不定 FAIL' },
+  }[pdCls] ?? null;
+  const pdUnavailable = {
+    'non-symmetric': '正定性 N/A（非對稱）',
+    'non-square': '正定性 N/A（非方陣）',
+  }[pdCls] ?? null;
 
   const rows = M.map(row =>
     `<tr>${row.map(v => `<td title="${v}">${fmtNum(v, digits)}</td>`).join('')}</tr>`
   ).join('');
 
-  const kappaStr = kappa < 1e4 ? kappa.toFixed(2) : kappa.toExponential(2);
+  const kappaStr = kappa == null
+    ? 'N/A（非方陣）'
+    : kappa < 1e4 ? kappa.toFixed(2) : kappa.toExponential(2);
   const detStr   = isNaN(det)  ? '—' : fmtNum(det, 4);
 
   return `
@@ -10990,9 +11010,10 @@ function renderMatrixGrid(M, name = '', digits = 4) {
       <div class="matrix-grid-wrap" id="mat-wrap-${name}">
         <table class="matrix-grid-table"><tbody>${rows}</tbody></table>
         <div class="matrix-meta">
-          <span>κ = <b class="calc-step-kappa ${kappaClass}" style="display:inline;">${kappaStr}</b></span>
+          <span>κ₁ = <b class="${kappaClass ? `calc-step-kappa ${kappaClass}` : ''}" style="display:inline;">${kappaStr}</b></span>
           <span>det = ${detStr}</span>
-          ${pdCls ? `<span class="matrix-pd-badge ${pdCls}">${pdLabel[pdCls]}</span>` : ''}
+          ${pdMeta ? `<span class="matrix-pd-badge ${pdMeta.css}">${pdMeta.label}</span>` : ''}
+          ${pdUnavailable ? `<span>${pdUnavailable}</span>` : ''}
         </div>
       </div>
     </div>

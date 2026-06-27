@@ -9,7 +9,7 @@
 - 已建立獨立 git repo，避免被 `/Users/w.rc` 外層 git 混入。
 - 控制系統目前同步基線：
   - Branch: `main`
-  - Latest active line: `fix(zero-flaw): correct ESPRIT phase recovery`
+  - Latest active line: `fix(zero-flaw): harden matrix diagnostics`
   - Full phase audit checkpoints:
     - `7a318b3 fix(control): harden phase 7-9 theory diagnostics`
     - `46e20da fix(control): harden phase 0-6 theory checks`
@@ -72,6 +72,7 @@
   - 2026-06-21 接續完成 P76 deployment readiness gate：`js/control/productization.js` 新增 `assessDeploymentReadiness()`，把 codegen / HIL handoff 轉成 pass/warn/fail 工程 gate，覆蓋 finite sample time、target artifacts、codegen warnings、artifact traceability、WCET/deadline utilization、jitter、fixed-point overflow headroom、safety-critical CRC/watchdog/redundancy，以及 HIL protocol/channel/sample-time/latency/schema；新增 `verify_p76_deployment_readiness.mjs` 並納入 `run_all_verify.sh`，full suite 基線升至 130 scripts。
   - 2026-06-21 接續完成 P77 deployment reviewer skill：新增 `skills/control-studio-deployment-reviewer/`，將 P76 codegen / HIL deployment readiness review 固定為 agent 可重用 workflow，包含 sample time、target artifacts、traceability、WCET/deadline、jitter、fixed-point headroom、safety wrapper、HIL schema、ready / conditional / blocked 判定與 required actions；新增 `verify_p77_deployment_skill.mjs` 並納入 `run_all_verify.sh`，full suite 基線升至 131 scripts。
   - 2026-06-27 接續完成 Zero-Flaw Loop 11 spectral subspace correctness：`espritFrequencies()` 不再對非對稱 LS-ESPRIT rotation matrix `Phi` 做 symmetricize，而是以 Faddeev-LeVerrier characteristic polynomial + `polyroots()` 取得一般複數 eigenvalues，使用 conjugate pair positive angle 映射頻率；修正 50/120 Hz 被錯估為約 47.84/50 Hz、80/92 Hz 被錯估為約 61.93/81.13 Hz。`verify_loop9_modules.mjs` 改用 fixed-seed MUSIC noise，並補 noiseless、noisy、close-tone、three-tone、invalid-window ESPRIT fixtures，共 13/13 checks；`docs/src/control-studio/verification.md` 新增 Case 12。
+  - 2026-06-27 接續完成 Zero-Flaw Loop 12 matrix diagnostics and wizard integration：matrix panel 由 row-norm ratio 改為 shared `estimateCondition()` 的真實 1-norm condition number，definiteness 只對 symmetric square matrix 以 eigenvalues 判定，rectangular / non-symmetric 顯示 N/A；`verify_p46_b5_b2.mjs` 新增 near-singular、singular、PD、PSD、indefinite 與 shape-contract 反例，共 101/101。Browser audit 另發現新增系統 wizard 僅顯示成功但未套用模型，且 UI 宣告支援 semicolon row separator 但 parser 不接受；已修復 TF/SS/ZPK 寫回 active workspace、module-scoped `updateSystem()` 呼叫、`_currentSS` snapshot 與 newline/semicolon parser contract，P43 88/88，實際 SS 操作顯示 `κ₁=3.00`、B/C N/A，console 0 error；verification 新增 Case 13。
   - 2026-06-19 Zero-Flaw Loop（QA+DE 雙角色迭代）三輪補強，補上 10 個過去缺席的理論主題：
     - **ZF1**（理論基礎）：`js/control/passivity.js`（KYP lemma feasibility / 線性 Port-Hamiltonian / Energy balance / IDA-PBC / passivity index）、`js/control/lqg_ltr.js`（一站式 LQG 合成 + Doyle-Stein Loop Transfer Recovery 迴圈增益恢復）、`js/control/flatness.js`（Fliess-Lévine-Martin-Rouchon SISO 平坦性認證 + Brunovsky chain + polynomial 軌跡規劃）。verify 43 checks 全綠。
     - **ZF2**（現代 / 應用）：`js/control/nu_gap.js`（Vinnicombe ν-gap metric + 穩定球）、`js/control/deepc.js`（Willems' fundamental lemma 持續激勵 + Hankel-based DeePC KKT）、`js/control/dq_transforms.js`（Clarke / Park / dq + SRF-PLL，amplitude / power 兩變體）、`js/control/event_triggered.js`（Tabuada relative trigger + 最小 inter-event time τ_min 證明）。verify 17 checks 全綠。
@@ -231,7 +232,7 @@
     - 主執行看板：`control-studio/ROADMAP.md`。若 phase status、下一步順序或 dirty worktree 分類改變，先更新 roadmap，再同步 backlog / plan / skills / scenarios / verification cases / continuation。
     - Skill plan：`docs/src/control-studio/skills.md` 已規劃 `control-studio-robust-validator`、`control-studio-system-auditor`、`control-studio-benchmark-author`、`control-studio-mpc-designer`、`control-studio-sysid-planner` 等候選 skill。
   - Block Diagram expansion：Paused
-  - Phase 0 ~ Phase 77、Zero-Flaw Loop 1~11 與 Functional Roadmap Tier A-J 已完成文件進度對齊。後續若修改數值核心、API 分析輸出、codegen output、deployment readiness、deployment reviewer skill 或 UI runtime state contract，至少依 roadmap 對應 phase 重跑 targeted verify、`npm run verify:all`、`node test_control.js`、`node control-studio/scripts/control_regression_dashboard.mjs`；目前 full suite 基線為 **131/131 scripts pass**，fixture/API contract 為 **10/10 cases**。
+  - Phase 0 ~ Phase 77、Zero-Flaw Loop 1~12 與 Functional Roadmap Tier A-J 已完成文件進度對齊。後續若修改數值核心、API 分析輸出、codegen output、deployment readiness、deployment reviewer skill 或 UI runtime state contract，至少依 roadmap 對應 phase 重跑 targeted verify、`npm run verify:all`、`node test_control.js`、`node control-studio/scripts/control_regression_dashboard.mjs`；目前 full suite 基線為 **131/131 scripts pass**，fixture/API contract 為 **10/10 cases**。
 - 已建立 symlink：
   - `/Users/w.rc/.config/agents/skills/nvidia-model-selector`
   - 指向 `/Users/w.rc/nvdiaOSsupport/skills/nvidia-model-selector`
@@ -300,7 +301,7 @@ git log --oneline -5
 - `test_control.js` 已驗證基本極點判定與 step response 指標。
 - `control_advisor_workflow.py --help` 可正常執行。
 - `docs/src/control-studio/plan.md` 已整理控制系統盤點、MVP 範圍與後續 roadmap。
-- `docs/src/control-studio/verification.md` 已定義十二個具數學推導的控制系統驗證案例，涵蓋一階、二階欠阻尼、初始不穩定/pole-zero/低 PM、RHP zero、State-Space 等價、API/step metrics/discrete export contract 與 ESPRIT rotation-phase recovery。
+- `docs/src/control-studio/verification.md` 已定義十三個具數學推導的控制系統驗證案例，涵蓋一階、二階欠阻尼、初始不穩定/pole-zero/低 PM、RHP zero、State-Space 等價、API/step metrics/discrete export contract、ESPRIT rotation-phase recovery，以及 matrix numerical-health / wizard workspace contract。
 - `control-studio/ROADMAP.md` 已整併為 ControlStudio 主執行看板，記錄 P23~P28 進度、dirty worktree 分類、文件工作流與下一步順序；P24 advanced MPC 已完成。
 - `docs/src/control-studio/backlog.md` 已改為 detailed task ledger；目前 Phase 0~70 與 Functional Roadmap Tier A-J 均已完成 deterministic baseline。
 - `docs/src/control-studio/skills.md` 已新增 Phase 18+ skill candidates，且 `control-studio-robust-validator`、`control-studio-system-auditor`、`control-studio-benchmark-author`、`control-studio-mpc-designer`、`control-studio-sysid-planner`、`control-studio-ui-verifier` baseline 已建立。

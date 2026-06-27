@@ -5,7 +5,7 @@ import { matMul } from '../math/matrix.js';
 export function parseMatrixInput(str, expectedCols = null) {
   const rows = String(str || '')
     .trim()
-    .split(/\n+/)
+    .split(/[;\n]+/)
     .map((line) => line.trim())
     .filter(Boolean)
     .map((line) => {

@@ -1,6 +1,6 @@
 # Control System Verification Cases
 
-此文件定義 ControlStudio 後續回歸測試的十二個基準案例。每個案例都必須能以數學推導得到期望結果，再用 `control-studio` 數值核心、`control_analysis_cli.mjs` 與 FastAPI API 交叉驗證。
+此文件定義 ControlStudio 後續回歸測試的十三個基準案例。每個案例都必須能以數學推導得到期望結果，再用 `control-studio` 數值核心、`control_analysis_cli.mjs` 與 FastAPI API 交叉驗證。
 
 驗證原則：
 - 先比對 transfer function 多項式係數，再比對 poles / zeros / DC gain。
@@ -1053,6 +1053,72 @@ is not a similarity-invariant operation and destroys the rotational phase. The f
 - Core: `control-studio/js/identification/spectral_subspace.js`
 - Failure mode: symmetrizing `Phi`, using only real eigenvalues, or slicing duplicate cosine eigenvalues must fail the multi-tone assertions
 
+## Case 13: Matrix Numerical Health and Wizard Workspace Contract
+
+### Purpose
+
+驗證矩陣面板使用真正的 1-norm condition number 與對稱矩陣 eigenvalue definiteness，而不是以 row-norm ratio 或正對角線做 heuristic；同時驗證新增系統視窗的 TF / SS / ZPK 模型會真正寫入主工作區，不得只顯示成功通知。
+
+### Mathematical Derivation
+
+For:
+
+```text
+A_epsilon = [1  1          ]
+            [1  1 + epsilon],  epsilon = 1e-12
+```
+
+the determinant is `epsilon`, and:
+
+```text
+||A_epsilon||_1 = 2 + epsilon
+A_epsilon^-1 = (1/epsilon) [1 + epsilon  -1]
+                               [-1           1]
+||A_epsilon^-1||_1 = (2 + epsilon) / epsilon
+kappa_1(A_epsilon) = (2 + epsilon)^2 / epsilon
+                   approximately 4e12
+```
+
+The former row-norm ratio is approximately one because both rows have nearly the same norm, so it incorrectly marks this almost-singular matrix as healthy.
+
+For:
+
+```text
+Q = [1  2]
+    [2  1]
+```
+
+the characteristic polynomial is:
+
+```text
+det(lambda I - Q) = (lambda - 1)^2 - 4
+                   = (lambda - 3)(lambda + 1)
+```
+
+Thus `lambda(Q) = {3, -1}` and `Q` is indefinite even though both diagonal entries are positive. Positive definiteness is only reported for symmetric square matrices whose minimum eigenvalue is strictly positive within a scale-aware tolerance.
+
+### Expected Assertions
+
+- `kappa_1(I) = 1`
+- `kappa_1(A_epsilon) > 1e12`
+- an exactly singular matrix returns `Infinity`
+- `[[2,-1],[-1,2]]` is positive definite
+- `[[1,1],[1,1]]` is positive semidefinite
+- `Q` is indefinite
+- a non-symmetric state matrix reports definiteness N/A
+- a rectangular B or C matrix reports both condition number and definiteness N/A
+- SS wizard copies A/B/C/D into the active workspace, activates SS mode, and publishes `_currentSS`
+- SS matrix rows accept both newlines and semicolons as stated by the UI label and default values
+- TF and ZPK wizard paths call the same module-scoped `updateSystem()` route
+- browser walkthrough renders `kappa_1=3.00` for `A=[[-1,1],[0,-2]]`, N/A for rectangular B/C, and produces no console errors
+
+### Fixture Contract
+
+- Numeric core: `control-studio/js/math/conditioning.js`
+- UI integration: `control-studio/js/app.js`
+- Runners: `verify_e7_conditioning.mjs`, `verify_p43_syswin_a5.mjs`, `verify_p46_b5_b2.mjs`
+- Failure mode: row-norm condition heuristics, diagonal-only definiteness checks, or a wizard success notification without an updated workspace must fail
+
 ## Phase 24 Advanced MPC Verification Addendum
 
 Phase 24 的 NMPC / EMPC / Tube MPC / Explicit MPC 屬離散時間最佳控制基線，驗證重點不是圖形外觀，而是最佳化問題、約束與閉迴路行為是否符合數學定義。
@@ -1114,7 +1180,7 @@ u(x) = a_i x + b_i,  x in region_i
 
 後續 agent 將這些案例自動化時，建議順序如下：
 
-1. 把十二個案例整理成 JSON fixtures。
+1. 把十三個案例整理成 JSON fixtures。
 2. 在 `test_control.js` 中新增共用 assertion helper。
 3. 先跑 local JS numerical core。
 4. 再跑 `control_analysis_cli.mjs`。

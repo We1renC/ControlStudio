@@ -85,7 +85,7 @@ del{color:var(--muted)}
 <main>
 <h1 id="control-system-verification-cases">Control System Verification Cases</h1>
 
-<p>此文件定義 ControlStudio 後續回歸測試的十二個基準案例。每個案例都必須能以數學推導得到期望結果，再用 <code>control-studio</code> 數值核心、<code>control_analysis_cli.mjs</code> 與 FastAPI API 交叉驗證。</p>
+<p>此文件定義 ControlStudio 後續回歸測試的十三個基準案例。每個案例都必須能以數學推導得到期望結果，再用 <code>control-studio</code> 數值核心、<code>control_analysis_cli.mjs</code> 與 FastAPI API 交叉驗證。</p>
 
 <p>驗證原則：</p>
 <ul>
@@ -954,6 +954,68 @@ exp(+-j*0.24*pi)</code></pre>
 <li>Failure mode: symmetrizing <code>Phi</code>, using only real eigenvalues, or slicing duplicate cosine eigenvalues must fail the multi-tone assertions</li>
 </ul>
 
+<h2 id="case-13-matrix-numerical-health-and-wizard-workspace-contract">Case 13: Matrix Numerical Health and Wizard Workspace Contract</h2>
+
+<h3 id="purpose">Purpose</h3>
+
+<p>驗證矩陣面板使用真正的 1-norm condition number 與對稱矩陣 eigenvalue definiteness，而不是以 row-norm ratio 或正對角線做 heuristic；同時驗證新增系統視窗的 TF / SS / ZPK 模型會真正寫入主工作區，不得只顯示成功通知。</p>
+
+<h3 id="mathematical-derivation">Mathematical Derivation</h3>
+
+<p>For:</p>
+
+<pre><code class="lang-text">A_epsilon = [1  1          ]
+            [1  1 + epsilon],  epsilon = 1e-12</code></pre>
+
+<p>the determinant is <code>epsilon</code>, and:</p>
+
+<pre><code class="lang-text">||A_epsilon||_1 = 2 + epsilon
+A_epsilon^-1 = (1/epsilon) [1 + epsilon  -1]
+                               [-1           1]
+||A_epsilon^-1||_1 = (2 + epsilon) / epsilon
+kappa_1(A_epsilon) = (2 + epsilon)^2 / epsilon
+                   approximately 4e12</code></pre>
+
+<p>The former row-norm ratio is approximately one because both rows have nearly the same norm, so it incorrectly marks this almost-singular matrix as healthy.</p>
+
+<p>For:</p>
+
+<pre><code class="lang-text">Q = [1  2]
+    [2  1]</code></pre>
+
+<p>the characteristic polynomial is:</p>
+
+<pre><code class="lang-text">det(lambda I - Q) = (lambda - 1)^2 - 4
+                   = (lambda - 3)(lambda + 1)</code></pre>
+
+<p>Thus <code>lambda(Q) = {3, -1}</code> and <code>Q</code> is indefinite even though both diagonal entries are positive. Positive definiteness is only reported for symmetric square matrices whose minimum eigenvalue is strictly positive within a scale-aware tolerance.</p>
+
+<h3 id="expected-assertions">Expected Assertions</h3>
+
+<ul>
+<li><code>kappa_1(I) = 1</code></li>
+<li><code>kappa_1(A_epsilon) &gt; 1e12</code></li>
+<li>an exactly singular matrix returns <code>Infinity</code></li>
+<li><code>[[2,-1],[-1,2]]</code> is positive definite</li>
+<li><code>[[1,1],[1,1]]</code> is positive semidefinite</li>
+<li><code>Q</code> is indefinite</li>
+<li>a non-symmetric state matrix reports definiteness N/A</li>
+<li>a rectangular B or C matrix reports both condition number and definiteness N/A</li>
+<li>SS wizard copies A/B/C/D into the active workspace, activates SS mode, and publishes <code>_currentSS</code></li>
+<li>SS matrix rows accept both newlines and semicolons as stated by the UI label and default values</li>
+<li>TF and ZPK wizard paths call the same module-scoped <code>updateSystem()</code> route</li>
+<li>browser walkthrough renders <code>kappa_1=3.00</code> for <code>A=[[-1,1],[0,-2]]</code>, N/A for rectangular B/C, and produces no console errors</li>
+</ul>
+
+<h3 id="fixture-contract">Fixture Contract</h3>
+
+<ul>
+<li>Numeric core: <code>control-studio/js/math/conditioning.js</code></li>
+<li>UI integration: <code>control-studio/js/app.js</code></li>
+<li>Runners: <code>verify_e7_conditioning.mjs</code>, <code>verify_p43_syswin_a5.mjs</code>, <code>verify_p46_b5_b2.mjs</code></li>
+<li>Failure mode: row-norm condition heuristics, diagonal-only definiteness checks, or a wizard success notification without an updated workspace must fail</li>
+</ul>
+
 <h2 id="phase-24-advanced-mpc-verification-addendum">Phase 24 Advanced MPC Verification Addendum</h2>
 
 <p>Phase 24 的 NMPC / EMPC / Tube MPC / Explicit MPC 屬離散時間最佳控制基線，驗證重點不是圖形外觀，而是最佳化問題、約束與閉迴路行為是否符合數學定義。</p>
@@ -1008,7 +1070,7 @@ u_min + |K|r &lt;= v_k &lt;= u_max - |K|r</code></pre>
 <p>後續 agent 將這些案例自動化時，建議順序如下：</p>
 
 <ol>
-<li>把十二個案例整理成 JSON fixtures。</li>
+<li>把十三個案例整理成 JSON fixtures。</li>
 <li>在 <code>test_control.js</code> 中新增共用 assertion helper。</li>
 <li>先跑 local JS numerical core。</li>
 <li>再跑 <code>control_analysis_cli.mjs</code>。</li>

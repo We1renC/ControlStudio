@@ -8,6 +8,10 @@
 import { readFileSync } from 'fs';
 import { fileURLToPath } from 'url';
 import path from 'path';
+import {
+  classifySymmetricDefiniteness,
+  estimateCondition,
+} from '../js/math/conditioning.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '..');
@@ -25,16 +29,34 @@ const indexHtml = readFileSync(path.join(ROOT, 'index.html'), 'utf8');
 // ── Shared numerics ───────────────────────────────────────────────────────────
 console.log('\n▶ Shared numeric helpers');
 
-assert(appJs.includes('function computeConditionNumber('), 'computeConditionNumber() defined');
+assert(appJs.includes('return estimateCondition(M);'), 'computeConditionNumber() uses 1-norm condition estimator');
 assert(appJs.includes('function _kappaClass('),           '_kappaClass() defined');
 assert(appJs.includes("return 'good'"),                   "kappa class 'good'");
 assert(appJs.includes("return 'warn'"),                   "kappa class 'warn'");
 assert(appJs.includes("return 'bad'"),                    "kappa class 'bad'");
 assert(appJs.includes('function _matDetSmall('),          '_matDetSmall() defined');
-assert(appJs.includes('function _pdClass('),              '_pdClass() defined');
-assert(appJs.includes("return 'pd'"),                     "pdClass 'pd'");
-assert(appJs.includes("return 'spd'"),                    "pdClass 'spd'");
-assert(appJs.includes("return 'npd'"),                    "pdClass 'npd'");
+assert(appJs.includes('return classifySymmetricDefiniteness(M);'),
+  '_pdClass() uses symmetric eigenvalue classification');
+
+const nearSingular = [[1, 1], [1, 1 + 1e-12]];
+const nearSingularKappa = estimateCondition(nearSingular);
+assert(nearSingularKappa > 1e12,
+  'near-singular equal-row matrix reports severe condition number',
+  `kappa=${nearSingularKappa}`);
+assert(estimateCondition([[1, 1], [1, 1]]) === Infinity,
+  'singular matrix condition number is Infinity');
+assert(Math.abs(estimateCondition([[1, 0], [0, 1]]) - 1) < 1e-12,
+  'identity matrix condition number is one');
+assert(classifySymmetricDefiniteness([[2, -1], [-1, 2]]) === 'positive-definite',
+  'symmetric positive-definite matrix classified from eigenvalues');
+assert(classifySymmetricDefiniteness([[1, 1], [1, 1]]) === 'positive-semidefinite',
+  'rank-deficient Gram matrix classified positive-semidefinite');
+assert(classifySymmetricDefiniteness([[1, 2], [2, 1]]) === 'indefinite',
+  'positive diagonal does not hide an indefinite matrix');
+assert(classifySymmetricDefiniteness([[-1, 1], [0, -2]]) === 'non-symmetric',
+  'non-symmetric state matrix has no definiteness label');
+assert(classifySymmetricDefiniteness([[1], [2]]) === 'non-square',
+  'rectangular matrix has no definiteness label');
 
 // ── B5-1: Calculation Steps Panel ────────────────────────────────────────────
 console.log('\n▶ B5-1 Calculation Steps Panel');
@@ -114,6 +136,9 @@ assert(appJs.includes('matrix-block'),                   'matrix-block class');
 assert(appJs.includes('matrix-grid-table'),              'matrix-grid-table class');
 assert(appJs.includes('matrix-meta'),                    'matrix-meta class');
 assert(appJs.includes('matrix-pd-badge'),                'matrix-pd-badge class');
+assert(appJs.includes('κ₁ ='),                           'matrix panel names the 1-norm condition number');
+assert(appJs.includes('N/A（非方陣）'),                  'rectangular condition number shown as unavailable');
+assert(appJs.includes('正定性 N/A（非對稱）'),           'non-symmetric definiteness shown as unavailable');
 assert(appJs.includes('btn-matrix-expand'),              'btn-matrix-expand referenced');
 assert(appJs.includes('btn-matrix-copy-json'),           'btn-matrix-copy-json referenced');
 assert(appJs.includes('btn-matrix-copy-latex'),          'btn-matrix-copy-latex referenced');

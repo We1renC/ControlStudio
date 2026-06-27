@@ -10,6 +10,7 @@
 import { readFileSync } from 'fs';
 import { fileURLToPath } from 'url';
 import path from 'path';
+import { parseMatrixInput } from '../js/control/state-space.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '..');
@@ -53,8 +54,24 @@ assert(appJs.includes("key === 'Escape'"), 'Escape key closes modal');
 assert(appJs.includes("e.ctrlKey && e.key === '1'"), 'Ctrl+1 switches to TF');
 assert(appJs.includes("e.ctrlKey && e.key === '2'"), 'Ctrl+2 switches to SS');
 assert(appJs.includes("e.ctrlKey && e.key === '3'"), 'Ctrl+3 switches to ZPK');
+assert(appJs.includes("document.getElementById('ss-a').value = document.getElementById('syswin-ss-A').value"),
+  'SS wizard copies A matrix into the active workspace');
+assert(appJs.includes("document.getElementById('zpk-zeros').value = document.getElementById('syswin-zpk-z').value"),
+  'ZPK wizard copies roots into the active workspace');
+assert(appJs.includes('state.systemType = _sysType'), 'wizard activates the selected system type');
+assert(appJs.includes('section.id === `sys-${_sysType}`'), 'wizard shows the matching main input section');
+assert(appJs.includes('window._currentSS = { A, B, C, D }'),
+  'successful SS update publishes the matrix diagnostic snapshot');
+assert(appJs.includes("updateSystem();\n      notify(`系統「${name}」已加入工作區`"),
+  'wizard invokes the module-scoped updateSystem implementation');
+assert(!appJs.includes("if (typeof window.updateSystem === 'function') window.updateSystem();\n      notify(`系統「${name}」"),
+  'wizard does not call a missing window.updateSystem hook');
 assert(appJs.includes('window.openSystemWizard'), 'openSystemWizard exposed globally');
 assert(appJs.includes('btn-new-system'), 'btn-new-system trigger');
+assert(JSON.stringify(parseMatrixInput('-1 1; 0 -2')) === JSON.stringify([[-1, 1], [0, -2]]),
+  'wizard semicolon row separator matches its label and defaults');
+assert(JSON.stringify(parseMatrixInput('0; 1', 1)) === JSON.stringify([[0], [1]]),
+  'wizard semicolon column vector parses as n x 1');
 
 assert(indexHtml.includes('syswin-modal'), '#syswin-modal in HTML');
 assert(indexHtml.includes('syswin-box'), '.syswin-box in HTML');

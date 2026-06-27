@@ -2382,6 +2382,12 @@
     "doc": "Classify a condition number into severity level."
   },
   {
+    "name": "classifySymmetricDefiniteness",
+    "kind": "function",
+    "module": "js/math/conditioning.js",
+    "doc": "Classify definiteness only when the concept is mathematically defined."
+  },
+  {
     "name": "withConditionCheck",
     "kind": "function",
     "module": "js/math/conditioning.js",
