@@ -1,6 +1,6 @@
 import { TransferFunction } from './control/transfer-function.js';
 import { DiscreteTransferFunction } from './control/discrete-transfer-function.js';
-import { parseMatrixInput, stateSpaceToTransferFunction, controllabilityMatrix, observabilityMatrix } from './control/state-space.js?v=p5';
+import { parseMatrixInput, stateSpaceToTransferFunction, controllabilityMatrix, observabilityMatrix } from './control/state-space.js?v=zf13';
 import { matRank } from './math/matrix.js?v=p5';
 import { PIDController, TwoDOFPIDController } from './control/pid.js';
 import { compensatorDescription, designLagCompensator, designLeadCompensator, designLeadLagCompensator, leadLagTransferFunction, normalizeCompensatorConfig, notchFilter, notchFilterDescription } from './control/compensator.js?v=pid-p1';
@@ -29,11 +29,12 @@ import { classifySymmetricDefiniteness, estimateCondition } from './math/conditi
 import { identifyARMAX, identifyARX, autoARXOrder } from './control/sysid.js';
 import { toMatlabScript, toPythonScript, downloadScript } from './utils/codegen.js';
 import { mixedSensitivityCost, tunePIDForMixedSensitivity, defaultMixedSensitivityWeights } from './control/hinf_synth.js';
+import { gramianDiagnostics } from './control/model_reduction.js';
 import { gaTunePID, nsga2TunePID } from './control/ga_tuner.js';
 import { runLinearEKF } from './control/ekf.js';
 import { findEquilibrium, classifyEquilibrium, scanEquilibria } from './analysis/equilibrium.js';
 import { phasePortrait, linearVelocityField } from './analysis/phase-portrait.js';
-import { tfToControllableCanonical } from './control/state-space.js?v=p5';
+import { tfToControllableCanonical } from './control/state-space.js?v=zf13';
 
 // ── P34-01: Sub-module imports (module split) ─────────────────────────────────
 import {
@@ -8850,6 +8851,28 @@ function initPZMapControls() {
 // ── P39 — B2-2 Hankel Singular Values ────────────────────────────────────────
 // Computes Hankel singular values from controllability/observability Gramians
 // and renders a bar chart visualization in #hankel-svd-panel.
+function currentStateSpaceForDiagnostics() {
+  if (state.systemType === 'ss' && window._currentSS?.A) {
+    return {
+      A: window._currentSS.A.map((row) => [...row]),
+      B: window._currentSS.B.map((row) => [...row]),
+      C: window._currentSS.C.map((row) => [...row]),
+      D: window._currentSS.D.map((row) => [...row]),
+    };
+  }
+  if (!state.plant?.num || !state.plant?.den) {
+    throw new Error('目前 Plant 無法轉換為狀態空間');
+  }
+  return tfToControllableCanonical(state.plant.num, state.plant.den);
+}
+
+function computeCurrentGramianDiagnostics() {
+  const ss = currentStateSpaceForDiagnostics();
+  return gramianDiagnostics(ss.A, ss.B, ss.C, ss.D, {
+    domain: state.domain === 'z' ? 'discrete' : 'continuous',
+  });
+}
+
 function initHankelSVD() {
   const btn = document.getElementById('btn-hankel-svd');
   if (!btn) return;
@@ -8865,68 +8888,10 @@ function initHankelSVD() {
     if (!sys) { notify('先輸入 Plant 才能計算 Hankel SV', 'warning'); return; }
 
     try {
-      // Convert TF to SS canonical form
-      const ss = tfToControllableCanonical(sys.num, sys.den);
-      const n = ss.A.length;
+      const result = computeCurrentGramianDiagnostics();
+      const n = result.Wc.length;
       if (n === 0) { notify('系統為純增益，無 Hankel SV', 'info'); return; }
-
-      // Approximate Gramians via short impulse simulation (power iteration approximation)
-      // For display purposes: use diagonal of Gramian approximation (controllability)
-      // We use a simplified approach: eigenvalues of Wc*Wo product
-      // Controllability Gramian Wc via Lyapunov sum approximation
-      const A = ss.A;
-      const B = ss.B;
-      const C = ss.C;
-
-      // Build Wc by summing e^(At)BB^T e^(At)^T dt (discretised, stable check)
-      const isStable = sys.poles().every(p => p.re < 0);
-      if (!isStable) { notify('Plant 不穩定，Hankel SV 需穩定系統', 'warning'); return; }
-
-      // Simple power-method Gramian approximation
-      // Use A^k B sums to build Wc ≈ sum_{k=0}^{K} Ak*B*(Ak*B)^T
-      const dt = 0.01;
-      const K = Math.min(500, Math.ceil(5 / dt));
-      // Discretize A_d = I + A*dt (Euler, only valid for small dt with stable A)
-      const Ad = A.map((row, i) => row.map((v, j) => (i === j ? 1 : 0) + v * dt));
-
-      function matVec(M, v) { return M.map(row => row.reduce((s, mv, j) => s + mv * v[j], 0)); }
-      function matMulLocal(M1, M2) {
-        const m = M1.length, k = M2.length, p = M2[0].length;
-        const R = Array.from({ length: m }, () => new Array(p).fill(0));
-        for (let i = 0; i < m; i++) for (let l = 0; l < k; l++) if (M1[i][l]) for (let j = 0; j < p; j++) R[i][j] += M1[i][l] * M2[l][j];
-        return R;
-      }
-
-      // Wc = sum Ak*B * (Ak*B)^T
-      let Wc = Array.from({ length: n }, () => new Array(n).fill(0));
-      let AkB = B.map(row => [...row]); // n×m
-      for (let k = 0; k < K; k++) {
-        // Add AkB * AkB^T
-        for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) {
-          for (let m_ = 0; m_ < AkB[0].length; m_++) Wc[i][j] += AkB[i][m_] * AkB[j][m_] * dt;
-        }
-        // AkB = Ad * AkB
-        AkB = matMulLocal(Ad, AkB);
-      }
-
-      // Wo = sum (C*Ak)^T * C*Ak
-      const Ct = Array.from({ length: n }, (_, i) => C.map(row => row[i])); // n×p (transpose)
-      let Wo = Array.from({ length: n }, () => new Array(n).fill(0));
-      let AkTCt = Ct.map(row => [...row]); // n×p
-      const AdT = Array.from({ length: n }, (_, i) => Ad.map(row => row[i]));
-      for (let k = 0; k < K; k++) {
-        for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) {
-          for (let p_ = 0; p_ < AkTCt[0].length; p_++) Wo[i][j] += AkTCt[i][p_] * AkTCt[j][p_] * dt;
-        }
-        AkTCt = matMulLocal(AdT, AkTCt);
-      }
-
-      // Hankel singular values = sqrt of eigenvalues of Wc*Wo
-      // Use power iteration to get approximate eigenvalues (diagonal of Wc*Wo product)
-      const WcWo = matMulLocal(Wc, Wo);
-      // Extract diagonal as approximation of singular values (for display)
-      const diag = WcWo.map((row, i) => Math.max(0, row[i]));
-      const hsvs = diag.map(v => Math.sqrt(v)).sort((a, b) => b - a);
+      const hsvs = result.hsv;
 
       // Render bars
       const maxHsv = hsvs[0] || 1;
@@ -8942,7 +8907,10 @@ function initHankelSVD() {
       // Threshold analysis
       const threshold = maxHsv * 0.01; // 1% threshold
       const keepCount = hsvs.filter(v => v >= threshold).length;
-      infoEl.textContent = `n=${n} 個狀態，σ₁=${hsvs[0].toExponential(3)}，建議保留 ${keepCount} 個狀態（σ ≥ 1% σ₁）`;
+      const domainLabel = result.domain === 'discrete' ? 'Stein' : 'Lyapunov';
+      const maxResidual = Math.max(result.controllabilityResidual, result.observabilityResidual);
+      infoEl.textContent = `n=${n}，${domainLabel} residual=${maxResidual.toExponential(2)}，` +
+        `σ₁=${hsvs[0].toExponential(3)}，建議保留 ${keepCount} 個狀態（σ ≥ 1% σ₁）`;
 
       wrap.style.display = 'block';
     } catch (err) {
@@ -13987,64 +13955,31 @@ document.addEventListener('DOMContentLoaded', () => {
 }, { once: true });
 
 // ── P55 — B2-4: Gramian / SVD Detail ──────────────────────────────────────────
-// Computes Wc (controllability) and Wo (observability) Gramians via
-// truncated impulse-simulation approximation, then shows eigenvalue decomposition.
+// Computes exact continuous Lyapunov or discrete Stein Gramians and HSVs.
 function computeGramianDetail() {
   if (!state.plant) return { error: 'No plant defined' };
-  const plant = state.plant;
-  let A, B, C;
   try {
-    const ss = plant.toStateSpace?.();
-    if (!ss || !ss.A) return { error: 'Cannot convert to state-space' };
-    A = ss.A; B = ss.B; C = ss.C;
+    const result = computeCurrentGramianDiagnostics();
+    if (result.Wc.length > 8) {
+      return { error: `State dimension n=${result.Wc.length} too large for inline Gramian (max 8)` };
+    }
+    return {
+      n: result.Wc.length,
+      wcEig: result.wcEigenvalues,
+      woEig: result.woEigenvalues,
+      wcTrace: result.wcTrace,
+      woTrace: result.woTrace,
+      wcCond: result.wcCondition,
+      woCond: result.woCondition,
+      hsv: result.hsv,
+      hsvSum: result.hsvSum,
+      controllabilityResidual: result.controllabilityResidual,
+      observabilityResidual: result.observabilityResidual,
+      domain: result.domain,
+    };
   } catch (e) {
     return { error: e.message };
   }
-  const n = A.length;
-  if (n === 0) return { error: 'Empty system' };
-  if (n > 8) return { error: `State dimension n=${n} too large for inline Gramian (max 8)` };
-
-  // Gramian via discrete Lyapunov approximation:  Wc ≈ sum_{k=0}^{N} A^k B B^T (A^T)^k * dt
-  const N = 500, dt = 0.02;
-  const identity = (sz) => Array.from({ length: sz }, (_, i) => Array.from({ length: sz }, (_, j) => i === j ? 1 : 0));
-  const matMul  = (X, Y) => X.map(row => Y[0].map((_, c) => row.reduce((s, v, k) => s + v * Y[k][c], 0)));
-  const matAdd  = (X, Y) => X.map((r, i) => r.map((v, j) => v + Y[i][j]));
-  const matScale = (X, s) => X.map(r => r.map(v => v * s));
-  const matT    = (X) => X[0].map((_, j) => X.map(r => r[j]));
-  const diagEig = (X) => X.map((r, i) => r[i]); // approx eigenvalues via diagonal (for symmetric PD)
-  const trace   = (X) => X.reduce((s, r, i) => s + r[i], 0);
-  const condNum = (vals) => { const pos = vals.filter(v => v > 0); if (!pos.length) return Infinity; return Math.max(...pos) / Math.min(...pos); };
-
-  // Build Wc approximation
-  let Wc = identity(n).map(r => r.map(() => 0));
-  let Ak = identity(n);
-  const BBT = matMul(B, matT(B));
-  for (let k = 0; k < N; k++) {
-    Wc = matAdd(Wc, matScale(matMul(matMul(Ak, BBT), matT(Ak)), dt));
-    Ak = matMul(A, Ak);
-  }
-
-  // Build Wo approximation
-  let Wo = identity(n).map(r => r.map(() => 0));
-  let AkT = identity(n);
-  const CTC = matMul(matT(C), C);
-  for (let k = 0; k < N; k++) {
-    Wo = matAdd(Wo, matScale(matMul(matMul(AkT, CTC), matT(AkT)), dt));
-    AkT = matMul(matT(A), AkT);
-  }
-
-  const wcEig = diagEig(Wc);
-  const woEig = diagEig(Wo);
-  const wcTrace = trace(Wc);
-  const woTrace = trace(Wo);
-  const wcCond = condNum(wcEig);
-  const woCond = condNum(woEig);
-
-  // Balanceability: ratio of min/max diagonal Hankel singular value approximation
-  const hsv = wcEig.map((v, i) => Math.sqrt(Math.max(0, v) * Math.max(0, woEig[i])));
-  const hsvSum = hsv.reduce((a, b) => a + b, 0);
-
-  return { n, wcEig, woEig, wcTrace, woTrace, wcCond, woCond, hsv, hsvSum };
 }
 
 function renderGramianDetail(outEl, result) {
@@ -14064,14 +13999,16 @@ function renderGramianDetail(outEl, result) {
 
   outEl.innerHTML = `
     <table class="gramian-table">
-      <thead><tr><th>#</th><th>Wc diag</th><th>Wo diag</th><th>HSV</th><th>Weight</th></tr></thead>
+      <thead><tr><th>#</th><th>λ(Wc)</th><th>λ(Wo)</th><th>HSV</th><th>Weight</th></tr></thead>
       <tbody>${rows}</tbody>
     </table>
     <div class="gramian-summary">
       <span>tr(Wc): <b>${fmt(result.wcTrace)}</b></span>
-      <span>cond(Wc): <b>${result.wcCond === Infinity ? '∞' : result.wcCond.toFixed(1)}</b></span>
+      <span>κ₁(Wc): <b>${Number.isFinite(result.wcCond) ? result.wcCond.toFixed(1) : '∞'}</b></span>
       <span>tr(Wo): <b>${fmt(result.woTrace)}</b></span>
-      <span>cond(Wo): <b>${result.woCond === Infinity ? '∞' : result.woCond.toFixed(1)}</b></span>
+      <span>κ₁(Wo): <b>${Number.isFinite(result.woCond) ? result.woCond.toFixed(1) : '∞'}</b></span>
+      <span>${result.domain === 'discrete' ? 'Stein' : 'Lyapunov'} residual:
+        <b>${Math.max(result.controllabilityResidual, result.observabilityResidual).toExponential(2)}</b></span>
     </div>`;
 }
 

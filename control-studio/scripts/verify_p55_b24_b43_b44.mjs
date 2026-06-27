@@ -10,6 +10,7 @@
 import { readFileSync } from 'fs';
 import { fileURLToPath } from 'url';
 import path from 'path';
+import { gramianDiagnostics } from '../js/control/model_reduction.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '..');
@@ -37,14 +38,69 @@ assert(appJs.includes('gramian-summary'),                  'gramian-summary rend
 assert(appJs.includes('gramian-error'),                    'gramian-error class used');
 assert(appJs.includes('gd-bar'),                           'gd-bar progress bar rendered');
 assert(appJs.includes("tr(Wc)"),                           'tr(Wc) shown in summary');
-assert(appJs.includes("cond(Wc)"),                         'cond(Wc) shown in summary');
-assert(appJs.includes("cond(Wo)"),                         'cond(Wo) shown in summary');
+assert(appJs.includes("κ₁(Wc)"),                           '1-norm condition number shown for Wc');
+assert(appJs.includes("κ₁(Wo)"),                           '1-norm condition number shown for Wo');
+assert(appJs.includes("λ(Wc)"),                            'Gramian eigenvalue column named accurately');
+assert(appJs.includes("λ(Wo)"),                            'observability eigenvalue column named accurately');
+assert(appJs.includes('computeCurrentGramianDiagnostics()'), 'detail panel uses shared exact diagnostic route');
+assert(!appJs.includes('truncated impulse-simulation approximation'), 'truncated Gramian approximation removed');
+assert(!appJs.includes('diagEig ='),                       'diagonal-eigenvalue heuristic removed');
+
+const close = (actual, expected, tolerance = 1e-9) =>
+  Math.abs(actual - expected) <= tolerance * Math.max(1, Math.abs(expected));
+const A = [[-1, 0], [0, -2]];
+const B = [[1], [1]];
+const C = [[1, 1]];
+const D = [[0]];
+const continuous = gramianDiagnostics(A, B, C, D);
+assert(close(continuous.Wc[0][0], 0.5) && close(continuous.Wc[0][1], 1 / 3)
+    && close(continuous.Wc[1][1], 0.25),
+  'continuous controllability Gramian matches analytic Lyapunov solution');
+assert(close(continuous.Wo[0][0], 0.5) && close(continuous.Wo[0][1], 1 / 3)
+    && close(continuous.Wo[1][1], 0.25),
+  'continuous observability Gramian matches analytic Lyapunov solution');
+assert(close(continuous.hsv[0], 0.7310001560548973)
+    && close(continuous.hsv[1], 0.0189998439451029),
+  'continuous HSVs include Gramian off-diagonal coupling');
+assert(close(continuous.wcCondition, 50),
+  'continuous Wc reports true 1-norm condition number');
+assert(continuous.controllabilityResidual < 1e-12 && continuous.observabilityResidual < 1e-12,
+  'continuous Lyapunov residuals are numerically closed');
+
+const discrete = gramianDiagnostics([[0.5, 0], [0, 0.2]], B, C, D, { domain: 'discrete' });
+assert(close(discrete.Wc[0][0], 4 / 3) && close(discrete.Wc[0][1], 10 / 9)
+    && close(discrete.Wc[1][1], 25 / 24),
+  'discrete controllability Gramian matches analytic Stein solution');
+assert(discrete.controllabilityResidual < 1e-12 && discrete.observabilityResidual < 1e-12,
+  'discrete Stein residuals are numerically closed');
+
+let unstableContinuousRejected = false;
+try {
+  gramianDiagnostics([[0.1]], [[1]], [[1]], [[0]]);
+} catch (error) {
+  unstableContinuousRejected = /Hurwitz/.test(error.message);
+}
+assert(unstableContinuousRejected, 'unstable continuous A is rejected');
+
+let unstableDiscreteRejected = false;
+try {
+  gramianDiagnostics([[1.01]], [[1]], [[1]], [[0]], { domain: 'discrete' });
+} catch (error) {
+  unstableDiscreteRejected = /Schur-stable/.test(error.message);
+}
+assert(unstableDiscreteRejected, 'unstable discrete A is rejected');
 
 // HTML
 assert(indexHtml.includes('gramian-detail-panel'),         '#gramian-detail-panel in HTML');
 assert(indexHtml.includes('btn-gramian-detail'),           '#btn-gramian-detail in HTML');
 assert(indexHtml.includes('gramian-detail-wrap'),          '#gramian-detail-wrap in HTML');
 assert(indexHtml.includes('B2-4'),                         'B2-4 label in HTML');
+assert(indexHtml.includes('以連續 Lyapunov 或離散 Stein 方程'),
+  'Gramian UI names the exact continuous/discrete equations');
+assert(!indexHtml.includes('以截斷脈衝響應法近似'),
+  'obsolete truncated-response Gramian description removed');
+assert(indexHtml.includes('js/app.js?v=zf13'),
+  'Zero-Flaw Loop 13 module cache key applied');
 
 // CSS
 assert(indexHtml.includes('.gramian-table'),               '.gramian-table CSS');

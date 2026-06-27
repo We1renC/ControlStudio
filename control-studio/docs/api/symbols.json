@@ -1134,6 +1134,12 @@
     "doc": "Compute σ_max(ω), σ_min(ω) across frequency grid."
   },
   {
+    "name": "gramianDiagnostics",
+    "kind": "function",
+    "module": "js/control/model_reduction.js",
+    "doc": "Compute continuous- or discrete-time controllability/observability Gramians and Hankel singular values from the exact Lyapunov/Stein equations.   Wc:number[][], Wo:number[][], wcEigenvalues:number[], woEigenvalues:number[],   wcTrace:number, woTrace:number, wcCondition:number, woCondition:number,   "
+  },
+  {
     "name": "minrealSS",
     "kind": "function",
     "module": "js/control/model_reduction.js",

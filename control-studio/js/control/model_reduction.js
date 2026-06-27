@@ -16,7 +16,11 @@ import { computeSVD }        from '../math/svd.js';
 import {
   matMul, matTranspose, matAdd, matSub, matScale,
   matIdentity, matInverse, matSolve, matSymmetrize,
+  matEigenvaluesSymmetric, matTrace,
 } from '../math/matrix.js';
+import { estimateCondition } from '../math/conditioning.js';
+import { polyroots } from '../math/polynomial.js';
+import { solveLyapunovCT, solveLyapunovDT } from '../math/sylvester.js';
 import { controllabilityMatrix, observabilityMatrix } from './state-space.js';
 
 // ---------------------------------------------------------------------------
@@ -25,56 +29,7 @@ import { controllabilityMatrix, observabilityMatrix } from './state-space.js';
 
 /** Solve continuous Lyapunov: A·X + X·Aᵀ + Q = 0  (Q symmetric ≥ 0). */
 function solveLyapunov(A, Q) {
-  const n = A.length;
-  // Vectorise: (I⊗A + A⊗I) vec(X) = −vec(Q)
-  // Build the (n²)×(n²) Kronecker system and solve with Gaussian elimination.
-  const n2 = n * n;
-  const M  = Array.from({ length: n2 }, () => new Array(n2).fill(0));
-  const rhs = new Array(n2).fill(0);
-
-  for (let i = 0; i < n; i++) {
-    for (let j = 0; j < n; j++) {
-      const row = i * n + j;
-      rhs[row] = -Q[i][j];
-      for (let k = 0; k < n; k++) {
-        M[row][k * n + j] += A[i][k]; // I ⊗ A (row-major)
-        M[row][i * n + k] += A[j][k]; // A ⊗ I
-      }
-    }
-  }
-
-  // Gaussian elimination with partial pivoting
-  const aug = M.map((row, r) => [...row, rhs[r]]);
-  for (let col = 0; col < n2; col++) {
-    // Pivot
-    let maxRow = col;
-    for (let r = col + 1; r < n2; r++) {
-      if (Math.abs(aug[r][col]) > Math.abs(aug[maxRow][col])) maxRow = r;
-    }
-    [aug[col], aug[maxRow]] = [aug[maxRow], aug[col]];
-    const piv = aug[col][col];
-    if (Math.abs(piv) < 1e-14) continue; // rank-deficient column
-    for (let r = 0; r < n2; r++) {
-      if (r === col) continue;
-      const f = aug[r][col] / piv;
-      for (let c = col; c <= n2; c++) aug[r][c] -= f * aug[col][c];
-    }
-  }
-
-  const vecX = aug.map((row) => row[n2] / (Math.abs(row[row.indexOf(Math.max(...row.map(Math.abs)))])<1e-14 ? 1 : row[row.findIndex(v=>Math.abs(v)>1e-14)]));
-  // Simpler back-substitute
-  const sol = new Array(n2).fill(0);
-  for (let r = n2 - 1; r >= 0; r--) {
-    let s = aug[r][n2];
-    for (let c = r + 1; c < n2; c++) s -= aug[r][c] * sol[c];
-    sol[r] = Math.abs(aug[r][r]) > 1e-14 ? s / aug[r][r] : 0;
-  }
-
-  // Reshape sol → n×n matrix X
-  const X = Array.from({ length: n }, (_, i) =>
-    Array.from({ length: n }, (_, j) => sol[i * n + j])
-  );
-  return matSymmetrize(X); // enforce symmetry
+  return solveLyapunovCT(matTranspose(A), Q);
 }
 
 /** Cholesky decomposition: A = L·Lᵀ (A must be SPD, returns L lower-triangular). */
@@ -133,6 +88,159 @@ function svdRank(A, tol = 1e-8) {
   const sigma0 = S[0] || 0;
   const thresh = tol * Math.max(m, n) * sigma0;
   return S.filter((s) => s > thresh).length;
+}
+
+function validateStateSpaceDimensions(A, B, C) {
+  const n = A.length;
+  if (n === 0 || A.some((row) => !Array.isArray(row) || row.length !== n)) {
+    throw new Error('Gramian diagnostics require a non-empty square A matrix');
+  }
+  if (B.length !== n || B.some((row) => !Array.isArray(row) || row.length === 0)) {
+    throw new Error('Gramian diagnostics require B to have n non-empty rows');
+  }
+  const inputs = B[0].length;
+  if (B.some((row) => row.length !== inputs)) {
+    throw new Error('Gramian diagnostics require a rectangular B matrix');
+  }
+  if (!Array.isArray(C) || C.length === 0 || C.some((row) => !Array.isArray(row) || row.length !== n)) {
+    throw new Error('Gramian diagnostics require C to have n columns');
+  }
+  for (const matrix of [A, B, C]) {
+    if (matrix.some((row) => row.some((value) => !Number.isFinite(value)))) {
+      throw new Error('Gramian diagnostics require finite matrix entries');
+    }
+  }
+}
+
+function characteristicPolynomial(A) {
+  const n = A.length;
+  const coefficients = [1];
+  let Bk = matIdentity(n);
+  for (let k = 1; k <= n; k++) {
+    const AB = matMul(A, Bk);
+    const coefficient = -matTrace(AB) / k;
+    coefficients.push(coefficient);
+    Bk = matAdd(AB, matScale(matIdentity(n), coefficient));
+  }
+  return coefficients;
+}
+
+function stateMatrixPoles(A) {
+  return polyroots(characteristicPolynomial(A));
+}
+
+function frobeniusNorm(A) {
+  return Math.sqrt(A.reduce(
+    (sum, row) => sum + row.reduce((rowSum, value) => rowSum + value * value, 0),
+    0,
+  ));
+}
+
+function relativeResidual(residual, forcing) {
+  return frobeniusNorm(residual) / Math.max(1, frobeniusNorm(forcing));
+}
+
+function hankelSingularValuesFromGramians(Wc, Wo, tol) {
+  const n = Wc.length;
+  const WcRegularized = matSymmetrize(Wc).map((row) => [...row]);
+  const WoRegularized = matSymmetrize(Wo).map((row) => [...row]);
+  for (let i = 0; i < n; i++) {
+    WcRegularized[i][i] = Math.max(WcRegularized[i][i], tol);
+    WoRegularized[i][i] = Math.max(WoRegularized[i][i], tol);
+  }
+  const Lc = cholesky(WcRegularized);
+  const Lo = cholesky(WoRegularized);
+  const { S } = computeSVD(matMul(matTranspose(Lc), Lo));
+  return Array.from(S).sort((a, b) => b - a);
+}
+
+/**
+ * Compute continuous- or discrete-time controllability/observability Gramians
+ * and Hankel singular values from the exact Lyapunov/Stein equations.
+ *
+ * @param {number[][]} A
+ * @param {number[][]} B
+ * @param {number[][]} C
+ * @param {number[][]} D
+ * @param {{domain?: 'continuous'|'discrete', tolerance?: number}} [opts]
+ * @returns {{
+ *   Wc:number[][], Wo:number[][], wcEigenvalues:number[], woEigenvalues:number[],
+ *   wcTrace:number, woTrace:number, wcCondition:number, woCondition:number,
+ *   hsv:number[], hsvSum:number, poles:Array<{re:number,im:number}>,
+ *   controllabilityResidual:number, observabilityResidual:number, domain:string
+ * }}
+ */
+export function gramianDiagnostics(A, B, C, D = [[0]], opts = {}) {
+  validateStateSpaceDimensions(A, B, C);
+  const domain = opts.domain ?? 'continuous';
+  const tolerance = opts.tolerance ?? 1e-10;
+  if (!['continuous', 'discrete'].includes(domain)) {
+    throw new Error("Gramian diagnostics domain must be 'continuous' or 'discrete'");
+  }
+  if (!Number.isFinite(tolerance) || tolerance <= 0) {
+    throw new Error('Gramian diagnostics tolerance must be finite and positive');
+  }
+
+  const poles = stateMatrixPoles(A);
+  const stable = domain === 'continuous'
+    ? poles.every((pole) => pole.re < -tolerance)
+    : poles.every((pole) => Math.hypot(pole.re, pole.im) < 1 - tolerance);
+  if (!stable) {
+    throw new Error(
+      `Gramian diagnostics require a ${domain === 'continuous' ? 'Hurwitz' : 'Schur-stable'} A matrix`,
+    );
+  }
+
+  const At = matTranspose(A);
+  const BBt = matMul(B, matTranspose(B));
+  const CtC = matMul(matTranspose(C), C);
+  let Wc;
+  let Wo;
+  let controllabilityEquation;
+  let observabilityEquation;
+  if (domain === 'continuous') {
+    Wc = solveLyapunovCT(At, BBt);
+    Wo = solveLyapunovCT(A, CtC);
+    controllabilityEquation = matAdd(matAdd(matMul(A, Wc), matMul(Wc, At)), BBt);
+    observabilityEquation = matAdd(matAdd(matMul(At, Wo), matMul(Wo, A)), CtC);
+  } else {
+    Wc = solveLyapunovDT(At, BBt);
+    Wo = solveLyapunovDT(A, CtC);
+    controllabilityEquation = matSub(matAdd(matMul(matMul(A, Wc), At), BBt), Wc);
+    observabilityEquation = matSub(matAdd(matMul(matMul(At, Wo), A), CtC), Wo);
+  }
+
+  Wc = matSymmetrize(Wc);
+  Wo = matSymmetrize(Wo);
+  const wcEigenvalues = matEigenvaluesSymmetric(Wc).sort((a, b) => b - a);
+  const woEigenvalues = matEigenvaluesSymmetric(Wo).sort((a, b) => b - a);
+  const scale = Math.max(
+    1,
+    ...wcEigenvalues.map(Math.abs),
+    ...woEigenvalues.map(Math.abs),
+  );
+  if (wcEigenvalues.some((value) => value < -tolerance * scale)
+      || woEigenvalues.some((value) => value < -tolerance * scale)) {
+    throw new Error('Gramian diagnostics produced a non-positive-semidefinite Gramian');
+  }
+
+  const hsv = hankelSingularValuesFromGramians(Wc, Wo, tolerance);
+  return {
+    Wc,
+    Wo,
+    wcEigenvalues,
+    woEigenvalues,
+    wcTrace: matTrace(Wc),
+    woTrace: matTrace(Wo),
+    wcCondition: estimateCondition(Wc),
+    woCondition: estimateCondition(Wo),
+    hsv,
+    hsvSum: hsv.reduce((sum, value) => sum + value, 0),
+    poles,
+    controllabilityResidual: relativeResidual(controllabilityEquation, BBt),
+    observabilityResidual: relativeResidual(observabilityEquation, CtC),
+    domain,
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -441,15 +549,7 @@ function solveSylvester(A, B, C) {
  * ‖G‖_H = σ_max(Lc^T · Lo)  where Wc = Lc Lc^T, Wo = Lo Lo^T (Cholesky).
  */
 function _hankelNormFromGramians(Wc, Wo, tol = 1e-10) {
-  const n = Wc.length;
-  for (let i = 0; i < n; i++) {
-    Wc[i][i] = Math.max(Wc[i][i], tol);
-    Wo[i][i] = Math.max(Wo[i][i], tol);
-  }
-  const Lc   = cholesky(matSymmetrize(Wc));
-  const Lo   = cholesky(matSymmetrize(Wo));
-  const { S } = computeSVD(matMul(matTranspose(Lc), Lo));
-  return S[0] ?? 0;
+  return hankelSingularValuesFromGramians(Wc, Wo, tol)[0] ?? 0;
 }
 
 /**
@@ -469,21 +569,13 @@ function _hankelNormFromGramians(Wc, Wo, tol = 1e-10) {
  */
 export function hankelSingularValues(A, B, C, D, opts = {}) {
   const tol = opts.tol ?? 1e-10;
-  const n   = A.length;
   const BBt = matMul(B, matTranspose(B));
   const CtC = matMul(matTranspose(C), C);
   let Wc = solveLyapunov(A,               BBt);
   let Wo = solveLyapunov(matTranspose(A), CtC);
   Wc = matSymmetrize(Wc);
   Wo = matSymmetrize(Wo);
-  for (let i = 0; i < n; i++) {
-    Wc[i][i] = Math.max(Wc[i][i], tol);
-    Wo[i][i] = Math.max(Wo[i][i], tol);
-  }
-  const Lc = cholesky(Wc);
-  const Lo = cholesky(Wo);
-  const { S } = computeSVD(matMul(matTranspose(Lc), Lo));
-  return Array.from(S).sort((a, b) => b - a);
+  return hankelSingularValuesFromGramians(Wc, Wo, tol);
 }
 
 /**

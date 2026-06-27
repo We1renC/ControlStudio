@@ -3232,7 +3232,7 @@
         <section class="section-panel" id="hankel-svd-panel">
           <div class="section-title">Hankel 奇異值</div>
           <p style="font-size:11px;color:var(--text-muted);line-height:1.5;margin-bottom:10px;">
-            模型複雜度指標：Hankel 奇異值越小，代表對應狀態對輸入→輸出貢獻越小，可安全省略。
+            模型複雜度指標：Hankel 奇異值越小，代表對應平衡模態的輸入→輸出貢獻越小，可列為降階候選；仍需檢查截斷誤差界線。
           </p>
           <button class="btn btn-sm" id="btn-hankel-svd" style="width:100%;justify-content:center;margin-bottom:10px;">Compute Hankel SVs</button>
           <div id="hankel-svd-wrap" style="display:none;">
@@ -3245,8 +3245,8 @@
         <section class="section-panel" id="gramian-detail-panel">
           <div class="section-title">Gramian / SVD 詳情</div>
           <p style="font-size:11px;color:var(--text-muted);line-height:1.5;margin-bottom:10px;">
-            以截斷脈衝響應法近似可控性 Wc 與可觀性 Wo Gramian，顯示對角元素、條件數及
-            Hankel 奇異值 σᵢ = √(λᵢ(Wc)·λᵢ(Wo))，條目越小越可約化。
+            以連續 Lyapunov 或離散 Stein 方程求解 Wc、Wo，顯示 Gramian eigenvalues、κ₁、
+            equation residual 與 Cholesky-SVD Hankel 奇異值；較小 HSV 代表較弱的平衡模態。
           </p>
           <button class="btn btn-sm" id="btn-gramian-detail" style="width:100%;justify-content:center;margin-bottom:8px;">Compute Gramian SVD</button>
           <div id="gramian-detail-wrap" style="display:none;"></div>
@@ -4400,6 +4400,6 @@
 
   <!-- B4-2: CSV import trigger (inline button injected by JS) -->
 
-  <script type="module" src="js/app.js?v=p45"></script>
+  <script type="module" src="js/app.js?v=zf13"></script>
 </body>
 </html>

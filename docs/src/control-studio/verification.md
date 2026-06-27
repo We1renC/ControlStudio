@@ -1,6 +1,6 @@
 # Control System Verification Cases
 
-此文件定義 ControlStudio 後續回歸測試的十三個基準案例。每個案例都必須能以數學推導得到期望結果，再用 `control-studio` 數值核心、`control_analysis_cli.mjs` 與 FastAPI API 交叉驗證。
+此文件定義 ControlStudio 後續回歸測試的十四個基準案例。每個案例都必須能以數學推導得到期望結果，再用 `control-studio` 數值核心、`control_analysis_cli.mjs` 與 FastAPI API 交叉驗證。
 
 驗證原則：
 - 先比對 transfer function 多項式係數，再比對 poles / zeros / DC gain。
@@ -1119,6 +1119,136 @@ Thus `lambda(Q) = {3, -1}` and `Q` is indefinite even though both diagonal entri
 - Runners: `verify_e7_conditioning.mjs`, `verify_p43_syswin_a5.mjs`, `verify_p46_b5_b2.mjs`
 - Failure mode: row-norm condition heuristics, diagonal-only definiteness checks, or a wizard success notification without an updated workspace must fail
 
+## Case 14: Exact Gramian and Hankel Singular-Value Contract
+
+### Purpose
+
+驗證 P39/P55 model diagnostics 以完整的 continuous Lyapunov / discrete Stein equations 求 controllability 與 observability Gramians，並由 full-matrix coupling 計算 Hankel singular values。不得以 truncated impulse sum、continuous `A^k` 累加、Gramian diagonal 或 `sqrt(Wc_ii Wo_ii)` 取代。
+
+### Continuous Model
+
+```text
+A = [-1   0]
+    [ 0  -2]
+
+B = [1]
+    [1]
+
+C = [1  1]
+D = [0]
+```
+
+`A` 的 poles 為 `-1, -2`，因此是 Hurwitz matrix。Continuous Gramians 定義為：
+
+```text
+A Wc + Wc A^T + B B^T = 0
+A^T Wo + Wo A + C^T C = 0
+```
+
+由於 `A=A^T` 且 `B B^T=C^T C=[[1,1],[1,1]]`，兩個 Gramians 相同。令：
+
+```text
+W = [w11  w12]
+    [w12  w22]
+```
+
+代入 Lyapunov equation 得：
+
+```text
+-2 w11 + 1 = 0       => w11 = 1/2
+-3 w12 + 1 = 0       => w12 = 1/3
+-4 w22 + 1 = 0       => w22 = 1/4
+```
+
+因此：
+
+```text
+Wc = Wo = [1/2  1/3]
+          [1/3  1/4]
+```
+
+其 trace 與 determinant 為：
+
+```text
+tr(W) = 3/4
+det(W) = 1/72
+```
+
+eigenvalues 為：
+
+```text
+lambda_1,2 = (9 +- sqrt(73)) / 24
+lambda_1 ~= 0.7310001560548973
+lambda_2 ~= 0.0189998439451029
+```
+
+因 `Wc=Wo=W`，Hankel singular values 是 `sqrt(lambda_i(Wc Wo))=lambda_i(W)`；實作以 Cholesky factors 的 SVD 計算相同結果，不依賴此特殊對稱性。
+
+True 1-norm condition number:
+
+```text
+||W||_1 = 5/6
+W^-1 = [ 18  -24]
+       [-24   36]
+||W^-1||_1 = 60
+kappa_1(W) = 50
+```
+
+舊 diagonal heuristic 會錯誤回傳 HSV `[0.5, 0.25]` 與 condition `2`，因此此案例可直接偵測 off-diagonal coupling 是否被忽略。
+
+### Discrete Model
+
+```text
+Ad = [0.5   0]
+     [0    0.2]
+```
+
+`rho(Ad)=0.5<1`，因此是 Schur stable。Discrete controllability Gramian 滿足：
+
+```text
+Ad Wc Ad^T - Wc + B B^T = 0
+```
+
+逐元素求解：
+
+```text
+Wc_11 = 1/(1-0.5^2)   = 4/3
+Wc_12 = 1/(1-0.5*0.2) = 10/9
+Wc_22 = 1/(1-0.2^2)   = 25/24
+```
+
+因此：
+
+```text
+Wc = [4/3   10/9]
+     [10/9  25/24]
+```
+
+同一對稱 fixture 的 `Wo` 相同，Stein residual 應接近 machine precision。
+
+### Expected Assertions
+
+- continuous `Wc` and `Wo` equal `[[1/2,1/3],[1/3,1/4]]`
+- continuous HSVs equal `(9+-sqrt(73))/24`
+- `kappa_1(Wc)=kappa_1(Wo)=50`
+- continuous Lyapunov residuals `< 1e-12`
+- discrete `Wc` equals `[[4/3,10/9],[10/9,25/24]]`
+- discrete Stein residuals `< 1e-12`
+- non-Hurwitz continuous `A` is rejected before solving
+- non-Schur discrete `A` is rejected before solving
+- TF diagnostics use a valid controllable-canonical realization; active SS diagnostics preserve the entered realization
+- browser Hankel panel shows `7.310e-1` and `1.900e-2`
+- browser Gramian panel shows eigenvalues `0.7310`, `0.0190`, `kappa_1=50.0`, and zero Lyapunov residual
+- browser console contains no errors
+
+### Fixture Contract
+
+- Numeric core: `control-studio/js/control/model_reduction.js`
+- UI integration: `control-studio/js/app.js`
+- Runners: `verify_p39_uiux_p2_batch2.mjs`, `verify_p55_b24_b43_b44.mjs`
+- Browser path: SS wizard -> Analysis -> Hankel SV -> Gramian / SVD
+- Failure mode: truncated impulse accumulation, direct continuous `A^k` summation, diagonal HSV approximations, missing stability guards, or stale module cache keys must fail
+
 ## Phase 24 Advanced MPC Verification Addendum
 
 Phase 24 的 NMPC / EMPC / Tube MPC / Explicit MPC 屬離散時間最佳控制基線，驗證重點不是圖形外觀，而是最佳化問題、約束與閉迴路行為是否符合數學定義。
@@ -1180,7 +1310,7 @@ u(x) = a_i x + b_i,  x in region_i
 
 後續 agent 將這些案例自動化時，建議順序如下：
 
-1. 把十三個案例整理成 JSON fixtures。
+1. 把十四個案例整理成 JSON fixtures。
 2. 在 `test_control.js` 中新增共用 assertion helper。
 3. 先跑 local JS numerical core。
 4. 再跑 `control_analysis_cli.mjs`。
