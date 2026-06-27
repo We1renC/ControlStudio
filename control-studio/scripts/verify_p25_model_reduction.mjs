@@ -16,9 +16,17 @@
  *   9. DC gain of reduced system close to original (within error bound)
  *  10. Higher order → smaller error bound (monotone)
  *  11. 3rd-order → 1st-order: DC error respects the BT H∞ bound
+ *  12. Invalid requested order throws
+ *  13. Unstable minreal uses structural Kalman matrices
+ *  14. Gramian diagnostics preserve exact rank deficiency and zero HSVs
+ *  15. BT rejects orders above the Hankel numerical rank
  */
 
-import { minrealSS, balancedTruncation } from '../js/control/model_reduction.js';
+import {
+  minrealSS,
+  balancedTruncation,
+  gramianDiagnostics,
+} from '../js/control/model_reduction.js';
 import { stateSpaceToTransferFunction }   from '../js/control/state-space.js';
 
 let passed = 0, failed = 0;
@@ -222,6 +230,57 @@ function make3rdOrder() {
   threw = false;
   try { balancedTruncation(A, B, C, D, 3); } catch { threw = true; }
   ok('Test 12: order=n throws', threw);
+}
+
+// Test 13: unstable systems must use structural Kalman matrices in minrealSS.
+{
+  const A = [[1, 0], [0, -2]];
+  const B = [[1], [0]];
+  const C = [[1, 0]];
+  const D = [[0]];
+  const r = minrealSS(A, B, C, D);
+  ok('Test 13: unstable minreal removes uncontrollable stable state',
+    r.order === 1 && r.controllableRank === 1 && r.observableRank === 1);
+  ok('Test 13: unstable controllable mode is preserved',
+    close(r.A[0][0], 1, 1e-10), `A_r=${r.A[0][0]}`);
+}
+
+// Test 14: exact zero-energy modes remain zero, not tolerance-sized pseudo-modes.
+{
+  const A = [[-1,0,0],[0,-2,0],[0,0,-3]];
+  const B = [[1],[0],[0]];
+  const C = [[1,0,0]];
+  const D = [[0]];
+  const diagnostics = gramianDiagnostics(A, B, C, D);
+  ok('Test 14: controllability/observability rank = 1',
+    diagnostics.controllabilityRank === 1 && diagnostics.observabilityRank === 1);
+  ok('Test 14: nonminimal realization is reported',
+    diagnostics.minimal === false);
+  ok('Test 14: unreachable/unobservable HSVs remain exactly zero',
+    close(diagnostics.hsv[0], 0.5, 1e-12)
+      && diagnostics.hsv[1] === 0
+      && diagnostics.hsv[2] === 0,
+    `hsv=[${diagnostics.hsv.map((value) => value.toExponential(3)).join(', ')}]`);
+}
+
+// Test 15: BT may retain the energetic subspace but not artificial zero modes.
+{
+  const A = [[-1,0,0],[0,-2,0],[0,0,-3]];
+  const B = [[1],[0],[0]];
+  const C = [[1,0,0]];
+  const D = [[0]];
+  const r = balancedTruncation(A, B, C, D, 1);
+  ok('Test 15: BT reports effective Hankel rank 1',
+    r.effectiveRank === 1 && r.minimal === false);
+  ok('Test 15: order-1 BT preserves exact active mode',
+    close(r.A[0][0], -1, 1e-10)
+      && close(r.B[0][0], 1, 1e-10)
+      && close(r.C[0][0], 1, 1e-10));
+  let threw = false;
+  try { balancedTruncation(A, B, C, D, 2); } catch (error) {
+    threw = /exceeds Hankel numerical rank 1/.test(error.message);
+  }
+  ok('Test 15: BT rejects order above Hankel numerical rank', threw);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

@@ -1,6 +1,6 @@
 # Control System Verification Cases
 
-此文件定義 ControlStudio 後續回歸測試的十五個基準案例。每個案例都必須能以數學推導得到期望結果，再用 `control-studio` 數值核心、`control_analysis_cli.mjs` 與 FastAPI API 交叉驗證。
+此文件定義 ControlStudio 後續回歸測試的十六個基準案例。每個案例都必須能以數學推導得到期望結果，再用 `control-studio` 數值核心、`control_analysis_cli.mjs` 與 FastAPI API 交叉驗證。
 
 驗證原則：
 - 先比對 transfer function 多項式係數，再比對 poles / zeros / DC gain。
@@ -1367,6 +1367,106 @@ BT H-infinity upper     = 2*(sigma_2+sigma_3)
 - Runners: `verify_p25_model_reduction.mjs`, `verify_p25_hankel.mjs`
 - Failure mode: transposed SVD factors, claiming BT is optimal HNA, treating `sigma_(k+1)` as an upper bound, or masking a theorem violation with a broad tolerance must fail
 
+## Case 16: Hankel Stability and Numerical-Rank Contract
+
+### Purpose
+
+驗證 Hankel energy metrics 與 balanced truncation 只接受 Hurwitz continuous realization，並確保不可控／不可觀模態的 zero Hankel singular values 不會被 tolerance regularization 偽造成可保留模態。
+
+### Unstable Counterexample
+
+對 scalar realization：
+
+```text
+A = [1], B = [1], C = [1], D = [0]
+```
+
+形式上解：
+
+```text
+A Wc + Wc A^T + B B^T = 0
+2 Wc + 1 = 0
+Wc = -1/2
+```
+
+負的 `Wc` 不是 controllability energy Gramian。因 `A` 有 RHP pole `+1`，無限時域積分：
+
+```text
+Wc = integral_0^inf exp(A t) B B^T exp(A^T t) dt
+```
+
+發散，Hankel norm 與 standard balanced truncation 不適用。舊實作把 negative diagonal clamp 成 `tol`，錯誤輸出 HSV 約 `1e-10`。
+
+更明顯的 mixed fixture：
+
+```text
+A = diag(1, -2)
+B = [1, 1]^T
+C = [1, 1]
+```
+
+舊路徑曾輸出 HSV 約 `[1e10, 0]`，並回傳只保留 stable `-2` mode 的 plausible-looking reduced model，實際上完全隱藏了 unstable active mode。新契約必須在任何降階前拒絕。
+
+### Nonminimal Rank Fixture
+
+```text
+A = diag(-1, -2, -3)
+B = [1, 0, 0]^T
+C = [1, 0, 0]
+D = 0
+```
+
+只有第一個 state 可控且可觀：
+
+```text
+Wc = Wo = diag(1/2, 0, 0)
+```
+
+因此：
+
+```text
+rank(Wc) = rank(Wo) = 1
+HSV = [1/2, 0, 0]
+```
+
+Exact zero modes 不得被改寫成 `[tol, tol]`。Order-1 reduction 可精確保留：
+
+```text
+Ar = [-1], Br = [1], Cr = [1], Dr = [0]
+```
+
+但 requested order 2 超過 effective Hankel rank 1，必須要求先 `minrealSS()` 或選擇更低 order。
+
+### Unstable Structural Minreal
+
+`minrealSS()` 是 structural controllability/observability operation，不要求 `A` stable。對：
+
+```text
+A = diag(1, -2)
+B = [1, 0]^T
+C = [1, 0]
+```
+
+Kalman matrices 顯示 rank 1；正確 minimum realization 必須保留 active unstable pole `+1` 並移除 inactive stable pole `-2`。不可使用 indefinite Lyapunov solution判定 subspace。
+
+### Expected Assertions
+
+- `hankelSingularValues()` rejects scalar `A=[1]` with a Hurwitz error
+- balanced truncation/error audit rejects `A=diag(1,-2)` before returning a model
+- rank-1 stable fixture reports `controllabilityRank=1`
+- rank-1 stable fixture reports `observabilityRank=1`
+- `minimal=false`
+- HSVs equal `[0.5,0,0]` exactly within floating-point tolerance
+- order-1 BT reports `effectiveRank=1` and preserves `A=-1, B=1, C=1`
+- order-2 BT fails with `exceeds Hankel numerical rank 1`
+- unstable `minrealSS()` preserves pole `+1` through structural Kalman matrices
+
+### Fixture Contract
+
+- Numeric core: `control-studio/js/control/model_reduction.js`
+- Runners: `verify_p25_model_reduction.mjs` 31/31, `verify_p25_hankel.mjs` 29/29
+- Failure mode: accepting non-Hurwitz Gramians, clamping exact zero HSVs upward, retaining zero-energy modes, or deleting an active unstable mode must fail
+
 ## Phase 24 Advanced MPC Verification Addendum
 
 Phase 24 的 NMPC / EMPC / Tube MPC / Explicit MPC 屬離散時間最佳控制基線，驗證重點不是圖形外觀，而是最佳化問題、約束與閉迴路行為是否符合數學定義。
@@ -1428,7 +1528,7 @@ u(x) = a_i x + b_i,  x in region_i
 
 後續 agent 將這些案例自動化時，建議順序如下：
 
-1. 把十五個案例整理成 JSON fixtures。
+1. 把十六個案例整理成 JSON fixtures。
 2. 在 `test_control.js` 中新增共用 assertion helper。
 3. 先跑 local JS numerical core。
 4. 再跑 `control_analysis_cli.mjs`。

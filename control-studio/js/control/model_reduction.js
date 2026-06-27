@@ -141,17 +141,18 @@ function relativeResidual(residual, forcing) {
 }
 
 function hankelSingularValuesFromGramians(Wc, Wo, tol) {
-  const n = Wc.length;
-  const WcRegularized = matSymmetrize(Wc).map((row) => [...row]);
-  const WoRegularized = matSymmetrize(Wo).map((row) => [...row]);
-  for (let i = 0; i < n; i++) {
-    WcRegularized[i][i] = Math.max(WcRegularized[i][i], tol);
-    WoRegularized[i][i] = Math.max(WoRegularized[i][i], tol);
-  }
-  const Lc = cholesky(WcRegularized);
-  const Lo = cholesky(WoRegularized);
+  const Lc = cholesky(matSymmetrize(Wc));
+  const Lo = cholesky(matSymmetrize(Wo));
   const { S } = computeSVD(matMul(matTranspose(Lc), Lo));
-  return Array.from(S).sort((a, b) => b - a);
+  const sorted = Array.from(S).sort((a, b) => b - a);
+  const scale = sorted[0] ?? 0;
+  return sorted.map((value) => (scale > 0 && value <= tol * scale ? 0 : value));
+}
+
+function symmetricPsdRank(eigenvalues, tolerance) {
+  const scale = Math.max(0, ...eigenvalues.map((value) => Math.abs(value)));
+  if (scale === 0) return 0;
+  return eigenvalues.filter((value) => value > tolerance * scale).length;
 }
 
 /**
@@ -167,6 +168,7 @@ function hankelSingularValuesFromGramians(Wc, Wo, tol) {
  *   Wc:number[][], Wo:number[][], wcEigenvalues:number[], woEigenvalues:number[],
  *   wcTrace:number, woTrace:number, wcCondition:number, woCondition:number,
  *   hsv:number[], hsvSum:number, poles:Array<{re:number,im:number}>,
+ *   controllabilityRank:number, observabilityRank:number, minimal:boolean,
  *   controllabilityResidual:number, observabilityResidual:number, domain:string
  * }}
  */
@@ -225,6 +227,8 @@ export function gramianDiagnostics(A, B, C, D = [[0]], opts = {}) {
   }
 
   const hsv = hankelSingularValuesFromGramians(Wc, Wo, tolerance);
+  const controllabilityRank = symmetricPsdRank(wcEigenvalues, tolerance);
+  const observabilityRank = symmetricPsdRank(woEigenvalues, tolerance);
   return {
     Wc,
     Wo,
@@ -237,6 +241,9 @@ export function gramianDiagnostics(A, B, C, D = [[0]], opts = {}) {
     hsv,
     hsvSum: hsv.reduce((sum, value) => sum + value, 0),
     poles,
+    controllabilityRank,
+    observabilityRank,
+    minimal: controllabilityRank === A.length && observabilityRank === A.length,
     controllabilityResidual: relativeResidual(controllabilityEquation, BBt),
     observabilityResidual: relativeResidual(observabilityEquation, CtC),
     domain,
@@ -289,20 +296,20 @@ export function minrealSS(A, B, C, D, opts = {}) {
 
   // ── Step 1: controllability rank ────────────────────────────────────────
   let Wc_mat;
-  if (useGramian) {
+  const stableA = stateMatrixPoles(A).every((pole) => pole.re < -tol);
+  if (useGramian && stableA) {
     try {
       // Wc = solveLyapunov(A, B·Bᵀ): A·Wc + Wc·Aᵀ + B·Bᵀ = 0
       const BBt = matMul(B, matTranspose(B));
       Wc_mat = solveLyapunov(A, BBt);
     } catch {
-      useGramian === false; // fall through to Kalman matrix
       Wc_mat = null;
     }
   }
   if (!Wc_mat) {
     // Fallback: use Kalman controllability matrix [B, AB, A²B, ...]
     const Ck = controllabilityMatrix(A, B);
-    Wc_mat = matMul(Ck, matTranspose(Ck)); // approximate Gramian
+    Wc_mat = matMul(Ck, matTranspose(Ck)); // Structural rank surrogate.
   }
 
   // SVD of Wc to find controllable subspace
@@ -333,7 +340,8 @@ export function minrealSS(A, B, C, D, opts = {}) {
 
   // ── Step 2: observability rank (on reduced system) ───────────────────────
   let Wo_mat;
-  if (useGramian) {
+  const stableA1 = stateMatrixPoles(A1).every((pole) => pole.re < -tol);
+  if (useGramian && stableA1) {
     try {
       const CtC = matMul(matTranspose(C1), C1);
       Wo_mat = solveLyapunov(matTranspose(A1), CtC);
@@ -408,28 +416,20 @@ export function balancedTruncation(A, B, C, D, order, opts = {}) {
     throw new Error(`balancedTruncation: order must be in [1, ${n - 1}], got ${order}`);
   }
 
-  // ── Step 1: Solve Gramians ──────────────────────────────────────────────
-  const BBt = matMul(B, matTranspose(B));
-  const CtC = matMul(matTranspose(C), C);
-
-  let Wc, Wo;
+  // ── Step 1: Solve stable-system Gramians ────────────────────────────────
+  let diagnostics;
   try {
-    Wc = solveLyapunov(A,               BBt);
-    Wo = solveLyapunov(matTranspose(A), CtC);
+    diagnostics = gramianDiagnostics(A, B, C, D, {
+      domain: 'continuous',
+      tolerance: tol,
+    });
   } catch (e) {
-    throw new Error(`balancedTruncation: Gramian solve failed — system may be unstable or marginally stable. ${e.message}`);
+    throw new Error(`balancedTruncation: ${e.message}`);
   }
-
-  // Symmetrise to counter floating-point drift
-  Wc = matSymmetrize(Wc);
-  Wo = matSymmetrize(Wo);
+  const Wc = diagnostics.Wc.map((row) => [...row]);
+  const Wo = diagnostics.Wo.map((row) => [...row]);
 
   // ── Step 2: Cholesky factors ────────────────────────────────────────────
-  // Regularise diagonal slightly for numerical stability
-  for (let i = 0; i < n; i++) {
-    Wc[i][i] = Math.max(Wc[i][i], tol);
-    Wo[i][i] = Math.max(Wo[i][i], tol);
-  }
   const Lc = cholesky(Wc); // Wc = Lc · Lcᵀ
   const Lo = cholesky(Wo); // Wo = Lo · Loᵀ
 
@@ -439,6 +439,16 @@ export function balancedTruncation(A, B, C, D, order, opts = {}) {
   const LoT   = matTranspose(Lo);
   const LoTLc = matMul(LoT, Lc);  // n×n
   const { U, S: hsvd, V } = computeSVD(LoTLc);
+  const hsvScale = hsvd[0] ?? 0;
+  const effectiveRank = hsvScale > 0
+    ? hsvd.filter((value) => value > tol * hsvScale).length
+    : 0;
+  if (order > effectiveRank) {
+    throw new Error(
+      `balancedTruncation: order ${order} exceeds Hankel numerical rank ${effectiveRank}; ` +
+      'run minrealSS() first or choose a lower order',
+    );
+  }
 
   // ── Step 4: Balancing transformation (square-root method) ───────────────
   // T  = Lc · V · Σ^{-½}   (n×n)
@@ -486,7 +496,17 @@ export function balancedTruncation(A, B, C, D, order, opts = {}) {
   // ── Step 6: Error bound ─────────────────────────────────────────────────
   const errorBound = 2 * hsvd.slice(order).reduce((s, v) => s + v, 0);
 
-  return { A: Ar, B: Br, C: Cr, D: Dr, hsvd: Array.from(hsvd), errorBound, order };
+  return {
+    A: Ar,
+    B: Br,
+    C: Cr,
+    D: Dr,
+    hsvd: Array.from(hsvd),
+    errorBound,
+    order,
+    effectiveRank,
+    minimal: diagnostics.minimal,
+  };
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -570,13 +590,10 @@ function _hankelNormFromGramians(Wc, Wo, tol = 1e-10) {
  */
 export function hankelSingularValues(A, B, C, D, opts = {}) {
   const tol = opts.tol ?? 1e-10;
-  const BBt = matMul(B, matTranspose(B));
-  const CtC = matMul(matTranspose(C), C);
-  let Wc = solveLyapunov(A,               BBt);
-  let Wo = solveLyapunov(matTranspose(A), CtC);
-  Wc = matSymmetrize(Wc);
-  Wo = matSymmetrize(Wo);
-  return hankelSingularValuesFromGramians(Wc, Wo, tol);
+  return gramianDiagnostics(A, B, C, D, {
+    domain: 'continuous',
+    tolerance: tol,
+  }).hsv;
 }
 
 /**

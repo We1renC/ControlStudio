@@ -1,7 +1,7 @@
 # ControlStudio Development Roadmap
 
 > Last updated: 2026-06-28
-> Current committed baseline: `fix(zero-flaw): correct Hankel reduction contracts`
+> Current committed baseline: `fix(zero-flaw): enforce Hankel stability and rank`
 > Scope: this is the canonical execution roadmap for ControlStudio implementation status.
 > Do not use this file for product vision, proof derivations, or handoff notes; see the document workflow below.
 
@@ -136,6 +136,7 @@ Before starting any new functional work that is not already a finished P-phase, 
 | **ZF12** | **Zero-Flaw Loop 12: matrix condition/definiteness correctness + system wizard workspace integration** | Done | `verify_e7_conditioning.mjs`, `verify_p43_syswin_a5.mjs` (88), `verify_p46_b5_b2.mjs` (101), verification Case 13 |
 | **ZF13** | **Zero-Flaw Loop 13: exact continuous/discrete Gramians + coupled Hankel singular values** | Done | `verify_p39_uiux_p2_batch2.mjs` (73), `verify_p55_b24_b43_b44.mjs` (82), verification Case 14, browser walkthrough |
 | **ZF14** | **Zero-Flaw Loop 14: square-root balancing orientation + honest BT/HNA error contracts** | Done | `verify_p25_model_reduction.mjs` (23), `verify_p25_hankel.mjs` (27), verification Case 15 |
+| **ZF15** | **Zero-Flaw Loop 15: Hurwitz gating + exact zero-HSV/rank semantics** | Done | `verify_p25_model_reduction.mjs` (31), `verify_p25_hankel.mjs` (29), verification Case 16 |
 | **P34-01** | **Module split: P62-P65 → js/ui/ sub-modules** | Done | Verify scripts updated to check module files |
 | **J1-3** | **Root Locus geometric annotations (damping lines, ωn arcs, Ku labels)** | Done | `verify_j13_rlocus_geo.mjs` |
 | **H1-4** | **Sidebar Quick Pin (non-emoji section pin, localStorage, max 3, float to top)** | Done | `verify_h14_sidebar_pin.mjs` |
@@ -256,6 +257,8 @@ Per `docs/src/control-studio/functional-roadmap.html`. Tier A-J deterministic ba
 
 **Zero-Flaw Loop 14 closure:** `balancedTruncation()` now applies the square-root balancing maps to the SVD of `Lo^T Lc`; the former code decomposed `Lc^T Lo` while using the untransposed `U/V` formulas, which could violate the balanced-truncation error guarantee. The former `hankelNormApprox()` also mislabeled balanced truncation as Glover/AAK optimal Hankel-norm approximation and treated `sigma_(k+1)` as an upper bound. The explicit `balancedTruncationErrorAudit()` now reports `sigma_(k+1)` as the AAK lower bound, the computed BT Hankel error, the `2 sum sigma_i` H-infinity upper bound, and honest non-optimal metadata; `hankelNormApprox()` remains only as a compatibility alias. A deterministic counterexample gives lower bound `0.0235744`, BT Hankel error `0.0478577`, and H-infinity upper bound `0.0491548`.
 
+**Zero-Flaw Loop 15 closure:** public Hankel metrics and balanced truncation now reject non-Hurwitz realizations before solving Gramians. This closes cases where `A=[1]` was converted from a negative Gramian into a fake `1e-10` HSV and `A=diag(1,-2)` produced an approximately `1e10` HSV plus a plausible-looking reduced stable mode. Gramian factorization no longer lifts exact zero-energy modes to the tolerance floor; diagnostics report controllability/observability rank and minimality, while balanced truncation rejects requested orders above the Hankel numerical rank. `minrealSS()` now uses structural Kalman matrices for unstable realizations instead of applying stable-system Gramian logic.
+
 **DC gain origin-cancellation closure:** continuous TF and ZPK `dcGain()` now cancel removable origin pole-zero factors before evaluating the low-frequency limit. Systems such as `s/s` report finite unity DC gain, extra origin zeros report zero DC gain, and extra origin poles preserve signed infinite gain. This prevents RGA, static decoupler, low-frequency design, and robustness summaries from treating removable integrators as real steady-state singularities.
 
 **Discrete DC gain unit-root closure:** discrete TF `dcGain()` now evaluates the low-frequency limit at `q=z^-1=1` by cancelling removable unit-circle factors. Systems such as `(1-z^-1)/(1-z^-1)` report finite unity DC gain, extra unit-circle zeros report zero DC gain, and extra unit-circle poles report infinite DC gain. This prevents z-domain step final-value checks, C2D DC preservation, and discrete controller comparisons from treating removable unit roots as true steady-state singularities.
@@ -288,7 +291,7 @@ Per `docs/src/control-studio/functional-roadmap.html`. Tier A-J deterministic ba
 
 ## Verification Suite Status (2026-06-28)
 
-**131/131 scripts pass** — run via `bash scripts/run_all_verify.sh` or `npm run verify:all` (was 82/82 before Functional Roadmap additions). Fixture/API contract coverage is now **10/10 cases**, including open-loop controller cascade response, non-step waveform metrics gating, non-unit step amplitude reference metrics, zero-final-change step metrics rejection, and divergent/unfinished step metrics rejection. UI waveform routing is covered by `verify_ui_waveform_contract.mjs`; UI stability snapshot and GM-field normalization are covered by `verify_ui_stability_snapshot_contract.mjs`; active simulation state, HIL/export consistency, analysis freshness, discrete domain-switch freshness, and effective loop-mode routing are covered by `verify_ui_simulation_snapshot_contract.mjs`; DTF `z^-1` formula display, active discrete legend, smoke equation labels, DTF sample-time codegen/export, and project persistence are covered by `verify_ui_formula_contract.mjs`; MATLAB/Python runtime-mode and domain-compatible script generation is covered by `verify_codegen_export_contract.mjs`; z-domain export response-type normalization and impulse routing is covered by `verify_discrete_export_response_contract.mjs`; deployment readiness is covered by `verify_p76_deployment_readiness.mjs`; deployment reviewer skill packaging is covered by `verify_p77_deployment_skill.mjs`; Zero-Flaw Loop additions are covered through `verify_passivity_kyp.mjs`, `verify_lqg_ltr.mjs`, `verify_flatness.mjs`, and `verify_loop2_modules.mjs` through `verify_loop10_modules.mjs`, with ZF11 ESPRIT phase recovery locked in `verify_loop9_modules.mjs`, ZF12 matrix/wizard contracts locked in P43/P46/E7 runners, ZF13 exact Gramian/HSV contracts locked in P39/P55, and ZF14 balanced-reduction contracts locked in the P25 runners.
+**131/131 scripts pass** — run via `bash scripts/run_all_verify.sh` or `npm run verify:all` (was 82/82 before Functional Roadmap additions). Fixture/API contract coverage is now **10/10 cases**, including open-loop controller cascade response, non-step waveform metrics gating, non-unit step amplitude reference metrics, zero-final-change step metrics rejection, and divergent/unfinished step metrics rejection. UI waveform routing is covered by `verify_ui_waveform_contract.mjs`; UI stability snapshot and GM-field normalization are covered by `verify_ui_stability_snapshot_contract.mjs`; active simulation state, HIL/export consistency, analysis freshness, discrete domain-switch freshness, and effective loop-mode routing are covered by `verify_ui_simulation_snapshot_contract.mjs`; DTF `z^-1` formula display, active discrete legend, smoke equation labels, DTF sample-time codegen/export, and project persistence are covered by `verify_ui_formula_contract.mjs`; MATLAB/Python runtime-mode and domain-compatible script generation is covered by `verify_codegen_export_contract.mjs`; z-domain export response-type normalization and impulse routing is covered by `verify_discrete_export_response_contract.mjs`; deployment readiness is covered by `verify_p76_deployment_readiness.mjs`; deployment reviewer skill packaging is covered by `verify_p77_deployment_skill.mjs`; Zero-Flaw Loop additions are covered through `verify_passivity_kyp.mjs`, `verify_lqg_ltr.mjs`, `verify_flatness.mjs`, and `verify_loop2_modules.mjs` through `verify_loop10_modules.mjs`, with ZF11 ESPRIT phase recovery locked in `verify_loop9_modules.mjs`, ZF12 matrix/wizard contracts locked in P43/P46/E7 runners, ZF13 exact Gramian/HSV contracts locked in P39/P55, and ZF14/ZF15 balanced-reduction theory/stability/rank contracts locked in the P25 runners.
 
 | Group | Scripts | Pass |
 | --- | --- | --- |
@@ -298,7 +301,7 @@ Per `docs/src/control-studio/functional-roadmap.html`. Tier A-J deterministic ba
 | Math audit fixes | 1 | 1 |
 | Functional Roadmap A-J | 22 | 22 |
 | General math & PID | 4 | 4 |
-| Zero-Flaw Loop additions | 14 | 14 |
+| Zero-Flaw Loop additions | 15 | 15 |
 
 ## P1/P2 UI/UX Completion Summary
 
@@ -437,7 +440,7 @@ P3+ UI/UX work is implemented through P66 plus J1-3 and H1-4. Remaining UI/produ
 | Item | Status | Evidence |
 | --- | --- | --- |
 | P25-01 Balanced truncation | Done | `model_reduction.js`, `verify_p25_model_reduction.mjs` |
-| P25-02 Hankel metrics + balanced-truncation error audit | Done | `hankelSingularValues/hankelNorm/balancedTruncationErrorAudit` plus compatibility alias in `model_reduction.js`, `verify_p25_hankel.mjs` (27 checks) |
+| P25-02 Hankel metrics + balanced-truncation error audit | Done | Hurwitz/rank guards, exact zero-HSV semantics, `balancedTruncationErrorAudit` plus compatibility alias in `model_reduction.js`; P25 runners 31/31 and 29/29 |
 | P25-03 SS minreal / Kalman decomposition | Done | `minrealSS`, `verify_p25_model_reduction.mjs` |
 
 ### P26 — Nonlinear Control

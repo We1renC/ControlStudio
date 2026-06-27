@@ -24,6 +24,7 @@
  *  16.  hankelNormError respects the BT H∞ upper bound
  *  17.  result metadata states balanced truncation and non-optimality
  *  18.  lower-bound identity and compatibility alias are consistent
+ *  19.  unstable realizations are rejected before Gramian/Hankel analysis
  */
 
 import {
@@ -282,6 +283,25 @@ console.log('\n── balancedTruncationErrorAudit ─────────�
   ok('Test 18: compatibility alias matches explicit audit API',
     close(r.hankelNormError, audit.hankelNormError, 1e-12)
       && close(r.hankelLowerBound, audit.hankelLowerBound, 1e-12));
+}
+
+// ── Test 19: Hankel metrics and BT require a Hurwitz realization ────────────
+{
+  const A = [[1, 0], [0, -2]];
+  const B = [[1], [1]];
+  const C = [[1, 1]];
+  const D = [[0]];
+  let hsvRejected = false;
+  try { hankelSingularValues(A, B, C, D); } catch (error) {
+    hsvRejected = /Hurwitz/.test(error.message);
+  }
+  ok('Test 19: unstable Hankel singular values are rejected', hsvRejected);
+
+  let auditRejected = false;
+  try { balancedTruncationErrorAudit(A, B, C, D, 1); } catch (error) {
+    auditRejected = /Hurwitz/.test(error.message);
+  }
+  ok('Test 19: unstable BT error audit is rejected', auditRejected);
 }
 
 console.log(`\n${'─'.repeat(55)}`);
