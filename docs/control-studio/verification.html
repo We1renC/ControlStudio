@@ -85,7 +85,7 @@ del{color:var(--muted)}
 <main>
 <h1 id="control-system-verification-cases">Control System Verification Cases</h1>
 
-<p>此文件定義 ControlStudio 後續回歸測試的十一個基準案例。每個案例都必須能以數學推導得到期望結果，再用 <code>control-studio</code> 數值核心、<code>control_analysis_cli.mjs</code> 與 FastAPI API 交叉驗證。</p>
+<p>此文件定義 ControlStudio 後續回歸測試的十二個基準案例。每個案例都必須能以數學推導得到期望結果，再用 <code>control-studio</code> 數值核心、<code>control_analysis_cli.mjs</code> 與 FastAPI API 交叉驗證。</p>
 
 <p>驗證原則：</p>
 <ul>
@@ -882,6 +882,78 @@ y[2] = 0.5y[1] + 1 = 1.75</code></pre>
   }
 }</code></pre>
 
+<h2 id="case-12-esprit-complex-rotation-phase-recovery">Case 12: ESPRIT Complex Rotation-Phase Recovery</h2>
+
+<h3 id="purpose">Purpose</h3>
+
+<p>驗證 real-signal LS-ESPRIT 會使用非對稱旋轉矩陣 <code>Phi</code> 的一般複數特徵值相位估測頻率，而不是先把 <code>Phi</code> 對稱化再取實特徵值。後者只在非常特殊的正交 block basis 下看似可行，對一般 multi-tone signal subspace 會產生錯誤頻率。</p>
+
+<h3 id="model">Model</h3>
+
+<p>Uniformly sampled real two-tone signal:</p>
+
+<pre><code class="lang-text">fs = 1000 Hz
+x[n] = cos(2*pi*50*n/fs + 0.3)
+     + 0.8*cos(2*pi*120*n/fs - 0.7)</code></pre>
+
+<p>Secondary close-tone fixture:</p>
+
+<pre><code class="lang-text">x_close[n] = cos(2*pi*80*n/fs + 0.2)
+           + 0.7*cos(2*pi*92*n/fs + 1.1)</code></pre>
+
+<h3 id="mathematical-derivation">Mathematical Derivation</h3>
+
+<p>For <code>p</code> real sinusoidal components away from DC and Nyquist, the real signal subspace has dimension <code>2p</code>. Two shifted subspaces satisfy:</p>
+
+<pre><code class="lang-text">U2 = U1 * Phi
+Phi = pinv(U1) * U2</code></pre>
+
+<p>The eigenvalues of <code>Phi</code> occur in conjugate pairs:</p>
+
+<pre><code class="lang-text">lambda_k,+ = exp(+j*omega_k)
+lambda_k,- = exp(-j*omega_k)
+omega_k = 2*pi*f_k/fs</code></pre>
+
+<p>Therefore:</p>
+
+<pre><code class="lang-text">f_k = fs/(2*pi) * abs(arg(lambda_k))</code></pre>
+
+<p>For the 50/120 Hz fixture:</p>
+
+<pre><code class="lang-text">omega_1 = 2*pi*50/1000  = 0.1*pi
+omega_2 = 2*pi*120/1000 = 0.24*pi</code></pre>
+
+<p>The required eigenvalues are:</p>
+
+<pre><code class="lang-text">exp(+-j*0.1*pi)
+exp(+-j*0.24*pi)</code></pre>
+
+<p><code>Phi</code> is generally non-symmetric because the signal-subspace basis is arbitrary. Replacing it with:</p>
+
+<pre><code class="lang-text">(Phi + Phi^T)/2</code></pre>
+
+<p>is not a similarity-invariant operation and destroys the rotational phase. The former implementation consequently estimated the deterministic 50/120 Hz fixture as approximately <code>47.84/50.00 Hz</code>, omitting the 120 Hz component.</p>
+
+<h3 id="expected-assertions">Expected Assertions</h3>
+
+<ul>
+<li>two-tone result has exactly two positive frequencies</li>
+<li>estimated frequencies equal <code>50 Hz</code> and <code>120 Hz</code> within <code>1e-6 Hz</code> for the noiseless fixture</li>
+<li>fixed-seed additive-noise result remains within <code>0.1 Hz</code></li>
+<li>close-tone result equals <code>80 Hz</code> and <code>92 Hz</code> within <code>1e-5 Hz</code></li>
+<li>three-tone result equals <code>40 Hz</code>, <code>135 Hz</code>, and <code>220 Hz</code> within <code>1e-5 Hz</code></li>
+<li><code>M &lt; 2*numSources+1</code> is rejected as a rank-deficient subspace window</li>
+<li>MUSIC noise fixture uses a deterministic seeded generator, not <code>Math.random()</code></li>
+</ul>
+
+<h3 id="fixture-contract">Fixture Contract</h3>
+
+<ul>
+<li>Runner: <code>control-studio/scripts/verify_loop9_modules.mjs</code></li>
+<li>Core: <code>control-studio/js/identification/spectral_subspace.js</code></li>
+<li>Failure mode: symmetrizing <code>Phi</code>, using only real eigenvalues, or slicing duplicate cosine eigenvalues must fail the multi-tone assertions</li>
+</ul>
+
 <h2 id="phase-24-advanced-mpc-verification-addendum">Phase 24 Advanced MPC Verification Addendum</h2>
 
 <p>Phase 24 的 NMPC / EMPC / Tube MPC / Explicit MPC 屬離散時間最佳控制基線，驗證重點不是圖形外觀，而是最佳化問題、約束與閉迴路行為是否符合數學定義。</p>
@@ -936,7 +1008,7 @@ u_min + |K|r &lt;= v_k &lt;= u_max - |K|r</code></pre>
 <p>後續 agent 將這些案例自動化時，建議順序如下：</p>
 
 <ol>
-<li>把十個案例整理成 JSON fixtures。</li>
+<li>把十二個案例整理成 JSON fixtures。</li>
 <li>在 <code>test_control.js</code> 中新增共用 assertion helper。</li>
 <li>先跑 local JS numerical core。</li>
 <li>再跑 <code>control_analysis_cli.mjs</code>。</li>

@@ -1,6 +1,6 @@
 # Control System Verification Cases
 
-此文件定義 ControlStudio 後續回歸測試的十一個基準案例。每個案例都必須能以數學推導得到期望結果，再用 `control-studio` 數值核心、`control_analysis_cli.mjs` 與 FastAPI API 交叉驗證。
+此文件定義 ControlStudio 後續回歸測試的十二個基準案例。每個案例都必須能以數學推導得到期望結果，再用 `control-studio` 數值核心、`control_analysis_cli.mjs` 與 FastAPI API 交叉驗證。
 
 驗證原則：
 - 先比對 transfer function 多項式係數，再比對 poles / zeros / DC gain。
@@ -969,6 +969,90 @@ y[2] = 0.5y[1] + 1 = 1.75
 }
 ```
 
+## Case 12: ESPRIT Complex Rotation-Phase Recovery
+
+### Purpose
+
+驗證 real-signal LS-ESPRIT 會使用非對稱旋轉矩陣 `Phi` 的一般複數特徵值相位估測頻率，而不是先把 `Phi` 對稱化再取實特徵值。後者只在非常特殊的正交 block basis 下看似可行，對一般 multi-tone signal subspace 會產生錯誤頻率。
+
+### Model
+
+Uniformly sampled real two-tone signal:
+
+```text
+fs = 1000 Hz
+x[n] = cos(2*pi*50*n/fs + 0.3)
+     + 0.8*cos(2*pi*120*n/fs - 0.7)
+```
+
+Secondary close-tone fixture:
+
+```text
+x_close[n] = cos(2*pi*80*n/fs + 0.2)
+           + 0.7*cos(2*pi*92*n/fs + 1.1)
+```
+
+### Mathematical Derivation
+
+For `p` real sinusoidal components away from DC and Nyquist, the real signal subspace has dimension `2p`. Two shifted subspaces satisfy:
+
+```text
+U2 = U1 * Phi
+Phi = pinv(U1) * U2
+```
+
+The eigenvalues of `Phi` occur in conjugate pairs:
+
+```text
+lambda_k,+ = exp(+j*omega_k)
+lambda_k,- = exp(-j*omega_k)
+omega_k = 2*pi*f_k/fs
+```
+
+Therefore:
+
+```text
+f_k = fs/(2*pi) * abs(arg(lambda_k))
+```
+
+For the 50/120 Hz fixture:
+
+```text
+omega_1 = 2*pi*50/1000  = 0.1*pi
+omega_2 = 2*pi*120/1000 = 0.24*pi
+```
+
+The required eigenvalues are:
+
+```text
+exp(+-j*0.1*pi)
+exp(+-j*0.24*pi)
+```
+
+`Phi` is generally non-symmetric because the signal-subspace basis is arbitrary. Replacing it with:
+
+```text
+(Phi + Phi^T)/2
+```
+
+is not a similarity-invariant operation and destroys the rotational phase. The former implementation consequently estimated the deterministic 50/120 Hz fixture as approximately `47.84/50.00 Hz`, omitting the 120 Hz component.
+
+### Expected Assertions
+
+- two-tone result has exactly two positive frequencies
+- estimated frequencies equal `50 Hz` and `120 Hz` within `1e-6 Hz` for the noiseless fixture
+- fixed-seed additive-noise result remains within `0.1 Hz`
+- close-tone result equals `80 Hz` and `92 Hz` within `1e-5 Hz`
+- three-tone result equals `40 Hz`, `135 Hz`, and `220 Hz` within `1e-5 Hz`
+- `M < 2*numSources+1` is rejected as a rank-deficient subspace window
+- MUSIC noise fixture uses a deterministic seeded generator, not `Math.random()`
+
+### Fixture Contract
+
+- Runner: `control-studio/scripts/verify_loop9_modules.mjs`
+- Core: `control-studio/js/identification/spectral_subspace.js`
+- Failure mode: symmetrizing `Phi`, using only real eigenvalues, or slicing duplicate cosine eigenvalues must fail the multi-tone assertions
+
 ## Phase 24 Advanced MPC Verification Addendum
 
 Phase 24 的 NMPC / EMPC / Tube MPC / Explicit MPC 屬離散時間最佳控制基線，驗證重點不是圖形外觀，而是最佳化問題、約束與閉迴路行為是否符合數學定義。
@@ -1030,7 +1114,7 @@ u(x) = a_i x + b_i,  x in region_i
 
 後續 agent 將這些案例自動化時，建議順序如下：
 
-1. 把十個案例整理成 JSON fixtures。
+1. 把十二個案例整理成 JSON fixtures。
 2. 在 `test_control.js` 中新增共用 assertion helper。
 3. 先跑 local JS numerical core。
 4. 再跑 `control_analysis_cli.mjs`。

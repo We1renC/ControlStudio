@@ -86,8 +86,8 @@ del{color:var(--muted)}
 <h1 id="controlstudio-development-roadmap">ControlStudio Development Roadmap</h1>
 
 <blockquote>
-<p>Last updated: 2026-06-21</p>
-<p>Current committed baseline: <code>feat(p77): add deployment reviewer skill</code></p>
+<p>Last updated: 2026-06-27</p>
+<p>Current committed baseline: <code>fix(zero-flaw): correct ESPRIT phase recovery</code></p>
 <p>Scope: this is the canonical execution roadmap for ControlStudio implementation status.</p>
 <p>Do not use this file for product vision, proof derivations, or handoff notes; see the document workflow below.</p>
 </blockquote>
@@ -272,6 +272,8 @@ del{color:var(--muted)}
 </thead><tbody>
 <tr><td><strong>ZF10</strong></td><td><strong>Zero-Flaw Loop 10: ADP-PI / LSTD-Q + Wasserstein DRO + Unknown Input Observer</strong></td><td>Done</td><td><code>verify_loop10_modules.mjs</code> (20)</td></tr>
 </thead><tbody>
+<tr><td><strong>ZF11</strong></td><td><strong>Zero-Flaw Loop 11: general-complex ESPRIT rotation phase + deterministic MUSIC noise</strong></td><td>Done</td><td><code>verify_loop9_modules.mjs</code> (13), verification Case 12</td></tr>
+</thead><tbody>
 <tr><td><strong>P34-01</strong></td><td><strong>Module split: P62-P65 → js/ui/ sub-modules</strong></td><td>Done</td><td>Verify scripts updated to check module files</td></tr>
 </thead><tbody>
 <tr><td><strong>J1-3</strong></td><td><strong>Root Locus geometric annotations (damping lines, ωn arcs, Ku labels)</strong></td><td>Done</td><td><code>verify_j13_rlocus_geo.mjs</code></td></tr>
@@ -447,6 +449,8 @@ del{color:var(--muted)}
 
 <p><strong>Zero-Flaw Loop 10 closure:</strong> added deterministic ADP / DRO / FDI coverage. ADP policy iteration is checked against the Hamiltonian-sign DARE solution for a discrete double integrator (<code>max|ΔK|=8.02e-13</code>, DARE residual 0). LSTD-Q now uses deterministic off-policy excitation and compares the recovered Q-function matrix to the analytic DARE-derived <code>H</code> (<code>max|ΔH|=2.69e-8</code>), avoiding rank-deficient on-policy evidence and non-reproducible random fixtures. Wasserstein DRO uses deterministic sample paths, and UIO verification proves <code>rank(C E)=q</code>, <code>T E≈0</code>, and Hurwitz decoupled error dynamics.</p>
 
+<p><strong>Zero-Flaw Loop 11 closure:</strong> <code>espritFrequencies()</code> no longer symmetrizes the non-symmetric LS-ESPRIT rotation matrix <code>Phi</code>. It now computes general complex eigenvalues, selects one positive-angle member from each conjugate pair, and maps <code>arg(lambda_k)</code> to frequency. This fixes deterministic multi-tone failures where 50/120 Hz was reported as approximately 47.84/50 Hz and 80/92 Hz as approximately 61.93/81.13 Hz. <code>verify_loop9_modules.mjs</code> now uses seeded MUSIC noise and checks noiseless, noisy, close-tone, three-tone, and rank-deficient-window ESPRIT cases; verification Case 12 records the derivation and tolerances.</p>
+
 <p><strong>DC gain origin-cancellation closure:</strong> continuous TF and ZPK <code>dcGain()</code> now cancel removable origin pole-zero factors before evaluating the low-frequency limit. Systems such as <code>s/s</code> report finite unity DC gain, extra origin zeros report zero DC gain, and extra origin poles preserve signed infinite gain. This prevents RGA, static decoupler, low-frequency design, and robustness summaries from treating removable integrators as real steady-state singularities.</p>
 
 <p><strong>Discrete DC gain unit-root closure:</strong> discrete TF <code>dcGain()</code> now evaluates the low-frequency limit at <code>q=z^-1=1</code> by cancelling removable unit-circle factors. Systems such as <code>(1-z^-1)/(1-z^-1)</code> report finite unity DC gain, extra unit-circle zeros report zero DC gain, and extra unit-circle poles report infinite DC gain. This prevents z-domain step final-value checks, C2D DC preservation, and discrete controller comparisons from treating removable unit roots as true steady-state singularities.</p>
@@ -477,9 +481,9 @@ del{color:var(--muted)}
 
 <p><strong>Routh-Hurwitz input closure:</strong> <code>routhTable()</code> now validates denominator coefficient arrays before building the table. Non-array, short, non-finite, zero-polynomial, and zero-leading-coefficient inputs fail explicitly instead of being silently classified as stable.</p>
 
-<h2 id="verification-suite-status-2026-06-21">Verification Suite Status (2026-06-21)</h2>
+<h2 id="verification-suite-status-2026-06-27">Verification Suite Status (2026-06-27)</h2>
 
-<p><strong>131/131 scripts pass</strong> — run via <code>bash scripts/run_all_verify.sh</code> or <code>npm run verify:all</code>. Fixture/API contract coverage is now <strong>10/10 cases</strong>, including open-loop controller cascade response, non-step waveform metrics gating, non-unit step amplitude reference metrics, zero-final-change step metrics rejection, and divergent/unfinished step metrics rejection. UI waveform routing is covered by <code>verify_ui_waveform_contract.mjs</code>; UI stability snapshot and GM-field normalization are covered by <code>verify_ui_stability_snapshot_contract.mjs</code>; active simulation state, HIL/export consistency, analysis freshness, discrete domain-switch freshness, and effective loop-mode routing are covered by <code>verify_ui_simulation_snapshot_contract.mjs</code>; DTF <code>z^-1</code> formula display, active discrete legend, smoke equation labels, DTF sample-time codegen/export, and project persistence are covered by <code>verify_ui_formula_contract.mjs</code>; MATLAB/Python runtime-mode and domain-compatible script generation is covered by <code>verify_codegen_export_contract.mjs</code>; z-domain export response-type normalization and impulse routing is covered by <code>verify_discrete_export_response_contract.mjs</code>; deployment readiness is covered by <code>verify_p76_deployment_readiness.mjs</code>; deployment reviewer skill packaging is covered by <code>verify_p77_deployment_skill.mjs</code>; Zero-Flaw Loop additions are covered through <code>verify_passivity_kyp.mjs</code>, <code>verify_lqg_ltr.mjs</code>, <code>verify_flatness.mjs</code>, and <code>verify_loop2_modules.mjs</code> through <code>verify_loop10_modules.mjs</code>.</p>
+<p><strong>131/131 scripts pass</strong> — run via <code>bash scripts/run_all_verify.sh</code> or <code>npm run verify:all</code>. Fixture/API contract coverage is now <strong>10/10 cases</strong>, including open-loop controller cascade response, non-step waveform metrics gating, non-unit step amplitude reference metrics, zero-final-change step metrics rejection, and divergent/unfinished step metrics rejection. UI waveform routing is covered by <code>verify_ui_waveform_contract.mjs</code>; UI stability snapshot and GM-field normalization are covered by <code>verify_ui_stability_snapshot_contract.mjs</code>; active simulation state, HIL/export consistency, analysis freshness, discrete domain-switch freshness, and effective loop-mode routing are covered by <code>verify_ui_simulation_snapshot_contract.mjs</code>; DTF <code>z^-1</code> formula display, active discrete legend, smoke equation labels, DTF sample-time codegen/export, and project persistence are covered by <code>verify_ui_formula_contract.mjs</code>; MATLAB/Python runtime-mode and domain-compatible script generation is covered by <code>verify_codegen_export_contract.mjs</code>; z-domain export response-type normalization and impulse routing is covered by <code>verify_discrete_export_response_contract.mjs</code>; deployment readiness is covered by <code>verify_p76_deployment_readiness.mjs</code>; deployment reviewer skill packaging is covered by <code>verify_p77_deployment_skill.mjs</code>; Zero-Flaw Loop additions are covered through <code>verify_passivity_kyp.mjs</code>, <code>verify_lqg_ltr.mjs</code>, <code>verify_flatness.mjs</code>, and <code>verify_loop2_modules.mjs</code> through <code>verify_loop10_modules.mjs</code>, with ZF11 ESPRIT phase recovery locked in <code>verify_loop9_modules.mjs</code>.</p>
 
 <table><thead>
 <tr><th>Group</th><th>Scripts</th><th>Pass</th></tr>

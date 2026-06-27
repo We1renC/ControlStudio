@@ -2247,7 +2247,7 @@
     "name": "espritFrequencies",
     "kind": "function",
     "module": "js/identification/spectral_subspace.js",
-    "doc": "ESPRIT frequency estimator using the rotational-invariance subspace matrix Φ. Returns the estimated frequencies (Hz)."
+    "doc": "ESPRIT frequency estimator using the rotational-invariance subspace matrix Phi. The real-signal model uses a 2p-dimensional subspace whose eigenvalues occur as exp(+-j*omega_k). Frequencies must lie strictly inside (0, fs/2); DC and Nyquist components require a different rank model."
   },
   {
     "name": "poissonFilter",

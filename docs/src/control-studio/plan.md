@@ -43,6 +43,7 @@
   - `control-studio/js/identification/gp.js`
   - `control-studio/js/identification/hammerstein_wiener.js`
   - `control-studio/js/identification/freq_mimo.js`
+  - `control-studio/js/identification/spectral_subspace.js`
   - `control-studio/js/identification/srivc.js`
   - `control-studio/js/estimation/mhe.js`
   - `control-studio/js/estimation/particle_filter.js`
@@ -129,6 +130,7 @@
 - GP-NARX / Gaussian Process Regression baseline：constant-mean GP、RBF/Matern/periodic kernels、predictive variance 與 95% interval
 - Hammerstein / Wiener Identification baseline：飽和 Hammerstein level recovery、Wiener polynomial nonlinearity fit
 - MIMO FRF Identification baseline：2x2 frequency-domain LS recovery、coherence、magnitude / phase verification
+- MUSIC / ESPRIT spectral subspace：MUSIC pseudospectrum 與 real-signal LS-ESPRIT；ESPRIT 使用一般複數 eigenvalue phase，支援 multi-tone / close-tone deterministic recovery
 - Moving Horizon Estimation API baseline：linear constrained MHE wrapper 與 scalar nonlinear grid-search MHE
 - Particle Filter API baseline：bootstrap/SIR PF，支援 systematic / multinomial / stratified resampling
 - Joint State-Parameter EKF baseline：augmented numerical EKF、state/parameter estimate、rank-deficient warning
@@ -261,6 +263,7 @@
 - Codegen runtime contract audit：MATLAB / Python export 會依 effective runtime mode 選擇 response target；open-loop 腳本 plot `G` 並保留 `L=C*G` 作 Bode/margin analysis，不再引用未定義的 `T`；closed-loop 腳本才建立並 plot `T`。Python export 不再輸出 JavaScript `true/false` 條件式。z-domain export 會保留 `Ts`，但跳過 continuous PID/L generation，避免將 continuous `C(s)` 與 discrete `G(z)` 混合成不可部署腳本。
 - Discrete export response audit：z-domain analysis export 會把 effective `responseType` 與使用者要求的 `requestedResponseType` 分開；目前 discrete export 支援 step / impulse，unsupported waveform 會正規化為 step，避免把 step samples 標成 ramp / sine / pulse。DTF impulse export 會走 `discreteImpulseResponse()`，非 step export 不再輸出有效 rise / settling / overshoot 指標；UI JSON export、CLI 與 Unified API 的 non-finite margin 會以 JSON-safe `null` 搭配 `gainMarginDBStatus` / `phaseMarginStatus` 保留語意，且 Local/API compare 會把 status mismatch 視為真差異，避免 `Infinity` / `NaN` 被靜默折疊成一般缺值。
 - Zero-Flaw Loop 10 audit：新增 ADP-PI / LSTD-Q、Wasserstein DRO、Unknown Input Observer 三個理論缺口的 deterministic baseline。ADP policy iteration 會對照 DARE/LQR optimum，LSTD-Q 使用 deterministic off-policy excitation 比對 analytic Q-function matrix，DRO 不再使用 random fixture，UIO 驗證 `rank(C E)=q`、`T E≈0` 與 Hurwitz error dynamics。
+- Zero-Flaw Loop 11 audit：修正 LS-ESPRIT 把非對稱 `Phi` 強制對稱化造成的 multi-tone 錯頻。新版以 characteristic polynomial 的一般複數 eigenvalues 取得 conjugate-pair rotation phase；`verify_loop9_modules.mjs` 以 fixed-seed MUSIC noise 及 50/120、80/92、40/135/220 Hz fixtures 驗證，並拒絕 rank-deficient subspace window。
 - Real Schur symmetric fast path：對 symmetric real matrices 使用 Jacobi orthogonal Schur，修復 3x3 stable real-spectrum reconstruction regression。
 - Nonlinear equilibrium classification：`classifyEquilibrium()` 對 n>2 Jacobian 改用 Faddeev-LeVerrier characteristic polynomial + `polyroots()`，避免舊 `trace(A)/n` placeholder 隱藏 saddle / unstable modes。
 - Frontend analysis API migration：新 session 預設 `Auto API Fallback`，FastAPI 成功時使用 Unified API metrics，不可用或 z-domain 時明確 fallback Local JS；root `package.json` 已提供 `npm run verify:*` 入口。
@@ -268,7 +271,7 @@
 
 ### 尚未完成能力
 - Functional Roadmap Tier A-J 已完成 deterministic baseline。
-- Full verification suite 已納入 control verification fixtures、FastAPI contract fixtures、runtime UI waveform contract、runtime UI stability snapshot contract、runtime UI simulation snapshot / freshness / discrete-domain / effective-loop contract、runtime UI formula display contract、discrete export response contract、deployment readiness gate、deployment reviewer skill gate、runtime UI symbol contract、n-dimensional equilibrium classification regression 與 Zero-Flaw Loop 1~10；目前基線為 `131/131 scripts pass`，fixture/API contract 為 `10/10 cases pass`。
+- Full verification suite 已納入 control verification fixtures、FastAPI contract fixtures、runtime UI waveform contract、runtime UI stability snapshot contract、runtime UI simulation snapshot / freshness / discrete-domain / effective-loop contract、runtime UI formula display contract、discrete export response contract、deployment readiness gate、deployment reviewer skill gate、runtime UI symbol contract、n-dimensional equilibrium classification regression 與 Zero-Flaw Loop 1~11；目前基線為 `131/131 scripts pass`，fixture/API contract 為 `10/10 cases pass`。
 - Phase 23 ~ Phase 28 舊缺口已同步收斂：continuous-time ID / Hankel norm / LPV synthesis / dynamic D-K / JSDoc API docs 均已有驗證基線。
 - CONTSID、full-order dynamic K fitting、industrial-grade μ synthesis backend 仍可作後續研究擴充，但不再列為目前阻塞項。
 - 自動產生報告 / 報告模板、Electron packaging、教學模式與 Block Diagram expansion 仍依使用者要求擱置。
@@ -559,6 +562,7 @@
 - Done：Phase 28 infrastructure quality — TypeScript definitions、benchmark script、JSDoc API docs 已提交。
 - Done：Phase 76 deployment readiness productization — `assessDeploymentReadiness()` 以 sample time、target artifacts、WCET/deadline、jitter、fixed-point headroom、safety wrapper 與 HIL schema 產生 ready / conditional / blocked 判定，詳見 `verify_p76_deployment_readiness.mjs`。
 - Done：Phase 77 deployment reviewer skill — `skills/control-studio-deployment-reviewer/` 將 codegen / HIL deployment review 固定為可重用 agent workflow，包含輸入證據、blocked / conditional / ready 判定、required actions、sample input/output 與 `verify_p77_deployment_skill.mjs`。
+- Done：Zero-Flaw Loop 11 spectral subspace correctness — `espritFrequencies()` 以一般複數 eigenvalue phase 取代 symmetricized-Phi heuristic，補 noiseless/noisy/close-tone/three-tone deterministic fixtures 與 verification Case 12。
 - Done：Math-core audit round 2 — 三項修正：(A1) `stabilityMargins()` 改為收集所有增益/相位交越點，回傳最壞情況 PM/GM，修正非最小相位系統只回傳第一個交越的問題；(A2) `matDet()` 加入 `_matDetLU()` fallback，n>6 改用 O(n³) LU 消去而非 O(n!) 餘因子遞迴，並補 n=3 Sarrus 閉合公式；(A3) `sortRootLocusBranches()` 改用 Jonker-Volgenant O(n³) Hungarian 最優分配，取代 greedy nearest-neighbor，消除根軌跡分支在實軸附近交越時的視覺錯位。verify baseline 升至 82/82。
 - Execution roadmap：詳細執行看板與文件工作流以 `control-studio/ROADMAP.md` 為準；本文件保留產品/架構層級摘要。
 

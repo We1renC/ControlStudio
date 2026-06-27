@@ -27,12 +27,30 @@
  */
 
 import {
-  matMul, matTranspose, matCreate, matEigenvaluesSymmetric, matIdentity,
+  matMul, matTranspose, matCreate, matIdentity,
 } from '../math/matrix.js';
+import { polyroots } from '../math/polynomial.js';
+
+function validateSubspaceInputs(x, fs, numSources, M, label) {
+  if (!Array.isArray(x) || x.length < 4 || x.some((value) => !Number.isFinite(value))) {
+    throw new Error(`${label}: x must contain at least four finite samples`);
+  }
+  if (!Number.isFinite(fs) || fs <= 0) {
+    throw new Error(`${label}: fs must be finite and positive`);
+  }
+  if (!(numSources >= 1 && Number.isInteger(numSources))) {
+    throw new Error(`${label}: numSources must be positive integer`);
+  }
+  if (!Number.isInteger(M) || M < 2 * numSources + 1) {
+    throw new Error(`${label}: window M must be an integer >= 2*numSources+1`);
+  }
+  if (M > x.length - 1) {
+    throw new Error(`${label}: window M must be <= x.length - 1`);
+  }
+}
 
 function buildAutocorrelationMatrix(x, M) {
   const N = x.length;
-  if (M > N - 1) throw new Error('subspace: window M must be ≤ N - 1');
   const L = N - M + 1;
   const R = matCreate(M, M, 0);
   // R[i][j] = (1/L) Σ_{ℓ=0}^{L-1} x[ℓ+i] x[ℓ+j]
@@ -56,11 +74,8 @@ function buildAutocorrelationMatrix(x, M) {
  * @returns { freq, pseudo, peaks } — peaks: top-numSources peak frequencies (Hz)
  */
 export function musicSpectrum(x, fs, numSources, options = {}) {
-  if (!(numSources >= 1 && Number.isInteger(numSources))) {
-    throw new Error('MUSIC: numSources must be positive integer');
-  }
   const M = options.M ?? Math.max(2 * numSources + 4, Math.floor(x.length / 4));
-  if (M < 2 * numSources + 1) throw new Error('MUSIC: window too small for given numSources');
+  validateSubspaceInputs(x, fs, numSources, M, 'MUSIC');
   const R = buildAutocorrelationMatrix(x, M);
   // Symmetric (real Hermitian) eigen-decomposition
   const { eigenvalues, eigenvectors } = symmetricEigen(R);
@@ -100,10 +115,19 @@ export function musicSpectrum(x, fs, numSources, options = {}) {
 
 /**
  * ESPRIT frequency estimator using the rotational-invariance subspace
- * matrix Φ. Returns the estimated frequencies (Hz).
+ * matrix Phi. The real-signal model uses a 2p-dimensional subspace whose
+ * eigenvalues occur as exp(+-j*omega_k). Frequencies must lie strictly inside
+ * (0, fs/2); DC and Nyquist components require a different rank model.
+ *
+ * @param {number[]} x - finite, uniformly sampled real signal
+ * @param {number} fs - finite positive sample rate in Hz
+ * @param {number} numSources - number of real sinusoidal components
+ * @param {object} options - { M, imagTolerance }; M must be >= 2p+1
+ * @returns {number[]} sorted positive frequencies in Hz
  */
 export function espritFrequencies(x, fs, numSources, options = {}) {
   const M = options.M ?? Math.max(2 * numSources + 4, Math.floor(x.length / 4));
+  validateSubspaceInputs(x, fs, numSources, M, 'ESPRIT');
   const R = buildAutocorrelationMatrix(x, M);
   const { eigenvalues, eigenvectors } = symmetricEigen(R);
   const order = eigenvalues
@@ -129,16 +153,29 @@ export function espritFrequencies(x, fs, numSources, options = {}) {
   const U1T_U1 = matMul(matTranspose(U1), U1);
   const U1T_U2 = matMul(matTranspose(U1), U2);
   const Phi = solveSmallSystem(U1T_U1, U1T_U2);
-  // Eigenvalues of Φ approximate e^{j 2π f / fs}, so f = (fs / 2π) angle(eig).
-  const { eigenvalues: phiEigs, eigenvectors: phiVecs } = symmetricEigen(symmetricize(Phi));
-  // For real symmetric Φ approximation we only get real eigenvalues; produce
-  // ESPRIT estimate via abs(asin) heuristic for the symmetric case.
-  const freqs = phiEigs
-    .filter((v) => Math.abs(v) <= 1.0)
-    .map((v) => (fs / (2 * Math.PI)) * Math.acos(v))
-    .sort((a, b) => a - b)
-    .slice(0, numSources);
-  return freqs;
+  // Phi is generally non-symmetric. Its eigenvalues form conjugate pairs
+  // exp(+-j*omega_k); symmetrizing Phi destroys the rotation phase and gives
+  // incorrect multi-tone estimates. Recover the general complex eigenvalues
+  // from the characteristic polynomial and use the positive-angle member of
+  // each conjugate pair.
+  const phiEigs = polyroots(characteristicPolynomial(Phi));
+  const imagTol = options.imagTolerance ?? 1e-8;
+  const positiveAngleFreqs = phiEigs
+    .filter((root) => Number.isFinite(root.re) && Number.isFinite(root.im) && root.im > imagTol)
+    .map((root) => {
+      const angle = Math.atan2(root.im, root.re);
+      return fs * angle / (2 * Math.PI);
+    })
+    .filter((frequency) => frequency > 0 && frequency < fs / 2)
+    .sort((a, b) => a - b);
+
+  if (positiveAngleFreqs.length !== numSources) {
+    throw new Error(
+      `ESPRIT: expected ${numSources} conjugate eigenvalue pairs, recovered ${positiveAngleFreqs.length}; ` +
+      'the signal subspace may be rank deficient or contain DC/Nyquist components'
+    );
+  }
+  return positiveAngleFreqs;
 }
 
 // ── helpers ────────────────────────────────────────────────────────────────
@@ -160,13 +197,23 @@ function findPeaks(arr, count) {
   return peaks.slice(0, count).map((p) => p.idx).sort((a, b) => a - b);
 }
 
-function symmetricize(A) {
+function characteristicPolynomial(A) {
   const n = A.length;
-  const out = matCreate(n, n, 0);
-  for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) {
-    out[i][j] = 0.5 * (A[i][j] + A[j][i]);
+  if (n === 0 || A.some((row) => !Array.isArray(row) || row.length !== n)) {
+    throw new Error('ESPRIT: Phi must be a non-empty square matrix');
   }
-  return out;
+  const coefficients = [1];
+  let B = matIdentity(n);
+  for (let k = 1; k <= n; k++) {
+    const AB = matMul(A, B);
+    let trace = 0;
+    for (let i = 0; i < n; i++) trace += AB[i][i];
+    const ck = -trace / k;
+    coefficients.push(ck);
+    B = AB;
+    for (let i = 0; i < n; i++) B[i][i] += ck;
+  }
+  return coefficients;
 }
 
 function solveSmallSystem(A, B) {
