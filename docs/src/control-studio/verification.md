@@ -1,6 +1,6 @@
 # Control System Verification Cases
 
-此文件定義 ControlStudio 後續回歸測試的十四個基準案例。每個案例都必須能以數學推導得到期望結果，再用 `control-studio` 數值核心、`control_analysis_cli.mjs` 與 FastAPI API 交叉驗證。
+此文件定義 ControlStudio 後續回歸測試的十五個基準案例。每個案例都必須能以數學推導得到期望結果，再用 `control-studio` 數值核心、`control_analysis_cli.mjs` 與 FastAPI API 交叉驗證。
 
 驗證原則：
 - 先比對 transfer function 多項式係數，再比對 poles / zeros / DC gain。
@@ -1249,6 +1249,124 @@ Wc = [4/3   10/9]
 - Browser path: SS wizard -> Analysis -> Hankel SV -> Gramian / SVD
 - Failure mode: truncated impulse accumulation, direct continuous `A^k` summation, diagonal HSV approximations, missing stability guards, or stale module cache keys must fail
 
+## Case 15: Balanced Truncation Versus Optimal Hankel Approximation
+
+### Purpose
+
+驗證 square-root balanced truncation 的 transformation orientation 與 error theorem，並防止 API 把 balanced truncation 誤稱為 Glover optimal Hankel-norm approximation。
+
+### Square-Root Balancing Derivation
+
+令 continuous stable minimal realization 的 Gramians 分解為：
+
+```text
+Wc = Lc Lc^T
+Wo = Lo Lo^T
+```
+
+對下式做 SVD：
+
+```text
+Lo^T Lc = U Sigma V^T
+```
+
+正確的 balancing maps 為：
+
+```text
+T    = Lc V Sigma^(-1/2)
+T^-1 = Sigma^(-1/2) U^T Lo^T
+```
+
+它們滿足：
+
+```text
+T^-1 T = I
+T^-1 Wc T^-T = Sigma
+T^T Wo T = Sigma
+```
+
+若改對 `Lc^T Lo` 做 SVD，則矩陣是上述 SVD 的 transpose，`U` 與 `V` 的角色必須交換。舊實作分解 `Lc^T Lo` 後仍直接套用未交換的公式，造成 transformation orientation 不一致，並可能讓降階模型違反 balanced-truncation error bound。
+
+### Error Theorem
+
+對任意 order-`k` stable approximation `G_k`，AAK/Glover theory 給出最佳可達 Hankel error 的 lower bound：
+
+```text
+sigma_(k+1) <= ||G - G_k||_H
+```
+
+Balanced truncation `G_bt` 的標準保證則是：
+
+```text
+||G - G_bt||_H
+<= ||G - G_bt||_inf
+<= 2 * sum_(i=k+1)^n sigma_i
+```
+
+一般情況不能把第一條 lower bound 改寫成：
+
+```text
+||G - G_bt||_H = sigma_(k+1)
+```
+
+等號屬於 optimal Hankel-norm approximation 的目標，不是普通 balanced truncation 的保證。
+
+### Deterministic Counterexample
+
+```text
+A = diag(-0.5, -2, -8)
+B = [1, 0.5, 0.25]^T
+C = [1, 0.5, 0.25]
+D = 0
+k = 1
+```
+
+ControlStudio 的 full-Gramian calculation 得：
+
+```text
+sigma = [1.0418288503255013,
+         0.023574419516442728,
+         0.0010029801580557689]
+```
+
+因此：
+
+```text
+AAK lower bound sigma_2 = 0.023574419516442728
+actual BT Hankel error  = 0.04785770832332215
+BT H-infinity upper     = 2*(sigma_2+sigma_3)
+                        = 0.049154799348997
+```
+
+數值關係為：
+
+```text
+0.0235744195 < 0.0478577083 < 0.0491547993
+```
+
+這個 strict gap 直接證明 balanced truncation 不是本案例的 optimal Hankel-norm approximation。
+
+### Expected Assertions
+
+- square-root SVD uses `Lo^T Lc`, with `V` in `T` and `U` in `T^-1`
+- order-2 near-zero-tail fixture respects the BT H∞ upper bound within numerical floor
+- `hankelLowerBound = sigma_(k+1)`
+- `hankelLowerBound <= hankelNormError`
+- `hankelNormError <= hinfErrorBound`
+- deterministic counterexample has a strict nonzero optimality gap
+- `method = "balanced-truncation-error-audit"`
+- `algorithm = "balanced-truncation"`
+- `isOptimalHankelApproximation = false`
+- `hankelNormBoundType = "lower"`
+- compatibility alias `hankelNormApprox()` returns the same audit result
+- no test may pass by adding arbitrary `+0.05` or `+0.1` to a false upper-bound assertion
+
+### Fixture Contract
+
+- Numeric core: `control-studio/js/control/model_reduction.js`
+- Runners: `verify_p25_model_reduction.mjs`, `verify_p25_hankel.mjs`
+- Failure mode: transposed SVD factors, claiming BT is optimal HNA, treating `sigma_(k+1)` as an upper bound, or masking a theorem violation with a broad tolerance must fail
+
 ## Phase 24 Advanced MPC Verification Addendum
 
 Phase 24 的 NMPC / EMPC / Tube MPC / Explicit MPC 屬離散時間最佳控制基線，驗證重點不是圖形外觀，而是最佳化問題、約束與閉迴路行為是否符合數學定義。
@@ -1310,7 +1428,7 @@ u(x) = a_i x + b_i,  x in region_i
 
 後續 agent 將這些案例自動化時，建議順序如下：
 
-1. 把十四個案例整理成 JSON fixtures。
+1. 把十五個案例整理成 JSON fixtures。
 2. 在 `test_control.js` 中新增共用 assertion helper。
 3. 先跑 local JS numerical core。
 4. 再跑 `control_analysis_cli.mjs`。

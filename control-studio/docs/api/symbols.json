@@ -1149,7 +1149,7 @@
     "name": "balancedTruncation",
     "kind": "function",
     "module": "js/control/model_reduction.js",
-    "doc": "Balanced Truncation model order reduction for stable LTI systems. Algorithm (square-root method):   1. Solve Gramians: A·Wc + Wc·Aᵀ + B·Bᵀ = 0                      Aᵀ·Wo + Wo·A + Cᵀ·C  = 0   2. Cholesky: Wc = Lc·Lc', Wo = Lo·Lo'   3. SVD: Lc'·Lo = U·Σ·V'  →  Hankel singular values σᵢ = Σ[i]   4. Bal"
+    "doc": "Balanced Truncation model order reduction for stable LTI systems. Algorithm (square-root method):   1. Solve Gramians: A·Wc + Wc·Aᵀ + B·Bᵀ = 0                      Aᵀ·Wo + Wo·A + Cᵀ·C  = 0   2. Cholesky: Wc = Lc·Lc', Wo = Lo·Lo'   3. SVD: Lo'·Lc = U·Σ·V'  →  Hankel singular values σᵢ = Σ[i]   4. Bal"
   },
   {
     "name": "hankelSingularValues",
@@ -1164,10 +1164,16 @@
     "doc": "Hankel norm of a stable LTI system — the largest Hankel singular value. ‖G‖_H = σ₁(Wc, Wo)"
   },
   {
+    "name": "balancedTruncationErrorAudit",
+    "kind": "function",
+    "module": "js/control/model_reduction.js",
+    "doc": "Audit the Hankel- and H-infinity-error contracts of an order-k balanced truncation model. Balanced truncation is not the Glover optimal Hankel-norm approximation. The AAK/Glover theorem makes σ_{k+1} a lower bound on every order-k approximation error in Hankel norm. Balanced truncation instead guara"
+  },
+  {
     "name": "hankelNormApprox",
     "kind": "function",
     "module": "js/control/model_reduction.js",
-    "doc": "Hankel norm approximation of order k for a stable LTI system. Uses balanced truncation (P25-01) for the reduced state matrices, which for balanced realizations achieves the optimal Hankel norm error σ_{k+1} (Glover 1984 / AAK theorem).  The exact Hankel norm of the error system is computed numerical"
+    "doc": "Backward-compatible alias for the former P25 API. This function performs balanced truncation plus an error audit. It does not implement Glover's optimal Hankel-norm approximation."
   },
   {
     "name": "validateMpcModel",

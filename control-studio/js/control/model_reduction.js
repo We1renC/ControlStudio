@@ -381,7 +381,7 @@ export function minrealSS(A, B, C, D, opts = {}) {
  *   1. Solve Gramians: A·Wc + Wc·Aᵀ + B·Bᵀ = 0
  *                      Aᵀ·Wo + Wo·A + Cᵀ·C  = 0
  *   2. Cholesky: Wc = Lc·Lc', Wo = Lo·Lo'
- *   3. SVD: Lc'·Lo = U·Σ·V'  →  Hankel singular values σᵢ = Σ[i]
+ *   3. SVD: Lo'·Lc = U·Σ·V'  →  Hankel singular values σᵢ = Σ[i]
  *   4. Balancing transformation: T = Lc·V·Σ^{-½}, T⁻¹ = Σ^{-½}·U'·Lo'
  *   5. Truncate to first 'order' states
  *   6. Error bound: ‖G − Ĝ‖∞ ≤ 2·Σᵢ₌ₒᵣdₑᵣ₊₁ⁿ σᵢ
@@ -433,10 +433,12 @@ export function balancedTruncation(A, B, C, D, order, opts = {}) {
   const Lc = cholesky(Wc); // Wc = Lc · Lcᵀ
   const Lo = cholesky(Wo); // Wo = Lo · Loᵀ
 
-  // ── Step 3: SVD of Lcᵀ · Lo ────────────────────────────────────────────
-  const LcT   = matTranspose(Lc);
-  const LcTLo = matMul(LcT, Lo);  // n×n
-  const { U, S: hsvd, V } = computeSVD(LcTLo);
+  // ── Step 3: SVD of Loᵀ · Lc ────────────────────────────────────────────
+  // For LoᵀLc = UΣVᵀ, the square-root balancing maps are
+  // T = Lc V Σ^-1/2 and T^-1 = Σ^-1/2 Uᵀ Loᵀ.
+  const LoT   = matTranspose(Lo);
+  const LoTLc = matMul(LoT, Lc);  // n×n
+  const { U, S: hsvd, V } = computeSVD(LoTLc);
 
   // ── Step 4: Balancing transformation (square-root method) ───────────────
   // T  = Lc · V · Σ^{-½}   (n×n)
@@ -456,7 +458,6 @@ export function balancedTruncation(A, B, C, D, order, opts = {}) {
 
   // Ti rows: Ti[j,:] = sqrtSigmaInv[j] · Uᵀ[j,:] · Loᵀ = sqrtSigmaInv[j] · Lo[:,U[:,j]] via Uᵀ
   // Ti = diag(sqrtSigmaInv) · Uᵀ · Loᵀ
-  const LoT = matTranspose(Lo);
   const Ti = Array.from({ length: n }, () => new Array(n).fill(0));
   for (let j = 0; j < n; j++) {
     const sInv = sqrtSigmaInv[j];
@@ -489,7 +490,7 @@ export function balancedTruncation(A, B, C, D, order, opts = {}) {
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
-// P25-02: Hankel Norm Approximation (Glover 1984)
+// P25-02: Balanced Truncation Error Audit
 // ══════════════════════════════════════════════════════════════════════════════
 
 /**
@@ -595,16 +596,18 @@ export function hankelNorm(A, B, C, D, opts = {}) {
 }
 
 /**
- * Hankel norm approximation of order k for a stable LTI system.
+ * Audit the Hankel- and H-infinity-error contracts of an order-k balanced
+ * truncation model.
  *
- * Uses balanced truncation (P25-01) for the reduced state matrices, which
- * for balanced realizations achieves the optimal Hankel norm error σ_{k+1}
- * (Glover 1984 / AAK theorem).  The exact Hankel norm of the error system
- * is computed numerically via the cross-Gramian Sylvester equation.
+ * Balanced truncation is not the Glover optimal Hankel-norm approximation.
+ * The AAK/Glover theorem makes σ_{k+1} a lower bound on every order-k
+ * approximation error in Hankel norm. Balanced truncation instead guarantees
+ * the H-infinity upper bound 2·Σ_{i>k}σ_i. The actual Hankel norm of the
+ * balanced-truncation error system is computed from its Gramians.
  *
- * Error bounds:
- *   ‖G − Ĝ‖_H  = σ_{k+1}          (Hankel norm — optimal)
- *   ‖G − Ĝ‖_∞ ≤ 2·Σᵢ₌ₖ₊₁ⁿ σᵢ    (H∞ norm — see balancedTruncation)
+ * Contracts:
+ *   σ_{k+1} ≤ ‖G − G_bt‖_H ≤ ‖G − G_bt‖_∞
+ *   ‖G − G_bt‖_∞ ≤ 2·Σᵢ₌ₖ₊₁ⁿ σᵢ
  *
  * @param {number[][]} A
  * @param {number[][]} B
@@ -617,25 +620,32 @@ export function hankelNorm(A, B, C, D, opts = {}) {
  *   A: number[][], B: number[][], C: number[][], D: number[][],
  *   hsvd: number[],
  *   hankelNormError: number,
+ *   hankelLowerBound: number,
  *   hankelNormBound: number,
+ *   hankelNormBoundType: 'lower',
+ *   hankelOptimalityGap: number,
  *   hinfErrorBound: number,
+ *   lowerBoundSatisfied: boolean,
+ *   hinfUpperBoundSatisfied: boolean,
  *   order: number,
  *   method: string,
+ *   algorithm: string,
+ *   isOptimalHankelApproximation: boolean,
  * }}
  */
-export function hankelNormApprox(A, B, C, D, k, opts = {}) {
+export function balancedTruncationErrorAudit(A, B, C, D, k, opts = {}) {
   const tol = opts.tol ?? 1e-10;
   const n   = A.length;
 
   if (k <= 0 || k >= n) {
-    throw new Error(`hankelNormApprox: k must be in [1, ${n - 1}], got ${k}`);
+    throw new Error(`balancedTruncationErrorAudit: k must be in [1, ${n - 1}], got ${k}`);
   }
 
   // ── Step 1: Balanced truncation for state matrices ──────────────────────
   const bt = balancedTruncation(A, B, C, D, k, { tol });
   const { A: Ar, B: Br, C: Cr, D: Dr, hsvd } = bt;
 
-  // σ_{k+1} — Hankel norm bound (AAK / Glover lower bound)
+  // σ_{k+1} — AAK/Glover lower bound for every order-k approximation.
   const sigma_kp1 = hsvd[k];
 
   // ── Step 2: Build error system (G − Ĝ) and solve its Lyapunov equations ──
@@ -674,6 +684,10 @@ export function hankelNormApprox(A, B, C, D, k, opts = {}) {
 
   // ── Step 3: H∞ error bound (same as balanced truncation) ────────────────
   const hinfErrorBound = bt.errorBound;
+  const comparisonScale = Math.max(1, hankelNormError, sigma_kp1, hinfErrorBound);
+  const comparisonTol = Math.max(tol, Math.sqrt(Number.EPSILON)) * comparisonScale;
+  const lowerBoundSatisfied = hankelNormError + comparisonTol >= sigma_kp1;
+  const hinfUpperBoundSatisfied = hankelNormError <= hinfErrorBound + comparisonTol;
 
   return {
     A: Ar,
@@ -682,9 +696,27 @@ export function hankelNormApprox(A, B, C, D, k, opts = {}) {
     D: Dr,
     hsvd,
     hankelNormError,
+    hankelLowerBound: sigma_kp1,
+    // Compatibility alias. This is explicitly a lower bound, not an upper bound.
     hankelNormBound: sigma_kp1,
+    hankelNormBoundType: 'lower',
+    hankelOptimalityGap: Math.max(0, hankelNormError - sigma_kp1),
     hinfErrorBound,
+    lowerBoundSatisfied,
+    hinfUpperBoundSatisfied,
     order:  k,
-    method: 'hankel-norm-approx-bt',
+    method: 'balanced-truncation-error-audit',
+    algorithm: 'balanced-truncation',
+    isOptimalHankelApproximation: false,
   };
+}
+
+/**
+ * Backward-compatible alias for the former P25 API.
+ *
+ * This function performs balanced truncation plus an error audit. It does not
+ * implement Glover's optimal Hankel-norm approximation.
+ */
+export function hankelNormApprox(A, B, C, D, k, opts = {}) {
+  return balancedTruncationErrorAudit(A, B, C, D, k, opts);
 }

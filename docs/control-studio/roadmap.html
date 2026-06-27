@@ -87,7 +87,7 @@ del{color:var(--muted)}
 
 <blockquote>
 <p>Last updated: 2026-06-28</p>
-<p>Current committed baseline: <code>fix(zero-flaw): unify Gramian diagnostics</code></p>
+<p>Current committed baseline: <code>fix(zero-flaw): correct Hankel reduction contracts</code></p>
 <p>Scope: this is the canonical execution roadmap for ControlStudio implementation status.</p>
 <p>Do not use this file for product vision, proof derivations, or handoff notes; see the document workflow below.</p>
 </blockquote>
@@ -278,6 +278,8 @@ del{color:var(--muted)}
 </thead><tbody>
 <tr><td><strong>ZF13</strong></td><td><strong>Zero-Flaw Loop 13: exact continuous/discrete Gramians + coupled Hankel singular values</strong></td><td>Done</td><td><code>verify_p39_uiux_p2_batch2.mjs</code> (73), <code>verify_p55_b24_b43_b44.mjs</code> (82), verification Case 14, browser walkthrough</td></tr>
 </thead><tbody>
+<tr><td><strong>ZF14</strong></td><td><strong>Zero-Flaw Loop 14: square-root balancing orientation + honest BT/HNA error contracts</strong></td><td>Done</td><td><code>verify_p25_model_reduction.mjs</code> (23), <code>verify_p25_hankel.mjs</code> (27), verification Case 15</td></tr>
+</thead><tbody>
 <tr><td><strong>P34-01</strong></td><td><strong>Module split: P62-P65 → js/ui/ sub-modules</strong></td><td>Done</td><td>Verify scripts updated to check module files</td></tr>
 </thead><tbody>
 <tr><td><strong>J1-3</strong></td><td><strong>Root Locus geometric annotations (damping lines, ωn arcs, Ku labels)</strong></td><td>Done</td><td><code>verify_j13_rlocus_geo.mjs</code></td></tr>
@@ -459,6 +461,8 @@ del{color:var(--muted)}
 
 <p><strong>Zero-Flaw Loop 13 closure:</strong> P39/P55 no longer approximate Gramians with truncated impulse sums, continuous <code>A</code> powers, diagonal entries, or <code>sqrt(diag(Wc)diag(Wo))</code>. <code>gramianDiagnostics()</code> rejects non-Hurwitz/non-Schur realizations, solves the continuous Lyapunov or discrete Stein equations, reports relative residuals and true <code>kappa_1</code>, and computes Hankel singular values from Cholesky factors of the full coupled Gramians. The analytic fixture <code>A=diag(-1,-2)</code>, <code>B=[1,1]^T</code>, <code>C=[1,1]</code> yields <code>Wc=Wo=[[1/2,1/3],[1/3,1/4]]</code>, HSVs <code>0.7310001561</code> and <code>0.01899984395</code>, and <code>kappa_1=50</code>; browser output reproduced the values with zero console errors.</p>
 
+<p><strong>Zero-Flaw Loop 14 closure:</strong> <code>balancedTruncation()</code> now applies <code>T=Lc V Sigma^-1/2</code> and <code>T^-1=Sigma^-1/2 U^T Lo^T</code> to the SVD of <code>Lo^T Lc</code>. The former transposed SVD orientation used mismatched <code>U/V</code> factors and could violate the balanced-truncation bound. <code>balancedTruncationErrorAudit()</code> now labels <code>sigma_(k+1)</code> as the AAK lower bound, reports the computed BT Hankel error and <code>2 sum sigma_i</code> H-infinity upper bound, and marks the method as non-optimal; <code>hankelNormApprox()</code> is retained only as a compatibility alias. A deterministic fixture gives <code>0.0235744 &lt;= 0.0478577 &lt;= 0.0491548</code>.</p>
+
 <p><strong>DC gain origin-cancellation closure:</strong> continuous TF and ZPK <code>dcGain()</code> now cancel removable origin pole-zero factors before evaluating the low-frequency limit. Systems such as <code>s/s</code> report finite unity DC gain, extra origin zeros report zero DC gain, and extra origin poles preserve signed infinite gain. This prevents RGA, static decoupler, low-frequency design, and robustness summaries from treating removable integrators as real steady-state singularities.</p>
 
 <p><strong>Discrete DC gain unit-root closure:</strong> discrete TF <code>dcGain()</code> now evaluates the low-frequency limit at <code>q=z^-1=1</code> by cancelling removable unit-circle factors. Systems such as <code>(1-z^-1)/(1-z^-1)</code> report finite unity DC gain, extra unit-circle zeros report zero DC gain, and extra unit-circle poles report infinite DC gain. This prevents z-domain step final-value checks, C2D DC preservation, and discrete controller comparisons from treating removable unit roots as true steady-state singularities.</p>
@@ -491,7 +495,7 @@ del{color:var(--muted)}
 
 <h2 id="verification-suite-status-2026-06-27">Verification Suite Status (2026-06-27)</h2>
 
-<p><strong>131/131 scripts pass</strong> — run via <code>bash scripts/run_all_verify.sh</code> or <code>npm run verify:all</code>. Fixture/API contract coverage is now <strong>10/10 cases</strong>, including open-loop controller cascade response, non-step waveform metrics gating, non-unit step amplitude reference metrics, zero-final-change step metrics rejection, and divergent/unfinished step metrics rejection. UI waveform routing is covered by <code>verify_ui_waveform_contract.mjs</code>; UI stability snapshot and GM-field normalization are covered by <code>verify_ui_stability_snapshot_contract.mjs</code>; active simulation state, HIL/export consistency, analysis freshness, discrete domain-switch freshness, and effective loop-mode routing are covered by <code>verify_ui_simulation_snapshot_contract.mjs</code>; DTF <code>z^-1</code> formula display, active discrete legend, smoke equation labels, DTF sample-time codegen/export, and project persistence are covered by <code>verify_ui_formula_contract.mjs</code>; MATLAB/Python runtime-mode and domain-compatible script generation is covered by <code>verify_codegen_export_contract.mjs</code>; z-domain export response-type normalization and impulse routing is covered by <code>verify_discrete_export_response_contract.mjs</code>; deployment readiness is covered by <code>verify_p76_deployment_readiness.mjs</code>; deployment reviewer skill packaging is covered by <code>verify_p77_deployment_skill.mjs</code>; Zero-Flaw Loop additions are covered through <code>verify_passivity_kyp.mjs</code>, <code>verify_lqg_ltr.mjs</code>, <code>verify_flatness.mjs</code>, and <code>verify_loop2_modules.mjs</code> through <code>verify_loop10_modules.mjs</code>, with ZF11 ESPRIT phase recovery locked in <code>verify_loop9_modules.mjs</code>, ZF12 matrix/wizard contracts locked in P43/P46/E7 runners, and ZF13 exact Gramian/HSV contracts locked in the P39/P55 runners.</p>
+<p><strong>131/131 scripts pass</strong> — run via <code>bash scripts/run_all_verify.sh</code> or <code>npm run verify:all</code>. Fixture/API contract coverage is now <strong>10/10 cases</strong>, including open-loop controller cascade response, non-step waveform metrics gating, non-unit step amplitude reference metrics, zero-final-change step metrics rejection, and divergent/unfinished step metrics rejection. UI waveform routing is covered by <code>verify_ui_waveform_contract.mjs</code>; UI stability snapshot and GM-field normalization are covered by <code>verify_ui_stability_snapshot_contract.mjs</code>; active simulation state, HIL/export consistency, analysis freshness, discrete domain-switch freshness, and effective loop-mode routing are covered by <code>verify_ui_simulation_snapshot_contract.mjs</code>; DTF <code>z^-1</code> formula display, active discrete legend, smoke equation labels, DTF sample-time codegen/export, and project persistence are covered by <code>verify_ui_formula_contract.mjs</code>; MATLAB/Python runtime-mode and domain-compatible script generation is covered by <code>verify_codegen_export_contract.mjs</code>; z-domain export response-type normalization and impulse routing is covered by <code>verify_discrete_export_response_contract.mjs</code>; deployment readiness is covered by <code>verify_p76_deployment_readiness.mjs</code>; deployment reviewer skill packaging is covered by <code>verify_p77_deployment_skill.mjs</code>; Zero-Flaw Loop additions are covered through <code>verify_passivity_kyp.mjs</code>, <code>verify_lqg_ltr.mjs</code>, <code>verify_flatness.mjs</code>, and <code>verify_loop2_modules.mjs</code> through <code>verify_loop10_modules.mjs</code>, with ZF11 ESPRIT phase recovery locked in <code>verify_loop9_modules.mjs</code>, ZF12 matrix/wizard contracts locked in P43/P46/E7 runners, ZF13 exact Gramian/HSV contracts locked in P39/P55, and ZF14 balanced-reduction contracts locked in the P25 runners.</p>
 
 <table><thead>
 <tr><th>Group</th><th>Scripts</th><th>Pass</th></tr>
@@ -508,7 +512,7 @@ del{color:var(--muted)}
 </thead><tbody>
 <tr><td>General math &amp; PID</td><td>4</td><td>4</td></tr>
 </thead><tbody>
-<tr><td>Zero-Flaw Loop additions</td><td>13</td><td>13</td></tr>
+<tr><td>Zero-Flaw Loop additions</td><td>14</td><td>14</td></tr>
 </tbody></table>
 
 <h2 id="p1-p2-ui-ux-completion-summary">P1/P2 UI/UX Completion Summary</h2>
@@ -720,7 +724,7 @@ del{color:var(--muted)}
 </thead><tbody>
 <tr><td>P25-01 Balanced truncation</td><td>Done</td><td><code>model_reduction.js</code>, <code>verify_p25_model_reduction.mjs</code></td></tr>
 </thead><tbody>
-<tr><td>P25-02 Hankel norm approximation</td><td>Done</td><td><code>hankelSingularValues/hankelNorm/hankelNormApprox</code> in <code>model_reduction.js</code>, <code>verify_p25_hankel.mjs</code> (23 tests)</td></tr>
+<tr><td>P25-02 Hankel metrics + balanced-truncation error audit</td><td>Done</td><td><code>hankelSingularValues/hankelNorm/balancedTruncationErrorAudit</code> plus compatibility alias in <code>model_reduction.js</code>, <code>verify_p25_hankel.mjs</code> (27 checks)</td></tr>
 </thead><tbody>
 <tr><td>P25-03 SS minreal / Kalman decomposition</td><td>Done</td><td><code>minrealSS</code>, <code>verify_p25_model_reduction.mjs</code></td></tr>
 </tbody></table>

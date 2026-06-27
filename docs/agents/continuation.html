@@ -96,7 +96,7 @@ del{color:var(--muted)}
 <li>控制系統目前同步基線：</li>
 <ul>
 <li>Branch: <code>main</code></li>
-<li>Latest active line: <code>fix(zero-flaw): unify Gramian diagnostics</code></li>
+<li>Latest active line: <code>fix(zero-flaw): correct Hankel reduction contracts</code></li>
 <li>Full phase audit checkpoints:</li>
 <ul>
 <li><code>7a318b3 fix(control): harden phase 7-9 theory diagnostics</code></li>
@@ -163,6 +163,7 @@ del{color:var(--muted)}
 <li>2026-06-27 接續完成 Zero-Flaw Loop 11 spectral subspace correctness：<code>espritFrequencies()</code> 不再對非對稱 LS-ESPRIT rotation matrix <code>Phi</code> 做 symmetricize，而是以 Faddeev-LeVerrier characteristic polynomial + <code>polyroots()</code> 取得一般複數 eigenvalues，使用 conjugate pair positive angle 映射頻率；修正 50/120 Hz 被錯估為約 47.84/50 Hz、80/92 Hz 被錯估為約 61.93/81.13 Hz。<code>verify_loop9_modules.mjs</code> 改用 fixed-seed MUSIC noise，並補 noiseless、noisy、close-tone、three-tone、invalid-window ESPRIT fixtures，共 13/13 checks；<code>docs/src/control-studio/verification.md</code> 新增 Case 12。</li>
 <li>2026-06-27 接續完成 Zero-Flaw Loop 12 matrix diagnostics and wizard integration：matrix panel 由 row-norm ratio 改為 shared <code>estimateCondition()</code> 的真實 1-norm condition number，definiteness 只對 symmetric square matrix 以 eigenvalues 判定，rectangular / non-symmetric 顯示 N/A；<code>verify_p46_b5_b2.mjs</code> 新增 near-singular、singular、PD、PSD、indefinite 與 shape-contract 反例，共 101/101。Browser audit 另發現新增系統 wizard 僅顯示成功但未套用模型，且 UI 宣告支援 semicolon row separator 但 parser 不接受；已修復 TF/SS/ZPK 寫回 active workspace、module-scoped <code>updateSystem()</code> 呼叫、<code>_currentSS</code> snapshot 與 newline/semicolon parser contract，P43 88/88，實際 SS 操作顯示 <code>κ₁=3.00</code>、B/C N/A，console 0 error；verification 新增 Case 13。</li>
 <li>2026-06-28 接續完成 Zero-Flaw Loop 13 exact Gramian/HSV diagnostics：P39/P55 移除 truncated impulse sum、continuous <code>A^k</code> 累加與 diagonal HSV/condition heuristics，統一走 <code>gramianDiagnostics()</code>；continuous/discrete 分別解 Lyapunov/Stein equations，加入 Hurwitz/Schur guard、relative residual、true <code>κ₁</code> 與 Cholesky-SVD HSV。解析 fixture <code>A=diag(-1,-2), B=[1,1]^T, C=[1,1]</code> 得 <code>Wc=Wo=[[1/2,1/3],[1/3,1/4]]</code>、HSV <code>0.7310001561/0.01899984395</code>、<code>κ₁=50</code>；P39 73/73、P55 82/82。In-app browser 透過 SS wizard 實際重現上述數值，console 0 error；verification 新增 Case 14。</li>
+<li>2026-06-28 接續完成 Zero-Flaw Loop 14 balanced reduction theory contract：修正 square-root BT 的 SVD orientation，改用 <code>Lo^T Lc=U Sigma V^T</code> 對應 <code>T=Lc V Sigma^-1/2</code>、<code>T^-1=Sigma^-1/2 U^T Lo^T</code>；舊路徑分解 transposed product 卻未交換 U/V，會破壞 error guarantee。新增 <code>balancedTruncationErrorAudit()</code>，將 <code>sigma_(k+1)</code> 標為 AAK lower bound，另回報 actual BT Hankel error、<code>2 sum sigma_i</code> H∞ upper bound、optimality gap 與 non-optimal metadata；<code>hankelNormApprox()</code> 僅留 compatibility alias。解析反例為 <code>0.0235744 &lt; 0.0478577 &lt; 0.0491548</code>；P25 model reduction 23/23、Hankel audit 27/27，verification 新增 Case 15。</li>
 <li>2026-06-19 Zero-Flaw Loop（QA+DE 雙角色迭代）三輪補強，補上 10 個過去缺席的理論主題：</li>
 <ul>
 <li><strong>ZF1</strong>（理論基礎）：<code>js/control/passivity.js</code>（KYP lemma feasibility / 線性 Port-Hamiltonian / Energy balance / IDA-PBC / passivity index）、<code>js/control/lqg_ltr.js</code>（一站式 LQG 合成 + Doyle-Stein Loop Transfer Recovery 迴圈增益恢復）、<code>js/control/flatness.js</code>（Fliess-Lévine-Martin-Rouchon SISO 平坦性認證 + Brunovsky chain + polynomial 軌跡規劃）。verify 43 checks 全綠。</li>
@@ -352,7 +353,7 @@ del{color:var(--muted)}
 <li>Done：Phase 22 benchmark + cross-tool validation，含 CI、cross-tool comparison、full verification runner、benchmark script。</li>
 <li>Done：Phase 23 agentic / SysID gap closure；FRF、model order、MISO ARX、SRIVC baseline 與 project-local UI verifier skill 已提交，CONTSID 可作後續研究擴充。</li>
 <li>Done：Phase 24 advanced MPC；NMPC、EMPC、Tube MPC、Explicit MPC 已提交，含 deterministic regression runners。</li>
-<li>Done：Phase 25 model order reduction；balanced truncation / SS minreal / Hankel norm approximation 已提交。</li>
+<li>Done：Phase 25 model order reduction；balanced truncation / SS minreal / Hankel metrics + BT error audit 已提交，Glover optimal HNA 未實作。</li>
 <li>Done：Phase 26 nonlinear control；gain-scheduled PID / SMC / LPV synthesis 已提交。</li>
 <li>Done：Phase 27 H∞ design extensions；MIMO H∞ verification / loop-shaping H∞ / static and dynamic D-K baseline 已提交。</li>
 <li>Done：Phase 28 infrastructure quality；TypeScript definitions / benchmark / JSDoc API docs 已提交。</li>
@@ -360,7 +361,7 @@ del{color:var(--muted)}
 <li>Skill plan：<code>docs/src/control-studio/skills.md</code> 已規劃 <code>control-studio-robust-validator</code>、<code>control-studio-system-auditor</code>、<code>control-studio-benchmark-author</code>、<code>control-studio-mpc-designer</code>、<code>control-studio-sysid-planner</code> 等候選 skill。</li>
 </ul>
 <li>Block Diagram expansion：Paused</li>
-<li>Phase 0 ~ Phase 77、Zero-Flaw Loop 1~13 與 Functional Roadmap Tier A-J 已完成文件進度對齊。後續若修改數值核心、API 分析輸出、codegen output、deployment readiness、deployment reviewer skill 或 UI runtime state contract，至少依 roadmap 對應 phase 重跑 targeted verify、<code>npm run verify:all</code>、<code>node test_control.js</code>、<code>node control-studio/scripts/control_regression_dashboard.mjs</code>；目前 full suite 基線為 <strong>131/131 scripts pass</strong>，fixture/API contract 為 <strong>10/10 cases</strong>。</li>
+<li>Phase 0 ~ Phase 77、Zero-Flaw Loop 1~14 與 Functional Roadmap Tier A-J 已完成文件進度對齊。後續若修改數值核心、API 分析輸出、codegen output、deployment readiness、deployment reviewer skill 或 UI runtime state contract，至少依 roadmap 對應 phase 重跑 targeted verify、<code>npm run verify:all</code>、<code>node test_control.js</code>、<code>node control-studio/scripts/control_regression_dashboard.mjs</code>；目前 full suite 基線為 <strong>131/131 scripts pass</strong>，fixture/API contract 為 <strong>10/10 cases</strong>。</li>
 </ul>
 <li>已建立 symlink：</li>
 <ul>
@@ -442,7 +443,7 @@ git log --oneline -5
 <li><code>test_control.js</code> 已驗證基本極點判定與 step response 指標。</li>
 <li><code>control_advisor_workflow.py --help</code> 可正常執行。</li>
 <li><code>docs/src/control-studio/plan.md</code> 已整理控制系統盤點、MVP 範圍與後續 roadmap。</li>
-<li><code>docs/src/control-studio/verification.md</code> 已定義十四個具數學推導的控制系統驗證案例，涵蓋一階、二階欠阻尼、初始不穩定/pole-zero/低 PM、RHP zero、State-Space 等價、API/step metrics/discrete export contract、ESPRIT rotation-phase recovery、matrix numerical-health / wizard workspace contract，以及 exact continuous/discrete Gramian / coupled HSV contract。</li>
+<li><code>docs/src/control-studio/verification.md</code> 已定義十五個具數學推導的控制系統驗證案例，涵蓋一階、二階欠阻尼、初始不穩定/pole-zero/低 PM、RHP zero、State-Space 等價、API/step metrics/discrete export contract、ESPRIT rotation-phase recovery、matrix numerical-health / wizard workspace、exact continuous/discrete Gramian / coupled HSV，以及 balanced truncation versus optimal HNA contract。</li>
 <li><code>control-studio/ROADMAP.md</code> 已整併為 ControlStudio 主執行看板，記錄 P23~P28 進度、dirty worktree 分類、文件工作流與下一步順序；P24 advanced MPC 已完成。</li>
 <li><code>docs/src/control-studio/backlog.md</code> 已改為 detailed task ledger；目前 Phase 0~70 與 Functional Roadmap Tier A-J 均已完成 deterministic baseline。</li>
 <li><code>docs/src/control-studio/skills.md</code> 已新增 Phase 18+ skill candidates，且 <code>control-studio-robust-validator</code>、<code>control-studio-system-auditor</code>、<code>control-studio-benchmark-author</code>、<code>control-studio-mpc-designer</code>、<code>control-studio-sysid-planner</code>、<code>control-studio-ui-verifier</code> baseline 已建立。</li>
@@ -527,7 +528,7 @@ git log --oneline -5
 
 <h2 id="後續可做">後續可做</h2>
 <ol>
-<li>目前非暫停的 ControlStudio roadmap 已達 deterministic baseline，且 full suite / doctor 入口已收斂至 131/131；fixture/API contract 已收斂至 10/10 cases；Zero-Flaw Loop 13 已鎖住 exact Gramian/HSV path。下一輪優先審查 P25 <code>hankelNormApprox()</code> 是否把 balanced truncation 誤稱為 Glover optimal Hankel-norm approximation，以及測試 tolerance 是否掩蓋 <code>error &gt; sigma_(k+1)</code>。</li>
+<li>目前非暫停的 ControlStudio roadmap 已達 deterministic baseline，且 full suite / doctor 入口已收斂至 131/131；fixture/API contract 已收斂至 10/10 cases；Zero-Flaw Loop 14 已鎖住 balanced reduction theory contract。下一輪應繼續從數學核心尋找可由寬鬆 tolerance、名稱誤導或未驗證 theorem 掩蓋的缺口。</li>
 <li>可選研究深化：non-normal real Schur refinement、full-order dynamic K fitting、industrial-grade μ synthesis backend、CONTSID。</li>
 <li>使用 <code>control-studio-system-auditor</code> 審查下一個控制設計缺口，並用 <code>control-studio-benchmark-author</code> 補 benchmark fixture。</li>
 <li>Teaching Mode / Electron / Report Template 目前使用者要求擱置，不要開發。</li>

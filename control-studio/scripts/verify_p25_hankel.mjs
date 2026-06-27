@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * verify_p25_hankel.mjs — Phase 25-02: Hankel Norm Approximation
+ * verify_p25_hankel.mjs — Phase 25-02: Hankel Metrics + BT Error Audit
  *
  * Tests:
  *  hankelSingularValues (P25-02a):
@@ -13,23 +13,24 @@
  *   6.  hankelNorm = HSV[0] (largest)
  *   7.  hankelNorm of scaled system: σ₁(α·G) = α·σ₁(G)
  *   8.  hankelNorm < H∞ norm (Hankel ≤ H∞ for stable systems)
- *  hankelNormApprox (P25-02c):
+ *  balancedTruncationErrorAudit / hankelNormApprox compatibility alias (P25-02c):
  *   9.  Reduced system has correct order k
- *  10.  hankelNormError ≤ hsvd[k] + tolerance (AAK lower bound)
- *  11.  hankelNormError ≈ hsvd[k] (tight bound for balanced systems)
+ *  10.  AAK lower bound: hsvd[k] ≤ hankelNormError
+ *  11.  Balanced truncation is not mislabeled as optimal HNA
  *  12.  hinfErrorBound = 2·Σ σᵢ (i > k)
  *  13.  Reduced system is stable (all poles Re < 0)
  *  14.  D matrix is preserved
  *  15.  hankelNormApprox at k=n-1 (remove 1 state) preserves DC gain approx
- *  16.  hankelNormError ≤ hankelNorm (trivial: removing all → zero system)
- *  17.  order-1 approx of 3rd-order system has 1 state
- *  18.  Cross-Gramian gives correct Hankel norm (verify via σ₁)
+ *  16.  hankelNormError respects the BT H∞ upper bound
+ *  17.  result metadata states balanced truncation and non-optimality
+ *  18.  lower-bound identity and compatibility alias are consistent
  */
 
 import {
   hankelSingularValues,
   hankelNorm,
   hankelNormApprox,
+  balancedTruncationErrorAudit,
   balancedTruncation,
 } from '../js/control/model_reduction.js';
 
@@ -40,7 +41,7 @@ function ok(msg, cond, detail = '') {
 }
 function close(a, b, tol = 0.05) { return Number.isFinite(a) && Math.abs(a - b) <= tol; }
 
-console.log('\n=== P25-02: Hankel Norm Approximation ===\n');
+console.log('\n=== P25-02: Hankel Metrics + Balanced Truncation Error Audit ===\n');
 console.log('── hankelSingularValues ──────────────────');
 
 // ── Test 1: 1D system ẋ = −2x + u, y = x ──────────────────────────────────
@@ -139,7 +140,7 @@ console.log('\n── hankelNorm ───────────────�
     `hn=${hn.toFixed(4)}`);
 }
 
-console.log('\n── hankelNormApprox ──────────────────────');
+console.log('\n── balancedTruncationErrorAudit ──────────');
 
 // ── Test 9: Reduced order is k ──────────────────────────────────────────────
 {
@@ -151,30 +152,35 @@ console.log('\n── hankelNormApprox ─────────────�
   ok('Test 9: reduced order = 2', r.order === 2 && r.A.length === 2);
 }
 
-// ── Test 10: Hankel norm error ≤ σ_{k+1} + tolerance ────────────────────────
+// ── Test 10: AAK/Glover lower bound σ_{k+1} ≤ Hankel error ──────────────────
 {
   const A = [[-1,0.5,0],[0,-2,0.3],[0,0,-5]];
   const B = [[1],[1],[1]];
   const C = [[1,0.5,0]];
   const D = [[0]];
   const r = hankelNormApprox(A, B, C, D, 2);
-  ok('Test 10: hankelNormError ≤ σ_{k+1} + 0.1',
-    r.hankelNormError <= r.hankelNormBound + 0.1,
-    `err=${r.hankelNormError.toFixed(4)}, bound=${r.hankelNormBound.toFixed(4)}`);
+  ok('Test 10: σ_{k+1} ≤ hankelNormError',
+    r.hankelNormError + 1e-10 >= r.hankelLowerBound,
+    `lower=${r.hankelLowerBound.toExponential(4)}, err=${r.hankelNormError.toExponential(4)}`);
+  ok('Test 10: near-zero error respects BT H∞ bound within numerical floor',
+    r.hinfUpperBoundSatisfied,
+    `err=${r.hankelNormError.toExponential(4)}, upper=${r.hinfErrorBound.toExponential(4)}`);
 }
 
-// ── Test 11: Hankel norm error ≈ σ_{k+1} (tight) ────────────────────────────
+// ── Test 11: BT can be strictly above the optimal HNA lower bound ───────────
 {
-  // Use a well-separated system for clean verification
+  // This fixture is a deterministic counterexample to the former equality claim.
   const A = [[-0.5,0,0],[0,-2,0],[0,0,-8]];
   const B = [[1],[0.5],[0.25]];
   const C = [[1,0.5,0.25]];
   const D = [[0]];
   const r = hankelNormApprox(A, B, C, D, 1);
-  // For diagonal (already nearly balanced) system, the Hankel norm of error ≈ σ₂
-  ok('Test 11: hankelNormError close to σ_{k+1}',
-    r.hankelNormError <= r.hankelNormBound * 2.1 + 0.01,
-    `err=${r.hankelNormError.toFixed(4)}, σ_{k+1}=${r.hankelNormBound.toFixed(4)}`);
+  ok('Test 11: BT error is strictly above σ_{k+1} for counterexample',
+    r.hankelNormError > r.hankelLowerBound * 1.5,
+    `lower=${r.hankelLowerBound.toFixed(4)}, err=${r.hankelNormError.toFixed(4)}`);
+  ok('Test 11: BT Hankel error remains below H∞ upper bound',
+    r.hankelNormError <= r.hinfErrorBound + 1e-10,
+    `err=${r.hankelNormError.toFixed(4)}, upper=${r.hinfErrorBound.toFixed(4)}`);
 }
 
 // ── Test 12: hinfErrorBound = 2·Σσᵢ (i > k) ────────────────────────────────
@@ -228,20 +234,19 @@ console.log('\n── hankelNormApprox ─────────────�
   ok('Test 15: k=1 hankelNormError is finite', Number.isFinite(r.hankelNormError));
 }
 
-// ── Test 16: Error Hankel norm ≤ full system Hankel norm ────────────────────
+// ── Test 16: Hankel error respects the balanced-truncation H∞ bound ─────────
 {
   const A = [[-1,0.5],[0,-4]];
   const B = [[1],[0.5]];
   const C = [[1,0.2]];
   const D = [[0]];
-  const hn = hankelNorm(A, B, C, D);
   const r  = hankelNormApprox(A, B, C, D, 1);
-  ok('Test 16: hankelNormError ≤ hankelNorm(G)',
-    r.hankelNormError <= hn + 0.01,
-    `err=${r.hankelNormError.toFixed(4)}, ‖G‖_H=${hn.toFixed(4)}`);
+  ok('Test 16: hankelNormError ≤ BT H∞ upper bound',
+    r.hankelNormError <= r.hinfErrorBound + 1e-10 && r.hinfUpperBoundSatisfied,
+    `err=${r.hankelNormError.toFixed(4)}, upper=${r.hinfErrorBound.toFixed(4)}`);
 }
 
-// ── Test 17: method field returned ──────────────────────────────────────────
+// ── Test 17: metadata states the implemented algorithm honestly ─────────────
 {
   const A = [[-2]], B = [[1]], C = [[1]], D = [[0]];
   // k must be in [1, n-1] but n=1 → skip this test
@@ -251,24 +256,32 @@ console.log('\n── hankelNormApprox ─────────────�
   const C2 = [[1,0]];
   const D2 = [[0]];
   const r = hankelNormApprox(A2, B2, C2, D2, 1);
-  ok('Test 17: method field is set', r.method === 'hankel-norm-approx-bt');
+  ok('Test 17: method identifies balanced-truncation error audit',
+    r.method === 'balanced-truncation-error-audit'
+      && r.algorithm === 'balanced-truncation');
+  ok('Test 17: result does not claim optimal HNA',
+    r.isOptimalHankelApproximation === false
+      && r.hankelNormBoundType === 'lower');
 }
 
-// ── Test 18: Cross-Gramian consistency ──────────────────────────────────────
+// ── Test 18: lower-bound identity and compatibility alias ───────────────────
 {
-  // For a 2-state system, k=1:
-  // The Hankel norm of the error ≤ σ₂ (second HSV)
   const A = [[-0.5, 0.2], [0, -3]];
   const B = [[1], [0.5]];
   const C = [[1, 0.3]];
   const D = [[0]];
   const hsvs = hankelSingularValues(A, B, C, D);
   const r    = hankelNormApprox(A, B, C, D, 1);
-  ok('Test 18: hankelNormBound = σ₂',
-    close(r.hankelNormBound, hsvs[1], 0.001),
-    `bound=${r.hankelNormBound.toFixed(4)}, σ₂=${hsvs[1].toFixed(4)}`);
-  ok('Test 18: error ≤ bound', r.hankelNormError <= r.hankelNormBound + 0.05,
-    `err=${r.hankelNormError.toFixed(4)}, bound=${r.hankelNormBound.toFixed(4)}`);
+  const audit = balancedTruncationErrorAudit(A, B, C, D, 1);
+  ok('Test 18: hankelLowerBound = σ₂',
+    close(r.hankelLowerBound, hsvs[1], 1e-9),
+    `lower=${r.hankelLowerBound.toFixed(4)}, σ₂=${hsvs[1].toFixed(4)}`);
+  ok('Test 18: actual error is above the lower bound',
+    r.lowerBoundSatisfied && r.hankelNormError + 1e-10 >= r.hankelLowerBound,
+    `lower=${r.hankelLowerBound.toFixed(4)}, err=${r.hankelNormError.toFixed(4)}`);
+  ok('Test 18: compatibility alias matches explicit audit API',
+    close(r.hankelNormError, audit.hankelNormError, 1e-12)
+      && close(r.hankelLowerBound, audit.hankelLowerBound, 1e-12));
 }
 
 console.log(`\n${'─'.repeat(55)}`);

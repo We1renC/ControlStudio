@@ -15,7 +15,7 @@
  *   8. Error bound = 2·Σ(σᵢ, i>order) — formula verified
  *   9. DC gain of reduced system close to original (within error bound)
  *  10. Higher order → smaller error bound (monotone)
- *  11. 3rd-order → 1st-order: DC gain preserved within 5%
+ *  11. 3rd-order → 1st-order: DC error respects the BT H∞ bound
  */
 
 import { minrealSS, balancedTruncation } from '../js/control/model_reduction.js';
@@ -201,16 +201,16 @@ function make3rdOrder() {
     `bound1=${r1.errorBound.toExponential(3)}, bound2=${r2.errorBound.toExponential(3)}`);
 }
 
-// Test 11: 3rd→1st order, DC gain preserved within 10%
+// Test 11: DC is one frequency sample, so its error must respect the H∞ bound.
 {
   const { A, B, C, D } = make3rdOrder();
   const dcOrig = dcGain(A, B, C, D);
   const r1 = balancedTruncation(A, B, C, D, 1);
   const dcRed = dcGain(r1.A, r1.B, r1.C, r1.D);
-  const relErr = Math.abs(dcRed - dcOrig) / Math.abs(dcOrig);
-  ok('Test 11: 3rd→1st order DC gain within 10%',
-    relErr < 0.10,
-    `dcOrig=${dcOrig.toFixed(4)}, dcRed=${dcRed.toFixed(4)}, relErr=${(relErr*100).toFixed(1)}%`);
+  const dcError = Math.abs(dcRed - dcOrig);
+  ok('Test 11: 3rd→1st order DC error ≤ BT H∞ bound',
+    dcError <= r1.errorBound + 1e-10,
+    `|Δdc|=${dcError.toExponential(4)}, bound=${r1.errorBound.toExponential(4)}`);
 }
 
 // Test 12: invalid order throws
