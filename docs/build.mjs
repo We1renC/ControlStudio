@@ -208,6 +208,7 @@ ${body}
 const NAV = [
   { label:'Agent 工作文件', files:[
     { src:'agents/usage.md',        out:'agents/usage.html',        label:'使用指南',            wf:'Agent 日常操作、CLI 命令' },
+    { src:'agents/token-efficiency.md', out:'agents/token-efficiency.html', label:'Token Efficiency', wf:'Symbol-first context retrieval' },
     { src:'agents/continuation.md', out:'agents/continuation.html', label:'接手狀態',            wf:'切換 Agent / 上下文移交' },
     { src:'agents/workflows.md',    out:'agents/workflows.html',    label:'Runnable Workflows',  wf:'NVIDIA workflow 執行方式' },
   ]},

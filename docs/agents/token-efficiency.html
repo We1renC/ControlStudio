@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>ControlStudio Regression Dashboard — NVIDIA OS Support Docs</title>
+<title>Agent Token Efficiency — NVIDIA OS Support Docs</title>
 <style>
 :root {
   --bg:#0f1117;--bg2:#1a1d2e;--bg3:#252840;
@@ -59,7 +59,7 @@ del{color:var(--muted)}
   <div class="logo"><a href="../index.html">📁 Docs</a></div>
   <div class="section">Agent 工作文件</div>
   <a href="../agents/usage.html">使用指南</a>
-  <a href="../agents/token-efficiency.html">Token Efficiency</a>
+  <a href="../agents/token-efficiency.html" class="active">Token Efficiency</a>
   <a href="../agents/continuation.html">接手狀態</a>
   <a href="../agents/workflows.html">Runnable Workflows</a>
 <div class="section">ControlStudio</div>
@@ -81,49 +81,79 @@ del{color:var(--muted)}
 <div class="section">案例輸出</div>
   <a href="../cases/dc-motor.html">DC Motor 速度控制</a>
   <a href="../cases/precision-servo.html">Precision Servo</a>
-  <a href="../cases/regression.html" class="active">Regression Dashboard</a>
+  <a href="../cases/regression.html">Regression Dashboard</a>
 </nav>
 <main>
-<h1 id="controlstudio-regression-dashboard">ControlStudio Regression Dashboard</h1>
+<h1 id="agent-token-efficiency">Agent Token Efficiency</h1>
 
-<p>Generated: 2026-05-20T15:08:26.684Z</p>
-<p>Status: PASS</p>
+<p>本專案使用「先定位、後讀取」策略降低 coding agent 的上下文消耗。主要輔助工具是</p>
+<p><a href="https://github.com/jgravelle/jcodemunch-mcp">jCodeMunch</a>：它以 Tree-sitter 建立本機</p>
+<p>symbol index，讓 agent 取得任務相關的函式、相依關係與固定 token budget context，</p>
+<p>而不是反覆讀取完整大檔案。</p>
 
-<h2 id="runtime-checks">Runtime Checks</h2>
-
-<table><thead>
-<tr><th>Check</th><th>Status</th><th>Duration</th></tr>
-</thead><tbody>
-<tr><td>Core JS regression</td><td>PASS</td><td>98 ms</td></tr>
-</thead><tbody>
-<tr><td>Math core verification</td><td>PASS</td><td>55 ms</td></tr>
-</thead><tbody>
-<tr><td>Phase 10 math core verification</td><td>PASS</td><td>60 ms</td></tr>
-</thead><tbody>
-<tr><td>Verification fixtures</td><td>PASS</td><td>348 ms</td></tr>
-</thead><tbody>
-<tr><td>API contract fixtures</td><td>PASS</td><td>1342 ms</td></tr>
-</thead><tbody>
-<tr><td>Analysis CLI smoke</td><td>PASS</td><td>63 ms</td></tr>
-</thead><tbody>
-<tr><td>Servo stage scenario</td><td>PASS</td><td>71 ms</td></tr>
-</tbody></table>
-
-<h2 id="static-checks">Static Checks</h2>
+<h2 id="選型結論">選型結論</h2>
 
 <table><thead>
-<tr><th>Check</th><th>Status</th></tr>
+<tr><th>工具</th><th>適用情境</th><th>本專案決策</th></tr>
 </thead><tbody>
-<tr><td>Report export button</td><td>PASS</td></tr>
+<tr><td>jCodeMunch</td><td>日常探索、symbol source、blast radius、diff review</td><td>採用</td></tr>
 </thead><tbody>
-<tr><td>Analysis source toggle</td><td>PASS</td></tr>
+<tr><td>Repomix</td><td>一次性交接、外部模型無法直接存取 repository</td><td>備用，不常駐 MCP</td></tr>
 </thead><tbody>
-<tr><td>UI naming precision</td><td>PASS</td></tr>
+<tr><td>Serena</td><td>完整 IDE-like semantic editing</td><td>暫不加入，避免與既有工具重疊</td></tr>
 </thead><tbody>
-<tr><td>API status surface</td><td>PASS</td></tr>
-</thead><tbody>
-<tr><td>Regression dashboard validation hook</td><td>PASS</td></tr>
+<tr><td>MCP compressor / tool search</td><td>同時掛載大量 MCP server</td><td>客戶端支援時採用延遲載入</td></tr>
 </tbody></table>
+
+<p>jCodeMunch 的公開 benchmark 是相對「讀取全部 source」的 retrieval-heavy 基線，</p>
+<p>不能視為每一項任務都固定節省相同比例。專案應以實際 session 的 input/cache token</p>
+<p>與任務成功率判斷成效，不能只看供應者宣稱。</p>
+
+<h2 id="安裝">安裝</h2>
+
+<pre><code class="lang-bash">cd /Users/w.rc/nvdiaOSsupport
+./.venv/bin/pip install -r requirements-agent-tools.txt
+./.venv/bin/jcodemunch-mcp index . --no-ai-summaries</code></pre>
+
+<p>Codex 使用已安裝的絕對路徑，避免 <code>uvx</code> 第一次啟動輸出干擾 MCP handshake：</p>
+
+<pre><code class="lang-toml">[mcp_servers.jcodemunch]
+command = "/Users/w.rc/nvdiaOSsupport/.venv/bin/jcodemunch-mcp"
+startup_timeout_sec = 20
+
+[mcp_servers.jcodemunch.env]
+JCODEMUNCH_SHARE_SAVINGS = "0"</code></pre>
+
+<p>重新啟動 agent client 後才會載入新增 MCP server。索引儲存在</p>
+<p><code>~/.code-index/</code>，不提交 Git；程式碼不會因建立本機 index 而上傳。</p>
+
+<h2 id="agent-使用規約">Agent 使用規約</h2>
+
+<ol>
+<li>先呼叫 <code>plan_turn</code> 或 <code>assemble_task_context</code>，預設 budget 4,000 tokens。</li>
+<li>探索架構時使用 <code>get_repo_map</code>；查實作時先搜尋 symbol，再只取所需 source。</li>
+<li>修改前使用 <code>get_blast_radius</code> 或 <code>check_edit_safe</code>；review 時使用</li>
+<p>   <code>get_changed_symbols</code>，避免掃描完整 repository。</p>
+<li>retrieval confidence 低、索引過期、查非程式碼內容，或需精確逐行上下文時，</li>
+<p>   才退回 <code>rg</code>、<code>sed</code> 與局部檔案讀取。</p>
+<li>不把整份 index、完整測試 log 或整個 repository pack 貼入 prompt。</li>
+<li>修改程式碼後更新受影響檔案 index；跨大量檔案變更後重建 repository index。</li>
+<li>最終判定仍以原始碼、測試與 Git diff 為準，index 只是 retrieval layer。</li>
+</ol>
+
+<h2 id="成效檢查">成效檢查</h2>
+
+<p>每月抽樣相同類型的探索、修正與 review 任務，比較：</p>
+
+<ul>
+<li>input、cache creation 與 output tokens；</li>
+<li>首次找到正確 symbol 的工具呼叫次數；</li>
+<li>重複讀取同一檔案的次數；</li>
+<li>測試通過率與返工次數。</li>
+</ul>
+
+<p>若 token 降低但任務成功率或理論驗證品質下降，應提高 context budget 或直接讀取</p>
+<p>關鍵原始碼，不做破壞語意的 source minification。</p>
 
 </main>
 </body>

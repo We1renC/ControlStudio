@@ -14,6 +14,10 @@ git status --short
 
 若 `doctor` 通過，就可以開始選型或執行 workflow。
 
+大型 codebase 探索先依
+[Agent Token Efficiency](token-efficiency.md) 使用 jCodeMunch 取得固定 budget 的
+symbol context，避免每輪重讀完整檔案。
+
 ## CLI 指令
 列出現有 workflow：
 

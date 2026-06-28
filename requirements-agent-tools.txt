@@ -1,0 +1,2 @@
+# Local-first, symbol-level context retrieval for coding agents.
+jcodemunch-mcp==1.108.83

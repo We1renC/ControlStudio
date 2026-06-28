@@ -47,6 +47,16 @@ cat docs/src/control-studio/backlog.md
 ./nv-agent doctor
 ```
 
+大型程式庫探索可安裝本機 symbol index 工具，減少 agent 反覆讀取完整檔案：
+
+```bash
+./.venv/bin/pip install -r requirements-agent-tools.txt
+./.venv/bin/jcodemunch-mcp index "$(pwd)" --no-ai-summaries
+```
+
+使用順序、token budget 與 fallback 規則見
+[`docs/src/agents/token-efficiency.md`](docs/src/agents/token-efficiency.md)。
+
 核心工作流是：
 
 ```bash

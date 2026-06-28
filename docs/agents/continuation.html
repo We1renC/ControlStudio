@@ -59,6 +59,7 @@ del{color:var(--muted)}
   <div class="logo"><a href="../index.html">📁 Docs</a></div>
   <div class="section">Agent 工作文件</div>
   <a href="../agents/usage.html">使用指南</a>
+  <a href="../agents/token-efficiency.html">Token Efficiency</a>
   <a href="../agents/continuation.html" class="active">接手狀態</a>
   <a href="../agents/workflows.html">Runnable Workflows</a>
 <div class="section">ControlStudio</div>
@@ -92,6 +93,11 @@ del{color:var(--muted)}
 
 <h2 id="目前狀態">目前狀態</h2>
 <ul>
+<li>2026-06-28 新增 jCodeMunch token-efficient retrieval baseline：</li>
+<p>  <code>requirements-agent-tools.txt</code> 固定版本、Codex MCP 使用專案 <code>.venv</code> binary、</p>
+<p>  匿名 savings telemetry 關閉；agent 預設先做 4,000-token symbol context retrieval，</p>
+<p>  再以原始碼、Git diff 與測試完成判定。詳細規約見</p>
+<p>  <code>docs/src/agents/token-efficiency.md</code>。</p>
 <li>已建立獨立 git repo，避免被 <code>/Users/w.rc</code> 外層 git 混入。</li>
 <li>控制系統目前同步基線：</li>
 <ul>

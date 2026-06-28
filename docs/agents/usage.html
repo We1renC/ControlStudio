@@ -59,6 +59,7 @@ del{color:var(--muted)}
   <div class="logo"><a href="../index.html">📁 Docs</a></div>
   <div class="section">Agent 工作文件</div>
   <a href="../agents/usage.html" class="active">使用指南</a>
+  <a href="../agents/token-efficiency.html">Token Efficiency</a>
   <a href="../agents/continuation.html">接手狀態</a>
   <a href="../agents/workflows.html">Runnable Workflows</a>
 <div class="section">ControlStudio</div>
@@ -96,6 +97,10 @@ git status --short
 ./nv-agent doctor</code></pre>
 
 <p>若 <code>doctor</code> 通過，就可以開始選型或執行 workflow。</p>
+
+<p>大型 codebase 探索先依</p>
+<p><a href="token-efficiency.md">Agent Token Efficiency</a> 使用 jCodeMunch 取得固定 budget 的</p>
+<p>symbol context，避免每輪重讀完整檔案。</p>
 
 <h2 id="cli-指令">CLI 指令</h2>
 <p>列出現有 workflow：</p>

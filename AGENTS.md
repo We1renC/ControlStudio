@@ -15,6 +15,7 @@
 - `./nv-agent`：agent 開發用 CLI。
 - `docs/index.html`：所有文件的 HTML 導覽入口（含工作流關係圖）。
 - `docs/src/agents/usage.md`：agent 操作手冊（源碼；閱讀用 agents/usage.html）。
+- `docs/src/agents/token-efficiency.md`：symbol-first context retrieval 與 token 預算規約。
 - `docs/src/agents/workflows.md`：workflow 與 API key 使用說明。
 - `docs/src/agents/continuation.md`：接手狀態與後續建議。
 - `docs/src/control-studio/plan.md`：控制系統工作台的正式盤點與開發計畫。
@@ -43,6 +44,9 @@
    git status --short
    ./nv-agent doctor
    ```
+   大型程式碼探索優先使用 jCodeMunch 的 `plan_turn` / `assemble_task_context`
+   （預設 4,000-token budget），再按 symbol 讀取；低信心、索引過期或非程式碼內容
+   才退回 `rg` 與局部檔案讀取。不要將整個 repository 或完整測試 log 放入 context。
 2. 做選型：
    ```bash
    ./nv-agent search --query RAG --limit 3

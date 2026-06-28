@@ -6,6 +6,11 @@
 `/Users/w.rc/nvdiaOSsupport`
 
 ## 目前狀態
+- 2026-06-28 新增 jCodeMunch token-efficient retrieval baseline：
+  `requirements-agent-tools.txt` 固定版本、Codex MCP 使用專案 `.venv` binary、
+  匿名 savings telemetry 關閉；agent 預設先做 4,000-token symbol context retrieval，
+  再以原始碼、Git diff 與測試完成判定。詳細規約見
+  `docs/src/agents/token-efficiency.md`。
 - 已建立獨立 git repo，避免被 `/Users/w.rc` 外層 git 混入。
 - 控制系統目前同步基線：
   - Branch: `main`
