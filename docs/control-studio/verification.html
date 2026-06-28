@@ -1506,6 +1506,72 @@ G(jw) = Gr(jw)</code></pre>
 <p>  dimensions/options, coordinate-dependent order, or changed transfer response must fail</p>
 </ul>
 
+<h2 id="case-19-balanced-reduction-input-and-ownership-contract">Case 19: Balanced Reduction Input and Ownership Contract</h2>
+
+<h3 id="purpose">Purpose</h3>
+
+<p>驗證 balanced reduction API 在進入 Lyapunov/SVD 前拒絕無法形成合法 reduced</p>
+<p>state-space model 的參數，並確保輸出矩陣不與呼叫端輸入共享可變 storage。</p>
+
+<h3 id="integer-order">Integer Order</h3>
+
+<p>Balanced truncation 要求：</p>
+
+<pre><code class="lang-text">order in integers
+1 &lt;= order &lt; n</code></pre>
+
+<p>JavaScript 的 array-like length 可能對 fractional value 做隱式截斷。舊 range check：</p>
+
+<pre><code class="lang-text">order &lt;= 0 || order &gt;= n</code></pre>
+
+<p>會接受 <code>order=1.5</code>。新版必須先以 <code>Number.isInteger(order)</code> 拒絕，不可讓實際</p>
+<p>matrix allocation 決定隱式 order。</p>
+
+<h3 id="state-space-shape">State-Space Shape</h3>
+
+<p>對 <code>A:n×n, B:n×nu, C:ny×n</code>，必須同時滿足：</p>
+
+<pre><code class="lang-text">D.shape = ny x nu
+all entries finite
+tol finite and tol &gt; 0</code></pre>
+
+<p>例如 SISO <code>B:n×1, C:1×n</code> 搭配 <code>D=[[0,0]]</code> 必須在 Gramian solve 前失敗。</p>
+<p><code>tol=NaN</code>, <code>tol=0</code>, <code>tol=Infinity</code> 同樣不構成數值算法契約。</p>
+
+<h3 id="ownership">Ownership</h3>
+
+<p>Reduced model 應是獨立結果。對：</p>
+
+<pre><code class="lang-text">D = [[1,2],[3,4]]
+r = minrealSS(...)
+r.D[0][0] = 99</code></pre>
+
+<p>必須保持：</p>
+
+<pre><code class="lang-text">D[0][0] = 1</code></pre>
+
+<p><code>minrealSS()</code> 與 <code>balancedTruncation()</code> 都以 row-wise copy 回傳 D。</p>
+
+<h3 id="expected-assertions">Expected Assertions</h3>
+
+<ul>
+<li><code>balancedTruncation(..., order=1.5)</code> throws</li>
+<li>malformed D shape throws</li>
+<li>non-finite/non-positive tolerance throws</li>
+<li>valid model behavior and theorem tests remain unchanged</li>
+<li>mutating reduced D does not mutate caller D</li>
+</ul>
+
+<h3 id="fixture-contract">Fixture Contract</h3>
+
+<ul>
+<li>Numeric core: <code>control-studio/js/control/model_reduction.js</code></li>
+<li>Runner: <code>verify_p25_model_reduction.mjs</code> 49/49</li>
+<li>Companion: <code>verify_p25_hankel.mjs</code> 29/29</li>
+<li>Full gate: <code>npm run verify:all</code> 131/131</li>
+<li>Failure mode: implicit fractional order, invalid D/tolerance acceptance, or D aliasing must fail</li>
+</ul>
+
 <h2 id="phase-24-advanced-mpc-verification-addendum">Phase 24 Advanced MPC Verification Addendum</h2>
 
 <p>Phase 24 的 NMPC / EMPC / Tube MPC / Explicit MPC 屬離散時間最佳控制基線，驗證重點不是圖形外觀，而是最佳化問題、約束與閉迴路行為是否符合數學定義。</p>

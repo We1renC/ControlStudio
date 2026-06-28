@@ -26,6 +26,7 @@
  *  19. Fully unobservable MIMO dynamics reduce to a valid zero-order model
  *  20. Matrix and tolerance contracts reject malformed inputs
  *  21. Dense similarity transform preserves order and transfer function
+ *  22. Balanced reduction rejects fractional order and malformed D/tolerance
  */
 
 import {
@@ -341,6 +342,8 @@ function make3rdOrder() {
       && r.D[0].length === 2
       && r.D[0][0] === 1
       && r.D[1][1] === 4);
+  r.D[0][0] = 99;
+  ok('Test 18: reduced feedthrough does not alias caller input', D[0][0] === 1);
 }
 
 // Test 19: controllable but fully unobservable MIMO dynamics are also static.
@@ -408,6 +411,34 @@ function make3rdOrder() {
     r.order === 2 && r.controllableRank === 2 && r.observableRank === 2);
   ok('Test 21: transfer function is preserved across frequency samples',
     maxError < 1e-11, `max|G-G_r|=${maxError.toExponential(3)}`);
+}
+
+// Test 22: balanced reduction must not rely on JS array-length coercion.
+{
+  const { A, B, C, D } = make3rdOrder();
+  let fractionalOrder = false;
+  try {
+    balancedTruncation(A, B, C, D, 1.5);
+  } catch (error) {
+    fractionalOrder = /order must be/.test(error.message);
+  }
+  ok('Test 22: fractional reduction order is rejected', fractionalOrder);
+
+  let malformedD = false;
+  try {
+    balancedTruncation(A, B, C, [[0,0]], 1);
+  } catch (error) {
+    malformedD = /D shape/.test(error.message);
+  }
+  ok('Test 22: D output/input mismatch is rejected', malformedD);
+
+  let invalidTolerance = false;
+  try {
+    balancedTruncation(A, B, C, D, 1, { tol: NaN });
+  } catch (error) {
+    invalidTolerance = /tolerance/.test(error.message);
+  }
+  ok('Test 22: non-finite BT tolerance is rejected', invalidTolerance);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

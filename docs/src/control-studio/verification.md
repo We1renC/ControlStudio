@@ -1682,6 +1682,78 @@ max |G(jw)-Gr(jw)| = 5.62e-15
 - Failure mode: malformed rank-0 shapes, lost MIMO outputs/feedthrough, accepting invalid
   dimensions/options, coordinate-dependent order, or changed transfer response must fail
 
+## Case 19: Balanced Reduction Input and Ownership Contract
+
+### Purpose
+
+驗證 balanced reduction API 在進入 Lyapunov/SVD 前拒絕無法形成合法 reduced
+state-space model 的參數，並確保輸出矩陣不與呼叫端輸入共享可變 storage。
+
+### Integer Order
+
+Balanced truncation 要求：
+
+```text
+order in integers
+1 <= order < n
+```
+
+JavaScript 的 array-like length 可能對 fractional value 做隱式截斷。舊 range check：
+
+```text
+order <= 0 || order >= n
+```
+
+會接受 `order=1.5`。新版必須先以 `Number.isInteger(order)` 拒絕，不可讓實際
+matrix allocation 決定隱式 order。
+
+### State-Space Shape
+
+對 `A:n×n, B:n×nu, C:ny×n`，必須同時滿足：
+
+```text
+D.shape = ny x nu
+all entries finite
+tol finite and tol > 0
+```
+
+例如 SISO `B:n×1, C:1×n` 搭配 `D=[[0,0]]` 必須在 Gramian solve 前失敗。
+`tol=NaN`, `tol=0`, `tol=Infinity` 同樣不構成數值算法契約。
+
+### Ownership
+
+Reduced model 應是獨立結果。對：
+
+```text
+D = [[1,2],[3,4]]
+r = minrealSS(...)
+r.D[0][0] = 99
+```
+
+必須保持：
+
+```text
+D[0][0] = 1
+```
+
+`minrealSS()` 與 `balancedTruncation()` 都以 row-wise copy 回傳 D。
+
+### Expected Assertions
+
+- `balancedTruncation(..., order=1.5)` throws
+- malformed D shape throws
+- non-finite/non-positive tolerance throws
+- valid model behavior and theorem tests remain unchanged
+- mutating reduced D does not mutate caller D
+
+### Fixture Contract
+
+- Numeric core: `control-studio/js/control/model_reduction.js`
+- Runner: `verify_p25_model_reduction.mjs` 49/49
+- Companion: `verify_p25_hankel.mjs` 29/29
+- Full gate: `npm run verify:all` 131/131
+- Failure mode: implicit fractional order, invalid D/tolerance acceptance, or D aliasing must fail
+
 ## Phase 24 Advanced MPC Verification Addendum
 
 Phase 24 的 NMPC / EMPC / Tube MPC / Explicit MPC 屬離散時間最佳控制基線，驗證重點不是圖形外觀，而是最佳化問題、約束與閉迴路行為是否符合數學定義。

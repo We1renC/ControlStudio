@@ -36,8 +36,8 @@
 ## Current Baseline
 
 - Branch: `main`
-- Latest synced checkpoint: `fix(zero-flaw): preserve zero-state minreal contracts`
-- Current checkpoint: **CS-P0 ~ CS-P77 done; Zero-Flaw Loop 1~17 done; Functional Roadmap Tier A-J done; Phase 19/20/21/23 project-local skill gaps closed; nonlinear equilibrium classification, nonlinear grid-scan hardening, continuous analysis-grid hardening, continuous-analysis domain guards, continuous frequency/robust domain guards, P41 discretization comparison API-contract repair, runtime UI symbol contract enforcement, UI waveform response/metrics contract, UI stability snapshot contract, UI simulation snapshot / HIL export contract, UI analysis snapshot freshness contract, UI discrete domain-switch snapshot/header contract, UI effective loop-mode contract, UI DTF `z^-1` formula display contract, UI DTF sample-time codegen/export/project persistence contract, MATLAB/Python codegen runtime-mode/domain compatibility contract, discrete analysis export response-type and non-finite margin status contract, deployment readiness gate, deployment reviewer skill, deterministic ADP/LSTD-Q/DRO/UIO verification, ESPRIT complex rotation-phase recovery, matrix numerical-health correctness, system-wizard workspace integration, exact continuous/discrete Gramian diagnostics, coupled Hankel singular values, square-root balancing orientation, honest BT/HNA error contracts, Hurwitz Hankel gating, exact zero-HSV/rank semantics, direct Kalman-matrix minreal rank, sub-resolution Hankel-error semantics, zero-state MIMO shape, and similarity transfer-equivalence closed; verification aggregation closed.** 詳細執行看板見 `control-studio/ROADMAP.md`。目前僅暫停項目維持不做：教學模式、Electron packaging、報告模板 / 報告自動化、Block Diagram expansion。
+- Latest synced checkpoint: `fix(zero-flaw): validate balanced reduction contracts`
+- Current checkpoint: **CS-P0 ~ CS-P77 done; Zero-Flaw Loop 1~18 done; Functional Roadmap Tier A-J done; direct Kalman minreal, zero-state MIMO, similarity transfer equivalence, balanced-reduction input validation, and non-aliasing feedthrough contracts closed.** 詳細執行看板見 `control-studio/ROADMAP.md`。目前僅暫停項目維持不做：教學模式、Electron packaging、報告模板 / 報告自動化、Block Diagram expansion。
 - Functional Roadmap Tier A-J checkpoint：Tier A control algorithms、Tier B identification、Tier C estimation、Tier D optimization、Tier E numerical repair、Tier F verification/safety、Tier G advanced MPC、Tier H embedded deployment、Tier I runtime architecture、Tier J HIL/integration 均已有 deterministic verification baseline；最新 full suite 基線見 `control-studio/ROADMAP.md`。
 - Scenario 5 browser walkthrough result: Phase 10 math + UI both operational.
 - Scenario 6 browser walkthrough result: SISO / MIMO core workflows are UI-operable.
@@ -69,7 +69,7 @@
   - `node control-studio/scripts/verify_control_api_contract.mjs`
   - `node control-studio/scripts/control_regression_dashboard.mjs`
   - `./scripts/validate_nvidia_model_selector.sh`
-- Full suite baseline：`npm run verify:all` / `bash control-studio/scripts/run_all_verify.sh` 目前納入 131 個 deterministic verification scripts，包含 fixture、API contract、runtime UI waveform contract、runtime UI stability snapshot contract、runtime UI simulation snapshot / discrete-domain / effective-loop contract、runtime UI formula display contract、codegen export contract、discrete export response contract、deployment readiness gate、deployment reviewer skill gate、runtime UI symbol contract、n-dimensional equilibrium classification regression，以及 Zero-Flaw Loop 1~17 literature/algorithm/UI integration coverage；fixture/API contract 目前為 10/10 cases。
+- Full suite baseline：`npm run verify:all` / `bash control-studio/scripts/run_all_verify.sh` 目前納入 131 個 deterministic verification scripts，包含 fixture、API contract、runtime UI waveform contract、runtime UI stability snapshot contract、runtime UI simulation snapshot / discrete-domain / effective-loop contract、runtime UI formula display contract、codegen export contract、discrete export response contract、deployment readiness gate、deployment reviewer skill gate、runtime UI symbol contract、n-dimensional equilibrium classification regression，以及 Zero-Flaw Loop 1~18 literature/algorithm/UI integration coverage；fixture/API contract 目前為 10/10 cases。
 - Pre-push hook：`bash scripts/install-hooks.sh` 啟用後，每次 `git push` 會跑 `verify:math`；失敗阻擋 push（用 `git push --no-verify` 可跳過）。
 
 ## Development Sequence
@@ -374,7 +374,7 @@ Phase 10 + Phase 11 全部完成：
 | CS-P17-03 | P2 | Done | MIMO frequency-domain design diagnostics: characteristic loci, Gershgorin bands, inverse Nyquist array | `node control-studio/scripts/verify_p17_advanced_control.mjs` |
 | CS-P17-04 | P1 | Done | MPC MIMO output-space setpoint tracking (`y_ref = Cx + Du`) | `node control-studio/scripts/verify_p17_advanced_control.mjs` |
 
-**Validation aggregate status：`control-studio/scripts/run_all_verify.sh` 與 `npm run verify:all` 是目前主驗證入口；full suite 已納入 fixture/API contract、runtime UI waveform contract、runtime UI stability snapshot contract、runtime UI simulation snapshot / freshness / discrete-domain / effective-loop contract、runtime UI formula display contract、discrete export response contract、deployment readiness gate、deployment reviewer skill gate、runtime UI symbol contract、n-dimensional equilibrium classification regression 與 Zero-Flaw Loop 1~17，最新基線為 131/131；fixture/API contract 為 10/10 cases。P22+ 新增的 P23 / P24 / P25 / P26 / P27 / P76 / P77 runner 以 roadmap 與 package scripts 為準。**
+**Validation aggregate status：`control-studio/scripts/run_all_verify.sh` 與 `npm run verify:all` 是目前主驗證入口；full suite 已納入 fixture/API contract、runtime UI waveform contract、runtime UI stability snapshot contract、runtime UI simulation snapshot / freshness / discrete-domain / effective-loop contract、runtime UI formula display contract、discrete export response contract、deployment readiness gate、deployment reviewer skill gate、runtime UI symbol contract、n-dimensional equilibrium classification regression 與 Zero-Flaw Loop 1~18，最新基線為 131/131；fixture/API contract 為 10/10 cases。P22+ 新增的 P23 / P24 / P25 / P26 / P27 / P76 / P77 runner 以 roadmap 與 package scripts 為準。**
 
 ## Phase 18+ Research / Engineering Extension Ledger
 
@@ -453,8 +453,8 @@ Phase 18+ 已進入持續擴充狀態。下一步順序以 `control-studio/ROADM
 | ID | Priority | Status | Item | Rationale | Dependencies | Verification |
 | --- | --- | --- | --- | --- | --- | --- |
 | CS-P25-01 | P1 | Done | Balanced truncation | 對高階 plant 產生低階控制設計模型 | matrix / state-space core | `verify_p25_model_reduction.mjs` |
-| CS-P25-02 | P2 | Done | Hankel metrics + balanced-truncation error audit | 提供 HSV/Hankel norm、AAK lower bound、可解析時的 actual BT Hankel error 與 BT H∞ upper bound；低於 numerical resolution 時 actual error 為 null，不宣稱已實作 Glover optimal HNA | CS-P25-01 | `verify_p25_hankel.mjs` 29/29 |
-| CS-P25-03 | P1 | Done | SS minreal / Kalman decomposition | 預設直接 SVD Kalman matrices；canonical zero-state MIMO shape；similarity-transformed transfer equivalence | state-space core | `verify_p25_model_reduction.mjs` 45/45 |
+| CS-P25-02 | P2 | Done | Hankel metrics + balanced-truncation error audit | 提供 theorem bounds、nullable actual error，並驗證 integer order、D shape、finite tolerance | CS-P25-01 | `verify_p25_hankel.mjs` 29/29；model reduction 49/49 |
+| CS-P25-03 | P1 | Done | SS minreal / Kalman decomposition | Direct Kalman SVD、zero-state MIMO、similarity equivalence、deep-copy D | state-space core | `verify_p25_model_reduction.mjs` 49/49 |
 
 ### Phase 26: Nonlinear Control (CS-P26)
 
@@ -542,6 +542,14 @@ Phase 18+ 已進入持續擴充狀態。下一步順序以 `control-studio/ROADM
 | CS-ZF17-01 | P0 | Done | Canonical zero-state MIMO representation | Rank-0 paths returned `[[]]` for A/B/C, which represents one malformed row and loses output cardinality. New shape is `A=[]`, `B=[]`, `C=ny x 0`, `D=ny x nu` | CS-ZF16 minreal | uncontrollable and unobservable 2x2 MIMO fixtures; explicit n=0 input |
 | CS-ZF17-02 | P0 | Done | Complete minreal matrix/options validation | The n=0 branch read `B[0].length` before checking n, while malformed D or non-finite matrices could leak into SVD | matrix contracts | D mismatch, non-positive tolerance, finite-shape guards |
 | CS-ZF17-03 | P0 | Done | Similarity and transfer-map regression | Correct reduced order alone does not prove input/output equivalence after dense state-coordinate changes | SISO SS-to-TF, Complex frequency evaluation | dense order-3 to order-2 fixture; five samples with `max|G-G_r|=5.62e-15`; verification Case 18 |
+
+### Zero-Flaw Loop 18: Balanced Reduction Input and Ownership Contracts (CS-ZF18)
+
+| ID | Priority | Status | Deliverable | Blind spot closed | Dependencies | Acceptance evidence |
+|---|---:|---|---|---|---|---|
+| CS-ZF18-01 | P0 | Done | Integer reduction-order contract | Fractional/NaN order could pass range checks and rely on JavaScript array-length coercion | P25 BT | order 1.5 rejected before Lyapunov/SVD |
+| CS-ZF18-02 | P0 | Done | Full matrix/tolerance validation | D shape and invalid tolerance were not checked consistently across BT/audit paths | shared state-space validator | malformed D and NaN tolerance regressions |
+| CS-ZF18-03 | P1 | Done | Non-aliasing reduced feedthrough | Returned D referenced caller storage, allowing result mutation to alter the source plant | minreal/BT output contract | mutate result D; source D remains unchanged; verification Case 19 |
 
 ## Do Not Start Yet
 

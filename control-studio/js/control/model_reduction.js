@@ -168,33 +168,33 @@ function validateStateSpaceDimensions(A, B, C) {
   }
 }
 
-function validateMinrealDimensions(A, B, C, D) {
+function validateStateSpaceSystemDimensions(A, B, C, D, label) {
   if (![A, B, C, D].every(Array.isArray)) {
-    throw new Error('minrealSS requires A, B, C, and D matrices');
+    throw new Error(`${label} requires A, B, C, and D matrices`);
   }
   const n = A.length;
   if (A.some((row) => !Array.isArray(row) || row.length !== n)) {
-    throw new Error('minrealSS requires a square A matrix');
+    throw new Error(`${label} requires a square A matrix`);
   }
   if (B.length !== n || B.some((row) => !Array.isArray(row))) {
-    throw new Error('minrealSS requires B to have n rows');
+    throw new Error(`${label} requires B to have n rows`);
   }
   if (!C.length || C.some((row) => !Array.isArray(row) || row.length !== n)) {
-    throw new Error('minrealSS requires C to have n columns and at least one output');
+    throw new Error(`${label} requires C to have n columns and at least one output`);
   }
 
   const inputs = n > 0 ? B[0].length : D[0]?.length;
   if (!Number.isInteger(inputs) || inputs <= 0
       || B.some((row) => row.length !== inputs)) {
-    throw new Error('minrealSS requires B to have at least one consistent input column');
+    throw new Error(`${label} requires B to have at least one consistent input column`);
   }
   if (D.length !== C.length
       || D.some((row) => !Array.isArray(row) || row.length !== inputs)) {
-    throw new Error('minrealSS requires D shape to match outputs by inputs');
+    throw new Error(`${label} requires D shape to match outputs by inputs`);
   }
   for (const matrix of [A, B, C, D]) {
     if (matrix.some((row) => row.some((value) => !Number.isFinite(value)))) {
-      throw new Error('minrealSS requires finite matrix entries');
+      throw new Error(`${label} requires finite matrix entries`);
     }
   }
   return { n, inputs, outputs: C.length };
@@ -392,7 +392,7 @@ export function minrealSS(A, B, C, D, opts = {}) {
     n,
     inputs: nu,
     outputs: ny,
-  } = validateMinrealDimensions(A, B, C, D);
+  } = validateStateSpaceSystemDimensions(A, B, C, D, 'minrealSS');
 
   if (n === 0) {
     return {
@@ -442,7 +442,7 @@ export function minrealSS(A, B, C, D, opts = {}) {
   const A1 = rankC > 0 ? matMul(matMul(TcT, A), Tc) : [[]];
   const B1 = rankC > 0 ? matMul(TcT, B)              : [[]];
   const C1 = rankC > 0 ? matMul(C, Tc)               : [[]];
-  const D1 = D;
+  const D1 = D.map((row) => [...row]);
 
   if (rankC === 0) {
     return {
@@ -534,9 +534,18 @@ export function minrealSS(A, B, C, D, opts = {}) {
  */
 export function balancedTruncation(A, B, C, D, order, opts = {}) {
   const tol = opts.tol ?? 1e-10;
-  const n   = A.length;
+  if (!Number.isFinite(tol) || tol <= 0) {
+    throw new Error('balancedTruncation tolerance must be finite and positive');
+  }
+  const { n } = validateStateSpaceSystemDimensions(
+    A,
+    B,
+    C,
+    D,
+    'balancedTruncation',
+  );
 
-  if (order <= 0 || order >= n) {
+  if (!Number.isInteger(order) || order <= 0 || order >= n) {
     throw new Error(`balancedTruncation: order must be in [1, ${n - 1}], got ${order}`);
   }
 
@@ -619,7 +628,7 @@ export function balancedTruncation(A, B, C, D, order, opts = {}) {
   const Ar = matMul(matMul(Ti1, A), T1);
   const Br = matMul(Ti1, B);
   const Cr = matMul(C, T1);
-  const Dr = D;
+  const Dr = D.map((row) => [...row]);
 
   // ── Step 6: Error bound ─────────────────────────────────────────────────
   const errorBound = 2 * hsvd.slice(order).reduce((s, v) => s + v, 0);
@@ -782,9 +791,15 @@ export function hankelNorm(A, B, C, D, opts = {}) {
  */
 export function balancedTruncationErrorAudit(A, B, C, D, k, opts = {}) {
   const tol = opts.tol ?? 1e-10;
-  const n   = A.length;
+  if (!Number.isFinite(tol) || tol <= 0) {
+    throw new Error('balancedTruncationErrorAudit tolerance must be finite and positive');
+  }
+  if (!Array.isArray(A)) {
+    throw new Error('balancedTruncationErrorAudit requires an A matrix');
+  }
+  const n = A.length;
 
-  if (k <= 0 || k >= n) {
+  if (!Number.isInteger(k) || k <= 0 || k >= n) {
     throw new Error(`balancedTruncationErrorAudit: k must be in [1, ${n - 1}], got ${k}`);
   }
 

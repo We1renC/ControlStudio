@@ -1,7 +1,7 @@
 # ControlStudio Development Roadmap
 
 > Last updated: 2026-06-28
-> Current committed baseline: `fix(zero-flaw): preserve zero-state minreal contracts`
+> Current committed baseline: `fix(zero-flaw): validate balanced reduction contracts`
 > Scope: this is the canonical execution roadmap for ControlStudio implementation status.
 > Do not use this file for product vision, proof derivations, or handoff notes; see the document workflow below.
 
@@ -113,6 +113,7 @@
 | **ZF15** | **Zero-Flaw Loop 15: Hurwitz gating + exact zero-HSV/rank semantics** | Done | `verify_p25_model_reduction.mjs` (31), `verify_p25_hankel.mjs` (29), verification Case 16 |
 | **ZF16** | **Zero-Flaw Loop 16: direct Kalman SVD + honest sub-resolution Hankel error** | Done | `verify_p25_model_reduction.mjs` (35), `verify_p25_hankel.mjs` (29), verification Case 17 |
 | **ZF17** | **Zero-Flaw Loop 17: zero-state MIMO shape + similarity/transfer equivalence** | Done | `verify_p25_model_reduction.mjs` (45), verification Case 18 |
+| **ZF18** | **Zero-Flaw Loop 18: balanced-reduction order/shape/tolerance/ownership contracts** | Done | `verify_p25_model_reduction.mjs` (49), verification Case 19 |
 | **P34-01** | **Module split: P62-P65 → js/ui/ sub-modules** | Done | Verify scripts updated to check module files |
 | **J1-3** | **Root Locus geometric annotations (damping lines, ωn arcs, Ku labels)** | Done | `verify_j13_rlocus_geo.mjs` |
 | **H1-4** | **Sidebar Quick Pin (non-emoji section pin, localStorage, max 3, float to top)** | Done | `verify_h14_sidebar_pin.mjs` |
@@ -241,6 +242,8 @@ Per `docs/src/control-studio/functional-roadmap.html`. Tier A-J deterministic ba
 
 **Zero-Flaw Loop 17 closure:** `minrealSS()` validates matrix shapes/options, supports explicit zero-state systems, and returns canonical `A=[]`, `B=[]`, `C=ny x 0`, `D=ny x nu` for pure feedthrough MIMO models. Dense similarity-transform regression preserves the order-2 transfer map from a nonminimal order-3 realization with `max|G-G_r|=5.62e-15`.
 
+**Zero-Flaw Loop 18 closure:** balanced truncation/error audit reject fractional order, malformed or non-finite matrices, and invalid tolerance before numerical work. Reduced and minreal feedthrough matrices are deep copies, preventing result mutation from changing the source plant.
+
 **DC gain origin-cancellation closure:** continuous TF and ZPK `dcGain()` now cancel removable origin pole-zero factors before evaluating the low-frequency limit. Systems such as `s/s` report finite unity DC gain, extra origin zeros report zero DC gain, and extra origin poles preserve signed infinite gain. This prevents RGA, static decoupler, low-frequency design, and robustness summaries from treating removable integrators as real steady-state singularities.
 
 **Discrete DC gain unit-root closure:** discrete TF `dcGain()` now evaluates the low-frequency limit at `q=z^-1=1` by cancelling removable unit-circle factors. Systems such as `(1-z^-1)/(1-z^-1)` report finite unity DC gain, extra unit-circle zeros report zero DC gain, and extra unit-circle poles report infinite DC gain. This prevents z-domain step final-value checks, C2D DC preservation, and discrete controller comparisons from treating removable unit roots as true steady-state singularities.
@@ -283,7 +286,7 @@ Per `docs/src/control-studio/functional-roadmap.html`. Tier A-J deterministic ba
 | Math audit fixes | 1 | 1 |
 | Functional Roadmap A-J | 22 | 22 |
 | General math & PID | 4 | 4 |
-| Zero-Flaw Loop additions | 17 | 17 |
+| Zero-Flaw Loop additions | 18 | 18 |
 
 ## P1/P2 UI/UX Completion Summary
 
@@ -422,8 +425,8 @@ P3+ UI/UX work is implemented through P66 plus J1-3 and H1-4. Remaining UI/produ
 | Item | Status | Evidence |
 | --- | --- | --- |
 | P25-01 Balanced truncation | Done | `model_reduction.js`, `verify_p25_model_reduction.mjs` |
-| P25-02 Hankel metrics + balanced-truncation error audit | Done | Hurwitz/rank guards, exact zero-HSV and nullable unresolved-error semantics; P25 runners 45/45 and 29/29 |
-| P25-03 SS minreal / Kalman decomposition | Done | direct `Ck`/`Ok` SVD, zero-state MIMO shape, and similarity transfer equivalence; `verify_p25_model_reduction.mjs` 45/45 |
+| P25-02 Hankel metrics + balanced-truncation error audit | Done | Hurwitz/rank guards, exact zero-HSV, nullable unresolved-error, and reduction input contracts; P25 runners 49/49 and 29/29 |
+| P25-03 SS minreal / Kalman decomposition | Done | direct `Ck`/`Ok` SVD, zero-state MIMO shape, similarity transfer equivalence, non-aliasing D; `verify_p25_model_reduction.mjs` 49/49 |
 
 ### P26 — Nonlinear Control
 
