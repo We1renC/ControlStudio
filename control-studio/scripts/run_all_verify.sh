@@ -211,6 +211,11 @@ run_script "ZF7 SOS Lyap / SMO+HGO / Nash+Stackelberg / autotune" "node scripts/
 run_script "ZF8 MLF / PDE boundary / adaptive SMC"      "node scripts/verify_loop8_modules.mjs"
 run_script "ZF9 LaSalle / MUSIC+ESPRIT / Carleman"       "node scripts/verify_loop9_modules.mjs"
 run_script "ZF10 ADP-PI / Wasserstein DRO / UIO"         "node scripts/verify_loop10_modules.mjs"
+run_script "ZF11 LMI solver / DWT / Bode integral"        "node scripts/verify_loop11_modules.mjs"
+run_script "ZF20 iLQR / MJLS coupled DARE / LK delay LMI"  "node scripts/verify_loop12_modules.mjs"
+run_script "ZF21 Polytopic quad-stab / Loewner / L1 adaptive" "node scripts/verify_loop13_modules.mjs"
+run_script "ZF22 Pontryagin sets / PCE / PMP shooting"      "node scripts/verify_loop14_modules.mjs"
+run_script "ZF23 Lindblad / Levant HOSM / singular perturbation" "node scripts/verify_loop15_modules.mjs"
 echo ""
 
 # ── Python cross-tool (optional) ─────────────────────────────────────────────

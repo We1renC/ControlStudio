@@ -140,6 +140,11 @@ Before starting any new functional work that is not already a finished P-phase, 
 | **ZF16** | **Zero-Flaw Loop 16: direct Kalman SVD + honest sub-resolution Hankel error** | Done | `verify_p25_model_reduction.mjs` (35), `verify_p25_hankel.mjs` (29), verification Case 17 |
 | **ZF17** | **Zero-Flaw Loop 17: zero-state MIMO shape + similarity/transfer equivalence** | Done | `verify_p25_model_reduction.mjs` (45), verification Case 18 |
 | **ZF18** | **Zero-Flaw Loop 18: balanced-reduction order/shape/tolerance/ownership contracts** | Done | `verify_p25_model_reduction.mjs` (49), verification Case 19 |
+| **ZF19** | **Zero-Flaw Loop 19: LMI mini-solver (Boyd-Vandenberghe logdet barrier) + Haar/Daubechies DWT round-trip + Bode-Freudenberg-Looze sensitivity integral / waterbed** | Done | `verify_loop11_modules.mjs` (14) |
+| **ZF20** | **Zero-Flaw Loop 20: iLQR / DDP (Tassa-Erez-Todorov) + MJLS coupled DARE (Costa-Fragoso-Marques) + Lyapunov-Krasovskii delay-LMI (Gu-Kharitonov-Chen)** | Done | `verify_loop12_modules.mjs` (9) |
+| **ZF21** | **Zero-Flaw Loop 21: polytopic quadratic stability (Bernussou-Geromel-Peres) + Loewner data-driven reduction (Mayo-Antoulas) + L1 adaptive control (Hovakimyan-Cao)** | Done | `verify_loop13_modules.mjs` (12) |
+| **ZF22** | **Zero-Flaw Loop 22: Pontryagin set arithmetic (Minkowski sum + Pontryagin difference) + Polynomial Chaos Expansion (Wiener-Hermite, Xiu-Karniadakis) + PMP shooting (Pontryagin 1962)** | Done | `verify_loop14_modules.mjs` (21) |
+| **ZF23** | **Zero-Flaw Loop 23: Lindblad master equation (open quantum systems, GKSL/D'Alessandro) + Levant arbitrary-order sliding-mode differentiator + Kokotović singular-perturbation two-time-scale (Tikhonov)** | Done | `verify_loop15_modules.mjs` (9) |
 | **P34-01** | **Module split: P62-P65 → js/ui/ sub-modules** | Done | Verify scripts updated to check module files |
 | **J1-3** | **Root Locus geometric annotations (damping lines, ωn arcs, Ku labels)** | Done | `verify_j13_rlocus_geo.mjs` |
 | **H1-4** | **Sidebar Quick Pin (non-emoji section pin, localStorage, max 3, float to top)** | Done | `verify_h14_sidebar_pin.mjs` |
