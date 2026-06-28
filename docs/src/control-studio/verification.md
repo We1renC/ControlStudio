@@ -1464,8 +1464,123 @@ Kalman matrices 顯示 rank 1；正確 minimum realization 必須保留 active u
 ### Fixture Contract
 
 - Numeric core: `control-studio/js/control/model_reduction.js`
-- Runners: `verify_p25_model_reduction.mjs` 31/31, `verify_p25_hankel.mjs` 29/29
+- Runners: `verify_p25_model_reduction.mjs` 35/35, `verify_p25_hankel.mjs` 29/29
 - Failure mode: accepting non-Hurwitz Gramians, clamping exact zero HSVs upward, retaining zero-energy modes, or deleting an active unstable mode must fail
+
+## Case 17: Structural Minreal Rank and Hankel Resolution
+
+### Purpose
+
+驗證 minimum realization 的 Kalman structural rank 不會因形成 Gram product 而平方條件數，
+並確保 balanced-truncation error audit 不會把低於 double-precision 解析度的數值噪聲
+宣稱為 actual Hankel error。
+
+### Direct Kalman SVD Counterexample
+
+考慮不穩定但完全可控的 realization：
+
+```text
+A = diag(1, 2)
+B = [1, 1e-5]^T
+C = [1, 1]
+```
+
+其 controllability matrix 為：
+
+```text
+Ck = [B, AB] = [[1, 1],
+                 [1e-5, 2e-5]]
+sigma(Ck) approximately [1.4142135625, 7.071067811e-6]
+```
+
+在 `tol=1e-8`、shape factor 2 下：
+
+```text
+7.071e-6 > 2 * 1e-8 * 1.414
+rank(Ck) = 2
+```
+
+舊路徑對 `Ck*Ck^T` 做 SVD，奇異值比例被平方到約 `2.5e-11`，錯判 rank 1，
+並刪除可控的不穩定 pole `+2`。新版直接對 wide `Ck` 的 transpose 做 SVD，
+由 right singular vectors取得 `Ck` 的 left subspace，必須保留 order 2。
+
+Dual observability fixture：
+
+```text
+A = diag(1, 2)
+B = [1, 1]^T
+C = [1, 1e-5]
+```
+
+同樣要求 `rank(Ok)=2`，不可刪除 pole `+2`。
+
+### Hankel Numerical Resolution
+
+對 stable nonminimal fixture：
+
+```text
+A = [[-1, 0.5, 0],
+     [ 0,-2,   0.3],
+     [ 0, 0,  -5]]
+B = [1,1,1]^T
+C = [1,0.5,0]
+```
+
+原三階 transfer function：
+
+```text
+G(s) = (1.5 s^2 + 10.65 s + 15.3) /
+       (s^3 + 8 s^2 + 17 s + 10)
+```
+
+與 order-2 BT model：
+
+```text
+G2(s) = (1.5 s + 7.65) / (s^2 + 6 s + 5)
+```
+
+因 `(1.5s+7.65)(s+2)` 等於原 numerator，兩者存在 exact cancellation，
+正確第三 HSV 與 tail error bound 都是 0。Lyapunov solve 具有 `O(eps)` relative
+noise，Gramian square root 的 HSV resolution floor 是：
+
+```text
+resolution = sqrt(Number.EPSILON) * sigma1
+           = 1.1424e-8
+```
+
+舊實作把 numerical artifact `sigma3=4.1394e-10` 當成真實 mode，再從 singular
+error realization 產生 `hankelNormError=1.2194e-8`；它甚至以 absolute tolerance
+把此值標成小於 `hinfErrorBound=8.2788e-10`。新版必須回傳：
+
+```text
+hsvd[2] = 0
+hankelLowerBound = 0
+hinfErrorBound = 0
+hankelNormError = null
+hankelNormErrorResolved = false
+lowerBoundSatisfied = null
+hinfUpperBoundSatisfied = null
+```
+
+`null` 表示無法可靠量測，不表示 error 等於 0；exact-zero bounds 由 cancellation
+與 numerical-rank contract 分別提供證據。
+
+### Expected Assertions
+
+- weak controllability fixture reports `controllableRank=2`, `order=2`
+- weak observability fixture reports `observableRank=2`, `order=2`
+- both reduced traces remain 3, proving poles `+1,+2` are retained
+- exact-cancellation fixture reports third HSV and BT tail bound equal to 0
+- sub-resolution actual error uses nullable unresolved semantics
+- ordinary resolvable fixtures still report finite actual Hankel error and satisfy theorem bounds
+
+### Fixture Contract
+
+- Numeric core: `control-studio/js/control/model_reduction.js`
+- Runners: `verify_p25_model_reduction.mjs` 35/35, `verify_p25_hankel.mjs` 29/29
+- Full gate: `npm run verify:all` 131/131
+- Failure mode: Gram-product structural rank, deleting a weak unstable mode, publishing a
+  sub-resolution actual error, or treating unresolved as theorem success must fail
 
 ## Phase 24 Advanced MPC Verification Addendum
 

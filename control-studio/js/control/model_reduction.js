@@ -3,8 +3,8 @@
  *
  * Implements:
  *   1. minrealSS   — Kalman structural decomposition (P25-03)
- *      Removes uncontrollable and/or unobservable states via SVD-based
- *      rank tests on the controllability and observability Gramians.
+ *      Removes uncontrollable and/or unobservable states via direct SVD-based
+ *      rank tests on the Kalman controllability and observability matrices.
  *
  *   2. balancedTruncation — Balanced Truncation MOR (P25-01)
  *      Computes balanced realisation via Gramian Cholesky + SVD, then
@@ -90,6 +90,62 @@ function svdRank(A, tol = 1e-8) {
   return S.filter((s) => s > thresh).length;
 }
 
+/**
+ * Left singular subspace of a wide-or-square matrix without forming A*A^T.
+ * Forming the Gram product squares the condition number and can erase weak
+ * but structurally valid Kalman directions.
+ */
+function leftSingularSubspace(A, tol) {
+  const rows = A.length;
+  const cols = A[0].length;
+  let basis;
+  let singularValues;
+  if (rows >= cols) {
+    const decomposition = computeSVD(A);
+    basis = decomposition.U;
+    singularValues = decomposition.S;
+  } else {
+    const decomposition = computeSVD(matTranspose(A));
+    basis = decomposition.V;
+    singularValues = decomposition.S;
+  }
+  const scale = singularValues[0] ?? 0;
+  const threshold = tol * Math.max(rows, cols) * scale;
+  const rank = singularValues.filter((value) => value > threshold).length;
+  return {
+    basis: basis.map((row) => row.slice(0, rank)),
+    rank,
+    singularValues,
+    threshold,
+  };
+}
+
+/** Right singular subspace, used for the row space of the Kalman O matrix. */
+function rightSingularSubspace(A, tol) {
+  const rows = A.length;
+  const cols = A[0].length;
+  let basis;
+  let singularValues;
+  if (rows >= cols) {
+    const decomposition = computeSVD(A);
+    basis = decomposition.V;
+    singularValues = decomposition.S;
+  } else {
+    const decomposition = computeSVD(matTranspose(A));
+    basis = decomposition.U;
+    singularValues = decomposition.S;
+  }
+  const scale = singularValues[0] ?? 0;
+  const threshold = tol * Math.max(rows, cols) * scale;
+  const rank = singularValues.filter((value) => value > threshold).length;
+  return {
+    basis: basis.map((row) => row.slice(0, rank)),
+    rank,
+    singularValues,
+    threshold,
+  };
+}
+
 function validateStateSpaceDimensions(A, B, C) {
   const n = A.length;
   if (n === 0 || A.some((row) => !Array.isArray(row) || row.length !== n)) {
@@ -146,7 +202,13 @@ function hankelSingularValuesFromGramians(Wc, Wo, tol) {
   const { S } = computeSVD(matMul(matTranspose(Lc), Lo));
   const sorted = Array.from(S).sort((a, b) => b - a);
   const scale = sorted[0] ?? 0;
-  return sorted.map((value) => (scale > 0 && value <= tol * scale ? 0 : value));
+  // Lyapunov solutions carry O(eps) relative noise; Gramian factorization
+  // takes a square root, so unresolved HSV directions have an O(sqrt(eps))
+  // relative floor even when callers request a smaller algebraic tolerance.
+  const numericalTolerance = Math.max(tol, Math.sqrt(Number.EPSILON));
+  return sorted.map((value) => (
+    scale > 0 && value <= numericalTolerance * scale ? 0 : value
+  ));
 }
 
 function symmetricPsdRank(eigenvalues, tolerance) {
@@ -256,12 +318,13 @@ export function gramianDiagnostics(A, B, C, D = [[0]], opts = {}) {
 
 /**
  * Compute the minimum realisation of a state-space system (A, B, C, D) by
- * removing uncontrollable and unobservable states using SVD-based rank tests
- * on the controllability and observability Gramians (or matrices).
+ * removing uncontrollable and unobservable states using direct SVD-based rank
+ * tests on the Kalman controllability and observability matrices. Stable-system
+ * Gramian rank tests remain available as an explicit energy-based opt-in.
  *
  * Algorithm:
- *   1. Compute Wc = controllability Gramian (or Kalman matrix if A unstable)
- *   2. SVD of Wc; retain states with σ > tol·σ_max → controllable subspace Tc
+ *   1. SVD the Kalman controllability matrix directly (default)
+ *   2. Retain states with σ > tol·max(shape)·σ_max → controllable subspace Tc
  *   3. Project: (A,B,C,D) → (Tc'·A·Tc, Tc'·B, C·Tc, D)
  *   4. Repeat for observability in the reduced system
  *   5. Return minimal (Ar, Br, Cr, D), the transformation T, and removed count
@@ -272,7 +335,7 @@ export function gramianDiagnostics(A, B, C, D = [[0]], opts = {}) {
  * @param {number[][]} D   - ny×nu feedthrough matrix
  * @param {object} [opts]
  * @param {number} [opts.tol=1e-8]  - Relative SVD tolerance for rank test
- * @param {boolean} [opts.useGramian=true] - Use Gramian (true) or Kalman matrix (false)
+ * @param {boolean} [opts.useGramian=false] - Opt into energy-based stable Gramian rank tests
  * @returns {{
  *   A: number[][], B: number[][], C: number[][], D: number[][],
  *   order: number,
@@ -285,7 +348,7 @@ export function gramianDiagnostics(A, B, C, D = [[0]], opts = {}) {
  */
 export function minrealSS(A, B, C, D, opts = {}) {
   const tol        = opts.tol        ?? 1e-8;
-  const useGramian = opts.useGramian ?? true;
+  const useGramian = opts.useGramian ?? false;
 
   const n  = A.length;
   const nu = B[0].length;
@@ -295,34 +358,32 @@ export function minrealSS(A, B, C, D, opts = {}) {
     isControllable: true, isObservable: true, controllableRank: 0, observableRank: 0 };
 
   // ── Step 1: controllability rank ────────────────────────────────────────
-  let Wc_mat;
+  let controllableSubspace;
   const stableA = stateMatrixPoles(A).every((pole) => pole.re < -tol);
   if (useGramian && stableA) {
     try {
       // Wc = solveLyapunov(A, B·Bᵀ): A·Wc + Wc·Aᵀ + B·Bᵀ = 0
       const BBt = matMul(B, matTranspose(B));
-      Wc_mat = solveLyapunov(A, BBt);
+      const Wc = solveLyapunov(A, BBt);
+      const { U, S } = computeSVD(Wc);
+      const scale = S[0] ?? 0;
+      const threshold = tol * n * scale;
+      const rank = S.filter((value) => value > threshold).length;
+      controllableSubspace = {
+        basis: U.map((row) => row.slice(0, rank)),
+        rank,
+      };
     } catch {
-      Wc_mat = null;
+      controllableSubspace = null;
     }
   }
-  if (!Wc_mat) {
-    // Fallback: use Kalman controllability matrix [B, AB, A²B, ...]
+  if (!controllableSubspace) {
     const Ck = controllabilityMatrix(A, B);
-    Wc_mat = matMul(Ck, matTranspose(Ck)); // Structural rank surrogate.
+    controllableSubspace = leftSingularSubspace(Ck, tol);
   }
 
-  // SVD of Wc to find controllable subspace
-  let { U: Uc, S: Sc } = computeSVD(Wc_mat);
-  const sigma0c  = Sc[0] || 0;
-  const threshC  = tol * n * sigma0c;
-  const rankC    = Sc.filter((s) => s > threshC).length;
-
-  // Controllable subspace basis: columns 0..rankC-1 of Uc
-  // Tc: n × rankC
-  const Tc = Array.from({ length: n }, (_, i) =>
-    Array.from({ length: rankC }, (_, j) => Uc[i][j])
-  );
+  const rankC = controllableSubspace.rank;
+  const Tc = controllableSubspace.basis;
 
   // Project onto controllable subspace
   const TcT    = matTranspose(Tc);
@@ -339,28 +400,29 @@ export function minrealSS(A, B, C, D, opts = {}) {
   }
 
   // ── Step 2: observability rank (on reduced system) ───────────────────────
-  let Wo_mat;
+  let observableSubspace;
   const stableA1 = stateMatrixPoles(A1).every((pole) => pole.re < -tol);
   if (useGramian && stableA1) {
     try {
       const CtC = matMul(matTranspose(C1), C1);
-      Wo_mat = solveLyapunov(matTranspose(A1), CtC);
-    } catch { Wo_mat = null; }
+      const Wo = solveLyapunov(matTranspose(A1), CtC);
+      const { U, S } = computeSVD(Wo);
+      const scale = S[0] ?? 0;
+      const threshold = tol * rankC * scale;
+      const rank = S.filter((value) => value > threshold).length;
+      observableSubspace = {
+        basis: U.map((row) => row.slice(0, rank)),
+        rank,
+      };
+    } catch { observableSubspace = null; }
   }
-  if (!Wo_mat) {
+  if (!observableSubspace) {
     const Ok = observabilityMatrix(A1, C1);
-    Wo_mat = matMul(matTranspose(Ok), Ok);
+    observableSubspace = rightSingularSubspace(Ok, tol);
   }
 
-  let { U: Uo, S: So } = computeSVD(Wo_mat);
-  const sigma0o  = So[0] || 0;
-  const threshO  = tol * rankC * sigma0o;
-  const rankO    = So.filter((s) => s > threshO).length;
-
-  // Observable subspace basis: columns 0..rankO-1 of Uo
-  const To = Array.from({ length: rankC }, (_, i) =>
-    Array.from({ length: rankO }, (_, j) => Uo[i][j])
-  );
+  const rankO = observableSubspace.rank;
+  const To = observableSubspace.basis;
   const ToT = matTranspose(To);
 
   const Ar = rankO > 0 ? matMul(matMul(ToT, A1), To) : [[]];
@@ -438,10 +500,14 @@ export function balancedTruncation(A, B, C, D, order, opts = {}) {
   // T = Lc V Σ^-1/2 and T^-1 = Σ^-1/2 Uᵀ Loᵀ.
   const LoT   = matTranspose(Lo);
   const LoTLc = matMul(LoT, Lc);  // n×n
-  const { U, S: hsvd, V } = computeSVD(LoTLc);
-  const hsvScale = hsvd[0] ?? 0;
+  const { U, S: rawHsvd, V } = computeSVD(LoTLc);
+  const hsvScale = rawHsvd[0] ?? 0;
+  const hsvTolerance = Math.max(tol, Math.sqrt(Number.EPSILON));
+  const hsvd = rawHsvd.map((value) => (
+    hsvScale > 0 && value <= hsvTolerance * hsvScale ? 0 : value
+  ));
   const effectiveRank = hsvScale > 0
-    ? hsvd.filter((value) => value > tol * hsvScale).length
+    ? hsvd.filter((value) => value > 0).length
     : 0;
   if (order > effectiveRank) {
     throw new Error(
@@ -453,7 +519,7 @@ export function balancedTruncation(A, B, C, D, order, opts = {}) {
   // ── Step 4: Balancing transformation (square-root method) ───────────────
   // T  = Lc · V · Σ^{-½}   (n×n)
   // Ti = Σ^{-½} · Uᵀ · Loᵀ  (n×n)
-  const sqrtSigmaInv = hsvd.map((s) => (s > tol ? 1.0 / Math.sqrt(s) : 0));
+  const sqrtSigmaInv = hsvd.map((s) => (s > 0 ? 1.0 / Math.sqrt(s) : 0));
 
   // T columns: T[:,j] = Lc · V[:,j] · sqrtSigmaInv[j]
   const T = Array.from({ length: n }, () => new Array(n).fill(0));
@@ -636,14 +702,16 @@ export function hankelNorm(A, B, C, D, opts = {}) {
  * @returns {{
  *   A: number[][], B: number[][], C: number[][], D: number[][],
  *   hsvd: number[],
- *   hankelNormError: number,
+ *   hankelNormError: number|null,
+ *   hankelNormErrorResolved: boolean,
+ *   hankelNormErrorResolution: number,
  *   hankelLowerBound: number,
  *   hankelNormBound: number,
  *   hankelNormBoundType: 'lower',
- *   hankelOptimalityGap: number,
+ *   hankelOptimalityGap: number|null,
  *   hinfErrorBound: number,
- *   lowerBoundSatisfied: boolean,
- *   hinfUpperBoundSatisfied: boolean,
+ *   lowerBoundSatisfied: boolean|null,
+ *   hinfUpperBoundSatisfied: boolean|null,
  *   order: number,
  *   method: string,
  *   algorithm: string,
@@ -689,22 +757,35 @@ export function balancedTruncationErrorAudit(A, B, C, D, k, opts = {}) {
   const BEBEt = matMul(BE, matTranspose(BE));
   const CEtCE = matMul(matTranspose(CE), CE);
 
-  let WcE = matSymmetrize(solveLyapunov(AE,                BEBEt));
-  let WoE = matSymmetrize(solveLyapunov(matTranspose(AE),  CEtCE));
-  for (let i = 0; i < ne; i++) {
-    WcE[i][i] = Math.max(WcE[i][i], tol);
-    WoE[i][i] = Math.max(WoE[i][i], tol);
-  }
-
-  // Hankel norm of error = σ_max(Lc_E^T · Lo_E)
-  const hankelNormError = _hankelNormFromGramians(WcE, WoE, tol);
+  const WcE = matSymmetrize(solveLyapunov(AE,                BEBEt));
+  const WoE = matSymmetrize(solveLyapunov(matTranspose(AE),  CEtCE));
 
   // ── Step 3: H∞ error bound (same as balanced truncation) ────────────────
   const hinfErrorBound = bt.errorBound;
-  const comparisonScale = Math.max(1, hankelNormError, sigma_kp1, hinfErrorBound);
+  // The block error realization contains nearly cancelling retained modes.
+  // Lyapunov solutions lose O(eps) relative information in those directions;
+  // the subsequent Gramian square root therefore has an O(sqrt(eps)) HSV
+  // resolution floor. Do not publish a fabricated "actual error" below it.
+  const hankelNormErrorResolution = Math.sqrt(Number.EPSILON)
+    * Math.max(Number.MIN_VALUE, hsvd[0] ?? 0);
+  const hankelNormErrorResolved = hinfErrorBound > hankelNormErrorResolution;
+  const hankelNormError = hankelNormErrorResolved
+    ? _hankelNormFromGramians(WcE, WoE, tol)
+    : null;
+
+  const comparisonScale = Math.max(
+    Number.MIN_VALUE,
+    hankelNormError ?? 0,
+    sigma_kp1,
+    hinfErrorBound,
+  );
   const comparisonTol = Math.max(tol, Math.sqrt(Number.EPSILON)) * comparisonScale;
-  const lowerBoundSatisfied = hankelNormError + comparisonTol >= sigma_kp1;
-  const hinfUpperBoundSatisfied = hankelNormError <= hinfErrorBound + comparisonTol;
+  const lowerBoundSatisfied = hankelNormErrorResolved
+    ? hankelNormError + comparisonTol >= sigma_kp1
+    : null;
+  const hinfUpperBoundSatisfied = hankelNormErrorResolved
+    ? hankelNormError <= hinfErrorBound + comparisonTol
+    : null;
 
   return {
     A: Ar,
@@ -713,11 +794,15 @@ export function balancedTruncationErrorAudit(A, B, C, D, k, opts = {}) {
     D: Dr,
     hsvd,
     hankelNormError,
+    hankelNormErrorResolved,
+    hankelNormErrorResolution,
     hankelLowerBound: sigma_kp1,
     // Compatibility alias. This is explicitly a lower bound, not an upper bound.
     hankelNormBound: sigma_kp1,
     hankelNormBoundType: 'lower',
-    hankelOptimalityGap: Math.max(0, hankelNormError - sigma_kp1),
+    hankelOptimalityGap: hankelNormErrorResolved
+      ? Math.max(0, hankelNormError - sigma_kp1)
+      : null,
     hinfErrorBound,
     lowerBoundSatisfied,
     hinfUpperBoundSatisfied,

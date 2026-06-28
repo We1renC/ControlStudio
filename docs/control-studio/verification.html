@@ -1309,8 +1309,109 @@ C = [1, 0]</code></pre>
 
 <ul>
 <li>Numeric core: <code>control-studio/js/control/model_reduction.js</code></li>
-<li>Runners: <code>verify_p25_model_reduction.mjs</code> 31/31, <code>verify_p25_hankel.mjs</code> 29/29</li>
+<li>Runners: <code>verify_p25_model_reduction.mjs</code> 35/35, <code>verify_p25_hankel.mjs</code> 29/29</li>
 <li>Failure mode: accepting non-Hurwitz Gramians, clamping exact zero HSVs upward, retaining zero-energy modes, or deleting an active unstable mode must fail</li>
+</ul>
+
+<h2 id="case-17-structural-minreal-rank-and-hankel-resolution">Case 17: Structural Minreal Rank and Hankel Resolution</h2>
+
+<h3 id="purpose">Purpose</h3>
+
+<p>驗證 minimum realization 的 Kalman structural rank 不會因形成 Gram product 而平方條件數，</p>
+<p>並確保 balanced-truncation error audit 不會把低於 double-precision 解析度的數值噪聲</p>
+<p>宣稱為 actual Hankel error。</p>
+
+<h3 id="direct-kalman-svd-counterexample">Direct Kalman SVD Counterexample</h3>
+
+<p>考慮不穩定但完全可控的 realization：</p>
+
+<pre><code class="lang-text">A = diag(1, 2)
+B = [1, 1e-5]^T
+C = [1, 1]</code></pre>
+
+<p>其 controllability matrix 為：</p>
+
+<pre><code class="lang-text">Ck = [B, AB] = [[1, 1],
+                 [1e-5, 2e-5]]
+sigma(Ck) approximately [1.4142135625, 7.071067811e-6]</code></pre>
+
+<p>在 <code>tol=1e-8</code>、shape factor 2 下：</p>
+
+<pre><code class="lang-text">7.071e-6 &gt; 2 * 1e-8 * 1.414
+rank(Ck) = 2</code></pre>
+
+<p>舊路徑對 <code>Ck*Ck^T</code> 做 SVD，奇異值比例被平方到約 <code>2.5e-11</code>，錯判 rank 1，</p>
+<p>並刪除可控的不穩定 pole <code>+2</code>。新版直接對 wide <code>Ck</code> 的 transpose 做 SVD，</p>
+<p>由 right singular vectors取得 <code>Ck</code> 的 left subspace，必須保留 order 2。</p>
+
+<p>Dual observability fixture：</p>
+
+<pre><code class="lang-text">A = diag(1, 2)
+B = [1, 1]^T
+C = [1, 1e-5]</code></pre>
+
+<p>同樣要求 <code>rank(Ok)=2</code>，不可刪除 pole <code>+2</code>。</p>
+
+<h3 id="hankel-numerical-resolution">Hankel Numerical Resolution</h3>
+
+<p>對 stable nonminimal fixture：</p>
+
+<pre><code class="lang-text">A = [[-1, 0.5, 0],
+     [ 0,-2,   0.3],
+     [ 0, 0,  -5]]
+B = [1,1,1]^T
+C = [1,0.5,0]</code></pre>
+
+<p>原三階 transfer function：</p>
+
+<pre><code class="lang-text">G(s) = (1.5 s^2 + 10.65 s + 15.3) /
+       (s^3 + 8 s^2 + 17 s + 10)</code></pre>
+
+<p>與 order-2 BT model：</p>
+
+<pre><code class="lang-text">G2(s) = (1.5 s + 7.65) / (s^2 + 6 s + 5)</code></pre>
+
+<p>因 <code>(1.5s+7.65)(s+2)</code> 等於原 numerator，兩者存在 exact cancellation，</p>
+<p>正確第三 HSV 與 tail error bound 都是 0。Lyapunov solve 具有 <code>O(eps)</code> relative</p>
+<p>noise，Gramian square root 的 HSV resolution floor 是：</p>
+
+<pre><code class="lang-text">resolution = sqrt(Number.EPSILON) * sigma1
+           = 1.1424e-8</code></pre>
+
+<p>舊實作把 numerical artifact <code>sigma3=4.1394e-10</code> 當成真實 mode，再從 singular</p>
+<p>error realization 產生 <code>hankelNormError=1.2194e-8</code>；它甚至以 absolute tolerance</p>
+<p>把此值標成小於 <code>hinfErrorBound=8.2788e-10</code>。新版必須回傳：</p>
+
+<pre><code class="lang-text">hsvd[2] = 0
+hankelLowerBound = 0
+hinfErrorBound = 0
+hankelNormError = null
+hankelNormErrorResolved = false
+lowerBoundSatisfied = null
+hinfUpperBoundSatisfied = null</code></pre>
+
+<p><code>null</code> 表示無法可靠量測，不表示 error 等於 0；exact-zero bounds 由 cancellation</p>
+<p>與 numerical-rank contract 分別提供證據。</p>
+
+<h3 id="expected-assertions">Expected Assertions</h3>
+
+<ul>
+<li>weak controllability fixture reports <code>controllableRank=2</code>, <code>order=2</code></li>
+<li>weak observability fixture reports <code>observableRank=2</code>, <code>order=2</code></li>
+<li>both reduced traces remain 3, proving poles <code>+1,+2</code> are retained</li>
+<li>exact-cancellation fixture reports third HSV and BT tail bound equal to 0</li>
+<li>sub-resolution actual error uses nullable unresolved semantics</li>
+<li>ordinary resolvable fixtures still report finite actual Hankel error and satisfy theorem bounds</li>
+</ul>
+
+<h3 id="fixture-contract">Fixture Contract</h3>
+
+<ul>
+<li>Numeric core: <code>control-studio/js/control/model_reduction.js</code></li>
+<li>Runners: <code>verify_p25_model_reduction.mjs</code> 35/35, <code>verify_p25_hankel.mjs</code> 29/29</li>
+<li>Full gate: <code>npm run verify:all</code> 131/131</li>
+<li>Failure mode: Gram-product structural rank, deleting a weak unstable mode, publishing a</li>
+<p>  sub-resolution actual error, or treating unresolved as theorem success must fail</p>
 </ul>
 
 <h2 id="phase-24-advanced-mpc-verification-addendum">Phase 24 Advanced MPC Verification Addendum</h2>

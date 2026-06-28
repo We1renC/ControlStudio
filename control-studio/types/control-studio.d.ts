@@ -901,7 +901,7 @@ export function balancedTruncation(
 
 export function minrealSS(
   A: Matrix, B: Matrix, C: Matrix, D: Matrix,
-  opts?: { tol?: number }
+  opts?: { tol?: number; useGramian?: boolean }
 ): MinrealSSResult;
 
 // ============================================================================

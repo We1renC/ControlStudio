@@ -160,12 +160,18 @@ console.log('\n── balancedTruncationErrorAudit ─────────�
   const C = [[1,0.5,0]];
   const D = [[0]];
   const r = hankelNormApprox(A, B, C, D, 2);
-  ok('Test 10: σ_{k+1} ≤ hankelNormError',
-    r.hankelNormError + 1e-10 >= r.hankelLowerBound,
-    `lower=${r.hankelLowerBound.toExponential(4)}, err=${r.hankelNormError.toExponential(4)}`);
-  ok('Test 10: near-zero error respects BT H∞ bound within numerical floor',
-    r.hinfUpperBoundSatisfied,
-    `err=${r.hankelNormError.toExponential(4)}, upper=${r.hinfErrorBound.toExponential(4)}`);
+  ok('Test 10: sub-resolution actual Hankel error is not fabricated',
+    r.hankelNormErrorResolved === false
+      && r.hankelNormError === null
+      && r.lowerBoundSatisfied === null
+      && r.hinfUpperBoundSatisfied === null,
+    `resolution=${r.hankelNormErrorResolution.toExponential(4)}`);
+  ok('Test 10: exact cancelled mode has zero theorem bounds',
+    r.hankelLowerBound === 0
+      && r.hinfErrorBound === 0
+      && r.hinfErrorBound < r.hankelNormErrorResolution,
+    `lower=${r.hankelLowerBound.toExponential(4)}, upper=${r.hinfErrorBound.toExponential(4)}, ` +
+    `resolution=${r.hankelNormErrorResolution.toExponential(4)}`);
 }
 
 // ── Test 11: BT can be strictly above the optimal HNA lower bound ───────────

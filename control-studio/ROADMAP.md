@@ -1,7 +1,7 @@
 # ControlStudio Development Roadmap
 
 > Last updated: 2026-06-28
-> Current committed baseline: `fix(zero-flaw): enforce Hankel stability and rank`
+> Current committed baseline: `fix(zero-flaw): preserve structural minreal rank`
 > Scope: this is the canonical execution roadmap for ControlStudio implementation status.
 > Do not use this file for product vision, proof derivations, or handoff notes; see the document workflow below.
 
@@ -137,6 +137,7 @@ Before starting any new functional work that is not already a finished P-phase, 
 | **ZF13** | **Zero-Flaw Loop 13: exact continuous/discrete Gramians + coupled Hankel singular values** | Done | `verify_p39_uiux_p2_batch2.mjs` (73), `verify_p55_b24_b43_b44.mjs` (82), verification Case 14, browser walkthrough |
 | **ZF14** | **Zero-Flaw Loop 14: square-root balancing orientation + honest BT/HNA error contracts** | Done | `verify_p25_model_reduction.mjs` (23), `verify_p25_hankel.mjs` (27), verification Case 15 |
 | **ZF15** | **Zero-Flaw Loop 15: Hurwitz gating + exact zero-HSV/rank semantics** | Done | `verify_p25_model_reduction.mjs` (31), `verify_p25_hankel.mjs` (29), verification Case 16 |
+| **ZF16** | **Zero-Flaw Loop 16: direct Kalman SVD + honest sub-resolution Hankel error** | Done | `verify_p25_model_reduction.mjs` (35), `verify_p25_hankel.mjs` (29), verification Case 17 |
 | **P34-01** | **Module split: P62-P65 → js/ui/ sub-modules** | Done | Verify scripts updated to check module files |
 | **J1-3** | **Root Locus geometric annotations (damping lines, ωn arcs, Ku labels)** | Done | `verify_j13_rlocus_geo.mjs` |
 | **H1-4** | **Sidebar Quick Pin (non-emoji section pin, localStorage, max 3, float to top)** | Done | `verify_h14_sidebar_pin.mjs` |
@@ -259,6 +260,8 @@ Per `docs/src/control-studio/functional-roadmap.html`. Tier A-J deterministic ba
 
 **Zero-Flaw Loop 15 closure:** public Hankel metrics and balanced truncation now reject non-Hurwitz realizations before solving Gramians. This closes cases where `A=[1]` was converted from a negative Gramian into a fake `1e-10` HSV and `A=diag(1,-2)` produced an approximately `1e10` HSV plus a plausible-looking reduced stable mode. Gramian factorization no longer lifts exact zero-energy modes to the tolerance floor; diagnostics report controllability/observability rank and minimality, while balanced truncation rejects requested orders above the Hankel numerical rank. `minrealSS()` now uses structural Kalman matrices for unstable realizations instead of applying stable-system Gramian logic.
 
+**Zero-Flaw Loop 16 closure:** `minrealSS()` now defaults to direct SVD of the Kalman controllability and observability matrices. The former `Ck*Ck^T` / `Ok^T*Ok` path squared the condition number and deleted weak but structurally valid directions; the analytic unstable fixture with singular values `1.4142` and `7.0711e-6` was incorrectly reduced from order 2 to order 1 at `tol=1e-8`, dropping pole `+2`. Stable Gramian rank remains an explicit `useGramian:true` energy-based opt-in. Hankel numerical rank now uses the `sqrt(machine epsilon)` floor implied by Lyapunov-plus-factorization arithmetic, so exact cancelled modes are zero rather than tolerance-sized pseudo-modes. `balancedTruncationErrorAudit()` returns `hankelNormError=null`, `hankelNormErrorResolved=false`, and nullable theorem-comparison flags when the actual error lies below this resolution; it preserves the analytic AAK lower and BT upper bounds without fabricating a measurement.
+
 **DC gain origin-cancellation closure:** continuous TF and ZPK `dcGain()` now cancel removable origin pole-zero factors before evaluating the low-frequency limit. Systems such as `s/s` report finite unity DC gain, extra origin zeros report zero DC gain, and extra origin poles preserve signed infinite gain. This prevents RGA, static decoupler, low-frequency design, and robustness summaries from treating removable integrators as real steady-state singularities.
 
 **Discrete DC gain unit-root closure:** discrete TF `dcGain()` now evaluates the low-frequency limit at `q=z^-1=1` by cancelling removable unit-circle factors. Systems such as `(1-z^-1)/(1-z^-1)` report finite unity DC gain, extra unit-circle zeros report zero DC gain, and extra unit-circle poles report infinite DC gain. This prevents z-domain step final-value checks, C2D DC preservation, and discrete controller comparisons from treating removable unit roots as true steady-state singularities.
@@ -301,7 +304,7 @@ Per `docs/src/control-studio/functional-roadmap.html`. Tier A-J deterministic ba
 | Math audit fixes | 1 | 1 |
 | Functional Roadmap A-J | 22 | 22 |
 | General math & PID | 4 | 4 |
-| Zero-Flaw Loop additions | 15 | 15 |
+| Zero-Flaw Loop additions | 16 | 16 |
 
 ## P1/P2 UI/UX Completion Summary
 

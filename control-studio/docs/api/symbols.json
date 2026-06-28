@@ -1143,7 +1143,7 @@
     "name": "minrealSS",
     "kind": "function",
     "module": "js/control/model_reduction.js",
-    "doc": "Compute the minimum realisation of a state-space system (A, B, C, D) by removing uncontrollable and unobservable states using SVD-based rank tests on the controllability and observability Gramians (or matrices). Algorithm:   1. Compute Wc = controllability Gramian (or Kalman matrix if A unstable)   "
+    "doc": "Compute the minimum realisation of a state-space system (A, B, C, D) by removing uncontrollable and unobservable states using direct SVD-based rank tests on the Kalman controllability and observability matrices. Stable-system Gramian rank tests remain available as an explicit energy-based opt-in. Al"
   },
   {
     "name": "balancedTruncation",

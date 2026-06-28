@@ -20,6 +20,8 @@
  *  13. Unstable minreal uses structural Kalman matrices
  *  14. Gramian diagnostics preserve exact rank deficiency and zero HSVs
  *  15. BT rejects orders above the Hankel numerical rank
+ *  16. Weak controllable direction survives direct Kalman SVD
+ *  17. Weak observable direction survives direct Kalman SVD
  */
 
 import {
@@ -281,6 +283,40 @@ function make3rdOrder() {
     threw = /exceeds Hankel numerical rank 1/.test(error.message);
   }
   ok('Test 15: BT rejects order above Hankel numerical rank', threw);
+}
+
+// Test 16: do not square the Kalman controllability-matrix condition number.
+{
+  // Ck = [[1,1],[1e-5,2e-5]] has singular values approximately
+  // [sqrt(2), 7.071e-6]. At tol=1e-8 it is rank 2. Forming Ck*Ck^T
+  // squares the ratio and incorrectly reports rank 1, deleting the +2 pole.
+  const A = [[1,0],[0,2]];
+  const B = [[1],[1e-5]];
+  const C = [[1,1]];
+  const D = [[0]];
+  const r = minrealSS(A, B, C, D, { tol: 1e-8 });
+  ok('Test 16: weak controllable direction remains structural rank 2',
+    r.controllableRank === 2 && r.order === 2,
+    `rankC=${r.controllableRank}, order=${r.order}`);
+  ok('Test 16: controllable unstable +2 mode is not deleted',
+    close(r.A[0][0] + r.A[1][1], 3, 1e-8),
+    `trace(A_r)=${r.A[0][0] + r.A[1][1]}`);
+}
+
+// Test 17: do not square the Kalman observability-matrix condition number.
+{
+  // Ok = [[1,1e-5],[1,2e-5]] has the same weak but resolvable direction.
+  const A = [[1,0],[0,2]];
+  const B = [[1],[1]];
+  const C = [[1,1e-5]];
+  const D = [[0]];
+  const r = minrealSS(A, B, C, D, { tol: 1e-8 });
+  ok('Test 17: weak observable direction remains structural rank 2',
+    r.observableRank === 2 && r.order === 2,
+    `rankO=${r.observableRank}, order=${r.order}`);
+  ok('Test 17: observable unstable +2 mode is not deleted',
+    close(r.A[0][0] + r.A[1][1], 3, 1e-8),
+    `trace(A_r)=${r.A[0][0] + r.A[1][1]}`);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
