@@ -1414,6 +1414,98 @@ hinfUpperBoundSatisfied = null</code></pre>
 <p>  sub-resolution actual error, or treating unresolved as theorem success must fail</p>
 </ul>
 
+<h2 id="case-18-zero-state-mimo-and-similarity-transfer-equivalence">Case 18: Zero-State MIMO and Similarity Transfer Equivalence</h2>
+
+<h3 id="purpose">Purpose</h3>
+
+<p>驗證 <code>minrealSS()</code> 的結果不只有正確 order，還必須是維度合法、保留 MIMO</p>
+<p>feedthrough，並在任意非奇異 state-coordinate transformation 下維持相同 transfer map。</p>
+
+<h3 id="canonical-zero-state-shape">Canonical Zero-State Shape</h3>
+
+<p>對完全不可控的 2-input / 2-output realization：</p>
+
+<pre><code class="lang-text">A = diag(-1,-2)
+B = [[0,0],[0,0]]
+C = I2
+D = [[1,2],[3,4]]</code></pre>
+
+<p>dynamic transfer 為 0，minimum realization 是 pure feedthrough。零狀態矩陣的標準 shape：</p>
+
+<pre><code class="lang-text">A_r = []          (0 x 0)
+B_r = []          (0 x 2)
+C_r = [[], []]    (2 x 0)
+D_r = D           (2 x 2)</code></pre>
+
+<p><code>[[]]</code> 不是 0-state A matrix，而是 1x0 ragged representation；它會讓 downstream code</p>
+<p>誤判 state count 為 1。完全可控但 <code>C=0_(2x2)</code> 的 fully unobservable fixture 必須回傳</p>
+<p>相同 zero-state shape。Explicit input <code>A=[], B=[], C=[[],[]], D=2x2</code> 也必須可接受。</p>
+
+<h3 id="similarity-invariance">Similarity Invariance</h3>
+
+<p>原始 realization：</p>
+
+<pre><code class="lang-text">A0 = [[-1, 2, 0],
+      [-3,-4, 0],
+      [ 0, 0,-7]]
+B0 = [1,2,0]^T
+C0 = [2,-1,3]
+D  = [0.25]</code></pre>
+
+<p>第三個 mode 不可控，因此 minimum order 是 2。使用 dense invertible matrix：</p>
+
+<pre><code class="lang-text">T = [[1,  2,-1],
+     [0.5,1, 2],
+     [2, -1, 1]]</code></pre>
+
+<p>建立：</p>
+
+<pre><code class="lang-text">A = T A0 T^-1
+B = T B0
+C = C0 T^-1</code></pre>
+
+<p>Kalman decomposition 應滿足：</p>
+
+<pre><code class="lang-text">order(Ar) = 2
+G(jw) = Gr(jw)</code></pre>
+
+<p>在 <code>w=[0,0.1,1,10,100] rad/s</code> 的 deterministic regression：</p>
+
+<pre><code class="lang-text">max |G(jw)-Gr(jw)| = 5.62e-15</code></pre>
+
+<h3 id="input-contract">Input Contract</h3>
+
+<ul>
+<li>A 必須 square 且 finite。</li>
+<li>B 必須為 <code>n x nu</code>，<code>nu&gt;=1</code>。</li>
+<li>C 必須為 <code>ny x n</code>，<code>ny&gt;=1</code>。</li>
+<li>D 必須為 <code>ny x nu</code>。</li>
+<li><code>tol</code> 必須 finite positive。</li>
+<li><code>useGramian</code> 必須 boolean。</li>
+</ul>
+
+<h3 id="expected-assertions">Expected Assertions</h3>
+
+<ul>
+<li>uncontrollable MIMO fixture returns order 0 and preserves 2x2 D</li>
+<li>fully unobservable MIMO fixture returns order 0</li>
+<li>both zero-state C matrices retain two empty output rows</li>
+<li>explicit n=0 MIMO input is accepted</li>
+<li>malformed D and non-positive tolerance are rejected</li>
+<li>dense similarity fixture returns controllability/observability rank 2</li>
+<li>five frequency samples preserve the transfer function below <code>1e-11</code></li>
+</ul>
+
+<h3 id="fixture-contract">Fixture Contract</h3>
+
+<ul>
+<li>Numeric core: <code>control-studio/js/control/model_reduction.js</code></li>
+<li>Runner: <code>verify_p25_model_reduction.mjs</code> 45/45</li>
+<li>Full gate: <code>npm run verify:all</code> 131/131</li>
+<li>Failure mode: malformed rank-0 shapes, lost MIMO outputs/feedthrough, accepting invalid</li>
+<p>  dimensions/options, coordinate-dependent order, or changed transfer response must fail</p>
+</ul>
+
 <h2 id="phase-24-advanced-mpc-verification-addendum">Phase 24 Advanced MPC Verification Addendum</h2>
 
 <p>Phase 24 的 NMPC / EMPC / Tube MPC / Explicit MPC 屬離散時間最佳控制基線，驗證重點不是圖形外觀，而是最佳化問題、約束與閉迴路行為是否符合數學定義。</p>

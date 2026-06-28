@@ -88,7 +88,7 @@ del{color:var(--muted)}
 
 <blockquote>
 <p>Last updated: 2026-06-28</p>
-<p>Current committed baseline: <code>fix(zero-flaw): preserve structural minreal rank</code></p>
+<p>Current committed baseline: <code>fix(zero-flaw): preserve zero-state minreal contracts</code></p>
 <p>Scope: this is the canonical execution roadmap for ControlStudio implementation status.</p>
 <p>Do not use this file for product vision, proof derivations, or handoff notes; see the document workflow below.</p>
 </blockquote>
@@ -285,6 +285,8 @@ del{color:var(--muted)}
 </thead><tbody>
 <tr><td><strong>ZF16</strong></td><td><strong>Zero-Flaw Loop 16: direct Kalman SVD + honest sub-resolution Hankel error</strong></td><td>Done</td><td><code>verify_p25_model_reduction.mjs</code> (35), <code>verify_p25_hankel.mjs</code> (29), verification Case 17</td></tr>
 </thead><tbody>
+<tr><td><strong>ZF17</strong></td><td><strong>Zero-Flaw Loop 17: zero-state MIMO shape + similarity/transfer equivalence</strong></td><td>Done</td><td><code>verify_p25_model_reduction.mjs</code> (45), verification Case 18</td></tr>
+</thead><tbody>
 <tr><td><strong>P34-01</strong></td><td><strong>Module split: P62-P65 → js/ui/ sub-modules</strong></td><td>Done</td><td>Verify scripts updated to check module files</td></tr>
 </thead><tbody>
 <tr><td><strong>J1-3</strong></td><td><strong>Root Locus geometric annotations (damping lines, ωn arcs, Ku labels)</strong></td><td>Done</td><td><code>verify_j13_rlocus_geo.mjs</code></td></tr>
@@ -472,6 +474,8 @@ del{color:var(--muted)}
 
 <p><strong>Zero-Flaw Loop 16 closure:</strong> <code>minrealSS()</code> now defaults to direct SVD of Kalman controllability/observability matrices instead of Gram products that square the condition number. Weak rank-2 fixtures retain unstable pole <code>+2</code> at <code>tol=1e-8</code>; stable Gramian rank is explicit opt-in. HSV rank uses a <code>sqrt(machine epsilon)</code> floor, and balanced-truncation error audit returns nullable unresolved actual-error fields below that resolution while preserving theorem bounds.</p>
 
+<p><strong>Zero-Flaw Loop 17 closure:</strong> <code>minrealSS()</code> validates matrix shapes/options, supports explicit zero-state systems, and returns canonical <code>A=[]</code>, <code>B=[]</code>, <code>C=ny x 0</code>, <code>D=ny x nu</code> for pure feedthrough MIMO models. Dense similarity-transform regression preserves the order-2 transfer map from a nonminimal order-3 realization with <code>max|G-G_r|=5.62e-15</code>.</p>
+
 <p><strong>DC gain origin-cancellation closure:</strong> continuous TF and ZPK <code>dcGain()</code> now cancel removable origin pole-zero factors before evaluating the low-frequency limit. Systems such as <code>s/s</code> report finite unity DC gain, extra origin zeros report zero DC gain, and extra origin poles preserve signed infinite gain. This prevents RGA, static decoupler, low-frequency design, and robustness summaries from treating removable integrators as real steady-state singularities.</p>
 
 <p><strong>Discrete DC gain unit-root closure:</strong> discrete TF <code>dcGain()</code> now evaluates the low-frequency limit at <code>q=z^-1=1</code> by cancelling removable unit-circle factors. Systems such as <code>(1-z^-1)/(1-z^-1)</code> report finite unity DC gain, extra unit-circle zeros report zero DC gain, and extra unit-circle poles report infinite DC gain. This prevents z-domain step final-value checks, C2D DC preservation, and discrete controller comparisons from treating removable unit roots as true steady-state singularities.</p>
@@ -521,7 +525,7 @@ del{color:var(--muted)}
 </thead><tbody>
 <tr><td>General math &amp; PID</td><td>4</td><td>4</td></tr>
 </thead><tbody>
-<tr><td>Zero-Flaw Loop additions</td><td>16</td><td>16</td></tr>
+<tr><td>Zero-Flaw Loop additions</td><td>17</td><td>17</td></tr>
 </tbody></table>
 
 <h2 id="p1-p2-ui-ux-completion-summary">P1/P2 UI/UX Completion Summary</h2>
@@ -733,9 +737,9 @@ del{color:var(--muted)}
 </thead><tbody>
 <tr><td>P25-01 Balanced truncation</td><td>Done</td><td><code>model_reduction.js</code>, <code>verify_p25_model_reduction.mjs</code></td></tr>
 </thead><tbody>
-<tr><td>P25-02 Hankel metrics + balanced-truncation error audit</td><td>Done</td><td>Hurwitz/rank guards, exact zero-HSV and nullable unresolved-error semantics; P25 runners 35/35 and 29/29</td></tr>
+<tr><td>P25-02 Hankel metrics + balanced-truncation error audit</td><td>Done</td><td>Hurwitz/rank guards, exact zero-HSV and nullable unresolved-error semantics; P25 runners 45/45 and 29/29</td></tr>
 </thead><tbody>
-<tr><td>P25-03 SS minreal / Kalman decomposition</td><td>Done</td><td>direct <code>Ck</code>/<code>Ok</code> SVD in <code>minrealSS</code>, <code>verify_p25_model_reduction.mjs</code> 35/35</td></tr>
+<tr><td>P25-03 SS minreal / Kalman decomposition</td><td>Done</td><td>direct <code>Ck</code>/<code>Ok</code> SVD, zero-state MIMO shape, and similarity transfer equivalence; <code>verify_p25_model_reduction.mjs</code> 45/45</td></tr>
 </tbody></table>
 
 <h3 id="p26-nonlinear-control">P26 — Nonlinear Control</h3>

@@ -390,6 +390,7 @@ del{color:var(--muted)}
 <li>Zero-Flaw Loop 14 audit：修正 square-root balanced truncation 的 SVD orientation，使用 <code>Lo^T Lc=U Sigma V^T</code> 對應 <code>T=Lc V Sigma^-1/2</code> 與 <code>T^-1=Sigma^-1/2 U^T Lo^T</code>。<code>balancedTruncationErrorAudit()</code> 將 <code>sigma_(k+1)</code> 明確定義為 AAK lower bound，另回報 actual BT Hankel error 與 <code>2 sum sigma_i</code> H∞ upper bound；舊 <code>hankelNormApprox()</code> 只保留為 compatibility alias，不再宣稱 Glover optimal HNA。</li>
 <li>Zero-Flaw Loop 15 audit：Hankel metrics / balanced truncation 加入 Hurwitz gate；移除將 zero-energy mode 抬成 tolerance-sized HSV 的 diagonal regularization。<code>gramianDiagnostics()</code> 回報 controllability/observability rank 與 minimality，BT 禁止 requested order 超過 effective Hankel rank；<code>minrealSS()</code> 對 unstable realization 使用 Kalman structural matrices。</li>
 <li>Zero-Flaw Loop 16 audit：<code>minrealSS()</code> 預設直接對 Kalman controllability / observability matrices 做 SVD，不再形成 Gram products 而平方條件數；stable Gramian rank 只保留為 <code>useGramian:true</code> energy-based opt-in。HSV numerical rank 使用 <code>sqrt(machine epsilon)</code> 解析度下限；<code>balancedTruncationErrorAudit()</code> 對低於可信解析度的 actual Hankel error 回傳 <code>null</code> / <code>hankelNormErrorResolved=false</code>，只保留可證明的 AAK lower bound 與 BT upper bound。</li>
+<li>Zero-Flaw Loop 17 audit：<code>minrealSS()</code> 補齊 MIMO/zero-state shape 與 finite/options validation；pure-feedthrough realization 使用 <code>A=[]</code>, <code>B=[]</code>, <code>C=ny x 0</code>, <code>D=ny x nu</code>。Dense similarity-transformed nonminimal fixture 保持 order 與 transfer equivalence，五個頻率點最大誤差 <code>5.62e-15</code>。</li>
 <li>Real Schur symmetric fast path：對 symmetric real matrices 使用 Jacobi orthogonal Schur，修復 3x3 stable real-spectrum reconstruction regression。</li>
 <li>Nonlinear equilibrium classification：<code>classifyEquilibrium()</code> 對 n&gt;2 Jacobian 改用 Faddeev-LeVerrier characteristic polynomial + <code>polyroots()</code>，避免舊 <code>trace(A)/n</code> placeholder 隱藏 saddle / unstable modes。</li>
 <li>Frontend analysis API migration：新 session 預設 <code>Auto API Fallback</code>，FastAPI 成功時使用 Unified API metrics，不可用或 z-domain 時明確 fallback Local JS；root <code>package.json</code> 已提供 <code>npm run verify:*</code> 入口。</li>
@@ -399,7 +400,7 @@ del{color:var(--muted)}
 <h3 id="尚未完成能力">尚未完成能力</h3>
 <ul>
 <li>Functional Roadmap Tier A-J 已完成 deterministic baseline。</li>
-<li>Full verification suite 已納入 control verification fixtures、FastAPI contract fixtures、runtime UI waveform contract、runtime UI stability snapshot contract、runtime UI simulation snapshot / freshness / discrete-domain / effective-loop contract、runtime UI formula display contract、discrete export response contract、deployment readiness gate、deployment reviewer skill gate、runtime UI symbol contract、n-dimensional equilibrium classification regression 與 Zero-Flaw Loop 1~16；目前基線為 <code>131/131 scripts pass</code>，fixture/API contract 為 <code>10/10 cases pass</code>。</li>
+<li>Full verification suite 已納入 control verification fixtures、FastAPI contract fixtures、runtime UI waveform contract、runtime UI stability snapshot contract、runtime UI simulation snapshot / freshness / discrete-domain / effective-loop contract、runtime UI formula display contract、discrete export response contract、deployment readiness gate、deployment reviewer skill gate、runtime UI symbol contract、n-dimensional equilibrium classification regression 與 Zero-Flaw Loop 1~17；目前基線為 <code>131/131 scripts pass</code>，fixture/API contract 為 <code>10/10 cases pass</code>。</li>
 <li>Phase 23 ~ Phase 28 舊缺口已同步收斂：continuous-time ID / Hankel norm / LPV synthesis / dynamic D-K / JSDoc API docs 均已有驗證基線。</li>
 <li>CONTSID、full-order dynamic K fitting、industrial-grade μ synthesis backend 仍可作後續研究擴充，但不再列為目前阻塞項。</li>
 <li>自動產生報告 / 報告模板、Electron packaging、教學模式與 Block Diagram expansion 仍依使用者要求擱置。</li>
@@ -748,6 +749,7 @@ del{color:var(--muted)}
 <li>Done：Zero-Flaw Loop 14 balanced reduction theory contract — corrected square-root SVD orientation、AAK lower-bound / BT H∞ upper-bound semantics、explicit non-optimal metadata、compatibility alias；P25 runners與 verification Case 15 覆蓋。</li>
 <li>Done：Zero-Flaw Loop 15 Hankel stability/rank contract — public Hurwitz gate、exact zero-HSV preservation、controllability/observability rank + minimality metadata、BT effective-rank guard、unstable minreal structural fallback；P25 runners與 verification Case 16 覆蓋。</li>
 <li>Done：Zero-Flaw Loop 16 structural minreal / numerical-resolution contract — direct Kalman-matrix SVD avoids squared condition numbers；weak controllable/observable unstable modes remain order 2，exact cancellation HSV 回到 0，sub-resolution actual Hankel error 使用 nullable unresolved semantics；P25 runners與 verification Case 17 覆蓋。</li>
+<li>Done：Zero-Flaw Loop 17 zero-state MIMO / transfer-equivalence contract — canonical zero-state shapes、A/B/C/D/options guards、dense similarity order invariance 與 frequency-response equivalence；P25 model-reduction runner 45/45 與 verification Case 18 覆蓋。</li>
 <li>Done：Math-core audit round 2 — 三項修正：(A1) <code>stabilityMargins()</code> 改為收集所有增益/相位交越點，回傳最壞情況 PM/GM，修正非最小相位系統只回傳第一個交越的問題；(A2) <code>matDet()</code> 加入 <code>_matDetLU()</code> fallback，n&gt;6 改用 O(n³) LU 消去而非 O(n!) 餘因子遞迴，並補 n=3 Sarrus 閉合公式；(A3) <code>sortRootLocusBranches()</code> 改用 Jonker-Volgenant O(n³) Hungarian 最優分配，取代 greedy nearest-neighbor，消除根軌跡分支在實軸附近交越時的視覺錯位。verify baseline 升至 82/82。</li>
 <li>Execution roadmap：詳細執行看板與文件工作流以 <code>control-studio/ROADMAP.md</code> 為準；本文件保留產品/架構層級摘要。</li>
 </ul>
@@ -780,7 +782,7 @@ del{color:var(--muted)}
 <li>先讀本文件，再動手修改控制系統相關檔案。</li>
 <li>若修改數值核心、API 分析輸出或穩定性指標，需對照 <code>docs/src/control-studio/verification.md</code> 的案例與數學推導。</li>
 <li>後續開發順序以 <code>control-studio/ROADMAP.md</code> 為準；詳細 task ledger 再對照 <code>docs/src/control-studio/backlog.md</code>。</li>
-<li>目前非 paused roadmap 已到 131/131 verification baseline，fixture/API contract 已到 10/10，Zero-Flaw Loop 已完成 1~16；若啟動下一階段，先更新 <code>control-studio/ROADMAP.md</code>，再同步 <code>docs/src/control-studio/backlog.md</code> 與 <code>docs/src/control-studio/skills.md</code> 的範圍、技能邊界與驗證基線。</li>
+<li>目前非 paused roadmap 已到 131/131 verification baseline，fixture/API contract 已到 10/10，Zero-Flaw Loop 已完成 1~17；若啟動下一階段，先更新 <code>control-studio/ROADMAP.md</code>，再同步 <code>docs/src/control-studio/backlog.md</code> 與 <code>docs/src/control-studio/skills.md</code> 的範圍、技能邊界與驗證基線。</li>
 <li>若新增控制系統分析功能，必須補：</li>
 <ul>
 <li>文件</li>

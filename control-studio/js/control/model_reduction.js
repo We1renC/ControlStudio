@@ -168,6 +168,38 @@ function validateStateSpaceDimensions(A, B, C) {
   }
 }
 
+function validateMinrealDimensions(A, B, C, D) {
+  if (![A, B, C, D].every(Array.isArray)) {
+    throw new Error('minrealSS requires A, B, C, and D matrices');
+  }
+  const n = A.length;
+  if (A.some((row) => !Array.isArray(row) || row.length !== n)) {
+    throw new Error('minrealSS requires a square A matrix');
+  }
+  if (B.length !== n || B.some((row) => !Array.isArray(row))) {
+    throw new Error('minrealSS requires B to have n rows');
+  }
+  if (!C.length || C.some((row) => !Array.isArray(row) || row.length !== n)) {
+    throw new Error('minrealSS requires C to have n columns and at least one output');
+  }
+
+  const inputs = n > 0 ? B[0].length : D[0]?.length;
+  if (!Number.isInteger(inputs) || inputs <= 0
+      || B.some((row) => row.length !== inputs)) {
+    throw new Error('minrealSS requires B to have at least one consistent input column');
+  }
+  if (D.length !== C.length
+      || D.some((row) => !Array.isArray(row) || row.length !== inputs)) {
+    throw new Error('minrealSS requires D shape to match outputs by inputs');
+  }
+  for (const matrix of [A, B, C, D]) {
+    if (matrix.some((row) => row.some((value) => !Number.isFinite(value)))) {
+      throw new Error('minrealSS requires finite matrix entries');
+    }
+  }
+  return { n, inputs, outputs: C.length };
+}
+
 function characteristicPolynomial(A) {
   const n = A.length;
   const coefficients = [1];
@@ -349,13 +381,33 @@ export function gramianDiagnostics(A, B, C, D = [[0]], opts = {}) {
 export function minrealSS(A, B, C, D, opts = {}) {
   const tol        = opts.tol        ?? 1e-8;
   const useGramian = opts.useGramian ?? false;
+  if (!Number.isFinite(tol) || tol <= 0) {
+    throw new Error('minrealSS tolerance must be finite and positive');
+  }
+  if (typeof useGramian !== 'boolean') {
+    throw new Error('minrealSS useGramian must be boolean');
+  }
 
-  const n  = A.length;
-  const nu = B[0].length;
-  const ny = C.length;
+  const {
+    n,
+    inputs: nu,
+    outputs: ny,
+  } = validateMinrealDimensions(A, B, C, D);
 
-  if (n === 0) return { A, B, C, D, order: 0, removedStates: 0,
-    isControllable: true, isObservable: true, controllableRank: 0, observableRank: 0 };
+  if (n === 0) {
+    return {
+      A: [],
+      B: [],
+      C: Array.from({ length: ny }, () => []),
+      D: D.map((row) => [...row]),
+      order: 0,
+      removedStates: 0,
+      isControllable: true,
+      isObservable: true,
+      controllableRank: 0,
+      observableRank: 0,
+    };
+  }
 
   // ── Step 1: controllability rank ────────────────────────────────────────
   let controllableSubspace;
@@ -393,10 +445,18 @@ export function minrealSS(A, B, C, D, opts = {}) {
   const D1 = D;
 
   if (rankC === 0) {
-    return { A: [[]], B: [[]], C: [[]], D: D1,
-      order: 0, removedStates: n,
-      isControllable: n === rankC, isObservable: false,
-      controllableRank: 0, observableRank: 0 };
+    return {
+      A: [],
+      B: [],
+      C: Array.from({ length: ny }, () => []),
+      D: D1,
+      order: 0,
+      removedStates: n,
+      isControllable: false,
+      isObservable: true,
+      controllableRank: 0,
+      observableRank: 0,
+    };
   }
 
   // ── Step 2: observability rank (on reduced system) ───────────────────────
@@ -425,9 +485,11 @@ export function minrealSS(A, B, C, D, opts = {}) {
   const To = observableSubspace.basis;
   const ToT = matTranspose(To);
 
-  const Ar = rankO > 0 ? matMul(matMul(ToT, A1), To) : [[]];
-  const Br = rankO > 0 ? matMul(ToT, B1)              : [[]];
-  const Cr = rankO > 0 ? matMul(C1, To)               : [[]];
+  const Ar = rankO > 0 ? matMul(matMul(ToT, A1), To) : [];
+  const Br = rankO > 0 ? matMul(ToT, B1)              : [];
+  const Cr = rankO > 0
+    ? matMul(C1, To)
+    : Array.from({ length: ny }, () => []);
 
   return {
     A: Ar, B: Br, C: Cr, D: D1,

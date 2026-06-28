@@ -22,6 +22,10 @@
  *  15. BT rejects orders above the Hankel numerical rank
  *  16. Weak controllable direction survives direct Kalman SVD
  *  17. Weak observable direction survives direct Kalman SVD
+ *  18. Zero-order MIMO realization preserves ny-by-nu feedthrough shape
+ *  19. Fully unobservable MIMO dynamics reduce to a valid zero-order model
+ *  20. Matrix and tolerance contracts reject malformed inputs
+ *  21. Dense similarity transform preserves order and transfer function
  */
 
 import {
@@ -30,6 +34,8 @@ import {
   gramianDiagnostics,
 } from '../js/control/model_reduction.js';
 import { stateSpaceToTransferFunction }   from '../js/control/state-space.js';
+import { matInverse, matMul } from '../js/math/matrix.js';
+import { Complex } from '../js/math/complex.js';
 
 let passed = 0, failed = 0;
 
@@ -317,6 +323,91 @@ function make3rdOrder() {
   ok('Test 17: observable unstable +2 mode is not deleted',
     close(r.A[0][0] + r.A[1][1], 3, 1e-8),
     `trace(A_r)=${r.A[0][0] + r.A[1][1]}`);
+}
+
+// Test 18: a completely uncontrollable MIMO realization is pure feedthrough.
+{
+  const A = [[-1,0],[0,-2]];
+  const B = [[0,0],[0,0]];
+  const C = [[1,0],[0,1]];
+  const D = [[1,2],[3,4]];
+  const r = minrealSS(A, B, C, D);
+  ok('Test 18: uncontrollable MIMO dynamics reduce to zero states',
+    r.order === 0 && r.A.length === 0 && r.B.length === 0);
+  ok('Test 18: zero-state C preserves two output rows',
+    r.C.length === 2 && r.C.every((row) => row.length === 0));
+  ok('Test 18: 2x2 feedthrough is preserved',
+    r.D.length === 2
+      && r.D[0].length === 2
+      && r.D[0][0] === 1
+      && r.D[1][1] === 4);
+}
+
+// Test 19: controllable but fully unobservable MIMO dynamics are also static.
+{
+  const A = [[-1,0],[0,-2]];
+  const B = [[1,0],[0,1]];
+  const C = [[0,0],[0,0]];
+  const D = [[0,0],[0,0]];
+  const r = minrealSS(A, B, C, D);
+  ok('Test 19: unobservable MIMO dynamics reduce to zero states',
+    r.controllableRank === 2
+      && r.observableRank === 0
+      && r.order === 0
+      && r.A.length === 0
+      && r.B.length === 0);
+  ok('Test 19: zero-state output matrix remains 2x0',
+    r.C.length === 2 && r.C.every((row) => row.length === 0));
+}
+
+// Test 20: malformed state-space and numerical options fail explicitly.
+{
+  let malformedShape = false;
+  try {
+    minrealSS([[-1,0],[0,-2]], [[1],[0]], [[1,0]], [[0,0]]);
+  } catch (error) {
+    malformedShape = /D shape/.test(error.message);
+  }
+  ok('Test 20: mismatched D shape is rejected', malformedShape);
+
+  let invalidTolerance = false;
+  try {
+    minrealSS([[-1]], [[1]], [[1]], [[0]], { tol: 0 });
+  } catch (error) {
+    invalidTolerance = /tolerance/.test(error.message);
+  }
+  ok('Test 20: non-positive tolerance is rejected', invalidTolerance);
+
+  const staticMimo = minrealSS([], [], [[], []], [[1,2],[3,4]]);
+  ok('Test 20: explicit zero-state MIMO input is accepted',
+    staticMimo.order === 0
+      && staticMimo.C.length === 2
+      && staticMimo.D[1][1] === 4);
+}
+
+// Test 21: Kalman decomposition must be invariant under a dense similarity map.
+{
+  const A0 = [[-1,2,0],[-3,-4,0],[0,0,-7]];
+  const B0 = [[1],[2],[0]];
+  const C0 = [[2,-1,3]];
+  const D = [[0.25]];
+  const T = [[1,2,-1],[0.5,1,2],[2,-1,1]];
+  const Ti = matInverse(T);
+  const A = matMul(matMul(T, A0), Ti);
+  const B = matMul(T, B0);
+  const C = matMul(C0, Ti);
+  const r = minrealSS(A, B, C, D, { tol: 1e-10 });
+  const fullTf = stateSpaceToTransferFunction(A, B, C, D);
+  const reducedTf = stateSpaceToTransferFunction(r.A, r.B, r.C, r.D);
+  const frequencies = [0, 0.1, 1, 10, 100];
+  const maxError = Math.max(...frequencies.map((omega) => {
+    const s = new Complex(0, omega);
+    return fullTf.evalAt(s).sub(reducedTf.evalAt(s)).magnitude;
+  }));
+  ok('Test 21: dense similarity realization reduces from order 3 to 2',
+    r.order === 2 && r.controllableRank === 2 && r.observableRank === 2);
+  ok('Test 21: transfer function is preserved across frequency samples',
+    maxError < 1e-11, `max|G-G_r|=${maxError.toExponential(3)}`);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

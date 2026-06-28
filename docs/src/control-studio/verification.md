@@ -1582,6 +1582,106 @@ hinfUpperBoundSatisfied = null
 - Failure mode: Gram-product structural rank, deleting a weak unstable mode, publishing a
   sub-resolution actual error, or treating unresolved as theorem success must fail
 
+## Case 18: Zero-State MIMO and Similarity Transfer Equivalence
+
+### Purpose
+
+驗證 `minrealSS()` 的結果不只有正確 order，還必須是維度合法、保留 MIMO
+feedthrough，並在任意非奇異 state-coordinate transformation 下維持相同 transfer map。
+
+### Canonical Zero-State Shape
+
+對完全不可控的 2-input / 2-output realization：
+
+```text
+A = diag(-1,-2)
+B = [[0,0],[0,0]]
+C = I2
+D = [[1,2],[3,4]]
+```
+
+dynamic transfer 為 0，minimum realization 是 pure feedthrough。零狀態矩陣的標準 shape：
+
+```text
+A_r = []          (0 x 0)
+B_r = []          (0 x 2)
+C_r = [[], []]    (2 x 0)
+D_r = D           (2 x 2)
+```
+
+`[[]]` 不是 0-state A matrix，而是 1x0 ragged representation；它會讓 downstream code
+誤判 state count 為 1。完全可控但 `C=0_(2x2)` 的 fully unobservable fixture 必須回傳
+相同 zero-state shape。Explicit input `A=[], B=[], C=[[],[]], D=2x2` 也必須可接受。
+
+### Similarity Invariance
+
+原始 realization：
+
+```text
+A0 = [[-1, 2, 0],
+      [-3,-4, 0],
+      [ 0, 0,-7]]
+B0 = [1,2,0]^T
+C0 = [2,-1,3]
+D  = [0.25]
+```
+
+第三個 mode 不可控，因此 minimum order 是 2。使用 dense invertible matrix：
+
+```text
+T = [[1,  2,-1],
+     [0.5,1, 2],
+     [2, -1, 1]]
+```
+
+建立：
+
+```text
+A = T A0 T^-1
+B = T B0
+C = C0 T^-1
+```
+
+Kalman decomposition 應滿足：
+
+```text
+order(Ar) = 2
+G(jw) = Gr(jw)
+```
+
+在 `w=[0,0.1,1,10,100] rad/s` 的 deterministic regression：
+
+```text
+max |G(jw)-Gr(jw)| = 5.62e-15
+```
+
+### Input Contract
+
+- A 必須 square 且 finite。
+- B 必須為 `n x nu`，`nu>=1`。
+- C 必須為 `ny x n`，`ny>=1`。
+- D 必須為 `ny x nu`。
+- `tol` 必須 finite positive。
+- `useGramian` 必須 boolean。
+
+### Expected Assertions
+
+- uncontrollable MIMO fixture returns order 0 and preserves 2x2 D
+- fully unobservable MIMO fixture returns order 0
+- both zero-state C matrices retain two empty output rows
+- explicit n=0 MIMO input is accepted
+- malformed D and non-positive tolerance are rejected
+- dense similarity fixture returns controllability/observability rank 2
+- five frequency samples preserve the transfer function below `1e-11`
+
+### Fixture Contract
+
+- Numeric core: `control-studio/js/control/model_reduction.js`
+- Runner: `verify_p25_model_reduction.mjs` 45/45
+- Full gate: `npm run verify:all` 131/131
+- Failure mode: malformed rank-0 shapes, lost MIMO outputs/feedthrough, accepting invalid
+  dimensions/options, coordinate-dependent order, or changed transfer response must fail
+
 ## Phase 24 Advanced MPC Verification Addendum
 
 Phase 24 的 NMPC / EMPC / Tube MPC / Explicit MPC 屬離散時間最佳控制基線，驗證重點不是圖形外觀，而是最佳化問題、約束與閉迴路行為是否符合數學定義。

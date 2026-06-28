@@ -1,7 +1,7 @@
 # ControlStudio Development Roadmap
 
 > Last updated: 2026-06-28
-> Current committed baseline: `fix(zero-flaw): preserve structural minreal rank`
+> Current committed baseline: `fix(zero-flaw): preserve zero-state minreal contracts`
 > Scope: this is the canonical execution roadmap for ControlStudio implementation status.
 > Do not use this file for product vision, proof derivations, or handoff notes; see the document workflow below.
 
@@ -138,6 +138,7 @@ Before starting any new functional work that is not already a finished P-phase, 
 | **ZF14** | **Zero-Flaw Loop 14: square-root balancing orientation + honest BT/HNA error contracts** | Done | `verify_p25_model_reduction.mjs` (23), `verify_p25_hankel.mjs` (27), verification Case 15 |
 | **ZF15** | **Zero-Flaw Loop 15: Hurwitz gating + exact zero-HSV/rank semantics** | Done | `verify_p25_model_reduction.mjs` (31), `verify_p25_hankel.mjs` (29), verification Case 16 |
 | **ZF16** | **Zero-Flaw Loop 16: direct Kalman SVD + honest sub-resolution Hankel error** | Done | `verify_p25_model_reduction.mjs` (35), `verify_p25_hankel.mjs` (29), verification Case 17 |
+| **ZF17** | **Zero-Flaw Loop 17: zero-state MIMO shape + similarity/transfer equivalence** | Done | `verify_p25_model_reduction.mjs` (45), verification Case 18 |
 | **P34-01** | **Module split: P62-P65 → js/ui/ sub-modules** | Done | Verify scripts updated to check module files |
 | **J1-3** | **Root Locus geometric annotations (damping lines, ωn arcs, Ku labels)** | Done | `verify_j13_rlocus_geo.mjs` |
 | **H1-4** | **Sidebar Quick Pin (non-emoji section pin, localStorage, max 3, float to top)** | Done | `verify_h14_sidebar_pin.mjs` |
@@ -262,6 +263,8 @@ Per `docs/src/control-studio/functional-roadmap.html`. Tier A-J deterministic ba
 
 **Zero-Flaw Loop 16 closure:** `minrealSS()` now defaults to direct SVD of the Kalman controllability and observability matrices. The former `Ck*Ck^T` / `Ok^T*Ok` path squared the condition number and deleted weak but structurally valid directions; the analytic unstable fixture with singular values `1.4142` and `7.0711e-6` was incorrectly reduced from order 2 to order 1 at `tol=1e-8`, dropping pole `+2`. Stable Gramian rank remains an explicit `useGramian:true` energy-based opt-in. Hankel numerical rank now uses the `sqrt(machine epsilon)` floor implied by Lyapunov-plus-factorization arithmetic, so exact cancelled modes are zero rather than tolerance-sized pseudo-modes. `balancedTruncationErrorAudit()` returns `hankelNormError=null`, `hankelNormErrorResolved=false`, and nullable theorem-comparison flags when the actual error lies below this resolution; it preserves the analytic AAK lower and BT upper bounds without fabricating a measurement.
 
+**Zero-Flaw Loop 17 closure:** `minrealSS()` now validates finite A/B/C/D dimensions, positive tolerance, and boolean Gramian mode before decomposition. The formerly unreachable `n=0` branch no longer reads `B[0]` first. Completely uncontrollable or unobservable MIMO systems return the canonical zero-state shape `A=[]`, `B=[]`, `C=ny x 0`, preserving `D=ny x nu`, instead of malformed `[[]]` matrices that lost output cardinality. A dense similarity-transformed order-3 realization with one hidden mode reduces to order 2 while preserving its SISO transfer map over five frequency samples (`max|G-G_r|=5.62e-15`).
+
 **DC gain origin-cancellation closure:** continuous TF and ZPK `dcGain()` now cancel removable origin pole-zero factors before evaluating the low-frequency limit. Systems such as `s/s` report finite unity DC gain, extra origin zeros report zero DC gain, and extra origin poles preserve signed infinite gain. This prevents RGA, static decoupler, low-frequency design, and robustness summaries from treating removable integrators as real steady-state singularities.
 
 **Discrete DC gain unit-root closure:** discrete TF `dcGain()` now evaluates the low-frequency limit at `q=z^-1=1` by cancelling removable unit-circle factors. Systems such as `(1-z^-1)/(1-z^-1)` report finite unity DC gain, extra unit-circle zeros report zero DC gain, and extra unit-circle poles report infinite DC gain. This prevents z-domain step final-value checks, C2D DC preservation, and discrete controller comparisons from treating removable unit roots as true steady-state singularities.
@@ -304,7 +307,7 @@ Per `docs/src/control-studio/functional-roadmap.html`. Tier A-J deterministic ba
 | Math audit fixes | 1 | 1 |
 | Functional Roadmap A-J | 22 | 22 |
 | General math & PID | 4 | 4 |
-| Zero-Flaw Loop additions | 16 | 16 |
+| Zero-Flaw Loop additions | 17 | 17 |
 
 ## P1/P2 UI/UX Completion Summary
 
@@ -443,8 +446,8 @@ P3+ UI/UX work is implemented through P66 plus J1-3 and H1-4. Remaining UI/produ
 | Item | Status | Evidence |
 | --- | --- | --- |
 | P25-01 Balanced truncation | Done | `model_reduction.js`, `verify_p25_model_reduction.mjs` |
-| P25-02 Hankel metrics + balanced-truncation error audit | Done | Hurwitz/rank guards, exact zero-HSV semantics, `balancedTruncationErrorAudit` plus compatibility alias in `model_reduction.js`; P25 runners 31/31 and 29/29 |
-| P25-03 SS minreal / Kalman decomposition | Done | `minrealSS`, `verify_p25_model_reduction.mjs` |
+| P25-02 Hankel metrics + balanced-truncation error audit | Done | Hurwitz/rank guards, exact zero-HSV and nullable unresolved-error semantics; P25 runners 45/45 and 29/29 |
+| P25-03 SS minreal / Kalman decomposition | Done | direct Kalman SVD, canonical zero-state MIMO shape, and similarity transfer equivalence; `verify_p25_model_reduction.mjs` 45/45 |
 
 ### P26 — Nonlinear Control
 
